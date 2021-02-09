@@ -25,13 +25,15 @@ TempHumiPres *Sensor::begin(uint8_t i2c_address)
       delay(50);
     }
   }
-  return sensing();
+  time_t tm_now;
+  time(&tm_now);
+  return sensing(tm_now);
 }
 
 //
 //
 //
-TempHumiPres *Sensor::sensing()
+TempHumiPres *Sensor::sensing(const time_t &measured_at)
 {
   if (!healthy())
     return NULL;
@@ -45,6 +47,7 @@ TempHumiPres *Sensor::sensing()
   bme280_pressure->getEvent(&pressure_event);
 
   latest.sensor_id = sensor_id;
+  latest.at = measured_at;
   latest.temperature = temperature_event.temperature;
   latest.relative_humidity = humidity_event.relative_humidity;
   latest.pressure = pressure_event.pressure;

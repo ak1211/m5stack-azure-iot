@@ -7,6 +7,7 @@
 
 #include <Arduino.h>
 #include <cstdint>
+#include <ctime>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 
@@ -16,87 +17,10 @@
 struct TempHumiPres
 {
   const char *sensor_id;
+  time_t at;
   float temperature;       // degree celsius
   float relative_humidity; // %
   float pressure;          // hectopascal
-};
-
-//
-//
-//
-class MeasuredValues
-{
-public:
-  MeasuredValues(TempHumiPres v, RTC_DateTypeDef d, RTC_TimeTypeDef t, int32_t ofs)
-  {
-    temp_humi_pres = v;
-    at.date = d;
-    at.time = t;
-    at.time_offset = ofs;
-  }
-  //
-  struct
-  {
-    RTC_DateTypeDef date;
-    RTC_TimeTypeDef time;
-    int32_t time_offset;
-  } at;
-  TempHumiPres temp_humi_pres;
-
-  //
-  int iso8601Timestamp(char *buf, size_t bufsize) const
-  {
-    if (at.time_offset > 0)
-    {
-      div_t a = div(at.time_offset, 3600);
-      return snprintf(buf, bufsize,
-                      "%04d-%02d-%02d"
-                      "T"
-                      "%02d:%02d:%02d"
-                      "+"
-                      "%02d:%02d",
-                      at.date.Year,
-                      at.date.Month,
-                      at.date.Date,
-                      at.time.Hours,
-                      at.time.Minutes,
-                      at.time.Seconds,
-                      a.quot,
-                      a.rem);
-    }
-    else if (at.time_offset < 0)
-    {
-      div_t a = div(-at.time_offset, 3600);
-      return snprintf(buf, bufsize,
-                      "%04d-%02d-%02d"
-                      "T"
-                      "%02d:%02d:%02d"
-                      "-"
-                      "%02d:%02d",
-                      at.date.Year,
-                      at.date.Month,
-                      at.date.Date,
-                      at.time.Hours,
-                      at.time.Minutes,
-                      at.time.Seconds,
-                      a.quot,
-                      a.rem);
-    }
-    else
-    {
-      return snprintf(buf, bufsize,
-                      "%04d-%02d-%02d"
-                      "T"
-                      "%02d:%02d:%02d"
-                      "Z",
-                      at.date.Year,
-                      at.date.Month,
-                      at.date.Date,
-                      at.time.Hours,
-                      at.time.Minutes,
-                      at.time.Seconds);
-    }
-  }
 };
 
 //
@@ -115,7 +39,7 @@ public:
   //
   TempHumiPres *begin(uint8_t i2c_address = 0x76);
   //
-  TempHumiPres *sensing();
+  TempHumiPres *sensing(const time_t &measured_at);
   //
   TempHumiPres *getLatestTempHumiPres()
   {

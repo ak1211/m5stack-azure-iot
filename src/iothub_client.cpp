@@ -3,6 +3,7 @@
 // See LICENSE file in the project root for full license information.
 //
 #include <M5Core2.h>
+#include <ctime>
 #include <Esp32MQTTClient.h>
 
 #include "credentials.h"
@@ -96,7 +97,7 @@ void IotHubClient::init()
 //
 //
 //
-void IotHubClient::push(const MeasuredValues &v)
+void IotHubClient::push(const TempHumiPres &v)
 {
     const size_t AT_MAX_LEN = 30;
     char *buff = (char *)calloc(AT_MAX_LEN + MESSAGE_MAX_LEN, sizeof(char));
@@ -108,9 +109,14 @@ void IotHubClient::push(const MeasuredValues &v)
     {
         char *at = &buff[0];
         char *messagePayload = &buff[AT_MAX_LEN];
+        struct tm utc;
+        {
+            time_t at = v.at;
+            gmtime_r(&at, &utc);
+        }
         //
         int length;
-        length = v.iso8601Timestamp(at, AT_MAX_LEN);
+        length = strftime(at, AT_MAX_LEN, "%Y-%m-%dT%H:%M:%SZ", &utc);
         assert(length < AT_MAX_LEN);
         //
         length = snprintf(messagePayload, MESSAGE_MAX_LEN,
@@ -122,12 +128,12 @@ void IotHubClient::push(const MeasuredValues &v)
                           "\"humidity\":%.2f, "
                           "\"pressure\":%.2f"
                           "}",
-                          v.temp_humi_pres.sensor_id,
+                          v.sensor_id,
                           message_id++,
                           at,
-                          v.temp_humi_pres.temperature,
-                          v.temp_humi_pres.relative_humidity,
-                          v.temp_humi_pres.pressure);
+                          v.temperature,
+                          v.relative_humidity,
+                          v.pressure);
         assert(length < MESSAGE_MAX_LEN);
         ESP_LOGD("main", "messagePayload:%s", messagePayload);
         // Send teperature data

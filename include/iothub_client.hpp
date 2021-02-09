@@ -15,7 +15,7 @@ class IotHubClient
 {
 public:
     static void init();
-    static void push(const MeasuredValues &v);
+    static void push(const TempHumiPres &v);
     static inline void update(bool hasDelay)
     {
         Esp32MQTTClient_Check(hasDelay);

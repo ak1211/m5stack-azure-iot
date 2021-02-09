@@ -3,8 +3,9 @@
 // See LICENSE file in the project root for full license information.
 //
 #include <M5Core2.h>
-#include <Wifi.h>
 #include <ArduinoOTA.h>
+#include <Wifi.h>
+#include "lwip/apps/sntp.h"
 
 #define LGFX_M5STACK_CORE2
 #include <LovyanGFX.hpp>
@@ -20,12 +21,7 @@ static LGFX lcd;
 const unsigned long background_color = 0x000000U;
 const unsigned long message_text_color = 0xFFFFFFU;
 
-const char firstNtpServer[] = "time.cloudflare.com";
-const char secondNtpServer[] = "ntp.jst.mfeed.ad.jp";
-const int32_t asiaTokyoTimeOffset = 60 * 60 * 9; // UTC +09:00
-
 static Sensor sensor(Credentials.sensor_id);
-
 static const uint32_t PUSH_EVERY_N_SECONDS = 1 * 60;
 
 //
@@ -38,13 +34,18 @@ void releaseEvent(Event &e)
 //
 //
 //
-void display(const MeasuredValues &v)
+void display(const TempHumiPres &v)
 {
   lcd.setCursor(0, 0);
   //
   lcd.setFont(&fonts::lgfxJapanGothic_32);
-  lcd.printf("%4d-%02d-%02d ", v.at.date.Year, v.at.date.Month, v.at.date.Date);
-  lcd.printf("%02d:%02d:%02d\n", v.at.time.Hours, v.at.time.Minutes, v.at.time.Seconds);
+  // time zone offset UTC+9 = asia/tokyo
+  time_t tm = v.at + 9 * 60 * 60;
+  struct tm local;
+  gmtime_r(&tm, &local);
+  //
+  lcd.printf("%4d-%02d-%02d ", 1900 + local.tm_year, 1 + local.tm_mon, local.tm_mday);
+  lcd.printf("%02d:%02d:%02d\n", local.tm_hour, local.tm_min, local.tm_sec);
   //
   lcd.setFont(&fonts::lgfxJapanGothic_28);
   float bus_voltage = M5.Axp.GetVBusVoltage();
@@ -56,9 +57,9 @@ void display(const MeasuredValues &v)
   lcd.printf("Batt: %3.1fV %6.1fmA\n", batt_voltage, batt_current);
   //
   lcd.setFont(&fonts::lgfxJapanGothic_36);
-  lcd.printf("温度 %7.1f ℃\n", v.temp_humi_pres.temperature);
-  lcd.printf("湿度 %7.1f ％\n", v.temp_humi_pres.relative_humidity);
-  lcd.printf("気圧 %7.1f hPa\n", v.temp_humi_pres.pressure);
+  lcd.printf("温度 %7.1f ℃\n", v.temperature);
+  lcd.printf("湿度 %7.1f ％\n", v.relative_humidity);
+  lcd.printf("気圧 %7.1f hPa\n", v.pressure);
   //
   lcd.printf("messageId: %llu\n", IotHubClient::message_id);
 }
@@ -142,37 +143,52 @@ void setup()
   IotHubClient::init();
 
   //
-  // set to local time and date from the NTP server
+  // set to Real Time Clock
   //
-  RTC_DateTypeDef rtcDate;
-  RTC_TimeTypeDef rtcTime;
+  if (sntp_enabled())
   {
-    configTime(asiaTokyoTimeOffset, 0, firstNtpServer, secondNtpServer);
-    struct tm timeInfo;
-    if (!getLocalTime(&timeInfo))
-    {
-      ESP_LOGE("main", "getLocalTime() failed.");
-    }
-    else
-    {
-      rtcTime.Hours = timeInfo.tm_hour;
-      rtcTime.Minutes = timeInfo.tm_min;
-      rtcTime.Seconds = timeInfo.tm_sec;
-      M5.Rtc.SetTime(&rtcTime);
-      //
-      rtcDate.WeekDay = timeInfo.tm_wday;
-      rtcDate.Month = timeInfo.tm_mon + 1;
-      rtcDate.Date = timeInfo.tm_mday;
-      rtcDate.Year = timeInfo.tm_year + 1900;
-      M5.Rtc.SetDate(&rtcDate);
-    }
+    ESP_LOGI("main", "sntp enabled.");
+    //
+    time_t tm_now, tm_ret;
+    struct tm utc;
+    tm_ret = time(&tm_now);
+    ESP_LOGI("main", "tm_ret: %d", tm_ret);
+    gmtime_r(&tm_now, &utc);
+    //
+    RTC_TimeTypeDef rtcTime = {
+        .Hours = static_cast<uint8_t>(utc.tm_hour),
+        .Minutes = static_cast<uint8_t>(utc.tm_min),
+        .Seconds = static_cast<uint8_t>(utc.tm_sec),
+    };
+    M5.Rtc.SetTime(&rtcTime);
+    //
+    RTC_DateTypeDef rtcDate = {
+        .WeekDay = static_cast<uint8_t>(utc.tm_wday),
+        .Month = static_cast<uint8_t>(utc.tm_mon + 1),
+        .Date = static_cast<uint8_t>(utc.tm_mday),
+        .Year = static_cast<uint16_t>(utc.tm_year + 1900),
+    };
+    M5.Rtc.SetDate(&rtcDate);
+  }
+  else
+  {
+    ESP_LOGI("main", "sntp disabled.");
   }
 
   //
   // get time and date from RTC
   //
+  RTC_DateTypeDef rtcDate;
+  RTC_TimeTypeDef rtcTime;
   M5.Rtc.GetDate(&rtcDate);
   M5.Rtc.GetTime(&rtcTime);
+  ESP_LOGI("main", "RTC \"%04d-%02d-%02dT%02d:%02d:%02dZ\"",
+           rtcDate.Year,
+           rtcDate.Month,
+           rtcDate.Date,
+           rtcTime.Hours,
+           rtcTime.Minutes,
+           rtcTime.Seconds);
 
   //
   // initializing sensor
@@ -185,7 +201,7 @@ void setup()
     }
     sensor.printSensorDetails();
     lcd.fillScreen(background_color);
-    display(MeasuredValues(*val, rtcDate, rtcTime, asiaTokyoTimeOffset));
+    display(*val);
   }
 }
 
@@ -203,20 +219,19 @@ void loop()
   {
     count = 0;
     //
-    TempHumiPres *sensed = sensor.sensing();
+    time_t measured_at;
+    time(&measured_at);
+    TempHumiPres *sensed = sensor.sensing(measured_at);
     if (sensed)
     {
-      RTC_DateTypeDef rtcDate;
-      RTC_TimeTypeDef rtcTime;
-      M5.Rtc.GetDate(&rtcDate);
-      M5.Rtc.GetTime(&rtcTime);
-      auto v = MeasuredValues(*sensed, rtcDate, rtcTime, asiaTokyoTimeOffset);
-      display(v);
+      display(*sensed);
       //
-      uint32_t duration = rtcTime.Hours * 3600 + rtcTime.Minutes * 60 + rtcTime.Seconds;
-      if (duration % PUSH_EVERY_N_SECONDS == 0)
+      struct tm utc;
+      gmtime_r(&measured_at, &utc);
+      time_t seconds = utc.tm_hour * 3600 + utc.tm_min * 60 + utc.tm_sec;
+      if (seconds % PUSH_EVERY_N_SECONDS == 0)
       {
-        IotHubClient::push(v);
+        IotHubClient::push(*sensed);
       }
     }
 
