@@ -5,6 +5,7 @@
 #include <M5Core2.h>
 #include <ctime>
 #include <Esp32MQTTClient.h>
+#include "lwip/apps/sntp.h"
 
 #include "credentials.h"
 #include "iothub_client.hpp"
@@ -83,6 +84,46 @@ int IotHubClient::deviceMethodCallback(const char *methodName, const unsigned ch
 //
 //
 //
+void IotHubClient::connectionStatusCallback(IOTHUB_CLIENT_CONNECTION_STATUS result, IOTHUB_CLIENT_CONNECTION_STATUS_REASON reason)
+{
+    switch (reason)
+    {
+    case IOTHUB_CLIENT_CONNECTION_EXPIRED_SAS_TOKEN:
+        // SASトークンの有効期限切れ。
+        ESP_LOGD("main", "SAS token expired.");
+        if (result == IOTHUB_CLIENT_CONNECTION_UNAUTHENTICATED)
+        {
+            //
+            // Info: >>>Connection status: timeout
+            // Info: >>>Re-connect.
+            // Info: Initializing SNTP
+            // assertion "Operating mode must not be set while SNTP client is running" failed: file "/home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/esp-idf/components/lwip/lwip/src/apps/sntp/sntp.c", line 600, function: sntp_setoperatingmode
+            // abort() was called at PC 0x401215bf on core 1
+            //
+            // Esp32MQTTClient 側で再接続時に以上のログが出てabortするので,
+            // この時点で SNTPを停止しておくことで abort を回避する。
+            ESP_LOGD("main", "SAS token expired, stop the SNTP.");
+            sntp_stop();
+        }
+        break;
+    case IOTHUB_CLIENT_CONNECTION_DEVICE_DISABLED:
+        break;
+    case IOTHUB_CLIENT_CONNECTION_BAD_CREDENTIAL:
+        break;
+    case IOTHUB_CLIENT_CONNECTION_RETRY_EXPIRED:
+        break;
+    case IOTHUB_CLIENT_CONNECTION_NO_NETWORK:
+        break;
+    case IOTHUB_CLIENT_CONNECTION_COMMUNICATION_ERROR:
+        break;
+    case IOTHUB_CLIENT_CONNECTION_OK:
+        break;
+    }
+}
+
+//
+//
+//
 void IotHubClient::init()
 {
     Esp32MQTTClient_SetOption(OPTION_MINI_SOLUTION_NAME, "GetStarted");
@@ -92,6 +133,15 @@ void IotHubClient::init()
     Esp32MQTTClient_SetMessageCallback(messageCallback);
     Esp32MQTTClient_SetDeviceTwinCallback(deviceTwinCallback);
     Esp32MQTTClient_SetDeviceMethodCallback(deviceMethodCallback);
+    Esp32MQTTClient_SetConnectionStatusCallback(connectionStatusCallback);
+}
+
+//
+//
+//
+void IotHubClient::terminate()
+{
+    Esp32MQTTClient_Close();
 }
 
 //
@@ -100,7 +150,7 @@ void IotHubClient::init()
 void IotHubClient::push(const TempHumiPres &v)
 {
     const size_t AT_MAX_LEN = 30;
-    char *buff = (char *)calloc(AT_MAX_LEN + MESSAGE_MAX_LEN, sizeof(char));
+    char *buff = (char *)calloc(AT_MAX_LEN + MESSAGE_MAX_LEN + 1, sizeof(char));
     if (buff == NULL)
     {
         ESP_LOGE("main", "memory allocation error.");
