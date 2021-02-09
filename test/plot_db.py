@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 
 
 def take_all_items_from_container(container):
-    item_list = list(container.read_all_items(max_item_count=100))
+    item_list = list(container.read_all_items())
     index = ['measuredAt', 'temperature', 'humidity', 'pressure']
 
     def pickup(item):
