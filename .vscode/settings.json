@@ -1,5 +1,6 @@
 {
     "files.associations": {
         "esp32mqttclient.h": "c"
-    }
+    },
+    "python.formatting.provider": "autopep8"
 }
