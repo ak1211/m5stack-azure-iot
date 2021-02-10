@@ -7,14 +7,15 @@ import sys
 
 
 def list_all_temp_humi_pres(container):
-    item_list = list(container.read_all_items(max_item_count=100))
+    item_list = list(container.read_all_items())
     print('Found {} items'.format(item_list.__len__))
     for doc in item_list:
+        id_ = doc.get('messageId')
         at = doc.get('measuredAt')
         t = doc.get('temperature')
         h = doc.get('humidity')
         p = doc.get('pressure')
-        print('{0}  {1:4.1f}C  {2:4.1f}%  {3:6.1f}hPa'.format(at, t, h, p))
+        print('{0} {1}  {2:4.1f}C  {3:4.1f}%  {4:6.1f}hPa'.format(id_, at, t, h, p))
 
 
 if __name__ == "__main__":

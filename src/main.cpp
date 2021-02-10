@@ -61,7 +61,7 @@ void display(const TempHumiPres &v)
   lcd.printf("湿度 %7.1f ％\n", v.relative_humidity);
   lcd.printf("気圧 %7.1f hPa\n", v.pressure);
   //
-  lcd.printf("messageId: %llu\n", IotHubClient::message_id);
+  lcd.printf("messageId: %u\n", IotHubClient::message_id);
 }
 
 //

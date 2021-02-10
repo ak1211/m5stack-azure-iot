@@ -22,19 +22,13 @@ public:
         Esp32MQTTClient_Check(hasDelay);
     }
     //
-    IotHubClient()
-    {
-        messageSending = true;
-        message_id = 0;
-    }
-    //
     ~IotHubClient()
     {
-        terminate();
+        Esp32MQTTClient_Close();
     }
     //
     static bool messageSending;
-    static uint64_t message_id;
+    static uint32_t message_id;
     static const size_t MESSAGE_MAX_LEN = 512;
 
 private:

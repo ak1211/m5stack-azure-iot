@@ -10,8 +10,8 @@
 #include "credentials.h"
 #include "iothub_client.hpp"
 
-bool IotHubClient::messageSending;
-uint64_t IotHubClient::message_id;
+bool IotHubClient::messageSending = true;
+uint32_t IotHubClient::message_id = 0;
 
 //
 //
@@ -139,26 +139,24 @@ void IotHubClient::init()
 //
 //
 //
-void IotHubClient::terminate()
-{
-    Esp32MQTTClient_Close();
-}
-
-//
-//
-//
 void IotHubClient::push(const TempHumiPres &v)
 {
     const size_t AT_MAX_LEN = 30;
-    char *buff = (char *)calloc(AT_MAX_LEN + MESSAGE_MAX_LEN + 1, sizeof(char));
-    if (buff == NULL)
+    struct chunk
+    {
+        char at[AT_MAX_LEN + 1];
+        char _barrier_zone_;
+        char messagePayload[MESSAGE_MAX_LEN + 1];
+        char _sentinel_of_this_object_;
+    };
+    struct chunk *chunk = {};
+    chunk = (struct chunk *)calloc(1, sizeof(struct chunk));
+    if (chunk == NULL)
     {
         ESP_LOGE("main", "memory allocation error.");
     }
     else
     {
-        char *at = &buff[0];
-        char *messagePayload = &buff[AT_MAX_LEN];
         struct tm utc;
         {
             time_t at = v.at;
@@ -166,31 +164,32 @@ void IotHubClient::push(const TempHumiPres &v)
         }
         //
         int length;
-        length = strftime(at, AT_MAX_LEN, "%Y-%m-%dT%H:%M:%SZ", &utc);
+        length = strftime(chunk->at, AT_MAX_LEN, "%Y-%m-%dT%H:%M:%SZ", &utc);
         assert(length < AT_MAX_LEN);
         //
-        length = snprintf(messagePayload, MESSAGE_MAX_LEN,
+        length = snprintf(chunk->messagePayload, MESSAGE_MAX_LEN,
                           "{"
                           "\"sensorId\":\"%s\", "
-                          "\"messageId\":%llu, "
+                          "\"messageId\":%u, "
                           "\"measuredAt\":\"%s\", "
                           "\"temperature\":%.2f, "
                           "\"humidity\":%.2f, "
                           "\"pressure\":%.2f"
                           "}",
                           v.sensor_id,
-                          message_id++,
-                          at,
+                          message_id,
+                          chunk->at,
                           v.temperature,
                           v.relative_humidity,
                           v.pressure);
         assert(length < MESSAGE_MAX_LEN);
-        ESP_LOGD("main", "messagePayload:%s", messagePayload);
+        ESP_LOGD("main", "messagePayload:%s", chunk->messagePayload);
+        message_id = message_id + 1;
         // Send teperature data
-        EVENT_INSTANCE *message = Esp32MQTTClient_Event_Generate(messagePayload, MESSAGE);
+        EVENT_INSTANCE *message = Esp32MQTTClient_Event_Generate(chunk->messagePayload, MESSAGE);
         Esp32MQTTClient_Event_AddProp(message, "temperatureAlert", "true");
         Esp32MQTTClient_SendEventInstance(message);
     }
     //
-    free(buff);
+    free(chunk);
 }
