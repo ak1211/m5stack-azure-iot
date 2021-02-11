@@ -21,10 +21,10 @@ def take_all_items_from_container(container):
              ('temperature', float),
              ('humidity', float),
              ('pressure', float)]
-    columns, conversions = zip(*pairs)
+    columns, _functions = zip(*pairs)
 
     def pickup(item):
-        return [conv(item.get(col)) for (col, conv) in pairs]
+        return [func(item.get(col)) for (col, func) in pairs]
     #
     data = [pickup(item) for item in item_list]
     return pd.DataFrame(data=data, columns=columns)
