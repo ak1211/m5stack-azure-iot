@@ -141,16 +141,18 @@ void IotHubClient::init()
 //
 void IotHubClient::push(const TempHumiPres &v)
 {
-    const size_t AT_MAX_LEN = 30;
+    // iso8601 format.
+    // "2021-02-11T00:56:00.000+00:00"
+    //  12345678901234567890123456789
+    const size_t AT_MAX_LEN = 29;
     struct chunk
     {
         char at[AT_MAX_LEN + 1];
-        char _barrier_zone_;
+        char _sentinel_;
         char messagePayload[MESSAGE_MAX_LEN + 1];
-        char _sentinel_of_this_object_;
+        char _sentinel__;
     };
-    struct chunk *chunk = {};
-    chunk = (struct chunk *)calloc(1, sizeof(struct chunk));
+    struct chunk *chunk = (struct chunk *)calloc(1, sizeof(struct chunk));
     if (chunk == NULL)
     {
         ESP_LOGE("main", "memory allocation error.");
@@ -158,31 +160,27 @@ void IotHubClient::push(const TempHumiPres &v)
     else
     {
         struct tm utc;
-        {
-            time_t at = v.at;
-            gmtime_r(&at, &utc);
-        }
+        gmtime_r(&v.at, &utc);
         //
-        int length;
-        length = strftime(chunk->at, AT_MAX_LEN, "%Y-%m-%dT%H:%M:%SZ", &utc);
-        assert(length < AT_MAX_LEN);
+        strftime(chunk->at, AT_MAX_LEN, "%Y-%m-%dT%H:%M:%SZ", &utc);
+        assert(chunk->_sentinel_ == '\0');
         //
-        length = snprintf(chunk->messagePayload, MESSAGE_MAX_LEN,
-                          "{"
-                          "\"sensorId\":\"%s\", "
-                          "\"messageId\":%u, "
-                          "\"measuredAt\":\"%s\", "
-                          "\"temperature\":%.2f, "
-                          "\"humidity\":%.2f, "
-                          "\"pressure\":%.2f"
-                          "}",
-                          v.sensor_id,
-                          message_id,
-                          chunk->at,
-                          v.temperature,
-                          v.relative_humidity,
-                          v.pressure);
-        assert(length < MESSAGE_MAX_LEN);
+        snprintf(chunk->messagePayload, MESSAGE_MAX_LEN,
+                 "{"
+                 "\"sensorId\":\"%s\", "
+                 "\"messageId\":%u, "
+                 "\"measuredAt\":\"%s\", "
+                 "\"temperature\":%.2f, "
+                 "\"humidity\":%.2f, "
+                 "\"pressure\":%.2f"
+                 "}",
+                 v.sensor_id,
+                 message_id,
+                 chunk->at,
+                 v.temperature,
+                 v.relative_humidity,
+                 v.pressure);
+        assert(chunk->_sentinel__ == '\0');
         ESP_LOGD("main", "messagePayload:%s", chunk->messagePayload);
         message_id = message_id + 1;
         // Send teperature data

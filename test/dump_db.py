@@ -4,18 +4,23 @@
 
 from azure.cosmos import CosmosClient
 import sys
+from pytz import timezone
+from datetime import datetime
+from dateutil import parser
 
 
 def list_all_temp_humi_pres(container):
     item_list = list(container.read_all_items())
-    print('Found {} items'.format(item_list.__len__))
+    print('Found {} items'.format(item_list.__len__()))
     for doc in item_list:
         id_ = doc.get('messageId')
         at = doc.get('measuredAt')
+        at_asia_tokyo = parser.parse(at).astimezone(timezone('Asia/Tokyo'))
         t = doc.get('temperature')
         h = doc.get('humidity')
         p = doc.get('pressure')
-        print('{0} {1}  {2:4.1f}C  {3:4.1f}%  {4:6.1f}hPa'.format(id_, at, t, h, p))
+        print('{0:4} "{1}" "{2}"  {3:4.1f}C  {4:4.1f}%  {5:6.1f}hPa'.format(
+            id_, at, at_asia_tokyo, t, h, p))
 
 
 if __name__ == "__main__":
