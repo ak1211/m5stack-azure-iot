@@ -55,18 +55,24 @@ void display(const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *sgp)
   //
   lcd.printf("%4d-%02d-%02d ", 1900 + local.tm_year, 1 + local.tm_mon, local.tm_mday);
   lcd.printf("%02d:%02d:%02d\n", local.tm_hour, local.tm_min, local.tm_sec);
-#if 0
   //
-  lcd.setFont(&fonts::lgfxJapanGothic_28);
-  float bus_voltage = M5.Axp.GetVBusVoltage();
-  float bus_current = M5.Axp.GetVBusCurrent();
-  lcd.printf("VBus: %3.1fV %6.1fmA\n", bus_voltage, bus_current);
+  lcd.setFont(&fonts::lgfxJapanGothicP_24);
+  float bat_voltage = M5.Axp.GetBatVoltage();
+  float bat_current = M5.Axp.GetBatCurrent();
+  float full_voltage = 4.2;
+  float shutdown_voltage = 3.1;
+  float bat_level = (bat_voltage - shutdown_voltage) / (full_voltage - shutdown_voltage);
+  lcd.printf("%3.0f%% ", 100.0 * bat_level);
+  lcd.printf(" %3.1fV", bat_voltage);
+  if (bat_current < 0.0)
+  {
+    lcd.printf(" %4.0fmA(DIS)\n", -bat_current);
+  }
+  else
+  {
+    lcd.printf(" %4.0fmA(CHG)\n", bat_current);
+  }
   //
-  float batt_voltage = M5.Axp.GetBatVoltage();
-  float batt_current = M5.Axp.GetBatCurrent();
-  lcd.printf("Batt: %3.1fV %6.1fmA\n", batt_voltage, batt_current);
-  //
-#endif
   lcd.setFont(&fonts::lgfxJapanGothic_28);
   if (bme)
   {
@@ -104,7 +110,7 @@ void setup()
   lcd.init();
   lcd.setTextColor(message_text_color, background_color);
   lcd.setCursor(0, 0);
-  lcd.setFont(&fonts::lgfxJapanGothic_32);
+  lcd.setFont(&fonts::lgfxJapanGothicP_20);
 
   //
   // connect to Wifi network
