@@ -27,7 +27,27 @@ TvocEco2 *Sensor::begin()
   }
   time_t tm_now;
   time(&tm_now);
-  return sensing(tm_now);
+
+  TvocEco2 *result = sensing(tm_now);
+  if (result)
+  {
+    for (int i = 0; i < MOVING_AVERAGES_PERIOD; i++)
+    {
+      periods[i].tvoc = latest.tvoc;
+      periods[i].eCo2 = latest.eCo2;
+    }
+    periods_index = 0;
+  }
+  else
+  {
+    for (int i = 0; i < MOVING_AVERAGES_PERIOD; i++)
+    {
+      periods[i].tvoc = 0;
+      periods[i].eCo2 = 0;
+    }
+    periods_index = 0;
+  }
+  return result;
 }
 
 //
@@ -58,5 +78,24 @@ TvocEco2 *Sensor::sensing(const time_t &measured_at)
   latest.eCo2 = sgp30.eCO2;
   latest.tvoc_baseline = eco2_base;
   latest.eCo2_baseline = tvoc_base;
+
+  // smoothing
+  periods[periods_index].tvoc = latest.tvoc;
+  periods[periods_index].eCo2 = latest.eCo2;
+  // periods_index = (periods_index + 1) % MOVING_AVERAGES_PERIOD
+  periods_index = (periods_index + 1) & (MOVING_AVERAGES_PERIOD - 1);
+
+  uint32_t acc_tvoc = periods[0].tvoc;
+  uint32_t acc_eCo2 = periods[0].eCo2;
+  for (int n = 1; n < MOVING_AVERAGES_PERIOD; n++)
+  {
+    acc_tvoc += periods[n].tvoc;
+    acc_eCo2 += periods[n].eCo2;
+  }
+
+  smoothed = latest;
+  smoothed.tvoc = acc_tvoc >> MOVING_AVERAGES_PERIOD_AS_2N;
+  smoothed.eCo2 = acc_eCo2 >> MOVING_AVERAGES_PERIOD_AS_2N;
+
   return &latest;
 }

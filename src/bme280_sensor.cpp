@@ -3,7 +3,9 @@
 // See LICENSE file in the project root for full license information.
 //
 #include <M5Core2.h>
-#include "sensor.hpp"
+#include "bme280_sensor.hpp"
+
+using namespace Bme280;
 
 //
 //

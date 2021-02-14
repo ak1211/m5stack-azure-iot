@@ -11,6 +11,8 @@
 
 namespace Sgp30
 {
+  static const uint8_t MOVING_AVERAGES_PERIOD_AS_2N = 3; // 2^3 = 8
+  static const uint8_t MOVING_AVERAGES_PERIOD = 1 << MOVING_AVERAGES_PERIOD_AS_2N;
   //
   //
   //
@@ -41,9 +43,14 @@ namespace Sgp30
     //
     TvocEco2 *sensing(const time_t &measured_at);
     //
-    TvocEco2 *getLatestTvocEco2()
+    const TvocEco2 *getLatestTvocEco2()
     {
       return (healthy()) ? &latest : NULL;
+    }
+    //
+    const TvocEco2 *getTvocEco2WithSmoothing()
+    {
+      return (healthy()) ? &smoothed : NULL;
     }
     //
     void printSensorDetails()
@@ -84,7 +91,16 @@ namespace Sgp30
     bool sgp30_healthy;
     //
     const char sensor_id[SENSOR_ID_MAX_LEN + 1];
+    //
+    struct
+    {
+      uint16_t tvoc; // ppb
+      uint16_t eCo2; // ppm
+    } periods[MOVING_AVERAGES_PERIOD];
+    uint8_t periods_index;
+    //
     struct TvocEco2 latest;
+    struct TvocEco2 smoothed;
   };
 }; // namespace Sgp30
 

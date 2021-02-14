@@ -16,11 +16,21 @@ def list_all_temp_humi_pres(container):
         id_ = doc.get('messageId')
         at = doc.get('measuredAt')
         at_asia_tokyo = parser.parse(at).astimezone(timezone('Asia/Tokyo'))
-        t = doc.get('temperature')
-        h = doc.get('humidity')
-        p = doc.get('pressure')
-        print('{0:4} "{1}" "{2}"  {3:4.1f}C  {4:4.1f}%  {5:6.1f}hPa'.format(
-            id_, at, at_asia_tokyo, t, h, p))
+        temp = doc.get('temperature')
+        humi = doc.get('humidity')
+        pres = doc.get('pressure')
+        tvoc = doc.get('tvoc')
+        tvoc_base = doc.get('tvoc_baseline')
+        eCo2 = doc.get('eCo2')
+        eCo2_base = doc.get('eCo2_baseline')
+        #
+        output = '{:4} "{}" "{}"'.format(id_, at, at_asia_tokyo)
+        output += ' {:4.1f}C'.format(temp) if temp is not None else " NaN"
+        output += ' {:4.1f}%'.format(humi) if humi is not None else " NaN"
+        output += ' {:4.1f}hPa'.format(pres) if pres is not None else " NaN"
+        output += ' {:4}ppb'.format(tvoc) if tvoc is not None else " NaN"
+        output += ' {:4}ppm'.format(eCo2) if eCo2 is not None else " NaN"
+        print(output)
 
 
 if __name__ == "__main__":

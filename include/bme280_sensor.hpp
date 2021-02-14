@@ -2,76 +2,78 @@
 // Licensed under the MIT License <https://spdx.org/licenses/MIT.html>
 // See LICENSE file in the project root for full license information.
 //
-#ifndef SENSOR_HPP
-#define SENSOR_HPP
+#ifndef BME280_SENSOR_HPP
+#define BME280_SENSOR_HPP
 
-#include <Arduino.h>
 #include <cstdint>
 #include <ctime>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 
-//
-//
-//
-struct TempHumiPres
+namespace Bme280
 {
-  const char *sensor_id;
-  time_t at;
-  float temperature;       // degree celsius
-  float relative_humidity; // %
-  float pressure;          // hectopascal
-};
+  //
+  //
+  //
+  struct TempHumiPres
+  {
+    const char *sensor_id;
+    time_t at;
+    float temperature;       // degree celsius
+    float relative_humidity; // %
+    float pressure;          // hectopascal
+  };
 
-//
-//
-//
-class Sensor
-{
-public:
-  static const size_t SENSOR_ID_MAX_LEN = 50;
-  Sensor(const char *custom_sensor_id) : sensor_id("")
+  //
+  //
+  //
+  class Sensor
   {
-    memset(const_cast<char *>(sensor_id), 0, SENSOR_ID_MAX_LEN + 1);
-    strncpy(const_cast<char *>(sensor_id), custom_sensor_id, SENSOR_ID_MAX_LEN);
-    bme280_temperature = bme280_pressure = bme280_humidity = NULL;
-  }
-  //
-  TempHumiPres *begin(uint8_t i2c_address = 0x76);
-  //
-  TempHumiPres *sensing(const time_t &measured_at);
-  //
-  TempHumiPres *getLatestTempHumiPres()
-  {
-    return (healthy()) ? &latest : NULL;
-  }
-  //
-  void printSensorDetails()
-  {
-    if (!healthy())
+  public:
+    static const size_t SENSOR_ID_MAX_LEN = 50;
+    Sensor(const char *custom_sensor_id) : sensor_id("")
     {
-      ESP_LOGE("main", "sensor has problems.");
-      return;
+      memset(const_cast<char *>(sensor_id), 0, SENSOR_ID_MAX_LEN + 1);
+      strncpy(const_cast<char *>(sensor_id), custom_sensor_id, SENSOR_ID_MAX_LEN);
+      bme280_temperature = bme280_pressure = bme280_humidity = NULL;
     }
     //
-    bme280_temperature->printSensorDetails();
-    bme280_pressure->printSensorDetails();
-    bme280_humidity->printSensorDetails();
-  }
-  //
-  bool healthy()
-  {
-    return (bme280_temperature && bme280_pressure && bme280_humidity) ? true : false;
-  }
+    TempHumiPres *begin(uint8_t i2c_address = 0x76);
+    //
+    TempHumiPres *sensing(const time_t &measured_at);
+    //
+    TempHumiPres *getLatestTempHumiPres()
+    {
+      return (healthy()) ? &latest : NULL;
+    }
+    //
+    void printSensorDetails()
+    {
+      if (!healthy())
+      {
+        ESP_LOGE("main", "sensor has problems.");
+        return;
+      }
+      //
+      bme280_temperature->printSensorDetails();
+      bme280_pressure->printSensorDetails();
+      bme280_humidity->printSensorDetails();
+    }
+    //
+    bool healthy()
+    {
+      return (bme280_temperature && bme280_pressure && bme280_humidity) ? true : false;
+    }
 
-private:
-  Adafruit_BME280 bme280;
-  Adafruit_Sensor *bme280_temperature;
-  Adafruit_Sensor *bme280_pressure;
-  Adafruit_Sensor *bme280_humidity;
-  //
-  const char sensor_id[SENSOR_ID_MAX_LEN + 1];
-  struct TempHumiPres latest;
-};
+  private:
+    Adafruit_BME280 bme280;
+    Adafruit_Sensor *bme280_temperature;
+    Adafruit_Sensor *bme280_pressure;
+    Adafruit_Sensor *bme280_humidity;
+    //
+    const char sensor_id[SENSOR_ID_MAX_LEN + 1];
+    struct TempHumiPres latest;
+  };
+}; // namespace Bme280
 
-#endif // SENSOR_HPP
+#endif // BME280_SENSOR_HPP

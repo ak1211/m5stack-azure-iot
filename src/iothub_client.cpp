@@ -2,6 +2,7 @@
 // Licensed under the MIT License <https://spdx.org/licenses/MIT.html>
 // See LICENSE file in the project root for full license information.
 //
+#include <Arduinojson.h>
 #include <M5Core2.h>
 #include <ctime>
 #include <Esp32MQTTClient.h>
@@ -139,55 +140,22 @@ void IotHubClient::init()
 //
 //
 //
-void IotHubClient::push(const TempHumiPres &v)
+JsonDocument *IotHubClient::push(JsonDocument &doc)
 {
-    // iso8601 format.
-    // "2021-02-11T00:56:00.000+00:00"
-    //  12345678901234567890123456789
-    const size_t AT_MAX_LEN = 29;
-    struct chunk
-    {
-        char at[AT_MAX_LEN + 1];
-        char _sentinel_;
-        char messagePayload[MESSAGE_MAX_LEN + 1];
-        char _sentinel__;
-    };
-    struct chunk *chunk = (struct chunk *)calloc(1, sizeof(struct chunk));
-    if (chunk == NULL)
+    char *messagePayload = (char *)calloc(MESSAGE_MAX_LEN + 1, sizeof(char));
+    if (messagePayload == NULL)
     {
         ESP_LOGE("main", "memory allocation error.");
+        return NULL;
     }
-    else
-    {
-        struct tm utc;
-        gmtime_r(&v.at, &utc);
-        //
-        strftime(chunk->at, AT_MAX_LEN, "%Y-%m-%dT%H:%M:%SZ", &utc);
-        assert(chunk->_sentinel_ == '\0');
-        //
-        snprintf(chunk->messagePayload, MESSAGE_MAX_LEN,
-                 "{"
-                 "\"sensorId\":\"%s\", "
-                 "\"messageId\":%u, "
-                 "\"measuredAt\":\"%s\", "
-                 "\"temperature\":%.2f, "
-                 "\"humidity\":%.2f, "
-                 "\"pressure\":%.2f"
-                 "}",
-                 v.sensor_id,
-                 message_id,
-                 chunk->at,
-                 v.temperature,
-                 v.relative_humidity,
-                 v.pressure);
-        assert(chunk->_sentinel__ == '\0');
-        ESP_LOGD("main", "messagePayload:%s", chunk->messagePayload);
-        message_id = message_id + 1;
-        // Send teperature data
-        EVENT_INSTANCE *message = Esp32MQTTClient_Event_Generate(chunk->messagePayload, MESSAGE);
-        Esp32MQTTClient_Event_AddProp(message, "temperatureAlert", "true");
-        Esp32MQTTClient_SendEventInstance(message);
-    }
-    //
-    free(chunk);
+    doc["messageId"] = message_id;
+    serializeJson(doc, messagePayload, MESSAGE_MAX_LEN);
+    ESP_LOGD("main", "messagePayload:%s", messagePayload);
+    message_id = message_id + 1;
+    // Send teperature data
+    EVENT_INSTANCE *message = Esp32MQTTClient_Event_Generate(messagePayload, MESSAGE);
+    Esp32MQTTClient_Event_AddProp(message, "temperatureAlert", "true");
+    Esp32MQTTClient_SendEventInstance(message);
+    free(messagePayload);
+    return &doc;
 }

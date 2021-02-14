@@ -17,17 +17,21 @@ def take_all_items_from_container(container):
     item_list = list(container.read_all_items())
     print('Found {} items'.format(item_list.__len__()))
 
-    pairs = [('measuredAt', parser.parse),
-             ('temperature', float),
-             ('humidity', float),
-             ('pressure', float)]
-    columns, _functions = zip(*pairs)
+    pairs = [('sensorId', lambda x:x),
+             ('measuredAt', parser.parse),
+             ('temperature', lambda x: float(x) if x is not None else None),
+             ('humidity', lambda x: float(x) if x is not None else None),
+             ('pressure', lambda x: float(x) if x is not None else None),
+             ('tvoc', lambda x: int(x) if x is not None else None),
+             ('eCo2', lambda x: int(x) if x is not None else None)]
+    columns, _ = zip(*pairs)
 
     def pickup(item):
         return [func(item.get(col)) for (col, func) in pairs]
     #
     data = [pickup(item) for item in item_list]
-    return pd.DataFrame(data=data, columns=columns)
+    df = pd.DataFrame(data=data, columns=columns)
+    return df.set_index('measuredAt')
 
 
 def plot(container):
@@ -38,7 +42,7 @@ def plot(container):
     major_formatter = DateFormatter('\n%Y-%m-%d\n%H:%M:%S\n%Z', tz=tz)
     minor_formatter = DateFormatter('%H', tz=tz)
     #
-    fig, axs = plt.subplots(2, 2, figsize=(48.0, 48.0))
+    fig, axs = plt.subplots(3, 2, figsize=(72.0, 48.0))
     #
     axs[0, 0].xaxis.set_major_locator(HourLocator(interval=12))
     axs[0, 0].xaxis.set_major_formatter(major_formatter)
@@ -46,7 +50,7 @@ def plot(container):
     axs[0, 0].xaxis.set_minor_formatter(minor_formatter)
     axs[0, 0].set_ylabel('$^{\circ}C$')
     axs[0, 0].set_title('temperature', fontsize=28)
-    axs[0, 0].plot(df['measuredAt'], df['temperature'],
+    axs[0, 0].plot(df['temperature'].dropna(),
                    label='temperature[$^{\circ}C$]')
     axs[0, 0].grid()
     axs[0, 0].legend(fontsize=18)
@@ -57,8 +61,7 @@ def plot(container):
     axs[0, 1].xaxis.set_minor_formatter(minor_formatter)
     axs[0, 1].set_ylabel('%')
     axs[0, 1].set_title('relative humidity', fontsize=28)
-    axs[0, 1].plot(df['measuredAt'], df['humidity'],
-                   label='relative humidity[%]')
+    axs[0, 1].plot(df['humidity'].dropna(), label='relative humidity[%]')
     axs[0, 1].grid()
     axs[0, 1].legend(fontsize=18)
     #
@@ -68,9 +71,29 @@ def plot(container):
     axs[1, 0].xaxis.set_minor_formatter(minor_formatter)
     axs[1, 0].set_ylabel('hPa')
     axs[1, 0].set_title('pressure', fontsize=28)
-    axs[1, 0].plot(df['measuredAt'], df['pressure'], label='pressure[hPa]')
+    axs[1, 0].plot(df['pressure'].dropna(), label='pressure[hPa]')
     axs[1, 0].grid()
     axs[1, 0].legend(fontsize=18)
+    #
+    axs[2, 0].xaxis.set_major_locator(HourLocator(interval=12))
+    axs[2, 0].xaxis.set_major_formatter(major_formatter)
+    axs[2, 0].xaxis.set_minor_locator(HourLocator(interval=1))
+    axs[2, 0].xaxis.set_minor_formatter(minor_formatter)
+    axs[2, 0].set_ylabel('ppm')
+    axs[2, 0].set_title('equivalent CO2', fontsize=28)
+    axs[2, 0].plot(df['eCo2'].dropna(), label='eCO2[ppm]')
+    axs[2, 0].grid()
+    axs[2, 0].legend(fontsize=18)
+    #
+    axs[2, 1].xaxis.set_major_locator(HourLocator(interval=12))
+    axs[2, 1].xaxis.set_major_formatter(major_formatter)
+    axs[2, 1].xaxis.set_minor_locator(HourLocator(interval=1))
+    axs[2, 1].xaxis.set_minor_formatter(minor_formatter)
+    axs[2, 1].set_ylabel('ppb')
+    axs[2, 1].set_title('Total VOC', fontsize=28)
+    axs[2, 1].plot(df['tvoc'].dropna(), label='TVOC[ppb]')
+    axs[2, 1].grid()
+    axs[2, 1].legend(fontsize=18)
     #
 #    fig.tight_layout()
     fig.savefig("plot.png")

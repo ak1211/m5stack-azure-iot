@@ -10,7 +10,8 @@
 #define LGFX_M5STACK_CORE2
 #include <LovyanGFX.hpp>
 
-#include "sensor.hpp"
+#include "bme280_sensor.hpp"
+#include "sgp30_sensor.hpp"
 #include "iothub_client.hpp"
 #include "credentials.h"
 
@@ -21,7 +22,9 @@ static LGFX lcd;
 const unsigned long background_color = 0x000000U;
 const unsigned long message_text_color = 0xFFFFFFU;
 
-static Sensor sensor(Credentials.sensor_id);
+static Bme280::Sensor bme280_sensor(Credentials.sensor_id.bme280);
+static Sgp30::Sensor sgp30_sensor(Credentials.sensor_id.sgp30);
+
 static const uint32_t PUSH_EVERY_N_SECONDS = 1 * 60;
 
 //
@@ -34,18 +37,25 @@ void releaseEvent(Event &e)
 //
 //
 //
-void display(const TempHumiPres &v)
+void display(const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *sgp)
 {
-  lcd.setCursor(0, 0);
-  //
-  lcd.setFont(&fonts::lgfxJapanGothic_32);
   // time zone offset UTC+9 = asia/tokyo
-  time_t tm = v.at + 9 * 60 * 60;
+  time_t tm;
+  if (bme)
+    tm = bme->at + 9 * 60 * 60;
+  else if (sgp)
+    tm = sgp->at + 9 * 60 * 60;
+  else
+    return;
   struct tm local;
   gmtime_r(&tm, &local);
   //
+  lcd.setCursor(0, 0);
+  lcd.setFont(&fonts::lgfxJapanGothic_28);
+  //
   lcd.printf("%4d-%02d-%02d ", 1900 + local.tm_year, 1 + local.tm_mon, local.tm_mday);
   lcd.printf("%02d:%02d:%02d\n", local.tm_hour, local.tm_min, local.tm_sec);
+#if 0
   //
   lcd.setFont(&fonts::lgfxJapanGothic_28);
   float bus_voltage = M5.Axp.GetVBusVoltage();
@@ -56,10 +66,19 @@ void display(const TempHumiPres &v)
   float batt_current = M5.Axp.GetBatCurrent();
   lcd.printf("Batt: %3.1fV %6.1fmA\n", batt_voltage, batt_current);
   //
-  lcd.setFont(&fonts::lgfxJapanGothic_36);
-  lcd.printf("温度 %7.1f ℃\n", v.temperature);
-  lcd.printf("湿度 %7.1f ％\n", v.relative_humidity);
-  lcd.printf("気圧 %7.1f hPa\n", v.pressure);
+#endif
+  lcd.setFont(&fonts::lgfxJapanGothic_28);
+  if (bme)
+  {
+    lcd.printf("温度 %6.1f ℃\n", bme->temperature);
+    lcd.printf("湿度 %6.1f ％\n", bme->relative_humidity);
+    lcd.printf("気圧 %6.1f hPa\n", bme->pressure);
+  }
+  if (sgp)
+  {
+    lcd.printf("eCO2 %6d ppm\n", sgp->eCo2);
+    lcd.printf("TVOC %6d ppb\n", sgp->tvoc);
+  }
   //
   lcd.printf("messageId: %u\n", IotHubClient::message_id);
 }
@@ -194,14 +213,22 @@ void setup()
   // initializing sensor
   //
   {
-    TempHumiPres *val;
-    while ((val = sensor.begin()) == NULL)
+    Bme280::TempHumiPres *bme;
+    while ((bme = bme280_sensor.begin()) == NULL)
     {
       lcd.print(F("BME280センサが見つかりません。\n"));
     }
-    sensor.printSensorDetails();
+    bme280_sensor.printSensorDetails();
     lcd.fillScreen(background_color);
-    display(*val);
+    //
+    Sgp30::TvocEco2 *sgp;
+    while ((sgp = sgp30_sensor.begin()) == NULL)
+    {
+      lcd.print(F("SGP30センサが見つかりません。\n"));
+    }
+    sgp30_sensor.printSensorDetails();
+    //
+    display(bme, sgp);
   }
 }
 
@@ -220,21 +247,32 @@ void loop()
     count = 0;
     //
     time_t measured_at;
+    //
     time(&measured_at);
-    TempHumiPres *sensed = sensor.sensing(measured_at);
-    if (sensed)
+    bme280_sensor.sensing(measured_at);
+    sgp30_sensor.sensing(measured_at);
+    //
+    const Bme280::TempHumiPres *bme280_sensed = bme280_sensor.getLatestTempHumiPres();
+    const Sgp30::TvocEco2 *sgp30_smoothed = sgp30_sensor.getTvocEco2WithSmoothing();
+    //
+    struct tm utc;
+    gmtime_r(&measured_at, &utc);
+    time_t seconds = utc.tm_hour * 3600 + utc.tm_min * 60 + utc.tm_sec;
+    if (seconds % PUSH_EVERY_N_SECONDS == 0)
     {
-      display(*sensed);
-      //
-      struct tm utc;
-      gmtime_r(&measured_at, &utc);
-      time_t seconds = utc.tm_hour * 3600 + utc.tm_min * 60 + utc.tm_sec;
-      if (seconds % PUSH_EVERY_N_SECONDS == 0)
+      StaticJsonDocument<MESSAGE_MAX_LEN> doc;
+      if (bme280_sensed)
       {
-        IotHubClient::push(*sensed);
+        IotHubClient::push(mapToJson(doc, *bme280_sensed));
+      }
+      doc.clear();
+      if (sgp30_smoothed)
+      {
+        IotHubClient::push(mapToJson(doc, *sgp30_smoothed));
       }
     }
-
+    //
+    display(bme280_sensed, sgp30_smoothed);
     IotHubClient::update(true);
   }
 }
