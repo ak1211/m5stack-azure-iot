@@ -56,7 +56,7 @@ void display(const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *sgp)
   lcd.printf("%4d-%02d-%02d ", 1900 + local.tm_year, 1 + local.tm_mon, local.tm_mday);
   lcd.printf("%02d:%02d:%02d\n", local.tm_hour, local.tm_min, local.tm_sec);
   //
-  lcd.setFont(&fonts::lgfxJapanGothicP_24);
+  lcd.setFont(&fonts::lgfxJapanGothic_24);
   float bat_voltage = M5.Axp.GetBatVoltage();
   float bat_current = M5.Axp.GetBatCurrent();
   float full_voltage = 4.2;
@@ -110,7 +110,7 @@ void setup()
   lcd.init();
   lcd.setTextColor(message_text_color, background_color);
   lcd.setCursor(0, 0);
-  lcd.setFont(&fonts::lgfxJapanGothicP_20);
+  lcd.setFont(&fonts::lgfxJapanGothic_20);
 
   //
   // connect to Wifi network
