@@ -62,15 +62,15 @@ void display(const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *sgp)
   float full_voltage = 4.2;
   float shutdown_voltage = 3.1;
   float bat_level = (bat_voltage - shutdown_voltage) / (full_voltage - shutdown_voltage);
-  lcd.printf("%3.0f%% ", 100.0 * bat_level);
+  lcd.printf("%2.0f%% ", 100.0 * bat_level);
   lcd.printf(" %3.1fV", bat_voltage);
   if (bat_current < 0.0)
   {
-    lcd.printf(" %4.0fmA(DIS)\n", -bat_current);
+    lcd.printf(" %4.0fmA DISCHG\n", -bat_current);
   }
   else
   {
-    lcd.printf(" %4.0fmA(CHG)\n", bat_current);
+    lcd.printf(" %4.0fmA CHG   \n", bat_current);
   }
   //
   lcd.setFont(&fonts::lgfxJapanGothic_28);
