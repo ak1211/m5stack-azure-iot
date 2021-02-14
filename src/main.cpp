@@ -5,6 +5,7 @@
 #include <M5Core2.h>
 #include <ArduinoOTA.h>
 #include <Wifi.h>
+#include <time.h>
 #include "lwip/apps/sntp.h"
 
 #define LGFX_M5STACK_CORE2
@@ -25,7 +26,11 @@ const unsigned long message_text_color = 0xFFFFFFU;
 static Bme280::Sensor bme280_sensor(Credentials.sensor_id.bme280);
 static Sgp30::Sensor sgp30_sensor(Credentials.sensor_id.sgp30);
 
-static const uint32_t PUSH_EVERY_N_SECONDS = 1 * 60;
+static const uint8_t IOTHUB_PUSH_EVERY_MINUTES = 1; // 1 mimute
+static_assert(IOTHUB_PUSH_EVERY_MINUTES < 60, "IOTHUB_PUSH_EVERY_MINUTES is lesser than 60 minutes.");
+
+static const uint8_t SENSING_EVERY_SECONDS = 3; // 3 seconds
+static_assert(SENSING_EVERY_SECONDS < 60, "SENSING_EVERY_SECONDS is lesser than 60 seconds.");
 
 //
 //
@@ -37,18 +42,12 @@ void releaseEvent(Event &e)
 //
 //
 //
-void display(const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *sgp)
+void display(time_t time, const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *sgp)
 {
   // time zone offset UTC+9 = asia/tokyo
-  time_t tm;
-  if (bme)
-    tm = bme->at + 9 * 60 * 60;
-  else if (sgp)
-    tm = sgp->at + 9 * 60 * 60;
-  else
-    return;
+  time_t local_time = time + 9 * 60 * 60;
   struct tm local;
-  gmtime_r(&tm, &local);
+  gmtime_r(&local_time, &local);
   //
   lcd.setCursor(0, 0);
   lcd.setFont(&fonts::lgfxJapanGothic_28);
@@ -70,7 +69,7 @@ void display(const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *sgp)
   }
   else
   {
-    lcd.printf(" %4.0fmA CHG   \n", bat_current);
+    lcd.printf(" %4.0fmA CHARGE\n", bat_current);
   }
   //
   lcd.setFont(&fonts::lgfxJapanGothic_28);
@@ -234,7 +233,8 @@ void setup()
     }
     sgp30_sensor.printSensorDetails();
     //
-    display(bme, sgp);
+    time_t now = time(NULL);
+    display(now, bme, sgp);
   }
 }
 
@@ -247,38 +247,39 @@ void loop()
   M5.update();
   delay(1);
 
-  static uint16_t count = 0;
-  if (++count > 1000)
+  static clock_t before_clock = 0;
+  clock_t now_clock = clock();
+
+  if ((now_clock - before_clock) >= CLOCKS_PER_SEC)
   {
-    count = 0;
-    //
     time_t measured_at;
-    //
     time(&measured_at);
-    bme280_sensor.sensing(measured_at);
-    sgp30_sensor.sensing(measured_at);
-    //
-    const Bme280::TempHumiPres *bme280_sensed = bme280_sensor.getLatestTempHumiPres();
-    const Sgp30::TvocEco2 *sgp30_smoothed = sgp30_sensor.getTvocEco2WithSmoothing();
-    //
     struct tm utc;
     gmtime_r(&measured_at, &utc);
-    time_t seconds = utc.tm_hour * 3600 + utc.tm_min * 60 + utc.tm_sec;
-    if (seconds % PUSH_EVERY_N_SECONDS == 0)
+
+    if (utc.tm_sec % SENSING_EVERY_SECONDS == 0)
+    {
+      bme280_sensor.sensing(measured_at);
+      sgp30_sensor.sensing(measured_at);
+    }
+    display(measured_at, bme280_sensor.getLatestTempHumiPres(), sgp30_sensor.getTvocEco2WithSmoothing());
+    //
+    if (utc.tm_sec == 0 && utc.tm_min % IOTHUB_PUSH_EVERY_MINUTES == 0)
     {
       StaticJsonDocument<MESSAGE_MAX_LEN> doc;
+      const Bme280::TempHumiPres *bme280_sensed = bme280_sensor.getLatestTempHumiPres();
       if (bme280_sensed)
       {
         IotHubClient::push(mapToJson(doc, *bme280_sensed));
       }
       doc.clear();
+      const Sgp30::TvocEco2 *sgp30_smoothed = sgp30_sensor.getTvocEco2WithSmoothing();
       if (sgp30_smoothed)
       {
         IotHubClient::push(mapToJson(doc, *sgp30_smoothed));
       }
     }
-    //
-    display(bme280_sensed, sgp30_smoothed);
     IotHubClient::update(true);
+    before_clock = now_clock;
   }
 }
