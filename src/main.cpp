@@ -29,7 +29,7 @@ static Sgp30::Sensor sgp30_sensor(Credentials.sensor_id.sgp30);
 static const uint8_t IOTHUB_PUSH_EVERY_MINUTES = 1; // 1 mimute
 static_assert(IOTHUB_PUSH_EVERY_MINUTES < 60, "IOTHUB_PUSH_EVERY_MINUTES is lesser than 60 minutes.");
 
-static const uint8_t SENSING_EVERY_SECONDS = 3; // 3 seconds
+static const uint8_t SENSING_EVERY_SECONDS = 2; // 2seconds
 static_assert(SENSING_EVERY_SECONDS < 60, "SENSING_EVERY_SECONDS is lesser than 60 seconds.");
 
 //
@@ -56,21 +56,37 @@ void display(time_t time, const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2
   lcd.printf("%02d:%02d:%02d\n", local.tm_hour, local.tm_min, local.tm_sec);
   //
   lcd.setFont(&fonts::lgfxJapanGothic_24);
-  float bat_voltage = M5.Axp.GetBatVoltage();
-  float bat_current = M5.Axp.GetBatCurrent();
-  float full_voltage = 4.2;
-  float shutdown_voltage = 3.1;
-  float bat_level = (bat_voltage - shutdown_voltage) / (full_voltage - shutdown_voltage);
-  lcd.printf("%2.0f%% ", 100.0 * bat_level);
-  lcd.printf(" %3.1fV", bat_voltage);
-  if (bat_current < 0.0)
+  float batt_v = floor(10.0f * M5.Axp.GetBatVoltage()) / 10.0f;
+  float full_v = 4.2f;
+  float shutdown_v = 3.0f;
+  float indicated_v = batt_v - shutdown_v;
+  float fullscale_v = full_v - shutdown_v;
+  float batt_percentage = 100.0f * indicated_v / fullscale_v;
+  float batt_current = M5.Axp.GetBatCurrent(); // mA
+  bool charging, discharging;
+  if (batt_current < 0.0f)
   {
-    lcd.printf(" %4.0fmA DISCHG\n", -bat_current);
+    batt_current = -batt_current;
+    charging = false;
+    discharging = true;
+  }
+  else if (batt_current > 0.0f)
+  {
+    charging = true;
+    discharging = false;
   }
   else
   {
-    lcd.printf(" %4.0fmA CHARGE\n", bat_current);
+    charging = false;
+    discharging = false;
   }
+
+  lcd.printf("%3.0f%% %3.1fV %4.0fmA %6s\n",
+             batt_percentage,
+             batt_v,
+             batt_current,
+             charging ? "CHARGE" : discharging ? "DISCHG"
+                                               : "");
   //
   lcd.setFont(&fonts::lgfxJapanGothic_28);
   if (bme)
@@ -218,20 +234,28 @@ void setup()
   // initializing sensor
   //
   {
-    Bme280::TempHumiPres *bme;
-    while ((bme = bme280_sensor.begin()) == NULL)
+    Bme280::TempHumiPres *bme = bme280_sensor.begin();
+    Sgp30::TvocEco2 *sgp = sgp30_sensor.begin();
+    do
     {
-      lcd.print(F("BME280センサが見つかりません。\n"));
-    }
-    bme280_sensor.printSensorDetails();
+      if (!bme)
+      {
+        lcd.print(F("BME280センサが見つかりません。\n"));
+        delay(100);
+        bme = bme280_sensor.begin();
+      }
+      if (!sgp)
+      {
+        lcd.print(F("SGP30センサが見つかりません。\n"));
+        delay(100);
+        sgp = sgp30_sensor.begin();
+      }
+    } while (!(bme && sgp));
     lcd.fillScreen(background_color);
-    //
-    Sgp30::TvocEco2 *sgp;
-    while ((sgp = sgp30_sensor.begin()) == NULL)
-    {
-      lcd.print(F("SGP30センサが見つかりません。\n"));
-    }
+    assert(bme);
+    assert(sgp);
     sgp30_sensor.printSensorDetails();
+    bme280_sensor.printSensorDetails();
     //
     time_t now = time(NULL);
     display(now, bme, sgp);
@@ -270,6 +294,13 @@ void loop()
       const Bme280::TempHumiPres *bme280_sensed = bme280_sensor.getLatestTempHumiPres();
       if (bme280_sensed)
       {
+        uint32_t absolute_humidity = Sgp30::calculateAbsoluteHumidity(bme280_sensed->temperature, bme280_sensed->relative_humidity);
+        ESP_LOGI("main", "absolute humidity: %d", absolute_humidity);
+        if (!sgp30_sensor.setHumidity(absolute_humidity))
+        {
+          ESP_LOGE("main", "setHumidity error.");
+        }
+
         IotHubClient::push(mapToJson(doc, *bme280_sensed));
       }
       doc.clear();

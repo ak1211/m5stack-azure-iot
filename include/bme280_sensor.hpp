@@ -35,7 +35,9 @@ namespace Bme280
     {
       memset(const_cast<char *>(sensor_id), 0, SENSOR_ID_MAX_LEN + 1);
       strncpy(const_cast<char *>(sensor_id), custom_sensor_id, SENSOR_ID_MAX_LEN);
-      bme280_temperature = bme280_pressure = bme280_humidity = NULL;
+      bme280_temperature = nullptr;
+      bme280_pressure = nullptr;
+      bme280_humidity = nullptr;
     }
     //
     TempHumiPres *begin(uint8_t i2c_address = 0x76);
@@ -44,7 +46,7 @@ namespace Bme280
     //
     TempHumiPres *getLatestTempHumiPres()
     {
-      return (healthy()) ? &latest : NULL;
+      return (healthy()) ? &latest : nullptr;
     }
     //
     void printSensorDetails()

@@ -12,40 +12,29 @@ using namespace Sgp30;
 //
 TvocEco2 *Sensor::begin()
 {
-  for (int8_t challenge = 1; challenge <= 50; challenge++)
-  {
-    if (sgp30.begin())
-    {
-      sgp30_healthy = true;
-      break;
-    }
-    else
-    {
-      ESP_LOGI("main", "%dth challenge failed... try again.", challenge);
-      delay(50);
-    }
-  }
+  latest.tvoc = 0;
+  latest.eCo2 = 0;
+  smoothed.tvoc = 0;
+  smoothed.eCo2 = 0;
+  periods_index = 0;
+
+  if (!sgp30.begin())
+    return nullptr;
+
+  sgp30_healthy = true;
+  //
   time_t tm_now;
   time(&tm_now);
-
   TvocEco2 *result = sensing(tm_now);
   if (result)
   {
-    for (int i = 0; i < MOVING_AVERAGES_PERIOD; i++)
+    for (int16_t n = 0; n < MOVING_AVERAGES_PERIOD; n++)
     {
-      periods[i].tvoc = latest.tvoc;
-      periods[i].eCo2 = latest.eCo2;
+      periods[n].tvoc = result->tvoc;
+      periods[n].eCo2 = result->eCo2;
     }
-    periods_index = 0;
-  }
-  else
-  {
-    for (int i = 0; i < MOVING_AVERAGES_PERIOD; i++)
-    {
-      periods[i].tvoc = 0;
-      periods[i].eCo2 = 0;
-    }
-    periods_index = 0;
+    smoothed.tvoc = result->tvoc;
+    smoothed.eCo2 = result->eCo2;
   }
   return result;
 }
@@ -56,12 +45,12 @@ TvocEco2 *Sensor::begin()
 TvocEco2 *Sensor::sensing(const time_t &measured_at)
 {
   if (!healthy())
-    return NULL;
+    return nullptr;
   //
   if (!sgp30.IAQmeasure())
   {
     sgp30_healthy = false;
-    return NULL;
+    return nullptr;
   }
 
   uint16_t eco2_base;
@@ -69,15 +58,15 @@ TvocEco2 *Sensor::sensing(const time_t &measured_at)
   if (!sgp30.getIAQBaseline(&eco2_base, &tvoc_base))
   {
     sgp30_healthy = false;
-    return NULL;
+    return nullptr;
   }
 
-  latest.sensor_id = sensor_id;
-  latest.at = measured_at;
+  latest.sensor_id = smoothed.sensor_id = sensor_id;
+  latest.at = smoothed.at = measured_at;
   latest.tvoc = sgp30.TVOC;
   latest.eCo2 = sgp30.eCO2;
-  latest.tvoc_baseline = eco2_base;
-  latest.eCo2_baseline = tvoc_base;
+  latest.tvoc_baseline = smoothed.tvoc_baseline = eco2_base;
+  latest.eCo2_baseline = smoothed.eCo2_baseline = tvoc_base;
 
   // smoothing
   periods[periods_index].tvoc = latest.tvoc;
@@ -85,17 +74,16 @@ TvocEco2 *Sensor::sensing(const time_t &measured_at)
   // periods_index = (periods_index + 1) % MOVING_AVERAGES_PERIOD
   periods_index = (periods_index + 1) & (MOVING_AVERAGES_PERIOD - 1);
 
-  uint32_t acc_tvoc = periods[0].tvoc;
-  uint32_t acc_eCo2 = periods[0].eCo2;
-  for (int n = 1; n < MOVING_AVERAGES_PERIOD; n++)
+  uint32_t accum_tvoc = periods[0].tvoc;
+  uint32_t accum_eCo2 = periods[0].eCo2;
+  for (int16_t n = 1; n < MOVING_AVERAGES_PERIOD; n++)
   {
-    acc_tvoc += periods[n].tvoc;
-    acc_eCo2 += periods[n].eCo2;
+    accum_tvoc += periods[n].tvoc;
+    accum_eCo2 += periods[n].eCo2;
   }
 
-  smoothed = latest;
-  smoothed.tvoc = acc_tvoc >> MOVING_AVERAGES_PERIOD_AS_2N;
-  smoothed.eCo2 = acc_eCo2 >> MOVING_AVERAGES_PERIOD_AS_2N;
+  smoothed.tvoc = accum_tvoc >> MOVING_AVERAGES_PERIOD_AS_2N;
+  smoothed.eCo2 = accum_eCo2 >> MOVING_AVERAGES_PERIOD_AS_2N;
 
   return &latest;
 }

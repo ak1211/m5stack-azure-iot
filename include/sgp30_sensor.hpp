@@ -28,6 +28,17 @@ namespace Sgp30
   //
   //
   //
+  inline uint32_t calculateAbsoluteHumidity(float temperature, float humidity)
+  {
+    float absolute_humidity = 216.7f *
+                              ((humidity / 100.0f) * 6.112f *
+                               exp((17.62f * temperature) / (243.12f + temperature)) /
+                               (273.15f + temperature));
+    return static_cast<uint32_t>(1000.0f * absolute_humidity);
+  }
+  //
+  //
+  //
   class Sensor
   {
   public:
@@ -45,12 +56,12 @@ namespace Sgp30
     //
     const TvocEco2 *getLatestTvocEco2()
     {
-      return (healthy()) ? &latest : NULL;
+      return (healthy()) ? &latest : nullptr;
     }
     //
     const TvocEco2 *getTvocEco2WithSmoothing()
     {
-      return (healthy()) ? &smoothed : NULL;
+      return (healthy()) ? &smoothed : nullptr;
     }
     //
     void printSensorDetails()
@@ -60,14 +71,17 @@ namespace Sgp30
         ESP_LOGE("main", "sensor has problems.");
         return;
       }
-      Serial.printf("SGP30 serial number is [%x, %x, %x]\n",
-                    sgp30.serialnumber[0], sgp30.serialnumber[1], sgp30.serialnumber[2]);
+      Serial.printf("SGP30 serial number is [0x%x, 0x%x, 0x%x]", sgp30.serialnumber[0], sgp30.serialnumber[1], sgp30.serialnumber[2]);
+      Serial.println("");
       //
       uint16_t eco2_base;
       uint16_t tvoc_base;
       if (sgp30.getIAQBaseline(&eco2_base, &tvoc_base))
       {
-        Serial.printf("SGP30 [eco2, tvoc] baseline is [%d, %d]\n", eco2_base, tvoc_base);
+        Serial.printf("SGP30 eCo2 baseline is %d", eco2_base);
+        Serial.println("");
+        Serial.printf("SGP30 TVOC baseline is %d", tvoc_base);
+        Serial.println("");
       }
     }
     //
