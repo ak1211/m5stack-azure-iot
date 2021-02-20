@@ -13,42 +13,70 @@
 // iso8601 format.
 // "2021-02-11T00:56:00.000+00:00"
 //  12345678901234567890123456789
-#define AT_FIELD_MAX_LENGTH 29
-
-static const size_t MESSAGE_MAX_LEN = 1024;
-
-inline JsonDocument &mapToJson(JsonDocument &output, const Bme280::TempHumiPres &input)
+struct Iso8601FormatField
 {
-    char at[AT_FIELD_MAX_LENGTH + 1];
+    char at[29 + 1];
+};
+static_assert(sizeof(Iso8601FormatField) == 30, "something went Wrong");
+
+static const size_t MESSAGE_MAX_LEN = JSON_STRING_SIZE(1024);
+
+struct JsonDocSets
+{
+    StaticJsonDocument<MESSAGE_MAX_LEN> message;
+    StaticJsonDocument<MESSAGE_MAX_LEN> state;
+};
+
+inline StaticJsonDocument<MESSAGE_MAX_LEN> &takeMessageFromJsonDocSets(JsonDocSets &doc_sets)
+{
+    return doc_sets.message;
+}
+
+inline StaticJsonDocument<MESSAGE_MAX_LEN> &takeStateFromJsonDocSets(JsonDocSets &doc_sets)
+{
+    return doc_sets.state;
+}
+
+inline JsonDocSets &mapToJson(JsonDocSets &output, const Bme280::TempHumiPres &input)
+{
+    struct Iso8601FormatField at_field = {};
     struct tm utc;
 
     gmtime_r(&input.at, &utc);
     //
-    strftime(at, AT_FIELD_MAX_LENGTH, "%Y-%m-%dT%H:%M:%SZ", &utc);
+    strftime(at_field.at, sizeof(at_field), "%Y-%m-%dT%H:%M:%SZ", &utc);
     //
-    output["sensorId"] = input.sensor_id;
-    output["measuredAt"] = at;
-    output["temperature"] = input.temperature;
-    output["humidity"] = input.relative_humidity;
-    output["pressure"] = input.pressure;
+    output.message["sensorId"] = input.sensor_id;
+    output.message["measuredAt"] = at_field.at;
+    output.message["temperature"] = input.temperature;
+    output.message["humidity"] = input.relative_humidity;
+    output.message["pressure"] = input.pressure;
+    //
+    output.state.clear();
+    //
     return output;
 }
 
-inline JsonDocument &mapToJson(JsonDocument &output, const Sgp30::TvocEco2 &input)
+inline JsonDocSets &mapToJson(JsonDocSets &output, const Sgp30::TvocEco2 &input)
 {
-    char at[AT_FIELD_MAX_LENGTH + 1];
+    struct Iso8601FormatField at_field = {};
     struct tm utc;
 
     gmtime_r(&input.at, &utc);
     //
-    strftime(at, AT_FIELD_MAX_LENGTH, "%Y-%m-%dT%H:%M:%SZ", &utc);
+    strftime(at_field.at, sizeof(at_field), "%Y-%m-%dT%H:%M:%SZ", &utc);
     //
-    output["sensorId"] = input.sensor_id;
-    output["measuredAt"] = at;
-    output["tvoc"] = input.tvoc;
-    output["eCo2"] = input.eCo2;
-    output["tvoc_baseline"] = input.tvoc_baseline;
-    output["eCo2_baseline"] = input.eCo2_baseline;
+    output.message["sensorId"] = input.sensor_id;
+    output.message["measuredAt"] = at_field.at;
+    output.message["tvoc"] = input.tvoc;
+    output.message["eCo2"] = input.eCo2;
+    output.message["tvoc_baseline"] = input.tvoc_baseline;
+    output.message["eCo2_baseline"] = input.eCo2_baseline;
+    //
+    output.state["sgp30_baseline"]["updatedAt"] = at_field.at;
+    output.state["sgp30_baseline"]["tvoc"] = input.tvoc_baseline;
+    output.state["sgp30_baseline"]["eCo2"] = input.eCo2_baseline;
+    //
     return output;
 }
 
@@ -58,9 +86,15 @@ inline JsonDocument &mapToJson(JsonDocument &output, const Sgp30::TvocEco2 &inpu
 class IotHubClient
 {
 public:
-    static void init();
+    static void init(
+        SEND_CONFIRMATION_CALLBACK send_confirmation_callback,
+        MESSAGE_CALLBACK message_callback,
+        DEVICE_METHOD_CALLBACK device_method_callback,
+        DEVICE_TWIN_CALLBACK device_twin_callback,
+        CONNECTION_STATUS_CALLBACK connection_status_callback);
     static void terminate();
-    static JsonDocument *push(JsonDocument &v);
+    static JsonDocument *pushMessage(JsonDocument &v);
+    static JsonDocument *pushState(JsonDocument &v);
     static inline void update(bool hasDelay)
     {
         Esp32MQTTClient_Check(hasDelay);
@@ -73,13 +107,6 @@ public:
     //
     static bool messageSending;
     static uint32_t message_id;
-
-private:
-    static void sendConfirmationCallback(IOTHUB_CLIENT_CONFIRMATION_RESULT result);
-    static void messageCallback(const char *payLoad, int size);
-    static void deviceTwinCallback(DEVICE_TWIN_UPDATE_STATE updateState, const unsigned char *payLoad, int size);
-    static int deviceMethodCallback(const char *methodName, const unsigned char *payload, int size, unsigned char **response, int *response_size);
-    static void connectionStatusCallback(IOTHUB_CLIENT_CONNECTION_STATUS result, IOTHUB_CLIENT_CONNECTION_STATUS_REASON reason);
 };
 
 #undef AT_FIELD_MAX_LENGTH

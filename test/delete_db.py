@@ -8,6 +8,9 @@ from pytz import timezone
 from datetime import datetime
 from dateutil import parser
 
+delete_list = [
+    ("c8ad9df2-dfc5-4cb6-87ae-1c0cf33465fe", "m5stack-bme280-device-bme280"),
+]
 
 if __name__ == "__main__":
     if len(sys.argv) <= 2:
@@ -21,8 +24,6 @@ if __name__ == "__main__":
         database = client.get_database_client(database_name)
         container = database.get_container_client(container_name)
         #
-        delete_item_id = "c73d0103-5ddf-4bc2-8297-5da313c59be1"
-        sensor_id = "m5stack-bme280-device-sgp30"
-        #
-        print("Delete item id={}\n".format(delete_item_id))
-        container.delete_item(item=delete_item_id, partition_key=sensor_id)
+        for (delete_item_id, sensor_id) in delete_list:
+            print("Delete item id={}\n".format(delete_item_id))
+            container.delete_item(item=delete_item_id, partition_key=sensor_id)

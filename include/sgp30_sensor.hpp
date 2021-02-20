@@ -11,7 +11,7 @@
 
 namespace Sgp30
 {
-  static const uint8_t MOVING_AVERAGES_PERIOD_AS_2N = 2; // 2^2 = 4
+  static const uint8_t MOVING_AVERAGES_PERIOD_AS_2N = 3; // 2^3 = 8
   static const uint8_t MOVING_AVERAGES_PERIOD = 1 << MOVING_AVERAGES_PERIOD_AS_2N;
   //
   //
