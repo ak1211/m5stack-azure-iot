@@ -32,10 +32,12 @@ def list_all_temp_humi_pres(container):
         output += ' {:4.1f}%'.format(humi) if humi is not None else " NaN %"
         output += ' {:6.1f}hPa'.format(
             pres) if pres is not None else "   NaN hPa"
-        output += ' {:5}ppb({:4})'.format(tvoc,
-                                          tvoc_base) if tvoc is not None else "  NaN ppb(  NaN )"
-        output += ' {:5}ppm({:4})'.format(eCo2,
-                                          eCo2_base) if eCo2 is not None else "  NaN ppm(  NaN )"
+        output += ' {:5}ppb'.format(tvoc) if tvoc is not None else "  NaN ppb"
+        output += ' {:5}ppm'.format(eCo2) if eCo2 is not None else "  NaN ppm"
+        output += ' {:5}tvoc_base'.format(
+            tvoc_base) if tvoc_base is not None else "  NaN tvoc_base"
+        output += ' {:5}eCo2_base'.format(
+            eCo2_base) if eCo2_base is not None else "  NaN eCo2_base"
         print(output)
 
 

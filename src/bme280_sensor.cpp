@@ -10,13 +10,13 @@ using namespace Bme280;
 //
 //
 //
-TempHumiPres *Sensor::begin(uint8_t i2c_address)
+bool Sensor::begin(uint8_t i2c_address)
 {
   bme280_temperature = nullptr;
   bme280_pressure = nullptr;
   bme280_humidity = nullptr;
   if (!bme280.begin(i2c_address))
-    return nullptr;
+    return false;
 
   bme280_temperature = bme280.getTemperatureSensor();
   bme280_pressure = bme280.getPressureSensor();
@@ -28,9 +28,7 @@ TempHumiPres *Sensor::begin(uint8_t i2c_address)
                      Adafruit_BME280::SAMPLING_X1,
                      Adafruit_BME280::FILTER_OFF,
                      Adafruit_BME280::STANDBY_MS_1000);
-  time_t tm_now;
-  time(&tm_now);
-  return sensing(tm_now);
+  return true;
 }
 
 //

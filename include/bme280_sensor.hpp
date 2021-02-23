@@ -40,7 +40,7 @@ namespace Bme280
       bme280_humidity = nullptr;
     }
     //
-    TempHumiPres *begin(uint8_t i2c_address = 0x76);
+    bool begin(uint8_t i2c_address = 0x76);
     //
     TempHumiPres *sensing(const time_t &measured_at);
     //

@@ -19,15 +19,34 @@
 //
 // globals
 //
-static const uint16_t NUM_OF_TRY_TO_WIFI_CONNECTION = 50;
-static bool has_WIFI_connection = false;
-
 static LGFX lcd;
 const unsigned long background_color = 0x000000U;
 const unsigned long message_text_color = 0xFFFFFFU;
 
-static Bme280::Sensor bme280_sensor(Credentials.sensor_id.bme280);
-static Sgp30::Sensor sgp30_sensor(Credentials.sensor_id.sgp30);
+struct SystemProperties
+{
+  Bme280::Sensor bme280;
+  Sgp30::Sensor sgp30;
+  clock_t startup_epoch;
+  bool has_WIFI_connection;
+  bool is_freestanding_mode;
+};
+
+static struct SystemProperties system_propaties = {
+    .bme280 = Bme280::Sensor(Credentials.sensor_id.bme280),
+    .sgp30 = Sgp30::Sensor(Credentials.sensor_id.sgp30),
+    .startup_epoch = clock(),
+    .has_WIFI_connection = false,
+    .is_freestanding_mode = false,
+};
+
+//static Bme280::Sensor bme280(Credentials.sensor_id.bme280);
+//static Sgp30::Sensor sgp30(Credentials.sensor_id.sgp30);
+//
+//static clock_t this_system_startup_epoch_time = 0;
+
+static const uint16_t NUM_OF_TRY_TO_WIFI_CONNECTION = 50;
+//static bool has_WIFI_connection = false;
 
 static const uint8_t IOTHUB_PUSH_MESSAGE_EVERY_MINUTES = 1; // 1 mimutes
 static_assert(IOTHUB_PUSH_MESSAGE_EVERY_MINUTES < 60, "IOTHUB_PUSH_MESSAGE_EVERY_MINUTES is lesser than 60 minutes.");
@@ -35,8 +54,11 @@ static_assert(IOTHUB_PUSH_MESSAGE_EVERY_MINUTES < 60, "IOTHUB_PUSH_MESSAGE_EVERY
 static const uint8_t IOTHUB_PUSH_STATE_EVERY_MINUTES = 15; // 15 minutes
 static_assert(IOTHUB_PUSH_STATE_EVERY_MINUTES < 60, "IOTHUB_PUSH_STATE_EVERY_MINUTES is lesser than 60 minutes.");
 
-static const uint8_t SENSING_EVERY_SECONDS = 2; // 2 seconds
-static_assert(SENSING_EVERY_SECONDS < 60, "SENSING_EVERY_SECONDS is lesser than 60 seconds.");
+static const uint8_t BME280_SENSING_EVERY_SECONDS = 2; // 2 seconds
+static_assert(BME280_SENSING_EVERY_SECONDS < 60, "BME280_SENSING_EVERY_SECONDS is lesser than 60 seconds.");
+
+static const uint8_t SGP30_SENSING_EVERY_SECONDS = 1; // 1 seconds
+static_assert(SGP30_SENSING_EVERY_SECONDS == 1, "SGP30_SENSING_EVERY_SECONDS is shoud be 1 seconds.");
 
 //
 static void sendConfirmationCallback(IOTHUB_CLIENT_CONFIRMATION_RESULT result);
@@ -55,48 +77,62 @@ void releaseEvent(Event &e)
 //
 //
 //
+struct Uptime
+{
+  uint16_t days;
+  uint8_t hours;
+  uint8_t minutes;
+  uint8_t seconds;
+};
+
+struct Uptime uptime()
+{
+  clock_t time_epoch = clock() - system_propaties.startup_epoch;
+  uint32_t seconds = static_cast<uint32_t>(time_epoch / CLOCKS_PER_SEC);
+  uint32_t minutes = seconds / 60;
+  uint32_t hours = minutes / 60;
+  uint32_t days = hours / 24;
+  return {
+      .days = static_cast<uint16_t>(days),
+      .hours = static_cast<uint8_t>(hours % 24),
+      .minutes = static_cast<uint8_t>(minutes % 60),
+      .seconds = static_cast<uint8_t>(seconds % 60),
+  };
+}
+
+//
+//
+//
 struct BatteryStatus
 {
   float voltage;
   float percentage;
   float current;
-  bool charging, discharging;
 };
 
-//
-//
-//
-struct BatteryStatus get_battery_status()
+inline bool isBatteryCharging(struct BatteryStatus &stat)
 {
-  float batt_v = floor(10.0f * M5.Axp.GetBatVoltage()) / 10.0f;
-  float full_v = 4.2f;
-  float shutdown_v = 3.0f;
+  return (stat.current > 0.00f);
+}
+
+inline bool isBatteryDischarging(struct BatteryStatus &stat)
+{
+  return (stat.current < 0.00f);
+}
+
+struct BatteryStatus getBatteryStatus()
+{
+  float batt_v = M5.Axp.GetBatVoltage();
+  float batt_full_v = 4.20f;
+  float shutdown_v = 3.00f;
   float indicated_v = batt_v - shutdown_v;
-  float fullscale_v = full_v - shutdown_v;
+  float fullscale_v = batt_full_v - shutdown_v;
+  float batt_percentage = 100.00f * indicated_v / fullscale_v;
   float batt_current = M5.Axp.GetBatCurrent(); // mA
-  bool charging, discharging;
-  if (batt_current < 0.0f)
-  {
-    batt_current = -batt_current;
-    charging = false;
-    discharging = true;
-  }
-  else if (batt_current > 0.0f)
-  {
-    charging = true;
-    discharging = false;
-  }
-  else
-  {
-    charging = false;
-    discharging = false;
-  }
   return {
       .voltage = batt_v,
-      .percentage = 100.0f * indicated_v / fullscale_v,
+      .percentage = min(batt_percentage, 100.0f),
       .current = batt_current,
-      .charging = charging,
-      .discharging = discharging,
   };
 }
 
@@ -111,20 +147,60 @@ void display(time_t time, const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2
   gmtime_r(&local_time, &local);
   //
   lcd.setCursor(0, 0);
-  lcd.setFont(&fonts::lgfxJapanGothic_28);
+  lcd.setFont(&fonts::FreeSans9pt7b);
+  if (system_propaties.has_WIFI_connection)
+  {
+    lcd.setTextColor(TFT_GREEN, background_color);
+    lcd.printf("  Wifi");
+  }
+  else
+  {
+    lcd.setTextColor(TFT_RED, background_color);
+    lcd.printf("NoWifi");
+  }
+  lcd.setTextColor(message_text_color, background_color);
   //
-  lcd.printf("%4d-%02d-%02d ", 1900 + local.tm_year, 1 + local.tm_mon, local.tm_mday);
-  lcd.printf("%02d:%02d:%02d\n", local.tm_hour, local.tm_min, local.tm_sec);
+  if (system_propaties.is_freestanding_mode)
+  {
+    lcd.printf("/FREESTAND");
+  }
+  else
+  {
+    lcd.printf("/CONNECTED");
+  }
   //
-  lcd.setFont(&fonts::lgfxJapanGothic_24);
-  auto batt_info = get_battery_status();
-
-  lcd.printf("%3.0f%% %3.1fV %4.0fmA %6s\n",
+  {
+    struct Uptime up = uptime();
+    lcd.printf(" up %2d days, %2d:%2d\n", up.days, up.hours, up.minutes);
+  }
+  //
+  auto batt_info = getBatteryStatus();
+  char sign = ' ';
+  if (isBatteryCharging(batt_info))
+  {
+    sign = '+';
+  }
+  else if (isBatteryDischarging(batt_info))
+  {
+    sign = '-';
+  }
+  else
+  {
+    sign = ' ';
+  }
+  lcd.printf("Batt %4.0f%% %4.2fV %c%5.3fA",
              batt_info.percentage,
              batt_info.voltage,
-             batt_info.current,
-             batt_info.charging ? "CHARGE" : batt_info.discharging ? "DISCHG"
-                                                                   : "");
+             sign,
+             abs(batt_info.current / 1000.0f));
+  lcd.print("\n");
+  //
+  {
+    char date_time[50] = "";
+    strftime(date_time, sizeof(date_time), "%Y-%m-%d %H:%M:%SJST", &local);
+    lcd.setFont(&fonts::lgfxJapanGothic_28);
+    lcd.printf("%s\n", date_time);
+  }
   //
   lcd.setFont(&fonts::lgfxJapanGothic_28);
   if (bme)
@@ -137,11 +213,6 @@ void display(time_t time, const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2
   {
     lcd.printf("eCO2 %6d ppm\n", sgp->eCo2);
     lcd.printf("TVOC %6d ppb\n", sgp->tvoc);
-  }
-  //
-  if (has_WIFI_connection)
-  {
-    lcd.printf("messageId: %u\n", IotHubClient::message_id);
   }
 }
 
@@ -173,12 +244,12 @@ void setup()
   //
   lcd.println(F("Wifi Connecting..."));
   WiFi.begin(Credentials.wifi_ssid, Credentials.wifi_password);
-  has_WIFI_connection = false;
+  system_propaties.has_WIFI_connection = false;
   for (int16_t n = 1; n <= NUM_OF_TRY_TO_WIFI_CONNECTION; n++)
   {
     if (WiFi.status() == WL_CONNECTED)
     {
-      has_WIFI_connection = true;
+      system_propaties.has_WIFI_connection = true;
       break;
     }
     else
@@ -187,7 +258,7 @@ void setup()
       lcd.print(F("."));
     }
   }
-  if (has_WIFI_connection)
+  if (system_propaties.has_WIFI_connection)
   {
     lcd.println(F("Wifi connected"));
     lcd.println(F("IP address: "));
@@ -195,7 +266,8 @@ void setup()
   }
   else
   {
-    lcd.println(F("Wifi is NOT connected"));
+    lcd.println(F("Wifi is NOT connected... freestanding."));
+    system_propaties.is_freestanding_mode = true;
   }
 
   //
@@ -237,7 +309,7 @@ void setup()
   //
   // initializing IotHub client
   //
-  if (has_WIFI_connection)
+  if (!system_propaties.is_freestanding_mode)
   {
     IotHubClient::init(sendConfirmationCallback,
                        messageCallback,
@@ -298,41 +370,37 @@ void setup()
   // initializing sensor
   //
   {
-    Bme280::TempHumiPres *bme = bme280_sensor.begin();
-    Sgp30::TvocEco2 *sgp = sgp30_sensor.begin();
+    bool bme = system_propaties.bme280.begin();
+    bool sgp = system_propaties.sgp30.begin();
     do
     {
       if (!bme)
       {
         lcd.print(F("BME280センサが見つかりません。\n"));
         delay(100);
-        bme = bme280_sensor.begin();
+        bme = system_propaties.bme280.begin();
       }
       if (!sgp)
       {
         lcd.print(F("SGP30センサが見つかりません。\n"));
         delay(100);
-        sgp = sgp30_sensor.begin();
+        sgp = system_propaties.sgp30.begin();
       }
     } while (!(bme && sgp));
     lcd.fillScreen(background_color);
     assert(bme);
     assert(sgp);
-    sgp30_sensor.printSensorDetails();
-    bme280_sensor.printSensorDetails();
+    system_propaties.sgp30.printSensorDetails();
+    system_propaties.bme280.printSensorDetails();
     //
     time_t now = time(NULL);
-    display(now, bme, sgp);
+    display(now, nullptr, nullptr);
   }
-}
 
-//
-//
-//
-static void periodical_sensing(const time_t &measured_at)
-{
-  bme280_sensor.sensing(measured_at);
-  sgp30_sensor.sensing(measured_at);
+  //
+  // start up
+  //
+  system_propaties.startup_epoch = clock();
 }
 
 //
@@ -344,14 +412,14 @@ static void periodical_push_message()
 
   // get the "latest" BME280 sensor values.
   // Temperature, Relative Humidity, Pressure
-  const Bme280::TempHumiPres *bme280_sensed = bme280_sensor.getLatestTempHumiPres();
+  const Bme280::TempHumiPres *bme280_sensed = system_propaties.bme280.getLatestTempHumiPres();
   if (bme280_sensed)
   {
     // calculate the Aboslute Humidity from Temperature and Relative Humidity
     uint32_t absolute_humidity = Sgp30::calculateAbsoluteHumidity(bme280_sensed->temperature, bme280_sensed->relative_humidity);
     ESP_LOGI("main", "absolute humidity: %d", absolute_humidity);
     // set "Absolute Humidity" to the SGP30 sensor.
-    if (!sgp30_sensor.setHumidity(absolute_humidity))
+    if (!system_propaties.sgp30.setHumidity(absolute_humidity))
     {
       ESP_LOGE("main", "setHumidity error.");
     }
@@ -363,7 +431,7 @@ static void periodical_push_message()
   doc_sets.state.clear();
   // get the "smoothed" SGP30 sensor values.
   // eCo2, TVOC
-  const Sgp30::TvocEco2 *sgp30_smoothed = sgp30_sensor.getTvocEco2WithSmoothing();
+  const Sgp30::TvocEco2 *sgp30_smoothed = system_propaties.sgp30.getTvocEco2WithSmoothing();
   if (sgp30_smoothed)
   {
     IotHubClient::pushMessage(
@@ -378,11 +446,11 @@ static void periodical_push_message()
 static void periodical_push_state()
 {
   JsonDocSets doc_sets = {};
-  struct BatteryStatus batt_state = get_battery_status();
+  struct BatteryStatus batt_state = getBatteryStatus();
 
   // get the "smoothed" SGP30 sensor values.
   // eCo2, TVOC
-  const Sgp30::TvocEco2 *sgp30_smoothed = sgp30_sensor.getTvocEco2WithSmoothing();
+  const Sgp30::TvocEco2 *sgp30_smoothed = system_propaties.sgp30.getTvocEco2WithSmoothing();
   if (sgp30_smoothed)
   {
     auto json = takeStateFromJsonDocSets(mapToJson(doc_sets, *sgp30_smoothed));
@@ -403,13 +471,17 @@ static void periodical_update()
   struct tm utc;
   gmtime_r(&measured_at, &utc);
 
-  if (utc.tm_sec % SENSING_EVERY_SECONDS == 0)
+  if (utc.tm_sec % BME280_SENSING_EVERY_SECONDS == 0)
   {
-    periodical_sensing(measured_at);
+    system_propaties.bme280.sensing(measured_at);
   }
-  display(measured_at, bme280_sensor.getLatestTempHumiPres(), sgp30_sensor.getTvocEco2WithSmoothing());
+  if (utc.tm_sec % SGP30_SENSING_EVERY_SECONDS == 0)
+  {
+    system_propaties.sgp30.sensing(measured_at);
+  }
+  display(measured_at, system_propaties.bme280.getLatestTempHumiPres(), system_propaties.sgp30.getTvocEco2WithSmoothing());
   //
-  if (has_WIFI_connection)
+  if (!system_propaties.is_freestanding_mode)
   {
     if (utc.tm_sec == 0 && utc.tm_min % IOTHUB_PUSH_MESSAGE_EVERY_MINUTES == 0)
     {
@@ -470,7 +542,16 @@ static int deviceMethodCallback(const char *methodName, const unsigned char *pay
   const char *responseMessage = "\"Successfully invoke device method\"";
   int result = 200;
 
-  if (strcmp(methodName, "start") == 0)
+  if (strcmp(methodName, "calibration") == 0)
+  {
+    ESP_LOGI("main", "Start calibrate the sensor");
+    if (!system_propaties.sgp30.begin())
+    {
+      responseMessage = "\"calibration failed\"";
+      result = 503;
+    }
+  }
+  else if (strcmp(methodName, "start") == 0)
   {
     ESP_LOGI("main", "Start sending temperature and humidity data");
     //    messageSending = true;
@@ -563,6 +644,7 @@ static void deviceTwinCallback(DEVICE_TWIN_UPDATE_STATE updateState, const unsig
     ESP_LOGE("main", "%s", error.f_str());
     return;
   }
+  /*
   //
   const char *updatedAt = json["reported"]["sgp30_baseline"]["updatedAt"];
   if (updatedAt)
@@ -572,7 +654,8 @@ static void deviceTwinCallback(DEVICE_TWIN_UPDATE_STATE updateState, const unsig
     uint16_t tvoc_baseline = json["reported"]["sgp30_baseline"]["tvoc"].as<uint16_t>();
     uint16_t eCo2_baseline = json["reported"]["sgp30_baseline"]["eCo2"].as<uint16_t>();
     ESP_LOGI("main", "eCo2:%d, TVOC:%d", eCo2_baseline, tvoc_baseline);
-    int ret = sgp30_sensor.setIAQBaseline(eCo2_baseline, tvoc_baseline);
+    int ret = sgp30.setIAQBaseline(eCo2_baseline, tvoc_baseline);
     ESP_LOGI("main", "setIAQBaseline():%d", ret);
   }
+  */
 }

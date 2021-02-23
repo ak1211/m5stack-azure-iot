@@ -11,8 +11,8 @@
 
 namespace Sgp30
 {
-  static const uint8_t MOVING_AVERAGES_PERIOD_AS_2N = 3; // 2^3 = 8
-  static const uint8_t MOVING_AVERAGES_PERIOD = 1 << MOVING_AVERAGES_PERIOD_AS_2N;
+  static const uint8_t SMOOTHING_PERIOD_AS_2N = 3; // 2^3 = 8
+  static const uint8_t SMOOTHING_PERIOD = 1 << SMOOTHING_PERIOD_AS_2N;
   //
   //
   //
@@ -50,7 +50,7 @@ namespace Sgp30
       sgp30_healthy = false;
     }
     //
-    TvocEco2 *begin();
+    bool begin();
     //
     TvocEco2 *sensing(const time_t &measured_at);
     //
@@ -71,18 +71,7 @@ namespace Sgp30
         ESP_LOGE("main", "sensor has problems.");
         return;
       }
-      Serial.printf("SGP30 serial number is [0x%x, 0x%x, 0x%x]", sgp30.serialnumber[0], sgp30.serialnumber[1], sgp30.serialnumber[2]);
-      Serial.println("");
-      //
-      uint16_t eco2_base;
-      uint16_t tvoc_base;
-      if (sgp30.getIAQBaseline(&eco2_base, &tvoc_base))
-      {
-        Serial.printf("SGP30 eCo2 baseline is %d", eco2_base);
-        Serial.println("");
-        Serial.printf("SGP30 TVOC baseline is %d", tvoc_base);
-        Serial.println("");
-      }
+      Serial.printf("SGP30 serial number is [0x%x, 0x%x, 0x%x]\n", sgp30.serialnumber[0], sgp30.serialnumber[1], sgp30.serialnumber[2]);
     }
     //
     bool healthy()
@@ -106,12 +95,36 @@ namespace Sgp30
     //
     const char sensor_id[SENSOR_ID_MAX_LEN + 1];
     //
-    struct
+    uint16_t tvoc_ring[SMOOTHING_PERIOD]; // ppb
+    uint16_t eCo2_ring[SMOOTHING_PERIOD]; // ppm
+    uint8_t tail_of_ring;
+    //
+    void initRing()
     {
-      uint16_t tvoc; // ppb
-      uint16_t eCo2; // ppm
-    } periods[MOVING_AVERAGES_PERIOD];
-    uint8_t periods_index;
+      for (int16_t i = 0; i < SMOOTHING_PERIOD; i++)
+      {
+        tvoc_ring[i] = 0;   //0ppb
+        eCo2_ring[i] = 400; //400ppm
+      }
+      tail_of_ring = 0;
+    }
+    //
+    void pushRing(uint16_t tvoc, uint16_t eCo2)
+    {
+      tvoc_ring[tail_of_ring] = tvoc;
+      eCo2_ring[tail_of_ring] = eCo2;
+      tail_of_ring = (tail_of_ring + 1) & (SMOOTHING_PERIOD - 1);
+    }
+    //
+    uint16_t calculateSmoothing(uint16_t *ring)
+    {
+      uint32_t acc = ring[0];
+      for (int16_t i = 1; i < SMOOTHING_PERIOD; i++)
+      {
+        acc = acc + ring[i];
+      }
+      return static_cast<uint16_t>(acc >> SMOOTHING_PERIOD_AS_2N);
+    }
     //
     struct TvocEco2 latest;
     struct TvocEco2 smoothed;
