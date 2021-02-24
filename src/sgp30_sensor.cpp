@@ -52,6 +52,8 @@ TvocEco2 *Sensor::sensing(const time_t &measured_at)
   latest.tvoc_baseline = smoothed.tvoc_baseline = eco2_base;
   latest.eCo2_baseline = smoothed.eCo2_baseline = tvoc_base;
 
+  pushRing(sgp30.TVOC, sgp30.eCO2);
+
   // smoothing
   smoothed.tvoc = calculateSmoothing(tvoc_ring);
   smoothed.eCo2 = calculateSmoothing(eCo2_ring);
