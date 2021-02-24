@@ -11,7 +11,7 @@
 
 namespace Sgp30
 {
-  static const uint8_t SMOOTHING_PERIOD_AS_2N = 3; // 2^3 = 8
+  static const uint8_t SMOOTHING_PERIOD_AS_2N = 6; // 2^6 = 64
   static const uint8_t SMOOTHING_PERIOD = 1 << SMOOTHING_PERIOD_AS_2N;
   //
   //
