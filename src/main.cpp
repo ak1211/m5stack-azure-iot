@@ -127,7 +127,7 @@ inline bool isBatteryDischarging(struct BatteryStatus &stat)
 struct BatteryStatus getBatteryStatus()
 {
   float batt_v = M5.Axp.GetBatVoltage();
-  float batt_full_v = 4.20f;
+  float batt_full_v = 4.18f;
   float shutdown_v = 3.00f;
   float indicated_v = batt_v - shutdown_v;
   float fullscale_v = batt_full_v - shutdown_v;
@@ -446,31 +446,38 @@ static void write_data_to_log_file(const Bme280::TempHumiPres *bme, const Sgp30:
 
   const size_t LENGTH = 1024;
   char *p = (char *)calloc(LENGTH + 1, sizeof(char));
-  size_t i;
-  i = 0;
-  // first field is date and time
-  i += strftime(&p[i], LENGTH - i, "%Y-%m-%dT%H:%M:%SZ", &utc);
-  // 2nd field is temperature
-  i += snprintf(&p[i], LENGTH - i, ", %6.2f", bme->temperature);
-  // 3nd field is relative_humidity
-  i += snprintf(&p[i], LENGTH - i, ", %6.2f", bme->relative_humidity);
-  // 4th field is pressure
-  i += snprintf(&p[i], LENGTH - i, ", %7.2f", bme->pressure);
-  // 5th field is TVOC
-  i += snprintf(&p[i], LENGTH - i, ", %5d", sgp->tvoc);
-  // 6th field is eCo2
-  i += snprintf(&p[i], LENGTH - i, ", %5d", sgp->eCo2);
-  // 7th field is TVOC baseline
-  i += snprintf(&p[i], LENGTH - i, ", %5d", sgp->tvoc_baseline);
-  // 8th field is eCo2 baseline
-  i += snprintf(&p[i], LENGTH - i, ", %5d", sgp->eCo2_baseline);
+  if (p)
+  {
+    size_t i;
+    i = 0;
+    // first field is date and time
+    i += strftime(&p[i], LENGTH - i, "%Y-%m-%dT%H:%M:%SZ", &utc);
+    // 2nd field is temperature
+    i += snprintf(&p[i], LENGTH - i, ", %6.2f", bme->temperature);
+    // 3nd field is relative_humidity
+    i += snprintf(&p[i], LENGTH - i, ", %6.2f", bme->relative_humidity);
+    // 4th field is pressure
+    i += snprintf(&p[i], LENGTH - i, ", %7.2f", bme->pressure);
+    // 5th field is TVOC
+    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp->tvoc);
+    // 6th field is eCo2
+    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp->eCo2);
+    // 7th field is TVOC baseline
+    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp->tvoc_baseline);
+    // 8th field is eCo2 baseline
+    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp->eCo2_baseline);
 
-  ESP_LOGI("main", "%s", p);
+    ESP_LOGI("main", "%s", p);
 
-  // write to file
-  size_t size = system_propaties.data_logging_file.println(p);
-  system_propaties.data_logging_file.flush();
-  ESP_LOGI("main", "wrote size:%u", size);
+    // write to file
+    size_t size = system_propaties.data_logging_file.println(p);
+    system_propaties.data_logging_file.flush();
+    ESP_LOGI("main", "wrote size:%u", size);
+  }
+  else
+  {
+    ESP_LOGE("main", "memory allocation error");
+  }
 
   free(p);
 }

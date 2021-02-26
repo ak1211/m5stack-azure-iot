@@ -116,7 +116,7 @@ namespace Sgp30
       tail_of_ring = (tail_of_ring + 1) & (SMOOTHING_PERIOD - 1);
     }
     //
-    uint16_t calculateSmoothing(uint16_t *ring)
+    uint16_t calculateSmoothing(const uint16_t *ring)
     {
       uint32_t acc = ring[0];
       for (int16_t i = 1; i < SMOOTHING_PERIOD; i++)
