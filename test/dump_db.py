@@ -9,9 +9,7 @@ from datetime import datetime
 from dateutil import parser
 
 
-def list_all_temp_humi_pres(container):
-    item_list = list(container.read_all_items())
-    print('Found {} items'.format(item_list.__len__()))
+def list_temp_humi_pres(item_list):
     for doc in item_list:
         id_ = doc.get('id')
         sid = doc.get('sensorId')
@@ -39,6 +37,12 @@ def list_all_temp_humi_pres(container):
         output += ' {:5}eCo2_base'.format(
             eCo2_base) if eCo2_base is not None else "  NaN eCo2_base"
         print(output)
+
+
+def list_all_temp_humi_pres(container):
+    item_list = list(container.read_all_items(max_item_count=100))
+    print('Found {} items'.format(item_list.__len__()))
+    list_temp_humi_pres(item_list)
 
 
 if __name__ == "__main__":

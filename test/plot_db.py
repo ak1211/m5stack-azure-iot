@@ -8,14 +8,14 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import math
+import itertools
 from matplotlib.dates import DayLocator, HourLocator, DateFormatter
 from pytz import timezone
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil import parser
 
 
-def take_all_items_from_container(container):
-    item_list = list(container.read_all_items())
+def time_sequential_data_frame(item_list):
     print('Found {} items'.format(item_list.__len__()))
 
     pairs = [('sensorId', lambda x:x),
@@ -35,6 +35,26 @@ def take_all_items_from_container(container):
     return df.set_index('measuredAt')
 
 
+def take_all_items_from_container(container):
+    item_list = list(container.read_all_items())
+    return time_sequential_data_frame(item_list)
+
+
+def take_items_from_container(container, begin, end):
+    begin_ = begin.isoformat()
+    end_ = end.isoformat()
+    print(begin_)
+    print(end_)
+    item_list = list(container.query_items(
+        query="SELECT * FROM c WHERE c.measuredAt BETWEEN @begin AND @end",
+        parameters=[
+            {"name": "@begin", "value": begin_},
+            {"name": "@end", "value": end_}
+        ],
+        enable_cross_partition_query=True))
+    return time_sequential_data_frame(item_list)
+
+
 def calculate_absolute_humidity(df):
     def calc(temp, humi):
         # [g/m^3]
@@ -47,9 +67,8 @@ def calculate_absolute_humidity(df):
     return df
 
 
-def plot(container):
-    df = take_all_items_from_container(container)
-#    print(df)
+def plot(df, filename):
+    #    print(df)
     print(calculate_absolute_humidity(df))
     #
     tz = timezone('Asia/Tokyo')
@@ -60,7 +79,7 @@ def plot(container):
     #
     axs[0, 0].xaxis.set_major_locator(HourLocator(interval=12))
     axs[0, 0].xaxis.set_major_formatter(major_formatter)
-    axs[0, 0].xaxis.set_minor_locator(HourLocator(interval=1))
+    axs[0, 0].xaxis.set_minor_locator(HourLocator(interval=2))
     axs[0, 0].xaxis.set_minor_formatter(minor_formatter)
     axs[0, 0].set_ylabel('$^{\circ}C$')
     axs[0, 0].set_title('temperature', fontsize=28)
@@ -71,7 +90,7 @@ def plot(container):
     #
     axs[0, 1].xaxis.set_major_locator(HourLocator(interval=12))
     axs[0, 1].xaxis.set_major_formatter(major_formatter)
-    axs[0, 1].xaxis.set_minor_locator(HourLocator(interval=1))
+    axs[0, 1].xaxis.set_minor_locator(HourLocator(interval=2))
     axs[0, 1].xaxis.set_minor_formatter(minor_formatter)
     axs[0, 1].set_ylabel('hPa')
     axs[0, 1].set_title('pressure', fontsize=28)
@@ -81,7 +100,7 @@ def plot(container):
     #
     axs[1, 0].xaxis.set_major_locator(HourLocator(interval=12))
     axs[1, 0].xaxis.set_major_formatter(major_formatter)
-    axs[1, 0].xaxis.set_minor_locator(HourLocator(interval=1))
+    axs[1, 0].xaxis.set_minor_locator(HourLocator(interval=2))
     axs[1, 0].xaxis.set_minor_formatter(minor_formatter)
     axs[1, 0].set_ylabel('%RH')
     axs[1, 0].set_title('relative humidity', fontsize=28)
@@ -92,7 +111,7 @@ def plot(container):
     #
     axs[1, 1].xaxis.set_major_locator(HourLocator(interval=12))
     axs[1, 1].xaxis.set_major_formatter(major_formatter)
-    axs[1, 1].xaxis.set_minor_locator(HourLocator(interval=1))
+    axs[1, 1].xaxis.set_minor_locator(HourLocator(interval=2))
     axs[1, 1].xaxis.set_minor_formatter(minor_formatter)
     axs[1, 1].set_ylabel('$mg/m^3$')
     axs[1, 1].set_title('absolute humidity', fontsize=28)
@@ -103,7 +122,7 @@ def plot(container):
     #
     axs[2, 0].xaxis.set_major_locator(HourLocator(interval=12))
     axs[2, 0].xaxis.set_major_formatter(major_formatter)
-    axs[2, 0].xaxis.set_minor_locator(HourLocator(interval=1))
+    axs[2, 0].xaxis.set_minor_locator(HourLocator(interval=2))
     axs[2, 0].xaxis.set_minor_formatter(minor_formatter)
     axs[2, 0].set_ylabel('ppm')
     axs[2, 0].set_title('equivalent CO2', fontsize=28)
@@ -113,7 +132,7 @@ def plot(container):
     #
     axs[2, 1].xaxis.set_major_locator(HourLocator(interval=12))
     axs[2, 1].xaxis.set_major_formatter(major_formatter)
-    axs[2, 1].xaxis.set_minor_locator(HourLocator(interval=1))
+    axs[2, 1].xaxis.set_minor_locator(HourLocator(interval=2))
     axs[2, 1].xaxis.set_minor_formatter(minor_formatter)
     axs[2, 1].set_ylabel('ppb')
     axs[2, 1].set_title('Total VOC', fontsize=28)
@@ -122,7 +141,53 @@ def plot(container):
     axs[2, 1].legend(fontsize=18)
     #
 #    fig.tight_layout()
-    fig.savefig("plot.png")
+    fig.savefig(filename)
+
+
+def take_first_and_last_items(container):
+    def do_query(query):
+        targets = list(container.query_items(
+            query=query,
+            enable_cross_partition_query=True))
+        if len(targets) > 0:
+            items = list(container.query_items(
+                query="SELECT * FROM c WHERE c.measuredAt=@at",
+                parameters=[
+                    {"name": "@at", "value": targets[0]}
+                ],
+                enable_cross_partition_query=True))
+            return items[0]
+        return None
+    first = do_query("SELECT VALUE(MIN(c.measuredAt)) FROM c")
+    last = do_query("SELECT VALUE(MAX(c.measuredAt)) FROM c")
+    return (first, last)
+
+
+def date_sequence(first, last):
+    first_ = datetime.strptime(first.get("measuredAt"), "%Y-%m-%dT%H:%M:%SZ")
+    last_ = datetime.strptime(last.get("measuredAt"), "%Y-%m-%dT%H:%M:%SZ")
+    t = first_
+    while t <= last_:
+        yield t
+        t += timedelta(days=1)
+
+
+def split_weekly(first_last_items):
+    def attach_weeknumber(ds):
+        return [(d.isocalendar()[1], d) for d in ds]
+
+    def key(keyvalue):
+        (k, v) = keyvalue
+        return k
+
+    def value(keyvalue):
+        (k, v) = keyvalue
+        return v
+    ds = date_sequence(*first_last_items)
+    xs = attach_weeknumber(ds)
+    xxs = itertools.groupby(xs, key)
+    for _, group in xxs:
+        yield [value(kv) for kv in group]
 
 
 def run(url, key):
@@ -131,7 +196,16 @@ def run(url, key):
     container_name = "Measurements"
     database = cosmos_client.get_database_client(database_name)
     container = database.get_container_client(container_name)
-    plot(container)
+    first_last_items = take_first_and_last_items(container)
+    weeklies = split_weekly(first_last_items)
+    for week in weeklies:
+        begin = week[0]
+        end = week[-1] + timedelta(days=1) - timedelta(microseconds=1)
+        df = take_items_from_container(container, begin, end)
+        begin_ = begin.strftime('%Y-%m-%d')
+        end_ = end.strftime('%Y-%m-%d')
+        filename = "{}_{}.png".format(begin_, end_)
+        plot(df, filename)
 
 
 if __name__ == "__main__":
