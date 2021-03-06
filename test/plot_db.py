@@ -16,8 +16,6 @@ from dateutil import parser
 
 
 def time_sequential_data_frame(item_list):
-    print('Found {} items'.format(item_list.__len__()))
-
     pairs = [('sensorId', lambda x:x),
              ('measuredAt', parser.parse),
              ('temperature', lambda x: float(x) if x is not None else None),
@@ -43,8 +41,7 @@ def take_all_items_from_container(container):
 def take_items_from_container(container, begin, end):
     begin_ = begin.isoformat()
     end_ = end.isoformat()
-    print(begin_)
-    print(end_)
+    print("{} -> {}".format(begin_, end_))
     item_list = list(container.query_items(
         query="SELECT * FROM c WHERE c.measuredAt BETWEEN @begin AND @end",
         parameters=[
@@ -68,77 +65,99 @@ def calculate_absolute_humidity(df):
 
 
 def plot(df, filename):
-    #    print(df)
-    print(calculate_absolute_humidity(df))
+    df = calculate_absolute_humidity(df)
+    print(df)
     #
     tz = timezone('Asia/Tokyo')
     major_formatter = DateFormatter('\n%Y-%m-%d\n%H:%M:%S\n%Z', tz=tz)
     minor_formatter = DateFormatter('%H', tz=tz)
     #
-    fig, axs = plt.subplots(3, 2, figsize=(72.0, 48.0))
+    fig, axs = plt.subplots(4, 2, figsize=(72.0, 64.0))
     #
-    axs[0, 0].xaxis.set_major_locator(HourLocator(interval=12))
+    axs[0, 0].xaxis.set_major_locator(DayLocator(interval=1, tz=tz))
     axs[0, 0].xaxis.set_major_formatter(major_formatter)
-    axs[0, 0].xaxis.set_minor_locator(HourLocator(interval=2))
+    axs[0, 0].xaxis.set_minor_locator(HourLocator(interval=2, tz=tz))
     axs[0, 0].xaxis.set_minor_formatter(minor_formatter)
     axs[0, 0].set_ylabel('$^{\circ}C$')
     axs[0, 0].set_title('temperature', fontsize=28)
     axs[0, 0].plot(df['temperature'].dropna(), 'o-',
                    label='temperature[$^{\circ}C$]')
-    axs[0, 0].grid()
+    axs[0, 0].grid(which='both', axis='both')
     axs[0, 0].legend(fontsize=18)
     #
-    axs[0, 1].xaxis.set_major_locator(HourLocator(interval=12))
+    axs[0, 1].xaxis.set_major_locator(DayLocator(interval=1, tz=tz))
     axs[0, 1].xaxis.set_major_formatter(major_formatter)
-    axs[0, 1].xaxis.set_minor_locator(HourLocator(interval=2))
+    axs[0, 1].xaxis.set_minor_locator(HourLocator(interval=1, tz=tz))
     axs[0, 1].xaxis.set_minor_formatter(minor_formatter)
     axs[0, 1].set_ylabel('hPa')
     axs[0, 1].set_title('pressure', fontsize=28)
     axs[0, 1].plot(df['pressure'].dropna(), 's-', label='pressure[hPa]')
-    axs[0, 1].grid()
+    axs[0, 1].grid(which='both', axis='both')
     axs[0, 1].legend(fontsize=18)
     #
-    axs[1, 0].xaxis.set_major_locator(HourLocator(interval=12))
+    axs[1, 0].xaxis.set_major_locator(DayLocator(interval=1, tz=tz))
     axs[1, 0].xaxis.set_major_formatter(major_formatter)
-    axs[1, 0].xaxis.set_minor_locator(HourLocator(interval=2))
+    axs[1, 0].xaxis.set_minor_locator(HourLocator(interval=1, tz=tz))
     axs[1, 0].xaxis.set_minor_formatter(minor_formatter)
     axs[1, 0].set_ylabel('%RH')
     axs[1, 0].set_title('relative humidity', fontsize=28)
     axs[1, 0].plot(df['humidity'].dropna(), 's-',
                    label='relative humidity[%RH]')
-    axs[1, 0].grid()
+    axs[1, 0].grid(which='both', axis='both')
     axs[1, 0].legend(fontsize=18)
     #
-    axs[1, 1].xaxis.set_major_locator(HourLocator(interval=12))
+    axs[1, 1].xaxis.set_major_locator(DayLocator(interval=1, tz=tz))
     axs[1, 1].xaxis.set_major_formatter(major_formatter)
-    axs[1, 1].xaxis.set_minor_locator(HourLocator(interval=2))
+    axs[1, 1].xaxis.set_minor_locator(HourLocator(interval=1, tz=tz))
     axs[1, 1].xaxis.set_minor_formatter(minor_formatter)
     axs[1, 1].set_ylabel('$mg/m^3$')
     axs[1, 1].set_title('absolute humidity', fontsize=28)
     axs[1, 1].plot(df['absolute_humidity'].dropna(), 's-',
                    label='absolute humidity[$g/m^3$]')
-    axs[1, 1].grid()
+    axs[1, 1].grid(which='both', axis='both')
     axs[1, 1].legend(fontsize=18)
     #
-    axs[2, 0].xaxis.set_major_locator(HourLocator(interval=12))
+    axs[2, 0].xaxis.set_major_locator(DayLocator(interval=1, tz=tz))
     axs[2, 0].xaxis.set_major_formatter(major_formatter)
-    axs[2, 0].xaxis.set_minor_locator(HourLocator(interval=2))
+    axs[2, 0].xaxis.set_minor_locator(HourLocator(interval=1, tz=tz))
     axs[2, 0].xaxis.set_minor_formatter(minor_formatter)
     axs[2, 0].set_ylabel('ppm')
     axs[2, 0].set_title('equivalent CO2', fontsize=28)
     axs[2, 0].plot(df['eCo2'].dropna(), 's-', label='eCO2[ppm]')
-    axs[2, 0].grid()
+    axs[2, 0].grid(which='both', axis='both')
     axs[2, 0].legend(fontsize=18)
     #
-    axs[2, 1].xaxis.set_major_locator(HourLocator(interval=12))
+    axs[2, 1].xaxis.set_major_locator(DayLocator(interval=1, tz=tz))
     axs[2, 1].xaxis.set_major_formatter(major_formatter)
-    axs[2, 1].xaxis.set_minor_locator(HourLocator(interval=2))
+    axs[2, 1].xaxis.set_minor_locator(HourLocator(interval=1, tz=tz))
     axs[2, 1].xaxis.set_minor_formatter(minor_formatter)
     axs[2, 1].set_ylabel('ppb')
     axs[2, 1].set_title('Total VOC', fontsize=28)
     axs[2, 1].plot(df['tvoc'].dropna(), 's-', label='TVOC[ppb]')
-    axs[2, 1].grid()
+    axs[2, 1].grid(which='both', axis='both')
     axs[2, 1].legend(fontsize=18)
+    #
+    axs[3, 0].xaxis.set_major_locator(DayLocator(interval=1, tz=tz))
+    axs[3, 0].xaxis.set_major_formatter(major_formatter)
+    axs[3, 0].xaxis.set_minor_locator(HourLocator(interval=1, tz=tz))
+    axs[3, 0].xaxis.set_minor_formatter(minor_formatter)
+    axs[3, 0].set_yscale('log')
+    axs[3, 0].set_ylabel('ppm')
+    axs[3, 0].set_title('equivalent CO2', fontsize=28)
+    axs[3, 0].plot(df['eCo2'].dropna(), 's-', label='eCO2[ppm]')
+    axs[3, 0].grid(which='both', axis='both')
+    axs[3, 0].legend(fontsize=18)
+    #
+    axs[3, 1].xaxis.set_major_locator(DayLocator(interval=1, tz=tz))
+    axs[3, 1].xaxis.set_major_formatter(major_formatter)
+    axs[3, 1].xaxis.set_minor_locator(HourLocator(interval=1, tz=tz))
+    axs[3, 1].xaxis.set_minor_formatter(minor_formatter)
+    axs[3, 1].set_yscale('log')
+    axs[3, 1].set_ylabel('ppb')
+    axs[3, 1].set_title('Total VOC', fontsize=28)
+    axs[3, 1].plot(df['tvoc'].dropna(), 's-', label='TVOC[ppb]')
+    axs[3, 1].grid(which='both', axis='both')
+    axs[3, 1].legend(fontsize=18)
     #
 #    fig.tight_layout()
     fig.savefig(filename)
@@ -206,6 +225,7 @@ def run(url, key):
         end_ = end.strftime('%Y-%m-%d')
         filename = "{}_{}.png".format(begin_, end_)
         plot(df, filename)
+        print("----------")
 
 
 if __name__ == "__main__":
