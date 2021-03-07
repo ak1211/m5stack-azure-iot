@@ -1,4 +1,4 @@
-Found 13655 items
+Found 14418 items
 3f696b03-2fcd-4923-8e22-edd6647eb145 m5stack-bme280-device-sgp30        49 "2021-02-14T06:35:00Z" "2021-02-14 15:35:00+09:00"  NaN C NaN %   NaN hPa    47ppb   446ppm 35729tvoc_base 37367eCo2_base
 8b901672-ecf4-45c5-bc56-5ae3721ed104 m5stack-bme280-device-sgp30        59 "2021-02-14T06:40:00Z" "2021-02-14 15:40:00+09:00"  NaN C NaN %   NaN hPa    23ppb   400ppm 35609tvoc_base 37339eCo2_base
 f93a5353-5659-4049-950a-08aa166bd994 m5stack-bme280-device-sgp30        69 "2021-02-14T06:46:00Z" "2021-02-14 15:46:00+09:00"  NaN C NaN %   NaN hPa    13ppb   400ppm 35584tvoc_base 37306eCo2_base
@@ -13654,3 +13654,766 @@ ca6ee023-4a9f-4345-a750-78e0dcf3d5a2 m5stack-bme280-device-sgp30     10103 "2021
 c8a93976-9fce-4715-b396-1541f7a07600 m5stack-bme280-device-sgp30     10105 "2021-03-07T02:55:00Z" "2021-03-07 11:55:00+09:00"  NaN C NaN %   NaN hPa   574ppb   532ppm 36999tvoc_base 40354eCo2_base
 69ee9efb-b218-45eb-b1db-c20fcf147814 m5stack-bme280-device-bme280    10106 "2021-03-07T02:56:00Z" "2021-03-07 11:56:00+09:00"  22.1C 34.7% 1024.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
 fcfecfd6-4a83-4d25-8bfd-d68601f2ba22 m5stack-bme280-device-sgp30     10107 "2021-03-07T02:56:00Z" "2021-03-07 11:56:00+09:00"  NaN C NaN %   NaN hPa   572ppb   530ppm 36999tvoc_base 40354eCo2_base
+e4e41f42-e666-4ee3-8109-1977ff6b330a m5stack-bme280-device-bme280    10108 "2021-03-07T02:57:00Z" "2021-03-07 11:57:00+09:00"  22.1C 34.9% 1024.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+3fa51aff-3235-4175-bd12-030218eedb7e m5stack-bme280-device-sgp30     10109 "2021-03-07T02:57:00Z" "2021-03-07 11:57:00+09:00"  NaN C NaN %   NaN hPa   577ppb   542ppm 36999tvoc_base 40354eCo2_base
+47ae5405-8e09-46f9-8102-4567d67c8100 m5stack-bme280-device-bme280    10110 "2021-03-07T02:58:00Z" "2021-03-07 11:58:00+09:00"  22.1C 34.8% 1024.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+9e4c1cc5-ef8c-456d-b67e-f8653003a472 m5stack-bme280-device-sgp30     10111 "2021-03-07T02:58:00Z" "2021-03-07 11:58:00+09:00"  NaN C NaN %   NaN hPa   575ppb   530ppm 36999tvoc_base 40354eCo2_base
+84ed1cbe-25d7-40de-aa39-b6cd24b38bd3 m5stack-bme280-device-bme280    10112 "2021-03-07T02:59:00Z" "2021-03-07 11:59:00+09:00"  22.1C 34.7% 1024.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+4ef8d216-2922-4c49-b566-3985f385c292 m5stack-bme280-device-sgp30     10113 "2021-03-07T02:59:00Z" "2021-03-07 11:59:00+09:00"  NaN C NaN %   NaN hPa   558ppb   524ppm 36999tvoc_base 40354eCo2_base
+4c81d9b0-d5f4-47d7-a1be-15c794242eca m5stack-bme280-device-bme280    10114 "2021-03-07T03:00:00Z" "2021-03-07 12:00:00+09:00"  22.1C 34.7% 1024.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+290ced98-5025-4d1d-b890-7bacac1ca463 m5stack-bme280-device-sgp30     10115 "2021-03-07T03:00:00Z" "2021-03-07 12:00:00+09:00"  NaN C NaN %   NaN hPa   557ppb   520ppm 36999tvoc_base 40354eCo2_base
+9c4192b3-13ce-42de-926b-da5b7d130d3d m5stack-bme280-device-bme280    10116 "2021-03-07T03:01:00Z" "2021-03-07 12:01:00+09:00"  22.1C 35.0% 1024.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+44ed7609-f033-427b-9082-51723234199b m5stack-bme280-device-sgp30     10117 "2021-03-07T03:01:00Z" "2021-03-07 12:01:00+09:00"  NaN C NaN %   NaN hPa   548ppb   513ppm 36998tvoc_base 40354eCo2_base
+069f9efc-d455-45b3-99e3-898666d486fd m5stack-bme280-device-bme280    10118 "2021-03-07T03:02:00Z" "2021-03-07 12:02:00+09:00"  22.1C 34.9% 1024.6hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+124d4a24-3fef-4913-84ec-9ea38dd9ad6a m5stack-bme280-device-sgp30     10119 "2021-03-07T03:02:00Z" "2021-03-07 12:02:00+09:00"  NaN C NaN %   NaN hPa   544ppb   512ppm 36998tvoc_base 40354eCo2_base
+1daf000c-0db0-40ef-9eea-556c2f4ba828 m5stack-bme280-device-bme280    10120 "2021-03-07T03:03:00Z" "2021-03-07 12:03:00+09:00"  22.1C 34.8% 1024.6hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+fc689d5c-0356-4d3c-9755-184c1008ac68 m5stack-bme280-device-sgp30     10121 "2021-03-07T03:03:00Z" "2021-03-07 12:03:00+09:00"  NaN C NaN %   NaN hPa   546ppb   517ppm 36998tvoc_base 40354eCo2_base
+ca0c9d7f-ea3f-4bc7-a9a7-ddc5cd7ee3e9 m5stack-bme280-device-bme280    10122 "2021-03-07T03:04:00Z" "2021-03-07 12:04:00+09:00"  22.1C 35.2% 1024.6hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+4665477c-5515-49ae-827c-839a4befb7b1 m5stack-bme280-device-sgp30     10123 "2021-03-07T03:04:00Z" "2021-03-07 12:04:00+09:00"  NaN C NaN %   NaN hPa   559ppb   529ppm 36998tvoc_base 40354eCo2_base
+5ed70694-1c4a-4989-ba2d-97fce3aac33c m5stack-bme280-device-bme280    10124 "2021-03-07T03:05:00Z" "2021-03-07 12:05:00+09:00"  22.1C 34.9% 1024.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+001dc242-a9e2-44f2-969d-9d49b2cb00c7 m5stack-bme280-device-sgp30     10125 "2021-03-07T03:05:00Z" "2021-03-07 12:05:00+09:00"  NaN C NaN %   NaN hPa   553ppb   521ppm 36998tvoc_base 40354eCo2_base
+88e25bf2-0f51-46e0-a147-81fc493dd9ba m5stack-bme280-device-bme280    10126 "2021-03-07T03:06:00Z" "2021-03-07 12:06:00+09:00"  22.1C 35.1% 1024.6hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+840b41b8-e243-4899-8634-143e30452a3a m5stack-bme280-device-sgp30     10127 "2021-03-07T03:06:00Z" "2021-03-07 12:06:00+09:00"  NaN C NaN %   NaN hPa   556ppb   529ppm 36998tvoc_base 40354eCo2_base
+cb0a3a2c-cb02-4cdb-9687-3613fa1709d0 m5stack-bme280-device-bme280    10128 "2021-03-07T03:07:00Z" "2021-03-07 12:07:00+09:00"  22.1C 35.3% 1024.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+22631083-d4a1-48db-a18c-5bfec6839a12 m5stack-bme280-device-sgp30     10129 "2021-03-07T03:07:00Z" "2021-03-07 12:07:00+09:00"  NaN C NaN %   NaN hPa   554ppb   524ppm 36997tvoc_base 40354eCo2_base
+97e61d52-069e-43b4-b936-c70a06fc48cc m5stack-bme280-device-bme280    10130 "2021-03-07T03:08:00Z" "2021-03-07 12:08:00+09:00"  22.1C 34.8% 1024.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+d6325ec1-fd04-4513-8756-dd1890e76a0f m5stack-bme280-device-sgp30     10131 "2021-03-07T03:08:00Z" "2021-03-07 12:08:00+09:00"  NaN C NaN %   NaN hPa   551ppb   524ppm 36997tvoc_base 40354eCo2_base
+8520a972-9c40-4fcf-981e-ea358bf2afa7 m5stack-bme280-device-bme280    10132 "2021-03-07T03:09:00Z" "2021-03-07 12:09:00+09:00"  22.0C 34.7% 1024.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+84f613dc-0052-46bb-8f67-cbe4bb6104b9 m5stack-bme280-device-sgp30     10133 "2021-03-07T03:09:00Z" "2021-03-07 12:09:00+09:00"  NaN C NaN %   NaN hPa   560ppb   531ppm 36997tvoc_base 40354eCo2_base
+c6f242b0-d28a-4766-a2b2-af70eca31b43 m5stack-bme280-device-bme280    10134 "2021-03-07T03:10:00Z" "2021-03-07 12:10:00+09:00"  22.0C 34.8% 1024.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+55a4a21a-762c-4b97-b98e-8f1b88818a6d m5stack-bme280-device-sgp30     10135 "2021-03-07T03:10:00Z" "2021-03-07 12:10:00+09:00"  NaN C NaN %   NaN hPa   559ppb   523ppm 36997tvoc_base 40354eCo2_base
+e6668070-e24b-49ad-ab40-a288055d5a4a m5stack-bme280-device-bme280    10136 "2021-03-07T03:11:00Z" "2021-03-07 12:11:00+09:00"  22.0C 35.0% 1024.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+9ed3794c-6da5-4ba7-aebc-c28ebaacb73c m5stack-bme280-device-sgp30     10137 "2021-03-07T03:11:00Z" "2021-03-07 12:11:00+09:00"  NaN C NaN %   NaN hPa   552ppb   521ppm 36997tvoc_base 40354eCo2_base
+1a7dfbf5-37de-485c-8ded-f79c1d3e0bab m5stack-bme280-device-bme280    10138 "2021-03-07T03:12:00Z" "2021-03-07 12:12:00+09:00"  22.0C 35.1% 1024.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+4de0d1eb-f3bd-4ae0-989e-5bb0e9821381 m5stack-bme280-device-sgp30     10139 "2021-03-07T03:12:00Z" "2021-03-07 12:12:00+09:00"  NaN C NaN %   NaN hPa   558ppb   528ppm 36997tvoc_base 40354eCo2_base
+3f5c529c-a26a-44ee-bfc0-a7d8f2030332 m5stack-bme280-device-bme280    10140 "2021-03-07T03:13:00Z" "2021-03-07 12:13:00+09:00"  22.0C 35.3% 1024.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+0bea129c-2029-4e00-ab7a-b289189426bd m5stack-bme280-device-sgp30     10141 "2021-03-07T03:13:00Z" "2021-03-07 12:13:00+09:00"  NaN C NaN %   NaN hPa   546ppb   518ppm 36997tvoc_base 40354eCo2_base
+13d12da2-154d-4b28-a9c6-d02cfdd2fceb m5stack-bme280-device-bme280    10142 "2021-03-07T03:14:00Z" "2021-03-07 12:14:00+09:00"  22.0C 35.0% 1024.6hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+d54b2a61-1295-4237-87b7-2cba456b911b m5stack-bme280-device-sgp30     10143 "2021-03-07T03:14:00Z" "2021-03-07 12:14:00+09:00"  NaN C NaN %   NaN hPa   544ppb   516ppm 36996tvoc_base 40354eCo2_base
+9c375b59-658a-4102-8d05-f82dad46425b m5stack-bme280-device-bme280    10144 "2021-03-07T03:15:00Z" "2021-03-07 12:15:00+09:00"  21.9C 34.8% 1024.6hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+4ec000a7-b374-4d45-b1d9-5605484c01d1 m5stack-bme280-device-sgp30     10145 "2021-03-07T03:15:00Z" "2021-03-07 12:15:00+09:00"  NaN C NaN %   NaN hPa   545ppb   515ppm 36996tvoc_base 40354eCo2_base
+42f99f2a-a76a-4a0f-bbbc-22b433478b65 m5stack-bme280-device-bme280    10146 "2021-03-07T03:16:00Z" "2021-03-07 12:16:00+09:00"  21.9C 35.1% 1024.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+0c56cc39-01c9-4482-b654-a8cafd6a9209 m5stack-bme280-device-sgp30     10147 "2021-03-07T03:16:00Z" "2021-03-07 12:16:00+09:00"  NaN C NaN %   NaN hPa   551ppb   520ppm 36996tvoc_base 40354eCo2_base
+749fb50d-9b49-4d4a-9715-0a9d662886da m5stack-bme280-device-bme280    10148 "2021-03-07T03:17:00Z" "2021-03-07 12:17:00+09:00"  21.9C 35.1% 1024.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+53a170e6-03ec-444f-b349-a3598fa5dfc6 m5stack-bme280-device-sgp30     10149 "2021-03-07T03:17:00Z" "2021-03-07 12:17:00+09:00"  NaN C NaN %   NaN hPa   546ppb   516ppm 36996tvoc_base 40354eCo2_base
+3b71458c-fdcb-4c9b-9170-037210f05c44 m5stack-bme280-device-bme280    10150 "2021-03-07T03:18:00Z" "2021-03-07 12:18:00+09:00"  21.9C 34.8% 1024.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+a37082a9-76ce-4b8f-9115-c0d21ca055a8 m5stack-bme280-device-sgp30     10151 "2021-03-07T03:18:00Z" "2021-03-07 12:18:00+09:00"  NaN C NaN %   NaN hPa   573ppb   542ppm 36996tvoc_base 40354eCo2_base
+e130eb76-f7d8-489a-8cd3-b0519cc5db29 m5stack-bme280-device-bme280    10152 "2021-03-07T03:19:00Z" "2021-03-07 12:19:00+09:00"  21.9C 35.2% 1024.4hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+dcc06045-f23e-47e5-94ce-047c9be374db m5stack-bme280-device-sgp30     10153 "2021-03-07T03:19:00Z" "2021-03-07 12:19:00+09:00"  NaN C NaN %   NaN hPa   563ppb   527ppm 36996tvoc_base 40354eCo2_base
+c24423fb-e51a-4d0e-a078-7b42edb15610 m5stack-bme280-device-bme280    10154 "2021-03-07T03:20:00Z" "2021-03-07 12:20:00+09:00"  21.9C 35.1% 1024.4hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+3bf16c84-e88f-4a83-8b23-644652a847b2 m5stack-bme280-device-sgp30     10155 "2021-03-07T03:20:00Z" "2021-03-07 12:20:00+09:00"  NaN C NaN %   NaN hPa   571ppb   538ppm 36995tvoc_base 40354eCo2_base
+fe8fd4a0-7bde-4dd0-8222-8df149849eae m5stack-bme280-device-bme280    10156 "2021-03-07T03:21:00Z" "2021-03-07 12:21:00+09:00"  21.9C 35.2% 1024.4hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+bde90195-a518-45d4-b298-7968d45f703e m5stack-bme280-device-sgp30     10157 "2021-03-07T03:21:00Z" "2021-03-07 12:21:00+09:00"  NaN C NaN %   NaN hPa   565ppb   533ppm 36995tvoc_base 40354eCo2_base
+5cfca426-f3ad-449f-9ca0-6a73af5176b6 m5stack-bme280-device-bme280    10158 "2021-03-07T03:22:00Z" "2021-03-07 12:22:00+09:00"  21.9C 34.8% 1024.4hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+cacc4a0b-75f1-4472-9b0e-a97a4d583c92 m5stack-bme280-device-sgp30     10159 "2021-03-07T03:22:00Z" "2021-03-07 12:22:00+09:00"  NaN C NaN %   NaN hPa   581ppb   547ppm 36995tvoc_base 40354eCo2_base
+81bf4acd-7ef9-4bf0-8fa2-b7ae20f6ab3d m5stack-bme280-device-bme280    10160 "2021-03-07T03:23:00Z" "2021-03-07 12:23:00+09:00"  21.9C 35.8% 1024.4hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+42eabf41-ff8b-4614-b355-94247ba40571 m5stack-bme280-device-sgp30     10161 "2021-03-07T03:23:00Z" "2021-03-07 12:23:00+09:00"  NaN C NaN %   NaN hPa   571ppb   534ppm 36995tvoc_base 40354eCo2_base
+83174b3c-8abd-4b35-acd7-b8331e94a1df m5stack-bme280-device-bme280    10162 "2021-03-07T03:24:00Z" "2021-03-07 12:24:00+09:00"  21.9C 34.9% 1024.4hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+bb6b0661-2be8-4e5f-811c-70958598c400 m5stack-bme280-device-sgp30     10163 "2021-03-07T03:24:00Z" "2021-03-07 12:24:00+09:00"  NaN C NaN %   NaN hPa   564ppb   527ppm 36995tvoc_base 40354eCo2_base
+ca696e1b-e604-4344-a9e9-b286e8fcb4db m5stack-bme280-device-bme280    10164 "2021-03-07T03:25:00Z" "2021-03-07 12:25:00+09:00"  21.9C 35.5% 1024.4hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+252e8fb5-f538-4cf5-ab2a-bf2b289c4cdc m5stack-bme280-device-sgp30     10165 "2021-03-07T03:25:00Z" "2021-03-07 12:25:00+09:00"  NaN C NaN %   NaN hPa   557ppb   521ppm 36995tvoc_base 40354eCo2_base
+24f9399d-01f4-4092-a4d4-584871137824 m5stack-bme280-device-bme280    10166 "2021-03-07T03:26:00Z" "2021-03-07 12:26:00+09:00"  21.9C 34.9% 1024.3hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+d4187a7d-7e55-4d71-9042-ac3f6a130ff3 m5stack-bme280-device-sgp30     10167 "2021-03-07T03:26:00Z" "2021-03-07 12:26:00+09:00"  NaN C NaN %   NaN hPa   562ppb   534ppm 36995tvoc_base 40354eCo2_base
+d0f2ba1b-266f-4b5f-a418-480d5c63542d m5stack-bme280-device-bme280    10168 "2021-03-07T03:27:00Z" "2021-03-07 12:27:00+09:00"  21.9C 35.3% 1024.3hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+84d11644-e5ef-4eaf-a601-48c53f18f519 m5stack-bme280-device-sgp30     10169 "2021-03-07T03:27:00Z" "2021-03-07 12:27:00+09:00"  NaN C NaN %   NaN hPa   557ppb   532ppm 36994tvoc_base 40354eCo2_base
+ba2d92a8-b1e6-430b-ad61-3770c2e12752 m5stack-bme280-device-bme280    10170 "2021-03-07T03:28:00Z" "2021-03-07 12:28:00+09:00"  21.9C 35.0% 1024.3hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+9a867f06-e99a-4195-b999-4d59d9369eee m5stack-bme280-device-sgp30     10171 "2021-03-07T03:28:00Z" "2021-03-07 12:28:00+09:00"  NaN C NaN %   NaN hPa   559ppb   524ppm 36994tvoc_base 40354eCo2_base
+7d879416-10ea-4cb9-9e3d-4bf7837a9c9f m5stack-bme280-device-bme280    10172 "2021-03-07T03:29:00Z" "2021-03-07 12:29:00+09:00"  21.9C 34.6% 1024.2hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+ad15d75a-75b5-441d-8cb1-058d962399c3 m5stack-bme280-device-sgp30     10173 "2021-03-07T03:29:00Z" "2021-03-07 12:29:00+09:00"  NaN C NaN %   NaN hPa   553ppb   518ppm 36994tvoc_base 40354eCo2_base
+ec586a7e-0832-46ba-a90d-1413d186fee5 m5stack-bme280-device-bme280    10174 "2021-03-07T03:30:00Z" "2021-03-07 12:30:00+09:00"  21.9C 34.8% 1024.3hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+a6540840-bab1-40c0-ad2d-ff414e853cc7 m5stack-bme280-device-sgp30     10175 "2021-03-07T03:30:00Z" "2021-03-07 12:30:00+09:00"  NaN C NaN %   NaN hPa   579ppb   547ppm 36994tvoc_base 40354eCo2_base
+0e2a49e6-301d-4079-8b2a-ecbddfaad606 m5stack-bme280-device-bme280    10176 "2021-03-07T03:31:00Z" "2021-03-07 12:31:00+09:00"  21.9C 35.1% 1024.3hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+04f6839a-b5e4-40bc-b32d-73355a59d68b m5stack-bme280-device-sgp30     10177 "2021-03-07T03:31:00Z" "2021-03-07 12:31:00+09:00"  NaN C NaN %   NaN hPa   563ppb   537ppm 36994tvoc_base 40354eCo2_base
+564ec019-b162-4216-a2c5-07d4481acda4 m5stack-bme280-device-bme280    10178 "2021-03-07T03:32:00Z" "2021-03-07 12:32:00+09:00"  21.9C 34.7% 1024.3hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+d53d4046-6ea7-4b6b-bd30-7b94ada67a0b m5stack-bme280-device-sgp30     10179 "2021-03-07T03:32:00Z" "2021-03-07 12:32:00+09:00"  NaN C NaN %   NaN hPa   568ppb   540ppm 36994tvoc_base 40354eCo2_base
+5f077fb1-2a7c-4ec7-b241-9dde54d996a7 m5stack-bme280-device-bme280    10180 "2021-03-07T03:33:00Z" "2021-03-07 12:33:00+09:00"  21.9C 34.5% 1024.3hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+ccd00043-c888-4bff-84e7-1fb3289902f0 m5stack-bme280-device-sgp30     10181 "2021-03-07T03:33:00Z" "2021-03-07 12:33:00+09:00"  NaN C NaN %   NaN hPa   561ppb   520ppm 36993tvoc_base 40354eCo2_base
+57c3d111-e954-44fc-a993-d7ee57ac6a99 m5stack-bme280-device-bme280    10182 "2021-03-07T03:34:00Z" "2021-03-07 12:34:00+09:00"  21.8C 34.7% 1024.3hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+237b3b7b-d462-4a54-9df1-f19d3a092dab m5stack-bme280-device-sgp30     10183 "2021-03-07T03:34:00Z" "2021-03-07 12:34:00+09:00"  NaN C NaN %   NaN hPa   559ppb   527ppm 36993tvoc_base 40354eCo2_base
+8e11ab0d-4f74-4a75-a2a8-1c4af21457c5 m5stack-bme280-device-bme280    10184 "2021-03-07T03:35:00Z" "2021-03-07 12:35:00+09:00"  21.8C 34.8% 1024.3hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+3eafcb21-713d-488a-ad0d-9db79926f114 m5stack-bme280-device-sgp30     10185 "2021-03-07T03:35:00Z" "2021-03-07 12:35:00+09:00"  NaN C NaN %   NaN hPa   555ppb   535ppm 36993tvoc_base 40354eCo2_base
+a11e73cf-81c6-4bcf-84b9-3c047bca3879 m5stack-bme280-device-bme280    10186 "2021-03-07T03:36:00Z" "2021-03-07 12:36:00+09:00"  21.8C 36.6% 1024.3hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+31aa7c2a-5813-449b-95b8-84f488912977 m5stack-bme280-device-sgp30     10187 "2021-03-07T03:36:00Z" "2021-03-07 12:36:00+09:00"  NaN C NaN %   NaN hPa   571ppb   554ppm 36993tvoc_base 40354eCo2_base
+f8d454ee-9074-4ea1-a08d-43d515387101 m5stack-bme280-device-bme280    10188 "2021-03-07T03:37:00Z" "2021-03-07 12:37:00+09:00"  21.8C 36.0% 1024.2hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+5a995b6a-669a-4ad1-8c22-e5f74aed8eb0 m5stack-bme280-device-sgp30     10189 "2021-03-07T03:37:00Z" "2021-03-07 12:37:00+09:00"  NaN C NaN %   NaN hPa   567ppb   544ppm 36993tvoc_base 40354eCo2_base
+9ca9de78-df0a-4ca9-9ae8-177b37e691b2 m5stack-bme280-device-bme280    10190 "2021-03-07T03:38:00Z" "2021-03-07 12:38:00+09:00"  21.8C 35.1% 1024.3hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+e7269edf-c9c3-4579-bd41-97473fb4e1d6 m5stack-bme280-device-sgp30     10191 "2021-03-07T03:38:00Z" "2021-03-07 12:38:00+09:00"  NaN C NaN %   NaN hPa   562ppb   538ppm 36993tvoc_base 40354eCo2_base
+561225d0-cf78-4ed0-8690-d9fb2347a9ba m5stack-bme280-device-bme280    10192 "2021-03-07T03:39:00Z" "2021-03-07 12:39:00+09:00"  21.8C 34.9% 1024.2hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+1c115dfd-4140-4abd-850a-7fadb277c33a m5stack-bme280-device-sgp30     10193 "2021-03-07T03:39:00Z" "2021-03-07 12:39:00+09:00"  NaN C NaN %   NaN hPa   559ppb   532ppm 36993tvoc_base 40353eCo2_base
+d82bd7e4-ec5d-49c9-b4c5-1ec9aa0997c5 m5stack-bme280-device-bme280    10194 "2021-03-07T03:40:00Z" "2021-03-07 12:40:00+09:00"  21.7C 35.0% 1024.1hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+e5ebe1ba-2477-48fa-bbd2-07e9540f2db7 m5stack-bme280-device-sgp30     10195 "2021-03-07T03:40:00Z" "2021-03-07 12:40:00+09:00"  NaN C NaN %   NaN hPa   553ppb   519ppm 36992tvoc_base 40353eCo2_base
+1597a76e-e190-4505-b770-06fd7bf579dd m5stack-bme280-device-bme280    10196 "2021-03-07T03:41:00Z" "2021-03-07 12:41:00+09:00"  21.7C 34.9% 1024.2hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+d6d8539c-c559-489b-bb2c-5ea1f06c1da8 m5stack-bme280-device-sgp30     10197 "2021-03-07T03:41:00Z" "2021-03-07 12:41:00+09:00"  NaN C NaN %   NaN hPa   545ppb   520ppm 36992tvoc_base 40353eCo2_base
+5b3387b1-8e7e-4e45-b513-fee8e9ed5ad6 m5stack-bme280-device-bme280    10198 "2021-03-07T03:42:00Z" "2021-03-07 12:42:00+09:00"  21.8C 35.0% 1024.1hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+d5cc0210-b948-4870-98eb-d71aa2fbf25e m5stack-bme280-device-sgp30     10199 "2021-03-07T03:42:00Z" "2021-03-07 12:42:00+09:00"  NaN C NaN %   NaN hPa   551ppb   529ppm 36992tvoc_base 40353eCo2_base
+de71892d-1134-40d3-9e82-c11c2b4e2fa8 m5stack-bme280-device-bme280    10200 "2021-03-07T03:43:00Z" "2021-03-07 12:43:00+09:00"  21.8C 35.2% 1024.1hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+c51dd2c2-8520-458b-8372-e1bb1b20e208 m5stack-bme280-device-sgp30     10201 "2021-03-07T03:43:00Z" "2021-03-07 12:43:00+09:00"  NaN C NaN %   NaN hPa   560ppb   536ppm 36992tvoc_base 40353eCo2_base
+ddfeea30-e25c-4fb8-9ce0-f826b0523e28 m5stack-bme280-device-bme280    10202 "2021-03-07T03:44:00Z" "2021-03-07 12:44:00+09:00"  21.7C 35.1% 1024.1hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+5712a60f-544c-4995-951c-d1f32ad18a79 m5stack-bme280-device-sgp30     10203 "2021-03-07T03:44:00Z" "2021-03-07 12:44:00+09:00"  NaN C NaN %   NaN hPa   556ppb   525ppm 36992tvoc_base 40353eCo2_base
+6692a4c1-4677-4b89-986a-8119229f0812 m5stack-bme280-device-bme280    10204 "2021-03-07T03:45:00Z" "2021-03-07 12:45:00+09:00"  21.8C 34.8% 1024.1hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+be8e1591-ba55-46d0-98fe-f565929af3df m5stack-bme280-device-sgp30     10205 "2021-03-07T03:45:00Z" "2021-03-07 12:45:00+09:00"  NaN C NaN %   NaN hPa   548ppb   519ppm 36992tvoc_base 40353eCo2_base
+9335b1b1-d562-4e08-a0e4-8f5de2757e14 m5stack-bme280-device-bme280    10206 "2021-03-07T03:46:00Z" "2021-03-07 12:46:00+09:00"  21.8C 34.9% 1024.0hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+c0790f4f-a756-4e7f-ae44-f5bcd66a69ca m5stack-bme280-device-sgp30     10207 "2021-03-07T03:46:00Z" "2021-03-07 12:46:00+09:00"  NaN C NaN %   NaN hPa   545ppb   517ppm 36991tvoc_base 40353eCo2_base
+ca1cd9c8-b249-4f84-bf6d-40bc07baf03f m5stack-bme280-device-bme280    10208 "2021-03-07T03:47:00Z" "2021-03-07 12:47:00+09:00"  21.8C 34.6% 1024.0hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+32141208-2e8f-462a-bd61-04a4dac60778 m5stack-bme280-device-sgp30     10209 "2021-03-07T03:47:00Z" "2021-03-07 12:47:00+09:00"  NaN C NaN %   NaN hPa   560ppb   533ppm 36991tvoc_base 40353eCo2_base
+c20ad424-f308-48ab-b4e6-1bb522b72580 m5stack-bme280-device-bme280    10210 "2021-03-07T03:48:00Z" "2021-03-07 12:48:00+09:00"  21.7C 34.9% 1024.0hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+d0fab53b-3866-434d-9e6b-af5fbbfc8c26 m5stack-bme280-device-sgp30     10211 "2021-03-07T03:48:00Z" "2021-03-07 12:48:00+09:00"  NaN C NaN %   NaN hPa   555ppb   524ppm 36991tvoc_base 40353eCo2_base
+8afac0f1-4ddd-41a2-bdbb-4686d3da49c7 m5stack-bme280-device-bme280    10212 "2021-03-07T03:49:00Z" "2021-03-07 12:49:00+09:00"  21.7C 34.5% 1024.1hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+119f659f-c39a-40aa-9b34-0a16ae0812b2 m5stack-bme280-device-sgp30     10213 "2021-03-07T03:49:00Z" "2021-03-07 12:49:00+09:00"  NaN C NaN %   NaN hPa   553ppb   530ppm 36991tvoc_base 40353eCo2_base
+af904f71-c037-4f2a-887f-e0900b46e2e3 m5stack-bme280-device-bme280    10214 "2021-03-07T03:50:00Z" "2021-03-07 12:50:00+09:00"  21.7C 34.7% 1024.0hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+2c2bdd63-6944-450e-a2e0-7a94c50c4566 m5stack-bme280-device-sgp30     10215 "2021-03-07T03:50:00Z" "2021-03-07 12:50:00+09:00"  NaN C NaN %   NaN hPa   551ppb   516ppm 36991tvoc_base 40353eCo2_base
+6c8f56ca-4342-49d3-ac8c-3a1f048ffb92 m5stack-bme280-device-bme280    10216 "2021-03-07T03:51:00Z" "2021-03-07 12:51:00+09:00"  21.7C 34.8% 1024.0hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+eaa28639-3113-4efc-b236-242e45be3dea m5stack-bme280-device-sgp30     10217 "2021-03-07T03:51:00Z" "2021-03-07 12:51:00+09:00"  NaN C NaN %   NaN hPa   531ppb   506ppm 36991tvoc_base 40353eCo2_base
+d65e5a03-8da9-4b3f-96b7-c23bcf3c4980 m5stack-bme280-device-bme280    10218 "2021-03-07T03:52:00Z" "2021-03-07 12:52:00+09:00"  21.7C 34.8% 1023.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+93af0d81-a2ae-42e4-af47-553436fd0cc2 m5stack-bme280-device-sgp30     10219 "2021-03-07T03:52:00Z" "2021-03-07 12:52:00+09:00"  NaN C NaN %   NaN hPa   526ppb   512ppm 36991tvoc_base 40353eCo2_base
+30a6c224-c6f7-4e8d-83e1-1d6b2a6c1bfc m5stack-bme280-device-bme280    10220 "2021-03-07T03:53:00Z" "2021-03-07 12:53:00+09:00"  21.7C 35.0% 1023.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+6fae6957-ef53-4b8d-b07b-835d7844b0bf m5stack-bme280-device-sgp30     10221 "2021-03-07T03:53:00Z" "2021-03-07 12:53:00+09:00"  NaN C NaN %   NaN hPa   544ppb   525ppm 36990tvoc_base 40353eCo2_base
+a94ad452-685b-4190-a348-29089a89d380 m5stack-bme280-device-bme280    10222 "2021-03-07T03:54:00Z" "2021-03-07 12:54:00+09:00"  21.7C 34.4% 1023.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+cd9ef839-de00-4fff-a74c-b5fae79d1e8b m5stack-bme280-device-sgp30     10223 "2021-03-07T03:54:00Z" "2021-03-07 12:54:00+09:00"  NaN C NaN %   NaN hPa   537ppb   513ppm 36990tvoc_base 40353eCo2_base
+8271ce8a-0910-4c8e-b36a-356d6b444b23 m5stack-bme280-device-bme280    10224 "2021-03-07T03:55:00Z" "2021-03-07 12:55:00+09:00"  21.7C 34.5% 1023.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+f252516e-5128-4ce3-90ef-8bb18ecd9c17 m5stack-bme280-device-sgp30     10225 "2021-03-07T03:55:00Z" "2021-03-07 12:55:00+09:00"  NaN C NaN %   NaN hPa   539ppb   521ppm 36990tvoc_base 40353eCo2_base
+3172b19c-1972-4eaa-864d-6003cb420989 m5stack-bme280-device-bme280    10226 "2021-03-07T03:56:00Z" "2021-03-07 12:56:00+09:00"  21.7C 34.2% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+8637e072-a9dd-4714-94a1-d4a00f1e86c2 m5stack-bme280-device-sgp30     10227 "2021-03-07T03:56:00Z" "2021-03-07 12:56:00+09:00"  NaN C NaN %   NaN hPa   532ppb   512ppm 36990tvoc_base 40353eCo2_base
+b71ab59b-d99c-4157-955b-a90438224b67 m5stack-bme280-device-bme280    10228 "2021-03-07T03:57:00Z" "2021-03-07 12:57:00+09:00"  21.7C 35.4% 1023.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+0105cf51-ddac-4b5d-9da2-a26f0388c6b4 m5stack-bme280-device-sgp30     10229 "2021-03-07T03:57:00Z" "2021-03-07 12:57:00+09:00"  NaN C NaN %   NaN hPa   538ppb   524ppm 36990tvoc_base 40353eCo2_base
+832189ca-b626-4003-b61c-f9c8012fadf0 m5stack-bme280-device-bme280    10230 "2021-03-07T03:58:00Z" "2021-03-07 12:58:00+09:00"  21.7C 35.0% 1023.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+24e3b518-d293-4138-a0ec-cb3ba58abfa0 m5stack-bme280-device-sgp30     10231 "2021-03-07T03:58:00Z" "2021-03-07 12:58:00+09:00"  NaN C NaN %   NaN hPa   550ppb   531ppm 36990tvoc_base 40353eCo2_base
+43790561-8868-4f92-8b5b-d4bba7d0e7df m5stack-bme280-device-bme280    10232 "2021-03-07T03:59:00Z" "2021-03-07 12:59:00+09:00"  21.7C 35.1% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+e3693269-c28c-4496-903e-0153e6c1ffd1 m5stack-bme280-device-sgp30     10233 "2021-03-07T03:59:00Z" "2021-03-07 12:59:00+09:00"  NaN C NaN %   NaN hPa   541ppb   516ppm 36989tvoc_base 40353eCo2_base
+8935e242-1393-4e9f-93ad-f72a94017426 m5stack-bme280-device-bme280    10234 "2021-03-07T04:00:00Z" "2021-03-07 13:00:00+09:00"  21.7C 35.1% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+3ba531b5-b8ce-441c-8ff1-81cfde5fa950 m5stack-bme280-device-sgp30     10235 "2021-03-07T04:00:00Z" "2021-03-07 13:00:00+09:00"  NaN C NaN %   NaN hPa   540ppb   518ppm 36989tvoc_base 40353eCo2_base
+080b3a9c-d149-4c7f-9fb8-233634709a17 m5stack-bme280-device-bme280    10236 "2021-03-07T04:01:00Z" "2021-03-07 13:01:00+09:00"  21.7C 35.6% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+8ab6f1b2-15b4-41b5-8c9e-95cb6f61f5f5 m5stack-bme280-device-sgp30     10237 "2021-03-07T04:01:00Z" "2021-03-07 13:01:00+09:00"  NaN C NaN %   NaN hPa   541ppb   516ppm 36989tvoc_base 40353eCo2_base
+0fe06afb-9310-4864-adcb-06ee4b853d87 m5stack-bme280-device-bme280    10238 "2021-03-07T04:02:00Z" "2021-03-07 13:02:00+09:00"  21.7C 35.3% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+3d74215c-3446-43c7-b672-85eb08b63bdd m5stack-bme280-device-sgp30     10239 "2021-03-07T04:02:00Z" "2021-03-07 13:02:00+09:00"  NaN C NaN %   NaN hPa   536ppb   516ppm 36989tvoc_base 40353eCo2_base
+4297c393-624d-4f05-9378-09fa8365348e m5stack-bme280-device-bme280    10240 "2021-03-07T04:03:00Z" "2021-03-07 13:03:00+09:00"  21.7C 34.9% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+9cf942e4-c20a-491f-bcea-87c5641aad37 m5stack-bme280-device-sgp30     10241 "2021-03-07T04:03:00Z" "2021-03-07 13:03:00+09:00"  NaN C NaN %   NaN hPa   539ppb   519ppm 36989tvoc_base 40353eCo2_base
+a78fa7b1-ab3f-4c61-916c-63599ee5e0e9 m5stack-bme280-device-bme280    10242 "2021-03-07T04:04:00Z" "2021-03-07 13:04:00+09:00"  21.7C 35.6% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+9a1cddc6-ed7e-46bd-85df-ef2e596b5934 m5stack-bme280-device-sgp30     10243 "2021-03-07T04:04:00Z" "2021-03-07 13:04:00+09:00"  NaN C NaN %   NaN hPa   547ppb   522ppm 36989tvoc_base 40353eCo2_base
+ce44621d-2a4a-41e4-aeef-3ce358d5e9f8 m5stack-bme280-device-bme280    10244 "2021-03-07T04:05:00Z" "2021-03-07 13:05:00+09:00"  21.7C 35.5% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+2884c8f2-9bec-47a9-ab9f-41e95476aad0 m5stack-bme280-device-sgp30     10245 "2021-03-07T04:05:00Z" "2021-03-07 13:05:00+09:00"  NaN C NaN %   NaN hPa   542ppb   519ppm 36989tvoc_base 40353eCo2_base
+2ca7d346-7056-4e19-8316-aedd513eaa5d m5stack-bme280-device-bme280    10246 "2021-03-07T04:06:00Z" "2021-03-07 13:06:00+09:00"  21.7C 35.4% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+1aee423e-81ac-4183-b5af-ef476c3660f7 m5stack-bme280-device-sgp30     10247 "2021-03-07T04:06:00Z" "2021-03-07 13:06:00+09:00"  NaN C NaN %   NaN hPa   544ppb   518ppm 36988tvoc_base 40353eCo2_base
+88edc94b-73c4-48a3-82de-7b4468522b1b m5stack-bme280-device-bme280    10248 "2021-03-07T04:07:00Z" "2021-03-07 13:07:00+09:00"  21.7C 35.2% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+e1e7591b-9572-44bc-8432-44ea038a3d57 m5stack-bme280-device-sgp30     10249 "2021-03-07T04:07:00Z" "2021-03-07 13:07:00+09:00"  NaN C NaN %   NaN hPa   545ppb   519ppm 36988tvoc_base 40353eCo2_base
+e79e23e7-3c72-4f76-96b5-3ee24688882b m5stack-bme280-device-bme280    10250 "2021-03-07T04:08:00Z" "2021-03-07 13:08:00+09:00"  21.6C 35.5% 1023.6hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+fdc9c406-e7d5-4002-a4d7-93d81472051c m5stack-bme280-device-sgp30     10251 "2021-03-07T04:08:00Z" "2021-03-07 13:08:00+09:00"  NaN C NaN %   NaN hPa   556ppb   534ppm 36988tvoc_base 40353eCo2_base
+cf1389ba-76ea-464c-bec9-6829b2c3a71d m5stack-bme280-device-bme280    10252 "2021-03-07T04:09:00Z" "2021-03-07 13:09:00+09:00"  21.6C 35.7% 1023.6hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+d761d021-fd2f-42e0-8f75-4b0b3bf9a459 m5stack-bme280-device-sgp30     10253 "2021-03-07T04:09:00Z" "2021-03-07 13:09:00+09:00"  NaN C NaN %   NaN hPa   575ppb   550ppm 36988tvoc_base 40353eCo2_base
+a36601ba-42ca-4344-97bf-766bb1a33c05 m5stack-bme280-device-bme280    10254 "2021-03-07T04:10:00Z" "2021-03-07 13:10:00+09:00"  21.6C 35.4% 1023.6hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+6e722138-1f73-4405-a1c3-e176796fa30f m5stack-bme280-device-sgp30     10255 "2021-03-07T04:10:00Z" "2021-03-07 13:10:00+09:00"  NaN C NaN %   NaN hPa   576ppb   543ppm 36988tvoc_base 40353eCo2_base
+a47135e6-6443-4cc2-89f3-6865dca1cea2 m5stack-bme280-device-bme280    10256 "2021-03-07T04:11:00Z" "2021-03-07 13:11:00+09:00"  21.5C 35.6% 1023.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+daebcead-d8ae-43fc-a9d6-d9bb300e26a9 m5stack-bme280-device-sgp30     10257 "2021-03-07T04:11:00Z" "2021-03-07 13:11:00+09:00"  NaN C NaN %   NaN hPa   571ppb   541ppm 36988tvoc_base 40353eCo2_base
+ba2c2d45-7e85-4ebe-9549-42fc982c82a0 m5stack-bme280-device-bme280    10258 "2021-03-07T04:12:00Z" "2021-03-07 13:12:00+09:00"  21.5C 35.3% 1023.6hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+44dc2980-dfd1-49e2-940d-6d512339a23a m5stack-bme280-device-sgp30     10259 "2021-03-07T04:12:00Z" "2021-03-07 13:12:00+09:00"  NaN C NaN %   NaN hPa   561ppb   530ppm 36988tvoc_base 40353eCo2_base
+8b331c3a-913c-4f93-a01c-c66046cb97d6 m5stack-bme280-device-bme280    10260 "2021-03-07T04:13:00Z" "2021-03-07 13:13:00+09:00"  21.5C 35.1% 1023.6hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+766dad2f-6646-46ee-b4f1-5c70c2df4ad6 m5stack-bme280-device-sgp30     10261 "2021-03-07T04:13:00Z" "2021-03-07 13:13:00+09:00"  NaN C NaN %   NaN hPa   543ppb   509ppm 36987tvoc_base 40353eCo2_base
+fae3e1af-9157-4d8a-90cd-55ba31116b3c m5stack-bme280-device-bme280    10262 "2021-03-07T04:14:00Z" "2021-03-07 13:14:00+09:00"  21.5C 35.5% 1023.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+a8f356fe-2aa8-466d-b6d6-80d90d944402 m5stack-bme280-device-sgp30     10263 "2021-03-07T04:14:00Z" "2021-03-07 13:14:00+09:00"  NaN C NaN %   NaN hPa   540ppb   515ppm 36987tvoc_base 40353eCo2_base
+356a850a-f91f-4ce6-b99f-7463b892a020 m5stack-bme280-device-bme280    10264 "2021-03-07T04:15:00Z" "2021-03-07 13:15:00+09:00"  21.5C 35.8% 1023.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+9cee0b3b-ba49-4b07-8f88-66fbdf0b0f39 m5stack-bme280-device-sgp30     10265 "2021-03-07T04:15:00Z" "2021-03-07 13:15:00+09:00"  NaN C NaN %   NaN hPa   562ppb   542ppm 36987tvoc_base 40353eCo2_base
+0a31aaa2-32d2-4280-9661-fc466ce426fe m5stack-bme280-device-bme280    10266 "2021-03-07T04:16:00Z" "2021-03-07 13:16:00+09:00"  21.5C 35.4% 1023.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+0d31a8ce-9c90-44d1-b562-37ee0177955a m5stack-bme280-device-sgp30     10267 "2021-03-07T04:16:00Z" "2021-03-07 13:16:00+09:00"  NaN C NaN %   NaN hPa   555ppb   520ppm 36987tvoc_base 40353eCo2_base
+e60e8029-297f-4e82-aff3-1d78f54d0e1c m5stack-bme280-device-bme280    10268 "2021-03-07T04:17:00Z" "2021-03-07 13:17:00+09:00"  21.5C 35.3% 1023.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+59d41bc5-098e-4df9-80ed-5b9233a68623 m5stack-bme280-device-sgp30     10269 "2021-03-07T04:17:00Z" "2021-03-07 13:17:00+09:00"  NaN C NaN %   NaN hPa   550ppb   515ppm 36987tvoc_base 40353eCo2_base
+f9b8487e-2073-4416-9fd0-48ecd319e2ba m5stack-bme280-device-bme280    10270 "2021-03-07T04:18:00Z" "2021-03-07 13:18:00+09:00"  21.5C 35.3% 1023.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+14f0dfd5-5716-450b-8d9a-58e4ac03bb96 m5stack-bme280-device-sgp30     10271 "2021-03-07T04:18:00Z" "2021-03-07 13:18:00+09:00"  NaN C NaN %   NaN hPa   551ppb   521ppm 36987tvoc_base 40353eCo2_base
+4bfa7329-43b5-4253-bcb8-eb3764bd2b6b m5stack-bme280-device-bme280    10272 "2021-03-07T04:19:00Z" "2021-03-07 13:19:00+09:00"  21.5C 35.3% 1023.6hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+c5fbbfe7-511e-4d9b-9359-0b7c1c1f05a8 m5stack-bme280-device-sgp30     10273 "2021-03-07T04:19:00Z" "2021-03-07 13:19:00+09:00"  NaN C NaN %   NaN hPa   549ppb   516ppm 36986tvoc_base 40353eCo2_base
+86a651b3-6e78-4b4a-99c5-618fcb27678e m5stack-bme280-device-bme280    10274 "2021-03-07T04:20:00Z" "2021-03-07 13:20:00+09:00"  21.5C 35.0% 1023.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+77462212-08a3-451b-aa86-d2b278283284 m5stack-bme280-device-sgp30     10275 "2021-03-07T04:20:00Z" "2021-03-07 13:20:00+09:00"  NaN C NaN %   NaN hPa   545ppb   511ppm 36986tvoc_base 40353eCo2_base
+1f2e5055-dac0-44b9-b8c8-2d0ac2de913b m5stack-bme280-device-bme280    10276 "2021-03-07T04:21:00Z" "2021-03-07 13:21:00+09:00"  21.5C 35.1% 1023.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+a5576c32-3ebf-4cb7-827b-fa7ac41cf2c0 m5stack-bme280-device-sgp30     10277 "2021-03-07T04:21:00Z" "2021-03-07 13:21:00+09:00"  NaN C NaN %   NaN hPa   548ppb   515ppm 36986tvoc_base 40353eCo2_base
+1c198ee0-b66a-4603-8cbe-6b1d20d4a5af m5stack-bme280-device-bme280    10278 "2021-03-07T04:22:00Z" "2021-03-07 13:22:00+09:00"  21.5C 35.7% 1023.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+d9652ca5-0fbb-4d50-acd3-064be21b1a77 m5stack-bme280-device-sgp30     10279 "2021-03-07T04:22:00Z" "2021-03-07 13:22:00+09:00"  NaN C NaN %   NaN hPa   553ppb   520ppm 36986tvoc_base 40353eCo2_base
+701b49f6-c220-41ed-ae84-39a0b7acb613 m5stack-bme280-device-bme280    10280 "2021-03-07T04:23:00Z" "2021-03-07 13:23:00+09:00"  21.5C 35.0% 1023.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+849a9e8c-4a7a-42d8-8797-514c2e754b09 m5stack-bme280-device-sgp30     10281 "2021-03-07T04:23:00Z" "2021-03-07 13:23:00+09:00"  NaN C NaN %   NaN hPa   553ppb   515ppm 36986tvoc_base 40353eCo2_base
+1b811a00-edf1-4b91-8982-6c7890b99279 m5stack-bme280-device-bme280    10282 "2021-03-07T04:24:00Z" "2021-03-07 13:24:00+09:00"  21.5C 35.2% 1023.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+534c3e25-a94f-43a9-8c81-8529104a1f8a m5stack-bme280-device-sgp30     10283 "2021-03-07T04:24:00Z" "2021-03-07 13:24:00+09:00"  NaN C NaN %   NaN hPa   553ppb   517ppm 36986tvoc_base 40353eCo2_base
+72a324c1-2be8-4c3e-8766-744c6d339219 m5stack-bme280-device-bme280    10284 "2021-03-07T04:25:00Z" "2021-03-07 13:25:00+09:00"  21.5C 35.2% 1023.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+9e4e9f2a-4120-4c40-b931-4d90d9541ad2 m5stack-bme280-device-sgp30     10285 "2021-03-07T04:25:00Z" "2021-03-07 13:25:00+09:00"  NaN C NaN %   NaN hPa   552ppb   513ppm 36986tvoc_base 40353eCo2_base
+be22baf7-7f29-45e8-b2c7-3143080ba1df m5stack-bme280-device-bme280    10286 "2021-03-07T04:26:00Z" "2021-03-07 13:26:00+09:00"  21.5C 35.2% 1023.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+924bcada-4d15-43f1-b9ec-6f31a73cff70 m5stack-bme280-device-sgp30     10287 "2021-03-07T04:26:00Z" "2021-03-07 13:26:00+09:00"  NaN C NaN %   NaN hPa   556ppb   522ppm 36985tvoc_base 40353eCo2_base
+dea69eed-b0df-4493-a915-8f7418a76f77 m5stack-bme280-device-bme280    10288 "2021-03-07T04:27:00Z" "2021-03-07 13:27:00+09:00"  21.5C 35.7% 1023.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+e9fafe55-bf52-4d68-8b89-81109850b322 m5stack-bme280-device-sgp30     10289 "2021-03-07T04:27:00Z" "2021-03-07 13:27:00+09:00"  NaN C NaN %   NaN hPa   560ppb   525ppm 36985tvoc_base 40353eCo2_base
+d4b8e446-1881-493f-81cd-10f2649e8dce m5stack-bme280-device-bme280    10290 "2021-03-07T04:28:00Z" "2021-03-07 13:28:00+09:00"  21.6C 36.1% 1023.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+d25f9918-12bf-4062-88a7-e5b8db966f7f m5stack-bme280-device-sgp30     10291 "2021-03-07T04:28:00Z" "2021-03-07 13:28:00+09:00"  NaN C NaN %   NaN hPa   584ppb   550ppm 36985tvoc_base 40353eCo2_base
+282b645a-5804-4a2e-91a9-bca7cb6a29a4 m5stack-bme280-device-bme280    10292 "2021-03-07T04:29:00Z" "2021-03-07 13:29:00+09:00"  21.6C 35.5% 1023.4hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+a264e370-715e-478b-b39a-6c229d231024 m5stack-bme280-device-sgp30     10293 "2021-03-07T04:29:00Z" "2021-03-07 13:29:00+09:00"  NaN C NaN %   NaN hPa   594ppb   550ppm 36985tvoc_base 40353eCo2_base
+38383174-3c40-40d8-8aa6-9633ff08465d m5stack-bme280-device-bme280    10294 "2021-03-07T04:30:00Z" "2021-03-07 13:30:00+09:00"  21.6C 35.5% 1023.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+8fd09dc1-5ffa-4d44-a84c-06eab43c1252 m5stack-bme280-device-sgp30     10295 "2021-03-07T04:30:00Z" "2021-03-07 13:30:00+09:00"  NaN C NaN %   NaN hPa   572ppb   529ppm 36985tvoc_base 40353eCo2_base
+ec880dc0-8546-4f4e-9335-dfbce5c51148 m5stack-bme280-device-bme280    10296 "2021-03-07T04:31:00Z" "2021-03-07 13:31:00+09:00"  21.6C 35.4% 1023.4hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+8aafa6e2-7616-4af8-9379-64dfbc5beecb m5stack-bme280-device-sgp30     10297 "2021-03-07T04:31:00Z" "2021-03-07 13:31:00+09:00"  NaN C NaN %   NaN hPa   596ppb   549ppm 36985tvoc_base 40353eCo2_base
+2169bfc4-d2af-4f96-9ee3-bbaef673d524 m5stack-bme280-device-bme280    10298 "2021-03-07T04:32:00Z" "2021-03-07 13:32:00+09:00"  21.6C 35.6% 1023.4hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+5907e39f-d9e0-4a67-b557-8a64f15066c4 m5stack-bme280-device-sgp30     10299 "2021-03-07T04:32:00Z" "2021-03-07 13:32:00+09:00"  NaN C NaN %   NaN hPa   581ppb   530ppm 36984tvoc_base 40353eCo2_base
+6472df13-cf50-4fcc-8b7f-392d2079c923 m5stack-bme280-device-bme280    10300 "2021-03-07T04:33:00Z" "2021-03-07 13:33:00+09:00"  21.6C 36.0% 1023.4hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+29dcc740-49a8-41a5-91e7-29987050db95 m5stack-bme280-device-sgp30     10301 "2021-03-07T04:33:00Z" "2021-03-07 13:33:00+09:00"  NaN C NaN %   NaN hPa   566ppb   517ppm 36984tvoc_base 40353eCo2_base
+bb5a5c71-2d36-44f6-af0d-c90255ae1cf9 m5stack-bme280-device-bme280    10302 "2021-03-07T04:34:00Z" "2021-03-07 13:34:00+09:00"  21.6C 35.1% 1023.4hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+7dd8a08c-02dc-413a-a3ab-66ccae97ce1b m5stack-bme280-device-sgp30     10303 "2021-03-07T04:34:00Z" "2021-03-07 13:34:00+09:00"  NaN C NaN %   NaN hPa   552ppb   511ppm 36984tvoc_base 40353eCo2_base
+ccc90460-e7c4-4978-a6f8-c2e74e8d508f m5stack-bme280-device-bme280    10304 "2021-03-07T04:35:00Z" "2021-03-07 13:35:00+09:00"  21.7C 35.0% 1023.2hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+52a2b8cb-c35b-40f4-8112-48ca87c31096 m5stack-bme280-device-sgp30     10305 "2021-03-07T04:35:00Z" "2021-03-07 13:35:00+09:00"  NaN C NaN %   NaN hPa   545ppb   500ppm 36984tvoc_base 40353eCo2_base
+6e1e93c0-1cad-439e-afe4-25e6f72172d2 m5stack-bme280-device-bme280    10306 "2021-03-07T04:36:00Z" "2021-03-07 13:36:00+09:00"  21.7C 35.1% 1023.3hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+4feaf965-7213-4346-a522-faa6c56b80e4 m5stack-bme280-device-sgp30     10307 "2021-03-07T04:36:00Z" "2021-03-07 13:36:00+09:00"  NaN C NaN %   NaN hPa   542ppb   508ppm 36984tvoc_base 40353eCo2_base
+596f51c1-cfd3-4106-82c3-c6abd3fec1a3 m5stack-bme280-device-bme280    10308 "2021-03-07T04:37:00Z" "2021-03-07 13:37:00+09:00"  21.7C 35.5% 1023.2hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+3aa7b997-8db2-4eaf-8c4a-973d4a6c8ae1 m5stack-bme280-device-sgp30     10309 "2021-03-07T04:37:00Z" "2021-03-07 13:37:00+09:00"  NaN C NaN %   NaN hPa   546ppb   510ppm 36984tvoc_base 40353eCo2_base
+5ea706a3-631e-465f-abdb-6d409a8768a5 m5stack-bme280-device-bme280    10310 "2021-03-07T04:38:00Z" "2021-03-07 13:38:00+09:00"  21.7C 35.4% 1023.3hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+03cb4b8e-c16d-4800-b91e-8ac0f9e144e7 m5stack-bme280-device-sgp30     10311 "2021-03-07T04:38:00Z" "2021-03-07 13:38:00+09:00"  NaN C NaN %   NaN hPa   549ppb   509ppm 36984tvoc_base 40353eCo2_base
+cca80159-531d-4aa7-8f91-34639b03e1d4 m5stack-bme280-device-bme280    10312 "2021-03-07T04:39:00Z" "2021-03-07 13:39:00+09:00"  21.7C 35.5% 1023.2hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+406721c3-6a41-46c7-b96f-c0067a641efe m5stack-bme280-device-sgp30     10313 "2021-03-07T04:39:00Z" "2021-03-07 13:39:00+09:00"  NaN C NaN %   NaN hPa   547ppb   507ppm 36983tvoc_base 40353eCo2_base
+6df3bd4f-11a5-4486-a3af-79c8950cd546 m5stack-bme280-device-bme280    10314 "2021-03-07T04:40:00Z" "2021-03-07 13:40:00+09:00"  21.7C 35.1% 1023.3hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+e72d6322-2eb5-4ddd-a831-406a1254bda5 m5stack-bme280-device-sgp30     10315 "2021-03-07T04:40:00Z" "2021-03-07 13:40:00+09:00"  NaN C NaN %   NaN hPa   565ppb   534ppm 36983tvoc_base 40353eCo2_base
+98f52dfb-4d32-42bb-b835-d61deda676a7 m5stack-bme280-device-bme280    10316 "2021-03-07T04:41:00Z" "2021-03-07 13:41:00+09:00"  21.6C 35.4% 1023.2hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+2e024ba6-d064-476d-b5d9-c1a39c50d56f m5stack-bme280-device-sgp30     10317 "2021-03-07T04:41:00Z" "2021-03-07 13:41:00+09:00"  NaN C NaN %   NaN hPa   569ppb   523ppm 36983tvoc_base 40353eCo2_base
+30b39f52-45ce-4afa-99a0-ce7390c72403 m5stack-bme280-device-bme280    10318 "2021-03-07T04:42:00Z" "2021-03-07 13:42:00+09:00"  21.6C 35.3% 1023.3hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+cd9a2020-03c1-4cce-9565-2e0aec613833 m5stack-bme280-device-sgp30     10319 "2021-03-07T04:42:00Z" "2021-03-07 13:42:00+09:00"  NaN C NaN %   NaN hPa   559ppb   511ppm 36983tvoc_base 40353eCo2_base
+0cae5360-a808-48ea-8ffd-08e5ee2b1e5e m5stack-bme280-device-bme280    10320 "2021-03-07T04:43:00Z" "2021-03-07 13:43:00+09:00"  21.6C 36.2% 1023.1hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+a90ece81-3d8e-4418-acdf-00615c49fba9 m5stack-bme280-device-sgp30     10321 "2021-03-07T04:43:00Z" "2021-03-07 13:43:00+09:00"  NaN C NaN %   NaN hPa   554ppb   512ppm 36983tvoc_base 40353eCo2_base
+667b60c4-173b-49d6-ab57-c1e9d6995aba m5stack-bme280-device-bme280    10322 "2021-03-07T04:44:00Z" "2021-03-07 13:44:00+09:00"  21.6C 35.6% 1023.1hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+38535f7a-efee-4589-907d-a6948ca4b047 m5stack-bme280-device-sgp30     10323 "2021-03-07T04:44:00Z" "2021-03-07 13:44:00+09:00"  NaN C NaN %   NaN hPa   547ppb   507ppm 36983tvoc_base 40353eCo2_base
+a8015760-f3f4-4806-8de5-26ac124041f9 m5stack-bme280-device-bme280    10324 "2021-03-07T04:45:00Z" "2021-03-07 13:45:00+09:00"  21.6C 35.6% 1023.1hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+71c87071-36bf-46ea-b30b-ed6543f28006 m5stack-bme280-device-sgp30     10325 "2021-03-07T04:45:00Z" "2021-03-07 13:45:00+09:00"  NaN C NaN %   NaN hPa   550ppb   504ppm 36982tvoc_base 40353eCo2_base
+ec2dd5e1-ebd2-499b-9503-520a30b03097 m5stack-bme280-device-bme280    10326 "2021-03-07T04:46:00Z" "2021-03-07 13:46:00+09:00"  21.6C 35.7% 1023.1hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+b81ccffa-34ed-4646-984a-7399d7a72efc m5stack-bme280-device-sgp30     10327 "2021-03-07T04:46:00Z" "2021-03-07 13:46:00+09:00"  NaN C NaN %   NaN hPa   556ppb   511ppm 36982tvoc_base 40353eCo2_base
+dbcc1993-7667-40a8-89b5-25ed351285e0 m5stack-bme280-device-bme280    10328 "2021-03-07T04:47:00Z" "2021-03-07 13:47:00+09:00"  21.7C 35.5% 1023.1hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+0a5238ab-86bb-4ff3-a33b-1840de972412 m5stack-bme280-device-sgp30     10329 "2021-03-07T04:47:00Z" "2021-03-07 13:47:00+09:00"  NaN C NaN %   NaN hPa   559ppb   510ppm 36982tvoc_base 40352eCo2_base
+a2d0f655-9bc4-469f-a3b3-27346f2bda9c m5stack-bme280-device-bme280    10330 "2021-03-07T04:48:00Z" "2021-03-07 13:48:00+09:00"  21.7C 35.4% 1023.1hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+d1d529be-0766-47b7-a4ba-a77589a34d60 m5stack-bme280-device-sgp30     10331 "2021-03-07T04:48:00Z" "2021-03-07 13:48:00+09:00"  NaN C NaN %   NaN hPa   558ppb   509ppm 36982tvoc_base 40352eCo2_base
+d83cae2e-7df0-4ae7-bbcc-8b83c2907e72 m5stack-bme280-device-bme280    10332 "2021-03-07T04:49:00Z" "2021-03-07 13:49:00+09:00"  21.7C 35.5% 1023.1hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+6275f4aa-c3c1-4ca7-9c2f-91b1d3c43573 m5stack-bme280-device-sgp30     10333 "2021-03-07T04:49:00Z" "2021-03-07 13:49:00+09:00"  NaN C NaN %   NaN hPa   552ppb   503ppm 36982tvoc_base 40352eCo2_base
+d4b86e34-4018-4586-a10a-b74d2ff6a44a m5stack-bme280-device-bme280    10334 "2021-03-07T04:50:00Z" "2021-03-07 13:50:00+09:00"  21.7C 35.5% 1023.1hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+229438e4-7c09-46e2-9c09-68f41682bf4b m5stack-bme280-device-sgp30     10335 "2021-03-07T04:50:00Z" "2021-03-07 13:50:00+09:00"  NaN C NaN %   NaN hPa   554ppb   505ppm 36982tvoc_base 40352eCo2_base
+37b51879-3879-4214-ac97-2ba7d5733a53 m5stack-bme280-device-bme280    10336 "2021-03-07T04:51:00Z" "2021-03-07 13:51:00+09:00"  21.7C 35.4% 1023.1hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+629dd64d-be57-4b71-9f1a-def34193d17d m5stack-bme280-device-sgp30     10337 "2021-03-07T04:51:00Z" "2021-03-07 13:51:00+09:00"  NaN C NaN %   NaN hPa   551ppb   505ppm 36982tvoc_base 40352eCo2_base
+17d969b0-d0d2-4072-aeb8-2f87aef99df7 m5stack-bme280-device-bme280    10338 "2021-03-07T04:52:00Z" "2021-03-07 13:52:00+09:00"  21.7C 35.3% 1023.1hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+d8d124af-5a00-4be6-bed0-59c023ecf23a m5stack-bme280-device-sgp30     10339 "2021-03-07T04:52:00Z" "2021-03-07 13:52:00+09:00"  NaN C NaN %   NaN hPa   549ppb   506ppm 36981tvoc_base 40352eCo2_base
+19e8181c-f397-4d82-8b13-0e7730af4433 m5stack-bme280-device-bme280    10340 "2021-03-07T04:53:00Z" "2021-03-07 13:53:00+09:00"  21.7C 35.1% 1023.1hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+61fa0de8-2d9c-4f4b-b485-e12399651935 m5stack-bme280-device-sgp30     10341 "2021-03-07T04:53:00Z" "2021-03-07 13:53:00+09:00"  NaN C NaN %   NaN hPa   550ppb   501ppm 36981tvoc_base 40352eCo2_base
+0631d9df-6b8e-4485-b1e4-c38a116cd1f0 m5stack-bme280-device-bme280    10342 "2021-03-07T04:54:00Z" "2021-03-07 13:54:00+09:00"  21.7C 35.1% 1023.1hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+c5fde1d2-fc57-494c-963f-2ed84c0129b4 m5stack-bme280-device-sgp30     10343 "2021-03-07T04:54:00Z" "2021-03-07 13:54:00+09:00"  NaN C NaN %   NaN hPa   539ppb   496ppm 36981tvoc_base 40352eCo2_base
+cda94fc8-5d07-4c94-bb5a-aae9535b25bb m5stack-bme280-device-bme280    10344 "2021-03-07T04:55:00Z" "2021-03-07 13:55:00+09:00"  21.7C 35.3% 1023.1hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+acb1c72f-116c-45cd-aa80-b1dd69c354c9 m5stack-bme280-device-sgp30     10345 "2021-03-07T04:55:00Z" "2021-03-07 13:55:00+09:00"  NaN C NaN %   NaN hPa   525ppb   492ppm 36981tvoc_base 40352eCo2_base
+10ff0d24-6c3a-411e-bd55-3fd6f4d23774 m5stack-bme280-device-bme280    10346 "2021-03-07T04:56:00Z" "2021-03-07 13:56:00+09:00"  21.7C 34.7% 1023.0hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+c1305197-1bea-42b2-bfc7-82537644460b m5stack-bme280-device-sgp30     10347 "2021-03-07T04:56:00Z" "2021-03-07 13:56:00+09:00"  NaN C NaN %   NaN hPa   521ppb   491ppm 36981tvoc_base 40352eCo2_base
+8ac73ab2-2fd6-40ce-923c-f5d62a9345b5 m5stack-bme280-device-bme280    10348 "2021-03-07T04:57:00Z" "2021-03-07 13:57:00+09:00"  21.7C 35.3% 1023.1hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+5b5ab9fd-5821-4890-993d-1b456aeb6d30 m5stack-bme280-device-sgp30     10349 "2021-03-07T04:57:00Z" "2021-03-07 13:57:00+09:00"  NaN C NaN %   NaN hPa   525ppb   498ppm 36981tvoc_base 40352eCo2_base
+d58d841a-960c-4a8e-987d-39d5ea3ce7cd m5stack-bme280-device-bme280    10350 "2021-03-07T04:58:00Z" "2021-03-07 13:58:00+09:00"  21.7C 34.9% 1023.0hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+d38d381d-43a3-4e9e-92e9-29e1ca86c858 m5stack-bme280-device-sgp30     10351 "2021-03-07T04:58:00Z" "2021-03-07 13:58:00+09:00"  NaN C NaN %   NaN hPa   518ppb   484ppm 36980tvoc_base 40352eCo2_base
+f60fffc6-8d41-43eb-acb9-2cd081f839e7 m5stack-bme280-device-bme280    10352 "2021-03-07T04:59:00Z" "2021-03-07 13:59:00+09:00"  21.7C 35.2% 1023.0hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+a64fa03c-504b-452c-a412-4729740f10b8 m5stack-bme280-device-sgp30     10353 "2021-03-07T04:59:00Z" "2021-03-07 13:59:00+09:00"  NaN C NaN %   NaN hPa   519ppb   495ppm 36980tvoc_base 40352eCo2_base
+fa48cd31-b8f9-4163-b652-9c7d68a7f214 m5stack-bme280-device-bme280    10354 "2021-03-07T05:00:00Z" "2021-03-07 14:00:00+09:00"  21.7C 35.4% 1023.0hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+a74dd575-2afb-4090-ae30-ea135805fcfa m5stack-bme280-device-sgp30     10355 "2021-03-07T05:00:00Z" "2021-03-07 14:00:00+09:00"  NaN C NaN %   NaN hPa   523ppb   494ppm 36980tvoc_base 40352eCo2_base
+9e6b38aa-27a6-4d21-a650-01dc13c926e5 m5stack-bme280-device-bme280    10356 "2021-03-07T05:01:00Z" "2021-03-07 14:01:00+09:00"  21.7C 35.4% 1023.1hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+8bf493f5-9e20-43a9-b14b-ebab956db24a m5stack-bme280-device-sgp30     10357 "2021-03-07T05:01:00Z" "2021-03-07 14:01:00+09:00"  NaN C NaN %   NaN hPa   523ppb   498ppm 36980tvoc_base 40352eCo2_base
+e99b7d12-3d21-4b1f-9188-db9b598a9edc m5stack-bme280-device-bme280    10358 "2021-03-07T05:02:00Z" "2021-03-07 14:02:00+09:00"  21.8C 35.1% 1023.0hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+9f0c12ab-fd2d-43d8-883f-31c041953f85 m5stack-bme280-device-sgp30     10359 "2021-03-07T05:02:00Z" "2021-03-07 14:02:00+09:00"  NaN C NaN %   NaN hPa   544ppb   505ppm 36980tvoc_base 40352eCo2_base
+c59b5be4-0e43-4db0-a146-01afa3c4f9b3 m5stack-bme280-device-bme280    10360 "2021-03-07T05:03:00Z" "2021-03-07 14:03:00+09:00"  21.8C 35.2% 1023.0hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+48700be3-271a-42db-b867-1b18740058d7 m5stack-bme280-device-sgp30     10361 "2021-03-07T05:03:00Z" "2021-03-07 14:03:00+09:00"  NaN C NaN %   NaN hPa   556ppb   510ppm 36980tvoc_base 40352eCo2_base
+b9718cb9-aae2-44bc-85fb-fe026293d863 m5stack-bme280-device-bme280    10362 "2021-03-07T05:04:00Z" "2021-03-07 14:04:00+09:00"  21.8C 35.3% 1023.0hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+133cc6c5-5573-432d-bdf3-db8fa66184f7 m5stack-bme280-device-sgp30     10363 "2021-03-07T05:04:00Z" "2021-03-07 14:04:00+09:00"  NaN C NaN %   NaN hPa   567ppb   512ppm 36980tvoc_base 40352eCo2_base
+2ebddcda-c87f-4649-9e59-7730a60ad839 m5stack-bme280-device-bme280    10364 "2021-03-07T05:05:00Z" "2021-03-07 14:05:00+09:00"  21.9C 35.3% 1023.1hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+be00e523-ceaf-40e7-94fb-52f6335bd2ba m5stack-bme280-device-sgp30     10365 "2021-03-07T05:05:00Z" "2021-03-07 14:05:00+09:00"  NaN C NaN %   NaN hPa   562ppb   512ppm 36979tvoc_base 40352eCo2_base
+c88ca372-6eef-4fce-af70-94d03c4558ec m5stack-bme280-device-bme280    10366 "2021-03-07T05:06:00Z" "2021-03-07 14:06:00+09:00"  21.9C 34.9% 1023.1hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+576cc3f1-ebe6-4d86-a0c3-252617e40f6e m5stack-bme280-device-sgp30     10367 "2021-03-07T05:06:00Z" "2021-03-07 14:06:00+09:00"  NaN C NaN %   NaN hPa   555ppb   506ppm 36979tvoc_base 40352eCo2_base
+459863f5-2e94-4851-a5aa-ca982d41c6c2 m5stack-bme280-device-bme280    10368 "2021-03-07T05:07:00Z" "2021-03-07 14:07:00+09:00"  21.9C 35.2% 1023.1hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+f9a02fe0-4269-429e-a645-9fd86c9087d6 m5stack-bme280-device-sgp30     10369 "2021-03-07T05:07:00Z" "2021-03-07 14:07:00+09:00"  NaN C NaN %   NaN hPa   549ppb   501ppm 36979tvoc_base 40352eCo2_base
+a48c3126-97b8-499c-bc26-66b6d2f06bb8 m5stack-bme280-device-bme280    10370 "2021-03-07T05:08:00Z" "2021-03-07 14:08:00+09:00"  21.9C 35.0% 1023.0hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+e3d92358-bc47-432a-ba33-d87a50959340 m5stack-bme280-device-sgp30     10371 "2021-03-07T05:08:00Z" "2021-03-07 14:08:00+09:00"  NaN C NaN %   NaN hPa   533ppb   490ppm 36979tvoc_base 40352eCo2_base
+84f8013a-aa73-48ab-83de-b8cb2eebc004 m5stack-bme280-device-bme280    10372 "2021-03-07T05:09:00Z" "2021-03-07 14:09:00+09:00"  21.9C 35.1% 1023.0hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+e33df7cc-870a-4be1-ac5e-02b868865516 m5stack-bme280-device-sgp30     10373 "2021-03-07T05:09:00Z" "2021-03-07 14:09:00+09:00"  NaN C NaN %   NaN hPa   531ppb   495ppm 36979tvoc_base 40352eCo2_base
+63980def-2dea-4f11-a167-4957af41badf m5stack-bme280-device-bme280    10374 "2021-03-07T05:10:00Z" "2021-03-07 14:10:00+09:00"  21.9C 35.2% 1023.0hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+8731c948-dd85-44d5-9678-3b2b1c645bca m5stack-bme280-device-sgp30     10375 "2021-03-07T05:10:00Z" "2021-03-07 14:10:00+09:00"  NaN C NaN %   NaN hPa   535ppb   497ppm 36979tvoc_base 40352eCo2_base
+a863228f-f5cc-4ec5-b85e-6f51bfe0e282 m5stack-bme280-device-bme280    10376 "2021-03-07T05:11:00Z" "2021-03-07 14:11:00+09:00"  21.9C 35.1% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+425f6778-4b4e-45f6-996e-fd6f665c2f06 m5stack-bme280-device-sgp30     10377 "2021-03-07T05:11:00Z" "2021-03-07 14:11:00+09:00"  NaN C NaN %   NaN hPa   537ppb   495ppm 36978tvoc_base 40352eCo2_base
+d57fb940-2eda-4e3a-a8fe-f3571ad5407d m5stack-bme280-device-bme280    10378 "2021-03-07T05:12:00Z" "2021-03-07 14:12:00+09:00"  21.9C 34.8% 1023.0hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+9e03fb2b-030b-4122-9883-f7be5235814e m5stack-bme280-device-sgp30     10379 "2021-03-07T05:12:00Z" "2021-03-07 14:12:00+09:00"  NaN C NaN %   NaN hPa   542ppb   495ppm 36978tvoc_base 40352eCo2_base
+86f175b1-bb57-45d2-b5e2-d4c060700601 m5stack-bme280-device-bme280    10380 "2021-03-07T05:13:00Z" "2021-03-07 14:13:00+09:00"  21.9C 34.9% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+054a568a-2d8b-4605-964e-ef610ab07aa9 m5stack-bme280-device-sgp30     10381 "2021-03-07T05:13:00Z" "2021-03-07 14:13:00+09:00"  NaN C NaN %   NaN hPa   559ppb   507ppm 36978tvoc_base 40352eCo2_base
+68638e06-a4e8-4ec5-88da-5ca384a34d75 m5stack-bme280-device-bme280    10382 "2021-03-07T05:14:00Z" "2021-03-07 14:14:00+09:00"  21.9C 35.1% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+6530cae8-9523-42e1-b73d-f4daf3e6a2ab m5stack-bme280-device-sgp30     10383 "2021-03-07T05:14:00Z" "2021-03-07 14:14:00+09:00"  NaN C NaN %   NaN hPa   567ppb   512ppm 36978tvoc_base 40352eCo2_base
+830ddca5-bb85-4b38-99a9-6412982bd83c m5stack-bme280-device-bme280    10384 "2021-03-07T05:15:00Z" "2021-03-07 14:15:00+09:00"  21.9C 34.9% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+3af1c2bd-4f9b-4516-8963-f2daee4ee797 m5stack-bme280-device-sgp30     10385 "2021-03-07T05:15:00Z" "2021-03-07 14:15:00+09:00"  NaN C NaN %   NaN hPa   561ppb   505ppm 36978tvoc_base 40352eCo2_base
+15050b7e-aeaf-4263-8f00-ee838a4978fa m5stack-bme280-device-bme280    10386 "2021-03-07T05:16:00Z" "2021-03-07 14:16:00+09:00"  21.9C 34.9% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+2397b096-1077-4ac4-8424-47686b7f47eb m5stack-bme280-device-sgp30     10387 "2021-03-07T05:16:00Z" "2021-03-07 14:16:00+09:00"  NaN C NaN %   NaN hPa   558ppb   506ppm 36978tvoc_base 40352eCo2_base
+fc10f53b-cd4d-483f-9f32-b0c377522355 m5stack-bme280-device-bme280    10388 "2021-03-07T05:17:00Z" "2021-03-07 14:17:00+09:00"  21.9C 34.9% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+5b29e32c-b0ff-40d8-9b7b-9d2b323a25bc m5stack-bme280-device-sgp30     10389 "2021-03-07T05:17:00Z" "2021-03-07 14:17:00+09:00"  NaN C NaN %   NaN hPa   560ppb   507ppm 36978tvoc_base 40352eCo2_base
+b1e0fff5-3590-426b-bd9d-3325cce673e1 m5stack-bme280-device-bme280    10390 "2021-03-07T05:18:00Z" "2021-03-07 14:18:00+09:00"  22.0C 34.7% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+07500f28-cb41-4d79-b054-91976b0105c8 m5stack-bme280-device-sgp30     10391 "2021-03-07T05:18:00Z" "2021-03-07 14:18:00+09:00"  NaN C NaN %   NaN hPa   555ppb   503ppm 36977tvoc_base 40352eCo2_base
+985f1988-6a4f-4e34-a49b-7716c3f17c1a m5stack-bme280-device-bme280    10392 "2021-03-07T05:19:00Z" "2021-03-07 14:19:00+09:00"  22.0C 34.8% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+0c5f5980-619d-4e8b-952c-9a337d5feb1a m5stack-bme280-device-sgp30     10393 "2021-03-07T05:19:00Z" "2021-03-07 14:19:00+09:00"  NaN C NaN %   NaN hPa   553ppb   502ppm 36977tvoc_base 40352eCo2_base
+832f91ef-ef9b-4f3e-966a-469c9e6c790c m5stack-bme280-device-bme280    10394 "2021-03-07T05:20:00Z" "2021-03-07 14:20:00+09:00"  22.0C 35.7% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+a979453f-bc40-4d22-a6e7-d7d97fb85673 m5stack-bme280-device-sgp30     10395 "2021-03-07T05:20:00Z" "2021-03-07 14:20:00+09:00"  NaN C NaN %   NaN hPa   557ppb   503ppm 36977tvoc_base 40352eCo2_base
+785e3bd5-658a-44f7-95c9-b8e7ec769a15 m5stack-bme280-device-bme280    10396 "2021-03-07T05:21:00Z" "2021-03-07 14:21:00+09:00"  22.0C 34.8% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+462eebfa-f7aa-4646-9649-b261a30fbe01 m5stack-bme280-device-sgp30     10397 "2021-03-07T05:21:00Z" "2021-03-07 14:21:00+09:00"  NaN C NaN %   NaN hPa   554ppb   499ppm 36977tvoc_base 40352eCo2_base
+1b8d0f56-fb7d-4f6f-92bb-c6dd1418e80e m5stack-bme280-device-bme280    10398 "2021-03-07T05:22:00Z" "2021-03-07 14:22:00+09:00"  22.0C 34.7% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+9aae21b9-6c55-4a3e-881a-3267c6000f70 m5stack-bme280-device-sgp30     10399 "2021-03-07T05:22:00Z" "2021-03-07 14:22:00+09:00"  NaN C NaN %   NaN hPa   558ppb   506ppm 36977tvoc_base 40352eCo2_base
+7a0b1fc9-9c28-4f31-877f-f4c11935cca2 m5stack-bme280-device-bme280    10400 "2021-03-07T05:23:00Z" "2021-03-07 14:23:00+09:00"  22.1C 35.1% 1023.0hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+35e9705a-1594-4ae5-b5d2-59c1f772d358 m5stack-bme280-device-sgp30     10401 "2021-03-07T05:23:00Z" "2021-03-07 14:23:00+09:00"  NaN C NaN %   NaN hPa   560ppb   505ppm 36977tvoc_base 40352eCo2_base
+d10c32bc-7cab-4361-8306-deb636ba6bff m5stack-bme280-device-bme280    10402 "2021-03-07T05:24:00Z" "2021-03-07 14:24:00+09:00"  22.1C 35.1% 1023.0hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+173f7f2f-8288-43f8-9d99-8de942c1b1c0 m5stack-bme280-device-sgp30     10403 "2021-03-07T05:24:00Z" "2021-03-07 14:24:00+09:00"  NaN C NaN %   NaN hPa   551ppb   499ppm 36976tvoc_base 40352eCo2_base
+3e2cd859-7850-4d09-9e09-ae463ecf6b64 m5stack-bme280-device-bme280    10404 "2021-03-07T05:25:00Z" "2021-03-07 14:25:00+09:00"  22.1C 34.7% 1023.0hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+fac87a42-bb19-4c8a-9850-1bc2d5d7c500 m5stack-bme280-device-sgp30     10405 "2021-03-07T05:25:00Z" "2021-03-07 14:25:00+09:00"  NaN C NaN %   NaN hPa   554ppb   505ppm 36976tvoc_base 40352eCo2_base
+d5bc3e12-9819-4a08-8d49-abff8bd7ca6f m5stack-bme280-device-bme280    10406 "2021-03-07T05:26:00Z" "2021-03-07 14:26:00+09:00"  22.1C 35.3% 1023.0hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+e1cf8cb4-af00-4169-9bfd-eca65d6f2800 m5stack-bme280-device-sgp30     10407 "2021-03-07T05:26:00Z" "2021-03-07 14:26:00+09:00"  NaN C NaN %   NaN hPa   557ppb   503ppm 36976tvoc_base 40352eCo2_base
+dd345371-e9de-444f-a6c9-1b67ec51ae36 m5stack-bme280-device-bme280    10408 "2021-03-07T05:27:00Z" "2021-03-07 14:27:00+09:00"  22.1C 34.7% 1023.0hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+ef9ab058-2adc-42b6-a2d2-9cccb8fdd7b8 m5stack-bme280-device-sgp30     10409 "2021-03-07T05:27:00Z" "2021-03-07 14:27:00+09:00"  NaN C NaN %   NaN hPa   541ppb   491ppm 36976tvoc_base 40352eCo2_base
+927a3129-5531-4d18-a109-e435ad8e195b m5stack-bme280-device-bme280    10410 "2021-03-07T05:28:00Z" "2021-03-07 14:28:00+09:00"  22.1C 34.9% 1023.0hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+89ff568c-723e-4982-8357-4935f0ec9735 m5stack-bme280-device-sgp30     10411 "2021-03-07T05:28:00Z" "2021-03-07 14:28:00+09:00"  NaN C NaN %   NaN hPa   546ppb   497ppm 36976tvoc_base 40352eCo2_base
+0c74c61e-5f6b-44ce-afd4-568d39da29ec m5stack-bme280-device-bme280    10412 "2021-03-07T05:29:00Z" "2021-03-07 14:29:00+09:00"  22.1C 36.1% 1023.0hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+5459e8cb-fd58-4931-9777-b55ad12fe6a5 m5stack-bme280-device-sgp30     10413 "2021-03-07T05:29:00Z" "2021-03-07 14:29:00+09:00"  NaN C NaN %   NaN hPa   551ppb   502ppm 36976tvoc_base 40352eCo2_base
+ca48a502-b298-45a8-acc0-4c191476cf72 m5stack-bme280-device-bme280    10414 "2021-03-07T05:30:00Z" "2021-03-07 14:30:00+09:00"  22.1C 35.0% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+0aa8cfe5-9d85-4f0c-9c6b-719fd62796e1 m5stack-bme280-device-sgp30     10415 "2021-03-07T05:30:00Z" "2021-03-07 14:30:00+09:00"  NaN C NaN %   NaN hPa   548ppb   505ppm 36976tvoc_base 40352eCo2_base
+464e363b-4f46-40f7-9943-c8da5d03e0b0 m5stack-bme280-device-bme280    10416 "2021-03-07T05:31:00Z" "2021-03-07 14:31:00+09:00"  22.1C 35.0% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+ae674f35-8925-4688-bb02-f3f2971e8f72 m5stack-bme280-device-sgp30     10417 "2021-03-07T05:31:00Z" "2021-03-07 14:31:00+09:00"  NaN C NaN %   NaN hPa   556ppb   508ppm 36975tvoc_base 40352eCo2_base
+0256c6b0-ad56-4326-83b6-62213fa4e76d m5stack-bme280-device-bme280    10418 "2021-03-07T05:32:00Z" "2021-03-07 14:32:00+09:00"  22.1C 34.7% 1023.0hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+804f55be-9441-4b65-921b-9f9b476eb3a3 m5stack-bme280-device-sgp30     10419 "2021-03-07T05:32:00Z" "2021-03-07 14:32:00+09:00"  NaN C NaN %   NaN hPa   549ppb   496ppm 36975tvoc_base 40352eCo2_base
+7dbff78b-43ea-4f6d-9870-1e06da561e41 m5stack-bme280-device-bme280    10420 "2021-03-07T05:33:00Z" "2021-03-07 14:33:00+09:00"  22.1C 34.6% 1023.0hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+158474cc-cb63-462f-8cb9-2abe1a22c9d4 m5stack-bme280-device-sgp30     10421 "2021-03-07T05:33:00Z" "2021-03-07 14:33:00+09:00"  NaN C NaN %   NaN hPa   550ppb   501ppm 36975tvoc_base 40352eCo2_base
+e4e926b0-5690-4365-9724-2831ffa52431 m5stack-bme280-device-bme280    10422 "2021-03-07T05:34:00Z" "2021-03-07 14:34:00+09:00"  22.1C 35.0% 1023.0hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+8b4db1a4-b6e3-4ecd-b414-20d258f27c8f m5stack-bme280-device-sgp30     10423 "2021-03-07T05:34:00Z" "2021-03-07 14:34:00+09:00"  NaN C NaN %   NaN hPa   550ppb   497ppm 36975tvoc_base 40352eCo2_base
+9e5d2141-b47a-415f-b606-5ae68c02b43f m5stack-bme280-device-bme280    10424 "2021-03-07T05:35:00Z" "2021-03-07 14:35:00+09:00"  22.1C 34.8% 1023.0hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+4e541e4e-19ed-4a92-8230-05db173a4757 m5stack-bme280-device-sgp30     10425 "2021-03-07T05:35:00Z" "2021-03-07 14:35:00+09:00"  NaN C NaN %   NaN hPa   539ppb   488ppm 36975tvoc_base 40352eCo2_base
+871bebd2-f5fc-41d9-bbfb-e5978fe3ac9f m5stack-bme280-device-bme280    10426 "2021-03-07T05:36:00Z" "2021-03-07 14:36:00+09:00"  22.1C 35.0% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+fbb6d5e5-eeba-483e-9489-6922565662de m5stack-bme280-device-sgp30     10427 "2021-03-07T05:36:00Z" "2021-03-07 14:36:00+09:00"  NaN C NaN %   NaN hPa   535ppb   490ppm 36975tvoc_base 40352eCo2_base
+a99387c3-b40f-4705-af15-65e6376e40b5 m5stack-bme280-device-bme280    10428 "2021-03-07T05:37:00Z" "2021-03-07 14:37:00+09:00"  22.1C 34.9% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+0f1df31a-7d76-460c-b4e9-b6d050bda8d1 m5stack-bme280-device-sgp30     10429 "2021-03-07T05:37:00Z" "2021-03-07 14:37:00+09:00"  NaN C NaN %   NaN hPa   543ppb   491ppm 36974tvoc_base 40352eCo2_base
+b9213b05-b632-4ae8-8659-19820fa333f7 m5stack-bme280-device-bme280    10430 "2021-03-07T05:38:00Z" "2021-03-07 14:38:00+09:00"  22.1C 34.7% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+212c022c-7f09-4f24-bde4-b922622c34c3 m5stack-bme280-device-sgp30     10431 "2021-03-07T05:38:00Z" "2021-03-07 14:38:00+09:00"  NaN C NaN %   NaN hPa   547ppb   496ppm 36974tvoc_base 40352eCo2_base
+8278e444-5183-4d95-924f-2fd63b217f3d m5stack-bme280-device-bme280    10432 "2021-03-07T05:39:00Z" "2021-03-07 14:39:00+09:00"  22.1C 34.9% 1023.0hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+51d01637-49d2-4faa-99bb-128cd8baff7b m5stack-bme280-device-sgp30     10433 "2021-03-07T05:39:00Z" "2021-03-07 14:39:00+09:00"  NaN C NaN %   NaN hPa   545ppb   490ppm 36974tvoc_base 40352eCo2_base
+04a6abf8-776d-4294-8a97-e2a18ad3cd54 m5stack-bme280-device-bme280    10434 "2021-03-07T05:40:00Z" "2021-03-07 14:40:00+09:00"  22.1C 34.7% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+fb1e2e2e-e6d2-4b3c-8cab-5e35f8574f10 m5stack-bme280-device-sgp30     10435 "2021-03-07T05:40:00Z" "2021-03-07 14:40:00+09:00"  NaN C NaN %   NaN hPa   536ppb   485ppm 36974tvoc_base 40352eCo2_base
+3b92da51-219b-4c0a-8a63-d17baa1bc189 m5stack-bme280-device-bme280    10436 "2021-03-07T05:41:00Z" "2021-03-07 14:41:00+09:00"  22.1C 35.1% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+53cdb388-9782-47cd-ae90-e9eaffc88d48 m5stack-bme280-device-sgp30     10437 "2021-03-07T05:41:00Z" "2021-03-07 14:41:00+09:00"  NaN C NaN %   NaN hPa   532ppb   484ppm 36974tvoc_base 40352eCo2_base
+2817b203-d66a-45bb-8efe-99c67f97ba1a m5stack-bme280-device-bme280    10438 "2021-03-07T05:42:00Z" "2021-03-07 14:42:00+09:00"  22.1C 35.0% 1023.0hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+dae5b002-355b-4686-82d4-0143a26fb028 m5stack-bme280-device-sgp30     10439 "2021-03-07T05:42:00Z" "2021-03-07 14:42:00+09:00"  NaN C NaN %   NaN hPa   534ppb   489ppm 36974tvoc_base 40352eCo2_base
+d66b854b-8473-44eb-b6b8-93c6e4e4f383 m5stack-bme280-device-bme280    10440 "2021-03-07T05:43:00Z" "2021-03-07 14:43:00+09:00"  22.1C 34.7% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+182f8b2c-cb31-4ede-80e5-59a269bf6e2f m5stack-bme280-device-sgp30     10441 "2021-03-07T05:43:00Z" "2021-03-07 14:43:00+09:00"  NaN C NaN %   NaN hPa   536ppb   493ppm 36974tvoc_base 40352eCo2_base
+7e88227c-89f8-4246-abab-52674d7d2708 m5stack-bme280-device-bme280    10442 "2021-03-07T05:44:00Z" "2021-03-07 14:44:00+09:00"  22.1C 34.7% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+37c62247-897d-42e7-9b76-b91437286eec m5stack-bme280-device-sgp30     10443 "2021-03-07T05:44:00Z" "2021-03-07 14:44:00+09:00"  NaN C NaN %   NaN hPa   543ppb   490ppm 36973tvoc_base 40352eCo2_base
+6fe70aad-dc20-486c-bef1-3e888caebe3a m5stack-bme280-device-bme280    10444 "2021-03-07T05:45:00Z" "2021-03-07 14:45:00+09:00"  22.1C 36.0% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+6beaa38a-8b99-471b-a15b-7210f408b1d8 m5stack-bme280-device-sgp30     10445 "2021-03-07T05:45:00Z" "2021-03-07 14:45:00+09:00"  NaN C NaN %   NaN hPa   547ppb   491ppm 36973tvoc_base 40352eCo2_base
+a977f354-d598-40ac-bd10-e8e5c08b8794 m5stack-bme280-device-bme280    10446 "2021-03-07T05:46:00Z" "2021-03-07 14:46:00+09:00"  22.1C 35.5% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+a97c6788-6595-40d8-86ba-f9bd458c1bf4 m5stack-bme280-device-sgp30     10447 "2021-03-07T05:46:00Z" "2021-03-07 14:46:00+09:00"  NaN C NaN %   NaN hPa   544ppb   498ppm 36973tvoc_base 40352eCo2_base
+e59d1284-5e9d-4ffe-9de6-862739ce2a18 m5stack-bme280-device-bme280    10448 "2021-03-07T05:47:00Z" "2021-03-07 14:47:00+09:00"  22.1C 35.2% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+6b53a455-700d-4ad1-8968-d9cee1b5d1d8 m5stack-bme280-device-sgp30     10449 "2021-03-07T05:47:00Z" "2021-03-07 14:47:00+09:00"  NaN C NaN %   NaN hPa   560ppb   507ppm 36973tvoc_base 40352eCo2_base
+463b1da2-227a-4543-b60a-55502d346b6d m5stack-bme280-device-bme280    10450 "2021-03-07T05:48:00Z" "2021-03-07 14:48:00+09:00"  22.1C 36.3% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+ae39b6a7-2392-4b76-a883-e61e16435e21 m5stack-bme280-device-sgp30     10451 "2021-03-07T05:48:00Z" "2021-03-07 14:48:00+09:00"  NaN C NaN %   NaN hPa   554ppb   505ppm 36973tvoc_base 40352eCo2_base
+d3969a47-9796-4c03-ba7a-5740ec16edda m5stack-bme280-device-bme280    10452 "2021-03-07T05:49:00Z" "2021-03-07 14:49:00+09:00"  22.1C 34.9% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+8648fe9c-bb65-48fd-82ed-ea0ad3c95072 m5stack-bme280-device-sgp30     10453 "2021-03-07T05:49:00Z" "2021-03-07 14:49:00+09:00"  NaN C NaN %   NaN hPa   550ppb   502ppm 36973tvoc_base 40352eCo2_base
+5aa52830-f2fd-4012-9f87-ddf56cacccd8 m5stack-bme280-device-bme280    10454 "2021-03-07T05:50:00Z" "2021-03-07 14:50:00+09:00"  22.2C 35.7% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+709739d9-f2eb-4fa7-bd2d-c95efa093dc1 m5stack-bme280-device-sgp30     10455 "2021-03-07T05:50:00Z" "2021-03-07 14:50:00+09:00"  NaN C NaN %   NaN hPa   551ppb   500ppm 36972tvoc_base 40352eCo2_base
+61375468-5ea1-4736-b7c7-bce91b31168d m5stack-bme280-device-bme280    10456 "2021-03-07T05:51:00Z" "2021-03-07 14:51:00+09:00"  22.2C 34.8% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+54c2e470-24b3-478e-906e-bf640faf2d98 m5stack-bme280-device-sgp30     10457 "2021-03-07T05:51:00Z" "2021-03-07 14:51:00+09:00"  NaN C NaN %   NaN hPa   556ppb   509ppm 36972tvoc_base 40352eCo2_base
+64a9f355-a20a-4921-a571-cda52aacb510 m5stack-bme280-device-bme280    10458 "2021-03-07T05:52:00Z" "2021-03-07 14:52:00+09:00"  22.2C 34.8% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+9b86e4ca-27a3-4697-8e63-7be7ec2da240 m5stack-bme280-device-sgp30     10459 "2021-03-07T05:52:00Z" "2021-03-07 14:52:00+09:00"  NaN C NaN %   NaN hPa   556ppb   496ppm 36972tvoc_base 40352eCo2_base
+74747747-ab0e-4869-9e4c-299eda1d0f7d m5stack-bme280-device-bme280    10460 "2021-03-07T05:53:00Z" "2021-03-07 14:53:00+09:00"  22.2C 35.0% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+27720846-09e2-4cb7-814a-d3eb8c4d76f0 m5stack-bme280-device-sgp30     10461 "2021-03-07T05:53:00Z" "2021-03-07 14:53:00+09:00"  NaN C NaN %   NaN hPa   557ppb   502ppm 36972tvoc_base 40352eCo2_base
+068a0820-d5e2-4e29-861f-bad322441953 m5stack-bme280-device-bme280    10462 "2021-03-07T05:54:00Z" "2021-03-07 14:54:00+09:00"  22.2C 34.9% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+48a5e346-e2c5-4225-aa60-fbef1ea57bb0 m5stack-bme280-device-sgp30     10463 "2021-03-07T05:54:00Z" "2021-03-07 14:54:00+09:00"  NaN C NaN %   NaN hPa   558ppb   501ppm 36972tvoc_base 40352eCo2_base
+73fbdafd-9748-4f04-9315-e532f6466180 m5stack-bme280-device-bme280    10464 "2021-03-07T05:55:00Z" "2021-03-07 14:55:00+09:00"  22.2C 34.8% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+db11e07f-0f1a-431c-b1fe-5efad80525c0 m5stack-bme280-device-sgp30     10465 "2021-03-07T05:55:00Z" "2021-03-07 14:55:00+09:00"  NaN C NaN %   NaN hPa   567ppb   509ppm 36972tvoc_base 40351eCo2_base
+90894b8f-6a46-4c47-85b5-fcdb4cca388e m5stack-bme280-device-bme280    10466 "2021-03-07T05:56:00Z" "2021-03-07 14:56:00+09:00"  22.3C 34.7% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+33b515a9-90e2-421a-8666-4a8afe99b8ed m5stack-bme280-device-sgp30     10467 "2021-03-07T05:56:00Z" "2021-03-07 14:56:00+09:00"  NaN C NaN %   NaN hPa   566ppb   507ppm 36972tvoc_base 40351eCo2_base
+b6bb6a6c-67ac-4cda-980c-cc4c49276c91 m5stack-bme280-device-bme280    10468 "2021-03-07T05:57:00Z" "2021-03-07 14:57:00+09:00"  22.2C 35.0% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+f3460db4-a0ea-480c-a0c2-2cea840c921d m5stack-bme280-device-sgp30     10469 "2021-03-07T05:57:00Z" "2021-03-07 14:57:00+09:00"  NaN C NaN %   NaN hPa   565ppb   506ppm 36971tvoc_base 40351eCo2_base
+fdf341fe-2c56-4379-bff8-b399e91a3e2e m5stack-bme280-device-bme280    10470 "2021-03-07T05:58:00Z" "2021-03-07 14:58:00+09:00"  22.2C 34.8% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+503bc4b5-35ab-4fea-bb61-267a23df6c5f m5stack-bme280-device-sgp30     10471 "2021-03-07T05:58:00Z" "2021-03-07 14:58:00+09:00"  NaN C NaN %   NaN hPa   557ppb   500ppm 36971tvoc_base 40351eCo2_base
+0e12950b-7c08-4ec3-8d2f-95466d3070f7 m5stack-bme280-device-bme280    10472 "2021-03-07T05:59:00Z" "2021-03-07 14:59:00+09:00"  22.2C 35.0% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+d909f3af-cae2-4430-b3a2-9b1344e2e1f4 m5stack-bme280-device-sgp30     10473 "2021-03-07T05:59:00Z" "2021-03-07 14:59:00+09:00"  NaN C NaN %   NaN hPa   560ppb   504ppm 36971tvoc_base 40351eCo2_base
+4102dd45-2ebd-48c0-b3d7-3677463f607b m5stack-bme280-device-bme280    10474 "2021-03-07T06:00:00Z" "2021-03-07 15:00:00+09:00"  22.2C 34.8% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+cca06d59-38aa-40aa-9fb1-0306debc9313 m5stack-bme280-device-sgp30     10475 "2021-03-07T06:00:00Z" "2021-03-07 15:00:00+09:00"  NaN C NaN %   NaN hPa   552ppb   492ppm 36971tvoc_base 40351eCo2_base
+5b97e765-a3bf-4908-9927-1dce08735bb7 m5stack-bme280-device-bme280    10476 "2021-03-07T06:01:00Z" "2021-03-07 15:01:00+09:00"  22.2C 34.9% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+8112fe1c-9dd8-4756-a504-2b7bfb47939e m5stack-bme280-device-sgp30     10477 "2021-03-07T06:01:00Z" "2021-03-07 15:01:00+09:00"  NaN C NaN %   NaN hPa   552ppb   496ppm 36971tvoc_base 40351eCo2_base
+1b1596cb-293b-4bbf-87ba-4c551a61bdc6 m5stack-bme280-device-bme280    10478 "2021-03-07T06:02:00Z" "2021-03-07 15:02:00+09:00"  22.2C 34.9% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+703f6568-f25d-4d71-a35a-df1ec376ab66 m5stack-bme280-device-sgp30     10479 "2021-03-07T06:02:00Z" "2021-03-07 15:02:00+09:00"  NaN C NaN %   NaN hPa   557ppb   497ppm 36971tvoc_base 40351eCo2_base
+8b63ea00-2bbb-4dc4-944f-3cc61a44a789 m5stack-bme280-device-bme280    10480 "2021-03-07T06:03:00Z" "2021-03-07 15:03:00+09:00"  22.2C 34.7% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+9fe3ad3f-6ac7-464c-a0d2-226d7d4a1f60 m5stack-bme280-device-sgp30     10481 "2021-03-07T06:03:00Z" "2021-03-07 15:03:00+09:00"  NaN C NaN %   NaN hPa   562ppb   502ppm 36970tvoc_base 40351eCo2_base
+45147b7c-84f0-4e18-8384-7ecdeb9d00b2 m5stack-bme280-device-bme280    10482 "2021-03-07T06:04:00Z" "2021-03-07 15:04:00+09:00"  22.3C 35.1% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+53d65688-9855-4dda-83fa-87d2e2b3772b m5stack-bme280-device-sgp30     10483 "2021-03-07T06:04:00Z" "2021-03-07 15:04:00+09:00"  NaN C NaN %   NaN hPa   563ppb   501ppm 36970tvoc_base 40351eCo2_base
+d5756231-b2bd-4685-875e-e4955c5cd960 m5stack-bme280-device-bme280    10484 "2021-03-07T06:05:00Z" "2021-03-07 15:05:00+09:00"  22.3C 34.8% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+39eb6cd5-5b11-43b2-8bee-5142e0ea6756 m5stack-bme280-device-sgp30     10485 "2021-03-07T06:05:00Z" "2021-03-07 15:05:00+09:00"  NaN C NaN %   NaN hPa   552ppb   495ppm 36970tvoc_base 40351eCo2_base
+b7f59d99-a740-42c8-884f-ef34b7023228 m5stack-bme280-device-bme280    10486 "2021-03-07T06:06:00Z" "2021-03-07 15:06:00+09:00"  22.2C 34.6% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+c6c440c4-b58e-4c6b-b3a4-1792a77cb50d m5stack-bme280-device-sgp30     10487 "2021-03-07T06:06:00Z" "2021-03-07 15:06:00+09:00"  NaN C NaN %   NaN hPa   552ppb   490ppm 36970tvoc_base 40351eCo2_base
+21e1b853-6e90-4305-b4ed-b9e0c7ab4130 m5stack-bme280-device-bme280    10488 "2021-03-07T06:07:00Z" "2021-03-07 15:07:00+09:00"  22.2C 34.8% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+d206f75f-3fab-4767-b38c-7a4076957587 m5stack-bme280-device-sgp30     10489 "2021-03-07T06:07:00Z" "2021-03-07 15:07:00+09:00"  NaN C NaN %   NaN hPa   552ppb   498ppm 36970tvoc_base 40351eCo2_base
+7d9eb09b-cdec-41ea-9fd6-b86c4de15f73 m5stack-bme280-device-bme280    10490 "2021-03-07T06:08:00Z" "2021-03-07 15:08:00+09:00"  22.3C 34.9% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+dc7784c9-5f20-4a14-87d2-e003db78f418 m5stack-bme280-device-sgp30     10491 "2021-03-07T06:08:00Z" "2021-03-07 15:08:00+09:00"  NaN C NaN %   NaN hPa   556ppb   493ppm 36970tvoc_base 40351eCo2_base
+8b5f25f1-070b-4724-aee4-c9c7b578643b m5stack-bme280-device-bme280    10492 "2021-03-07T06:09:00Z" "2021-03-07 15:09:00+09:00"  22.3C 34.4% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+f3e15bb7-2cc1-468d-b653-ecb8ecbbeb9c m5stack-bme280-device-sgp30     10493 "2021-03-07T06:09:00Z" "2021-03-07 15:09:00+09:00"  NaN C NaN %   NaN hPa   553ppb   493ppm 36970tvoc_base 40351eCo2_base
+0b9000a7-0ba1-417c-9300-59fc93aa60eb m5stack-bme280-device-bme280    10494 "2021-03-07T06:10:00Z" "2021-03-07 15:10:00+09:00"  22.3C 34.7% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+0d8ac42e-6610-473c-8cea-f89b16094ca1 m5stack-bme280-device-sgp30     10495 "2021-03-07T06:10:00Z" "2021-03-07 15:10:00+09:00"  NaN C NaN %   NaN hPa   578ppb   518ppm 36969tvoc_base 40351eCo2_base
+8d348733-24e4-4374-9223-2c21dd4b68df m5stack-bme280-device-bme280    10496 "2021-03-07T06:11:00Z" "2021-03-07 15:11:00+09:00"  22.3C 34.6% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+ecaf1090-2c9e-457f-b969-b369cededd65 m5stack-bme280-device-sgp30     10497 "2021-03-07T06:11:00Z" "2021-03-07 15:11:00+09:00"  NaN C NaN %   NaN hPa   592ppb   522ppm 36969tvoc_base 40351eCo2_base
+24e0f7a4-6d4c-4c09-a9d6-2164ae89908a m5stack-bme280-device-bme280    10498 "2021-03-07T06:12:00Z" "2021-03-07 15:12:00+09:00"  22.3C 34.8% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+d1189ece-7eaa-4ee8-a903-b34738ec655c m5stack-bme280-device-sgp30     10499 "2021-03-07T06:12:00Z" "2021-03-07 15:12:00+09:00"  NaN C NaN %   NaN hPa   579ppb   506ppm 36969tvoc_base 40351eCo2_base
+6e8f3dd6-a6ce-4bfb-80b7-3f20de856709 m5stack-bme280-device-bme280    10500 "2021-03-07T06:13:00Z" "2021-03-07 15:13:00+09:00"  22.3C 34.5% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+e1fed69a-14cd-4c5c-995b-690a94459c29 m5stack-bme280-device-sgp30     10501 "2021-03-07T06:13:00Z" "2021-03-07 15:13:00+09:00"  NaN C NaN %   NaN hPa   565ppb   507ppm 36969tvoc_base 40351eCo2_base
+1676b9e4-9302-45cc-8e25-430370885dfe m5stack-bme280-device-bme280    10502 "2021-03-07T06:14:00Z" "2021-03-07 15:14:00+09:00"  22.3C 34.3% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+208a40c2-615f-46d9-8ff0-2f2ee49d5d49 m5stack-bme280-device-sgp30     10503 "2021-03-07T06:14:00Z" "2021-03-07 15:14:00+09:00"  NaN C NaN %   NaN hPa   573ppb   506ppm 36969tvoc_base 40351eCo2_base
+fb20d235-ed3d-4303-8f59-74663ebc2cc8 m5stack-bme280-device-bme280    10504 "2021-03-07T06:15:00Z" "2021-03-07 15:15:00+09:00"  22.3C 34.5% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+62b7443d-8a8b-401c-ad04-64c660284f61 m5stack-bme280-device-sgp30     10505 "2021-03-07T06:15:00Z" "2021-03-07 15:15:00+09:00"  NaN C NaN %   NaN hPa   578ppb   515ppm 36969tvoc_base 40351eCo2_base
+592f3c49-7a0a-4b13-83a7-500e54081cbc m5stack-bme280-device-bme280    10506 "2021-03-07T06:16:00Z" "2021-03-07 15:16:00+09:00"  22.3C 34.7% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+e6a33d34-b40b-475d-839c-7759fe63b568 m5stack-bme280-device-sgp30     10507 "2021-03-07T06:16:00Z" "2021-03-07 15:16:00+09:00"  NaN C NaN %   NaN hPa   575ppb   509ppm 36968tvoc_base 40351eCo2_base
+55315193-d031-4369-ac1e-df2c08fec705 m5stack-bme280-device-bme280    10508 "2021-03-07T06:17:00Z" "2021-03-07 15:17:00+09:00"  22.3C 34.4% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+2b95e12f-c31d-4ad2-9de8-ff16acafc568 m5stack-bme280-device-sgp30     10509 "2021-03-07T06:17:00Z" "2021-03-07 15:17:00+09:00"  NaN C NaN %   NaN hPa   571ppb   505ppm 36968tvoc_base 40351eCo2_base
+c563f633-4ab9-4fb3-8f1a-0d2a672f53d9 m5stack-bme280-device-bme280    10510 "2021-03-07T06:18:00Z" "2021-03-07 15:18:00+09:00"  22.3C 34.5% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+b4ff8f63-14c2-463a-9b9d-aefa6dd852f4 m5stack-bme280-device-sgp30     10511 "2021-03-07T06:18:00Z" "2021-03-07 15:18:00+09:00"  NaN C NaN %   NaN hPa   578ppb   506ppm 36968tvoc_base 40351eCo2_base
+0736eb42-fc11-40d6-acf7-79a9f8b56607 m5stack-bme280-device-bme280    10512 "2021-03-07T06:19:00Z" "2021-03-07 15:19:00+09:00"  22.3C 34.3% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+9f600070-a62f-4a4b-8c6e-fa781942968e m5stack-bme280-device-sgp30     10513 "2021-03-07T06:19:00Z" "2021-03-07 15:19:00+09:00"  NaN C NaN %   NaN hPa   576ppb   508ppm 36968tvoc_base 40351eCo2_base
+e43c1289-5c3b-4d05-b688-89fcc17a1bff m5stack-bme280-device-bme280    10514 "2021-03-07T06:20:00Z" "2021-03-07 15:20:00+09:00"  22.3C 34.5% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+5dd1a2fc-32fd-4c81-9969-119690c3144b m5stack-bme280-device-sgp30     10515 "2021-03-07T06:20:00Z" "2021-03-07 15:20:00+09:00"  NaN C NaN %   NaN hPa   582ppb   509ppm 36968tvoc_base 40351eCo2_base
+90e8ced2-f6b8-42c7-8f74-bc30e4913531 m5stack-bme280-device-bme280    10516 "2021-03-07T06:21:00Z" "2021-03-07 15:21:00+09:00"  22.3C 34.4% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+a1091d0b-69b0-4a79-bb06-06ae26314d25 m5stack-bme280-device-sgp30     10517 "2021-03-07T06:21:00Z" "2021-03-07 15:21:00+09:00"  NaN C NaN %   NaN hPa   591ppb   520ppm 36968tvoc_base 40351eCo2_base
+2ca82d67-4b95-48bb-831c-6fda26b896ce m5stack-bme280-device-bme280    10518 "2021-03-07T06:22:00Z" "2021-03-07 15:22:00+09:00"  22.3C 34.5% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+3f354d28-a463-44a6-8c50-36953cc1c123 m5stack-bme280-device-sgp30     10519 "2021-03-07T06:22:00Z" "2021-03-07 15:22:00+09:00"  NaN C NaN %   NaN hPa   577ppb   507ppm 36968tvoc_base 40351eCo2_base
+e4beb827-becf-45f6-8e5f-cda207549393 m5stack-bme280-device-bme280    10520 "2021-03-07T06:23:00Z" "2021-03-07 15:23:00+09:00"  22.3C 34.4% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+f43d373b-ef68-47ce-967b-41ea481e510c m5stack-bme280-device-sgp30     10521 "2021-03-07T06:23:00Z" "2021-03-07 15:23:00+09:00"  NaN C NaN %   NaN hPa   571ppb   504ppm 36967tvoc_base 40351eCo2_base
+cd01339e-f1bf-44d0-befe-eac17cedf074 m5stack-bme280-device-bme280    10522 "2021-03-07T06:24:00Z" "2021-03-07 15:24:00+09:00"  22.3C 34.6% 1022.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+477d35ee-0bf3-4b74-b434-5d79940b644c m5stack-bme280-device-sgp30     10523 "2021-03-07T06:24:00Z" "2021-03-07 15:24:00+09:00"  NaN C NaN %   NaN hPa   574ppb   507ppm 36967tvoc_base 40351eCo2_base
+2a171ad6-6b9b-40ca-863f-44de4b6ee49a m5stack-bme280-device-bme280    10524 "2021-03-07T06:25:00Z" "2021-03-07 15:25:00+09:00"  22.4C 34.4% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+6a67dd8b-fcb8-4919-b91d-2addba1bbef8 m5stack-bme280-device-sgp30     10525 "2021-03-07T06:25:00Z" "2021-03-07 15:25:00+09:00"  NaN C NaN %   NaN hPa   574ppb   503ppm 36967tvoc_base 40351eCo2_base
+6da0501b-58a9-45f8-9ac2-24276e1d4477 m5stack-bme280-device-bme280    10526 "2021-03-07T06:26:00Z" "2021-03-07 15:26:00+09:00"  22.4C 35.2% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+d64b1430-8651-4afe-b67b-a4ff5dcca11f m5stack-bme280-device-sgp30     10527 "2021-03-07T06:26:00Z" "2021-03-07 15:26:00+09:00"  NaN C NaN %   NaN hPa   590ppb   517ppm 36967tvoc_base 40351eCo2_base
+a45bd28f-331c-4f18-b995-4e5cffac4dcd m5stack-bme280-device-bme280    10528 "2021-03-07T06:27:00Z" "2021-03-07 15:27:00+09:00"  22.4C 34.8% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+114d5488-71de-45da-bceb-ba719a6d7520 m5stack-bme280-device-sgp30     10529 "2021-03-07T06:27:00Z" "2021-03-07 15:27:00+09:00"  NaN C NaN %   NaN hPa   602ppb   519ppm 36967tvoc_base 40351eCo2_base
+30394e9a-1b10-478f-8984-fc83f37df079 m5stack-bme280-device-bme280    10530 "2021-03-07T06:28:00Z" "2021-03-07 15:28:00+09:00"  22.4C 34.5% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+ffbed533-4a0e-4c4e-805d-1919f5627f37 m5stack-bme280-device-sgp30     10531 "2021-03-07T06:28:00Z" "2021-03-07 15:28:00+09:00"  NaN C NaN %   NaN hPa   609ppb   519ppm 36967tvoc_base 40351eCo2_base
+4f8d85b2-8eca-40b6-826a-583db4857e05 m5stack-bme280-device-bme280    10532 "2021-03-07T06:29:00Z" "2021-03-07 15:29:00+09:00"  22.4C 34.4% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+192dfae1-b668-482b-8cb8-5368293e46ca m5stack-bme280-device-sgp30     10533 "2021-03-07T06:29:00Z" "2021-03-07 15:29:00+09:00"  NaN C NaN %   NaN hPa   602ppb   516ppm 36966tvoc_base 40351eCo2_base
+f8230282-ae8a-4729-a20c-d0c7d7d9f5e4 m5stack-bme280-device-bme280    10534 "2021-03-07T06:30:00Z" "2021-03-07 15:30:00+09:00"  22.4C 34.4% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+780efd23-0e9a-4be9-b43d-7e46b07b4184 m5stack-bme280-device-sgp30     10535 "2021-03-07T06:30:00Z" "2021-03-07 15:30:00+09:00"  NaN C NaN %   NaN hPa   586ppb   510ppm 36966tvoc_base 40351eCo2_base
+eab94bec-605f-4c80-86b0-f4a4251e0af3 m5stack-bme280-device-bme280    10536 "2021-03-07T06:31:00Z" "2021-03-07 15:31:00+09:00"  22.4C 34.3% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+acb1d440-44fb-4b4c-8ca5-f3983a39a595 m5stack-bme280-device-sgp30     10537 "2021-03-07T06:31:00Z" "2021-03-07 15:31:00+09:00"  NaN C NaN %   NaN hPa   594ppb   524ppm 36966tvoc_base 40351eCo2_base
+5caada4b-8655-4089-bd23-688f04afc5d9 m5stack-bme280-device-bme280    10538 "2021-03-07T06:32:00Z" "2021-03-07 15:32:00+09:00"  22.4C 34.4% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+a96a7b50-f604-416e-8e8a-46d5d1d0e880 m5stack-bme280-device-sgp30     10539 "2021-03-07T06:32:00Z" "2021-03-07 15:32:00+09:00"  NaN C NaN %   NaN hPa   600ppb   521ppm 36966tvoc_base 40351eCo2_base
+720f5133-4283-4256-81d9-29c1162725bd m5stack-bme280-device-bme280    10540 "2021-03-07T06:33:00Z" "2021-03-07 15:33:00+09:00"  22.4C 34.3% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+e86c24e6-cf70-47e5-a623-5bb0be342514 m5stack-bme280-device-sgp30     10541 "2021-03-07T06:33:00Z" "2021-03-07 15:33:00+09:00"  NaN C NaN %   NaN hPa   601ppb   514ppm 36966tvoc_base 40351eCo2_base
+a11a2c6d-f7a7-4620-9f7a-f9cc576abc70 m5stack-bme280-device-bme280    10542 "2021-03-07T06:34:00Z" "2021-03-07 15:34:00+09:00"  22.4C 34.4% 1022.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+123cd22d-5382-46bf-b8b7-fa4e550a1612 m5stack-bme280-device-sgp30     10543 "2021-03-07T06:34:00Z" "2021-03-07 15:34:00+09:00"  NaN C NaN %   NaN hPa   604ppb   516ppm 36966tvoc_base 40351eCo2_base
+9e5c4ab1-f78e-49d3-ac72-9792efd2eac4 m5stack-bme280-device-bme280    10544 "2021-03-07T06:35:00Z" "2021-03-07 15:35:00+09:00"  22.4C 34.2% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+a783fe94-4bdd-4d28-8fa6-3ac6e1c1b2f3 m5stack-bme280-device-sgp30     10545 "2021-03-07T06:35:00Z" "2021-03-07 15:35:00+09:00"  NaN C NaN %   NaN hPa   614ppb   522ppm 36966tvoc_base 40351eCo2_base
+38c69b16-0ab3-42b4-9b2e-4fb25761bdb1 m5stack-bme280-device-bme280    10546 "2021-03-07T06:36:00Z" "2021-03-07 15:36:00+09:00"  22.4C 34.5% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+03426232-8142-4edb-89ff-42efaecc84e8 m5stack-bme280-device-sgp30     10547 "2021-03-07T06:36:00Z" "2021-03-07 15:36:00+09:00"  NaN C NaN %   NaN hPa   635ppb   532ppm 36965tvoc_base 40351eCo2_base
+1b489531-6d24-477e-8585-4bb89518d021 m5stack-bme280-device-bme280    10548 "2021-03-07T06:37:00Z" "2021-03-07 15:37:00+09:00"  22.5C 34.4% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+98dff9e6-1930-43f6-b2a2-ea7daae0b8ae m5stack-bme280-device-sgp30     10549 "2021-03-07T06:37:00Z" "2021-03-07 15:37:00+09:00"  NaN C NaN %   NaN hPa   614ppb   522ppm 36965tvoc_base 40351eCo2_base
+8edad3ea-5967-41ce-aecf-42b21ec1d33d m5stack-bme280-device-bme280    10550 "2021-03-07T06:38:00Z" "2021-03-07 15:38:00+09:00"  22.4C 34.5% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+a72a0dba-3a5b-4d34-8642-ed0c06664773 m5stack-bme280-device-sgp30     10551 "2021-03-07T06:38:00Z" "2021-03-07 15:38:00+09:00"  NaN C NaN %   NaN hPa   632ppb   532ppm 36965tvoc_base 40351eCo2_base
+56bc7f99-abdf-4d5b-b2ed-c80dc314e4f7 m5stack-bme280-device-bme280    10552 "2021-03-07T06:39:00Z" "2021-03-07 15:39:00+09:00"  22.4C 34.6% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+9212f68c-a633-4f3f-8ea1-ac43d0c2684e m5stack-bme280-device-sgp30     10553 "2021-03-07T06:39:00Z" "2021-03-07 15:39:00+09:00"  NaN C NaN %   NaN hPa   615ppb   530ppm 36965tvoc_base 40351eCo2_base
+8d106529-563a-4539-bf50-122c8f6dc4e6 m5stack-bme280-device-bme280    10554 "2021-03-07T06:40:00Z" "2021-03-07 15:40:00+09:00"  22.4C 34.8% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+a2907073-1c90-40ea-b584-97aa5c971cdf m5stack-bme280-device-sgp30     10555 "2021-03-07T06:40:00Z" "2021-03-07 15:40:00+09:00"  NaN C NaN %   NaN hPa   630ppb   533ppm 36965tvoc_base 40351eCo2_base
+182e77d4-f30b-4e0f-9328-b87d97855ac7 m5stack-bme280-device-bme280    10556 "2021-03-07T06:41:00Z" "2021-03-07 15:41:00+09:00"  22.4C 34.4% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+4cc3a59f-888f-4a78-b2de-9a13729a9931 m5stack-bme280-device-sgp30     10557 "2021-03-07T06:41:00Z" "2021-03-07 15:41:00+09:00"  NaN C NaN %   NaN hPa   627ppb   529ppm 36965tvoc_base 40351eCo2_base
+47145158-14a9-4aab-a007-e276b883fe8c m5stack-bme280-device-bme280    10558 "2021-03-07T06:42:00Z" "2021-03-07 15:42:00+09:00"  22.5C 34.5% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+0a09ae23-1dec-4d99-acf4-348e4d026754 m5stack-bme280-device-sgp30     10559 "2021-03-07T06:42:00Z" "2021-03-07 15:42:00+09:00"  NaN C NaN %   NaN hPa   636ppb   528ppm 36964tvoc_base 40351eCo2_base
+c54cd5e2-f4ad-4910-b8b8-695f170bf84f m5stack-bme280-device-bme280    10560 "2021-03-07T06:43:00Z" "2021-03-07 15:43:00+09:00"  22.4C 34.5% 1022.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+851aac04-0dc6-4780-98d5-085f8d570ecd m5stack-bme280-device-sgp30     10561 "2021-03-07T06:43:00Z" "2021-03-07 15:43:00+09:00"  NaN C NaN %   NaN hPa   647ppb   537ppm 36964tvoc_base 40351eCo2_base
+ff6dd465-bac5-4c44-975d-3c28eacbfccd m5stack-bme280-device-bme280    10562 "2021-03-07T06:44:00Z" "2021-03-07 15:44:00+09:00"  22.5C 34.6% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+f63ec71e-9e03-4e3b-bb0d-155290588760 m5stack-bme280-device-sgp30     10563 "2021-03-07T06:44:00Z" "2021-03-07 15:44:00+09:00"  NaN C NaN %   NaN hPa   647ppb   537ppm 36964tvoc_base 40351eCo2_base
+2487e2ec-9120-40e0-929b-2b1a73b876bf m5stack-bme280-device-bme280    10564 "2021-03-07T06:45:00Z" "2021-03-07 15:45:00+09:00"  22.4C 34.4% 1022.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+9079c372-61ff-4e1e-960f-fd34dd81b6fb m5stack-bme280-device-sgp30     10565 "2021-03-07T06:45:00Z" "2021-03-07 15:45:00+09:00"  NaN C NaN %   NaN hPa   643ppb   537ppm 36964tvoc_base 40351eCo2_base
+6f2432e5-268b-4ad8-84c3-1ee7a53f35db m5stack-bme280-device-bme280    10566 "2021-03-07T06:46:00Z" "2021-03-07 15:46:00+09:00"  22.4C 34.3% 1022.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+a7e456b7-154e-4b42-81c4-771866c1d819 m5stack-bme280-device-sgp30     10567 "2021-03-07T06:46:00Z" "2021-03-07 15:46:00+09:00"  NaN C NaN %   NaN hPa   642ppb   539ppm 36964tvoc_base 40351eCo2_base
+8fbc0f70-cc14-4988-8c81-dbc10a96f74a m5stack-bme280-device-bme280    10568 "2021-03-07T06:47:00Z" "2021-03-07 15:47:00+09:00"  22.5C 34.1% 1022.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+f36ef6b0-2939-47ad-9a94-137f1b3bfefd m5stack-bme280-device-sgp30     10569 "2021-03-07T06:47:00Z" "2021-03-07 15:47:00+09:00"  NaN C NaN %   NaN hPa   641ppb   536ppm 36964tvoc_base 40351eCo2_base
+619c36c2-134f-4e7f-ab15-da5e1b6bfefc m5stack-bme280-device-bme280    10570 "2021-03-07T06:48:00Z" "2021-03-07 15:48:00+09:00"  22.5C 34.5% 1022.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+db8ce069-4c2b-4877-ac4d-c424f46641ed m5stack-bme280-device-sgp30     10571 "2021-03-07T06:48:00Z" "2021-03-07 15:48:00+09:00"  NaN C NaN %   NaN hPa   658ppb   548ppm 36964tvoc_base 40351eCo2_base
+ca23bd39-2826-4e3b-a523-4419552877f5 m5stack-bme280-device-bme280    10572 "2021-03-07T06:49:00Z" "2021-03-07 15:49:00+09:00"  22.5C 34.3% 1022.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+26837b12-70fa-430c-a51a-570d89e4e426 m5stack-bme280-device-sgp30     10573 "2021-03-07T06:49:00Z" "2021-03-07 15:49:00+09:00"  NaN C NaN %   NaN hPa   657ppb   539ppm 36963tvoc_base 40351eCo2_base
+93ae8afc-647b-47c2-82fd-16ec5f8c0c35 m5stack-bme280-device-bme280    10574 "2021-03-07T06:50:00Z" "2021-03-07 15:50:00+09:00"  22.5C 34.3% 1022.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+9b6c073f-f203-4cc2-bd48-1099eeeeda9c m5stack-bme280-device-sgp30     10575 "2021-03-07T06:50:00Z" "2021-03-07 15:50:00+09:00"  NaN C NaN %   NaN hPa   649ppb   537ppm 36963tvoc_base 40351eCo2_base
+a471e272-fd99-4d22-b8a8-30f1813c92cd m5stack-bme280-device-bme280    10576 "2021-03-07T06:51:00Z" "2021-03-07 15:51:00+09:00"  22.5C 34.2% 1022.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+decf0a85-5e26-41bf-83b0-80f7a28571a7 m5stack-bme280-device-sgp30     10577 "2021-03-07T06:51:00Z" "2021-03-07 15:51:00+09:00"  NaN C NaN %   NaN hPa   669ppb   551ppm 36963tvoc_base 40351eCo2_base
+ea5ebc44-1e7b-407f-ae3f-1427f7f27e37 m5stack-bme280-device-bme280    10578 "2021-03-07T06:52:00Z" "2021-03-07 15:52:00+09:00"  22.5C 34.2% 1022.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+e176cbb6-e516-4932-893b-2db913c39b73 m5stack-bme280-device-sgp30     10579 "2021-03-07T06:52:00Z" "2021-03-07 15:52:00+09:00"  NaN C NaN %   NaN hPa   684ppb   557ppm 36963tvoc_base 40351eCo2_base
+7ef0b11d-c6d2-4f34-a339-e104825d32a8 m5stack-bme280-device-bme280    10580 "2021-03-07T06:53:00Z" "2021-03-07 15:53:00+09:00"  22.5C 34.3% 1022.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+bfa0fef7-3ce9-4e11-9523-795a61ec7090 m5stack-bme280-device-sgp30     10581 "2021-03-07T06:53:00Z" "2021-03-07 15:53:00+09:00"  NaN C NaN %   NaN hPa   694ppb   560ppm 36963tvoc_base 40351eCo2_base
+0607cce8-a286-4105-b07f-ad73e93f5f66 m5stack-bme280-device-bme280    10582 "2021-03-07T06:54:00Z" "2021-03-07 15:54:00+09:00"  22.4C 31.0% 1022.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+c6b9a403-5847-4b5b-9be6-bf2fe2688fc5 m5stack-bme280-device-sgp30     10583 "2021-03-07T06:54:00Z" "2021-03-07 15:54:00+09:00"  NaN C NaN %   NaN hPa   621ppb   506ppm 36963tvoc_base 40351eCo2_base
+a1c0cfa4-24e3-4a74-82cf-bb8cc3988dd5 m5stack-bme280-device-bme280    10584 "2021-03-07T06:55:00Z" "2021-03-07 15:55:00+09:00"  22.2C 30.4% 1022.6hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+84fb5373-e147-4f8e-8202-215bd14fe1c5 m5stack-bme280-device-sgp30     10585 "2021-03-07T06:55:00Z" "2021-03-07 15:55:00+09:00"  NaN C NaN %   NaN hPa   473ppb   420ppm 36963tvoc_base 40351eCo2_base
+829a8aab-2693-4cf2-9e95-17cc9e7bccc5 m5stack-bme280-device-bme280    10586 "2021-03-07T06:56:00Z" "2021-03-07 15:56:00+09:00"  21.9C 31.3% 1022.6hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+1f93c354-d152-4c8d-a9f4-76b547d88f41 m5stack-bme280-device-sgp30     10587 "2021-03-07T06:56:00Z" "2021-03-07 15:56:00+09:00"  NaN C NaN %   NaN hPa   371ppb   409ppm 36964tvoc_base 40351eCo2_base
+18815d3b-e8c8-4a24-a386-43fe839a0b22 m5stack-bme280-device-bme280    10588 "2021-03-07T06:57:00Z" "2021-03-07 15:57:00+09:00"  21.7C 28.8% 1022.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+1405657b-79d9-4676-9a17-0110a9163ca2 m5stack-bme280-device-sgp30     10589 "2021-03-07T06:57:00Z" "2021-03-07 15:57:00+09:00"  NaN C NaN %   NaN hPa   287ppb   400ppm 36965tvoc_base 40351eCo2_base
+8cd07512-242b-4d97-88c1-adf53589ec05 m5stack-bme280-device-bme280    10590 "2021-03-07T06:58:00Z" "2021-03-07 15:58:00+09:00"  21.4C 30.8% 1022.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+5048f138-b766-4e8a-b323-43a46b056bad m5stack-bme280-device-sgp30     10591 "2021-03-07T06:58:00Z" "2021-03-07 15:58:00+09:00"  NaN C NaN %   NaN hPa   292ppb   427ppm 36966tvoc_base 40351eCo2_base
+2f342f1a-eeb8-4c59-86ec-e106955117a1 m5stack-bme280-device-bme280    10592 "2021-03-07T06:59:00Z" "2021-03-07 15:59:00+09:00"  21.2C 30.1% 1022.6hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+8daa922e-e03c-4ff2-ac31-3424fdc67e1b m5stack-bme280-device-sgp30     10593 "2021-03-07T06:59:00Z" "2021-03-07 15:59:00+09:00"  NaN C NaN %   NaN hPa   256ppb   401ppm 36968tvoc_base 40351eCo2_base
+0af4f09d-cf5b-4680-ad22-d42a903e704f m5stack-bme280-device-bme280    10594 "2021-03-07T07:00:00Z" "2021-03-07 16:00:00+09:00"  21.0C 30.1% 1022.6hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+fb8b7037-65c8-4014-acd3-e9177d675334 m5stack-bme280-device-sgp30     10595 "2021-03-07T07:00:00Z" "2021-03-07 16:00:00+09:00"  NaN C NaN %   NaN hPa   240ppb   400ppm 36969tvoc_base 40351eCo2_base
+e3c91c9d-50af-49f0-9f5d-dd5e64781663 m5stack-bme280-device-bme280    10596 "2021-03-07T07:01:00Z" "2021-03-07 16:01:00+09:00"  20.9C 29.4% 1022.6hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+a0fa2ac6-15b6-47c4-82c9-2da51c3aee18 m5stack-bme280-device-sgp30     10597 "2021-03-07T07:01:00Z" "2021-03-07 16:01:00+09:00"  NaN C NaN %   NaN hPa   230ppb   400ppm 36971tvoc_base 40351eCo2_base
+59095996-0306-43f1-8e43-28f77f3e5ea3 m5stack-bme280-device-bme280    10598 "2021-03-07T07:02:00Z" "2021-03-07 16:02:00+09:00"  20.7C 29.9% 1022.6hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+499fe0be-820a-47ea-8434-abdfea034732 m5stack-bme280-device-sgp30     10599 "2021-03-07T07:02:00Z" "2021-03-07 16:02:00+09:00"  NaN C NaN %   NaN hPa   205ppb   400ppm 36972tvoc_base 40351eCo2_base
+dab608d5-a3f4-4c4c-98eb-b391cd880ed8 m5stack-bme280-device-bme280    10600 "2021-03-07T07:03:00Z" "2021-03-07 16:03:00+09:00"  20.5C 29.8% 1022.4hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+39f20460-e9a9-41f3-a7d0-0cc05aa81593 m5stack-bme280-device-sgp30     10601 "2021-03-07T07:03:00Z" "2021-03-07 16:03:00+09:00"  NaN C NaN %   NaN hPa   182ppb   400ppm 36974tvoc_base 40351eCo2_base
+fb3655b2-fc31-4efe-9245-2404b2a33b4e m5stack-bme280-device-bme280    10602 "2021-03-07T07:04:00Z" "2021-03-07 16:04:00+09:00"  20.2C 30.2% 1022.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+ce23d925-b21e-422f-9f5b-76e36c6cb73f m5stack-bme280-device-sgp30     10603 "2021-03-07T07:04:00Z" "2021-03-07 16:04:00+09:00"  NaN C NaN %   NaN hPa   164ppb   400ppm 36975tvoc_base 40350eCo2_base
+79797377-1109-4b39-9875-539993321571 m5stack-bme280-device-bme280    10604 "2021-03-07T07:05:00Z" "2021-03-07 16:05:00+09:00"  19.8C 29.0% 1022.3hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+5c327347-4037-4e14-b40e-0b1cf3bd2135 m5stack-bme280-device-sgp30     10605 "2021-03-07T07:05:00Z" "2021-03-07 16:05:00+09:00"  NaN C NaN %   NaN hPa   132ppb   400ppm 36977tvoc_base 40350eCo2_base
+ba6c713a-0faf-4a1f-93e9-9337ba826278 m5stack-bme280-device-bme280    10606 "2021-03-07T07:06:00Z" "2021-03-07 16:06:00+09:00"  19.4C 29.4% 1022.4hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+d653eff3-be4f-4348-9afa-e33b3d6fb917 m5stack-bme280-device-sgp30     10607 "2021-03-07T07:06:00Z" "2021-03-07 16:06:00+09:00"  NaN C NaN %   NaN hPa    54ppb   400ppm 36978tvoc_base 40350eCo2_base
+7e27486f-f551-4f2c-af20-aa64aaf4d82a m5stack-bme280-device-bme280    10608 "2021-03-07T07:07:00Z" "2021-03-07 16:07:00+09:00"  19.1C 29.5% 1022.4hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+3c142482-6839-40c8-8cb3-7708c8fe0cbf m5stack-bme280-device-sgp30     10609 "2021-03-07T07:07:00Z" "2021-03-07 16:07:00+09:00"  NaN C NaN %   NaN hPa     3ppb   400ppm 36980tvoc_base 40361eCo2_base
+7bfc5e07-593d-40fb-a853-6322e27c7335 m5stack-bme280-device-bme280    10610 "2021-03-07T07:08:00Z" "2021-03-07 16:08:00+09:00"  18.7C 30.0% 1022.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+17b0ff32-475b-417e-947a-dd89b3663815 m5stack-bme280-device-sgp30     10611 "2021-03-07T07:08:00Z" "2021-03-07 16:08:00+09:00"  NaN C NaN %   NaN hPa     0ppb   400ppm 36981tvoc_base 40376eCo2_base
+eef3ecf2-0319-4023-85dd-152e346a93ba m5stack-bme280-device-bme280    10612 "2021-03-07T07:09:00Z" "2021-03-07 16:09:00+09:00"  18.5C 30.5% 1022.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+15144d7c-9c00-470f-82b0-a86b15fb1152 m5stack-bme280-device-sgp30     10613 "2021-03-07T07:09:00Z" "2021-03-07 16:09:00+09:00"  NaN C NaN %   NaN hPa     0ppb   400ppm 36983tvoc_base 40392eCo2_base
+dd16cf1f-f609-406d-8bf8-576adbee3121 m5stack-bme280-device-bme280    10614 "2021-03-07T07:10:00Z" "2021-03-07 16:10:00+09:00"  18.4C 30.7% 1022.6hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+85ea504c-822e-4d3a-97d2-69d001a1505b m5stack-bme280-device-sgp30     10615 "2021-03-07T07:10:00Z" "2021-03-07 16:10:00+09:00"  NaN C NaN %   NaN hPa     0ppb   400ppm 36985tvoc_base 40407eCo2_base
+b73d8385-095a-4d81-9ac9-383f5b1d09c2 m5stack-bme280-device-bme280    10616 "2021-03-07T07:11:00Z" "2021-03-07 16:11:00+09:00"  18.2C 30.9% 1022.6hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+2b2abbcb-bd63-40fe-a4d1-406fb4432985 m5stack-bme280-device-sgp30     10617 "2021-03-07T07:11:00Z" "2021-03-07 16:11:00+09:00"  NaN C NaN %   NaN hPa     0ppb   400ppm 36986tvoc_base 40422eCo2_base
+da9eee66-b746-4d1b-bef4-ebbfc67ae5ea m5stack-bme280-device-bme280    10618 "2021-03-07T07:12:00Z" "2021-03-07 16:12:00+09:00"  18.1C 31.2% 1022.6hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+e6404cd1-a6bd-48ac-8331-0cff17b062ed m5stack-bme280-device-sgp30     10619 "2021-03-07T07:12:00Z" "2021-03-07 16:12:00+09:00"  NaN C NaN %   NaN hPa     0ppb   400ppm 36988tvoc_base 40436eCo2_base
+38a2bb0c-99d5-4df3-ad0f-aa9bf81374c0 m5stack-bme280-device-bme280    10620 "2021-03-07T07:13:00Z" "2021-03-07 16:13:00+09:00"  18.2C 31.4% 1022.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+5b2db1fb-8a8b-4e9b-a8ec-ce7f8cca5cd6 m5stack-bme280-device-sgp30     10621 "2021-03-07T07:13:00Z" "2021-03-07 16:13:00+09:00"  NaN C NaN %   NaN hPa    31ppb   415ppm 36989tvoc_base 40437eCo2_base
+be3c4d99-00ec-44eb-b1d0-74cd860dc08b m5stack-bme280-device-bme280    10622 "2021-03-07T07:14:00Z" "2021-03-07 16:14:00+09:00"  18.0C 31.2% 1022.6hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+faac5e3a-aae0-491b-bf11-d95a230c80b6 m5stack-bme280-device-sgp30     10623 "2021-03-07T07:14:00Z" "2021-03-07 16:14:00+09:00"  NaN C NaN %   NaN hPa    51ppb   400ppm 36990tvoc_base 40437eCo2_base
+6cd8d8d5-6135-41f4-949c-5d969b13f877 m5stack-bme280-device-bme280    10624 "2021-03-07T07:15:00Z" "2021-03-07 16:15:00+09:00"  17.7C 31.5% 1022.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+f2da5932-7bde-45f0-804a-9b15eb14fc19 m5stack-bme280-device-sgp30     10625 "2021-03-07T07:15:00Z" "2021-03-07 16:15:00+09:00"  NaN C NaN %   NaN hPa     4ppb   400ppm 36992tvoc_base 40447eCo2_base
+a6875938-8e47-4818-8bdf-56fe5d0f2f80 m5stack-bme280-device-bme280    10626 "2021-03-07T07:16:00Z" "2021-03-07 16:16:00+09:00"  17.6C 31.7% 1022.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+5b5822e1-372d-4855-9296-5bb09e560429 m5stack-bme280-device-sgp30     10627 "2021-03-07T07:16:00Z" "2021-03-07 16:16:00+09:00"  NaN C NaN %   NaN hPa     0ppb   400ppm 36993tvoc_base 40463eCo2_base
+e58fd061-a525-44c0-b2a5-d17823413ea2 m5stack-bme280-device-bme280    10628 "2021-03-07T07:17:00Z" "2021-03-07 16:17:00+09:00"  17.4C 31.9% 1022.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+9f6dde30-aff4-4ed7-bf36-53e6ea395ea4 m5stack-bme280-device-sgp30     10629 "2021-03-07T07:17:00Z" "2021-03-07 16:17:00+09:00"  NaN C NaN %   NaN hPa     0ppb   400ppm 36995tvoc_base 40478eCo2_base
+59affd5b-0706-4a87-97e7-8715b21be1c9 m5stack-bme280-device-bme280    10630 "2021-03-07T07:18:00Z" "2021-03-07 16:18:00+09:00"  17.3C 32.2% 1022.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+790cbfa2-5ab2-46aa-9554-d9caab04f572 m5stack-bme280-device-sgp30     10631 "2021-03-07T07:18:00Z" "2021-03-07 16:18:00+09:00"  NaN C NaN %   NaN hPa     0ppb   400ppm 36996tvoc_base 40494eCo2_base
+cc59969c-0767-432d-b908-9ebe29de50e3 m5stack-bme280-device-sgp30     10641 "2021-03-07T07:23:00Z" "2021-03-07 16:23:00+09:00"  NaN C NaN %   NaN hPa    61ppb   400ppm 37004tvoc_base 40525eCo2_base
+c46afe5b-e64b-4432-8c6c-fafbfe6899fd m5stack-bme280-device-sgp30     10651 "2021-03-07T07:28:00Z" "2021-03-07 16:28:00+09:00"  NaN C NaN %   NaN hPa    19ppb   400ppm 37012tvoc_base 40525eCo2_base
+88252382-a001-457a-9408-8572c7ecd7ab m5stack-bme280-device-sgp30     10661 "2021-03-07T07:33:00Z" "2021-03-07 16:33:00+09:00"  NaN C NaN %   NaN hPa    50ppb   400ppm 37019tvoc_base 40524eCo2_base
+a43be14a-74f1-415e-9999-3fbf5cea18fa m5stack-bme280-device-sgp30     10671 "2021-03-07T07:38:00Z" "2021-03-07 16:38:00+09:00"  NaN C NaN %   NaN hPa    86ppb   401ppm 37026tvoc_base 40524eCo2_base
+c0dfa351-fa53-41de-ac30-4dd5f210863d m5stack-bme280-device-sgp30     10681 "2021-03-07T07:43:00Z" "2021-03-07 16:43:00+09:00"  NaN C NaN %   NaN hPa    62ppb   400ppm 37034tvoc_base 40524eCo2_base
+2c7ca876-1941-4a0a-8102-8b30ec34586b m5stack-bme280-device-sgp30     10691 "2021-03-07T07:48:00Z" "2021-03-07 16:48:00+09:00"  NaN C NaN %   NaN hPa    43ppb   400ppm 37042tvoc_base 40524eCo2_base
+15e00335-e510-425b-9fbe-d881733fc099 m5stack-bme280-device-sgp30     10701 "2021-03-07T07:53:00Z" "2021-03-07 16:53:00+09:00"  NaN C NaN %   NaN hPa    66ppb   400ppm 37047tvoc_base 40524eCo2_base
+5d5bb4db-7cb1-49ad-a3ec-7bedf7a73ac2 m5stack-bme280-device-sgp30     10711 "2021-03-07T07:58:00Z" "2021-03-07 16:58:00+09:00"  NaN C NaN %   NaN hPa    64ppb   400ppm 37053tvoc_base 40524eCo2_base
+3877f9bd-3aed-4401-b530-b04a02591475 m5stack-bme280-device-sgp30     10721 "2021-03-07T08:03:00Z" "2021-03-07 17:03:00+09:00"  NaN C NaN %   NaN hPa    54ppb   401ppm 37059tvoc_base 40524eCo2_base
+0b67b482-a3d5-4042-8ce4-e763e3686920 m5stack-bme280-device-sgp30     10731 "2021-03-07T08:08:00Z" "2021-03-07 17:08:00+09:00"  NaN C NaN %   NaN hPa    95ppb   454ppm 37063tvoc_base 40524eCo2_base
+d16882ce-1d89-4d80-9acc-62c9c61da026 m5stack-bme280-device-sgp30     10741 "2021-03-07T08:13:00Z" "2021-03-07 17:13:00+09:00"  NaN C NaN %   NaN hPa   130ppb   483ppm 37062tvoc_base 40524eCo2_base
+2d7828ae-9e89-4270-a3eb-4f04dd009d65 m5stack-bme280-device-sgp30     10751 "2021-03-07T08:18:00Z" "2021-03-07 17:18:00+09:00"  NaN C NaN %   NaN hPa   100ppb   434ppm 37061tvoc_base 40524eCo2_base
+1551079d-12e1-464e-b577-b26e1933afc7 m5stack-bme280-device-sgp30     10761 "2021-03-07T08:23:00Z" "2021-03-07 17:23:00+09:00"  NaN C NaN %   NaN hPa    71ppb   411ppm 37061tvoc_base 40524eCo2_base
+ab5895ff-29b1-494d-9201-fd58affbb151 m5stack-bme280-device-sgp30     10771 "2021-03-07T08:28:00Z" "2021-03-07 17:28:00+09:00"  NaN C NaN %   NaN hPa   231ppb   710ppm 37060tvoc_base 40524eCo2_base
+c7f6964b-d8ed-4fbc-a3af-12f613a8b87a m5stack-bme280-device-sgp30     10781 "2021-03-07T08:33:00Z" "2021-03-07 17:33:00+09:00"  NaN C NaN %   NaN hPa    95ppb   426ppm 37059tvoc_base 40524eCo2_base
+2c475bd0-4dc6-4984-ad26-4c2beff1bcc8 m5stack-bme280-device-sgp30     10791 "2021-03-07T08:38:00Z" "2021-03-07 17:38:00+09:00"  NaN C NaN %   NaN hPa   123ppb   449ppm 37059tvoc_base 40524eCo2_base
+ba530c99-6f9a-4b05-83c5-7e741c78c6f6 m5stack-bme280-device-sgp30     10801 "2021-03-07T08:43:00Z" "2021-03-07 17:43:00+09:00"  NaN C NaN %   NaN hPa    88ppb   422ppm 37058tvoc_base 40523eCo2_base
+a9824c3f-44cf-4a8a-bb17-2b7cc0c7447d m5stack-bme280-device-sgp30     10811 "2021-03-07T08:48:00Z" "2021-03-07 17:48:00+09:00"  NaN C NaN %   NaN hPa   109ppb   440ppm 37057tvoc_base 40523eCo2_base
+568d07f0-43a8-45ae-9f8e-5a618be25a59 m5stack-bme280-device-sgp30     10821 "2021-03-07T08:53:00Z" "2021-03-07 17:53:00+09:00"  NaN C NaN %   NaN hPa    77ppb   405ppm 37058tvoc_base 40523eCo2_base
+12ab2765-02ad-4974-b53f-7cb2ee6f59c1 m5stack-bme280-device-sgp30     10831 "2021-03-07T08:58:00Z" "2021-03-07 17:58:00+09:00"  NaN C NaN %   NaN hPa    56ppb   400ppm 37064tvoc_base 40523eCo2_base
+84f3d2b8-de88-4ba3-9112-d92e4976226d m5stack-bme280-device-sgp30     10841 "2021-03-07T09:03:00Z" "2021-03-07 18:03:00+09:00"  NaN C NaN %   NaN hPa    49ppb   410ppm 37067tvoc_base 40523eCo2_base
+032828fa-670a-46dc-9c55-64f86ea233a3 m5stack-bme280-device-sgp30     10851 "2021-03-07T09:08:00Z" "2021-03-07 18:08:00+09:00"  NaN C NaN %   NaN hPa  6243ppb  1251ppm 37066tvoc_base 40523eCo2_base
+d719a289-8ef4-428a-9230-7d45f7b7026d m5stack-bme280-device-sgp30     10861 "2021-03-07T09:13:00Z" "2021-03-07 18:13:00+09:00"  NaN C NaN %   NaN hPa  5590ppb  1258ppm 37065tvoc_base 40523eCo2_base
+8688954a-6fa8-4fc5-b0af-55980e7df288 m5stack-bme280-device-sgp30     10871 "2021-03-07T09:18:00Z" "2021-03-07 18:18:00+09:00"  NaN C NaN %   NaN hPa  5225ppb  1299ppm 37065tvoc_base 40523eCo2_base
+7af00d97-63e7-4846-91d9-0fe25c61780f m5stack-bme280-device-sgp30     10881 "2021-03-07T09:23:00Z" "2021-03-07 18:23:00+09:00"  NaN C NaN %   NaN hPa  4595ppb  1237ppm 37064tvoc_base 40523eCo2_base
+a36f7574-2510-4405-adfb-a3eb6defd7ae m5stack-bme280-device-bme280    10882 "2021-03-07T09:24:00Z" "2021-03-07 18:24:00+09:00"  16.9C 37.6% 1023.3hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+a581289a-af38-4279-b53b-29f156c3f386 m5stack-bme280-device-sgp30     10883 "2021-03-07T09:24:00Z" "2021-03-07 18:24:00+09:00"  NaN C NaN %   NaN hPa  4554ppb  1257ppm 37064tvoc_base 40523eCo2_base
+91472ac7-7501-425f-aba8-961feff7e48e m5stack-bme280-device-bme280    10884 "2021-03-07T09:25:00Z" "2021-03-07 18:25:00+09:00"  17.1C 37.6% 1023.3hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+cec3ae64-b75a-4ff1-9050-3287c303fe4d m5stack-bme280-device-sgp30     10885 "2021-03-07T09:25:00Z" "2021-03-07 18:25:00+09:00"  NaN C NaN %   NaN hPa  4550ppb  1273ppm 37064tvoc_base 40523eCo2_base
+471dd72f-691f-4426-8093-c4f8112bc1a9 m5stack-bme280-device-bme280    10886 "2021-03-07T09:26:00Z" "2021-03-07 18:26:00+09:00"  17.3C 37.7% 1023.3hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+b9d35b5b-c2c8-40a0-a0aa-dffa8117bf09 m5stack-bme280-device-sgp30     10887 "2021-03-07T09:26:00Z" "2021-03-07 18:26:00+09:00"  NaN C NaN %   NaN hPa  4434ppb  1278ppm 37063tvoc_base 40523eCo2_base
+da9bbb28-4015-453c-8af1-7373e75db184 m5stack-bme280-device-bme280    10888 "2021-03-07T09:27:00Z" "2021-03-07 18:27:00+09:00"  17.5C 37.2% 1023.4hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+66987076-6723-4cc1-b6c1-cec8b0df2a72 m5stack-bme280-device-sgp30     10889 "2021-03-07T09:27:00Z" "2021-03-07 18:27:00+09:00"  NaN C NaN %   NaN hPa  4378ppb  1284ppm 37063tvoc_base 40523eCo2_base
+fccd5785-dee5-4eb3-8e79-5ca5f8309569 m5stack-bme280-device-bme280    10890 "2021-03-07T09:28:00Z" "2021-03-07 18:28:00+09:00"  17.6C 36.9% 1023.4hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+0e29eb7c-79a6-42a0-ba26-ec3b2efae931 m5stack-bme280-device-sgp30     10891 "2021-03-07T09:28:00Z" "2021-03-07 18:28:00+09:00"  NaN C NaN %   NaN hPa  4412ppb  1321ppm 37063tvoc_base 40523eCo2_base
+fa7dec47-d070-41a3-b824-02cb52c7c2c2 m5stack-bme280-device-bme280    10892 "2021-03-07T09:29:00Z" "2021-03-07 18:29:00+09:00"  17.7C 36.8% 1023.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+fd192674-86ff-4d4e-85d8-a3cd4495e347 m5stack-bme280-device-sgp30     10893 "2021-03-07T09:29:00Z" "2021-03-07 18:29:00+09:00"  NaN C NaN %   NaN hPa  4391ppb  1323ppm 37063tvoc_base 40523eCo2_base
+b8a3e306-0ce5-4b39-bd94-53cab9748a12 m5stack-bme280-device-bme280    10894 "2021-03-07T09:30:00Z" "2021-03-07 18:30:00+09:00"  17.8C 36.8% 1023.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+5f7b5833-48f1-4ce6-8766-e580dff754dc m5stack-bme280-device-sgp30     10895 "2021-03-07T09:30:00Z" "2021-03-07 18:30:00+09:00"  NaN C NaN %   NaN hPa  4403ppb  1360ppm 37063tvoc_base 40523eCo2_base
+9d0ef605-0581-4df1-8006-9524f4425da3 m5stack-bme280-device-bme280    10896 "2021-03-07T09:31:00Z" "2021-03-07 18:31:00+09:00"  17.9C 36.9% 1023.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+b456161c-9224-45aa-a711-6f1cd111dba9 m5stack-bme280-device-sgp30     10897 "2021-03-07T09:31:00Z" "2021-03-07 18:31:00+09:00"  NaN C NaN %   NaN hPa  4331ppb  1361ppm 37063tvoc_base 40523eCo2_base
+99960ba5-53c8-4771-8924-b6b6e51b304b m5stack-bme280-device-bme280    10898 "2021-03-07T09:32:00Z" "2021-03-07 18:32:00+09:00"  18.0C 36.9% 1023.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+b2f7352d-facf-4ad4-9c43-189ec85d73fb m5stack-bme280-device-sgp30     10899 "2021-03-07T09:32:00Z" "2021-03-07 18:32:00+09:00"  NaN C NaN %   NaN hPa  4211ppb  1334ppm 37062tvoc_base 40523eCo2_base
+285b27b2-4af2-4dea-acb8-613fbf492f24 m5stack-bme280-device-bme280    10900 "2021-03-07T09:33:00Z" "2021-03-07 18:33:00+09:00"  18.0C 36.8% 1023.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+8a2eca15-7ea8-4509-84a4-706d75de9c25 m5stack-bme280-device-sgp30     10901 "2021-03-07T09:33:00Z" "2021-03-07 18:33:00+09:00"  NaN C NaN %   NaN hPa  4017ppb  1312ppm 37062tvoc_base 40523eCo2_base
+4458be5e-d444-4a39-8632-38748e64d3d7 m5stack-bme280-device-bme280    10902 "2021-03-07T09:34:00Z" "2021-03-07 18:34:00+09:00"  18.1C 36.6% 1023.6hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+d53948ee-f690-449d-9084-d53f18080d2b m5stack-bme280-device-sgp30     10903 "2021-03-07T09:34:00Z" "2021-03-07 18:34:00+09:00"  NaN C NaN %   NaN hPa  3972ppb  1309ppm 37062tvoc_base 40523eCo2_base
+5d13fcaf-4c3e-4fa8-aad4-587343926c77 m5stack-bme280-device-bme280    10904 "2021-03-07T09:35:00Z" "2021-03-07 18:35:00+09:00"  18.2C 36.7% 1023.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+6e86a050-c043-43ef-8436-ad6eef636e15 m5stack-bme280-device-sgp30     10905 "2021-03-07T09:35:00Z" "2021-03-07 18:35:00+09:00"  NaN C NaN %   NaN hPa  3901ppb  1308ppm 37062tvoc_base 40523eCo2_base
+b47d1e7f-ba45-4c73-a772-bd1f75c914b4 m5stack-bme280-device-bme280    10906 "2021-03-07T09:36:00Z" "2021-03-07 18:36:00+09:00"  18.3C 36.7% 1023.6hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+73a27dce-8cd8-40d0-9f4a-dd7a20f7d859 m5stack-bme280-device-sgp30     10907 "2021-03-07T09:36:00Z" "2021-03-07 18:36:00+09:00"  NaN C NaN %   NaN hPa  3833ppb  1310ppm 37062tvoc_base 40523eCo2_base
+b2d56678-6388-45db-ad86-918ef783aee4 m5stack-bme280-device-bme280    10908 "2021-03-07T09:37:00Z" "2021-03-07 18:37:00+09:00"  18.4C 36.3% 1023.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+6d8ce95a-4758-4982-981b-38e1c28d6899 m5stack-bme280-device-sgp30     10909 "2021-03-07T09:37:00Z" "2021-03-07 18:37:00+09:00"  NaN C NaN %   NaN hPa  3781ppb  1305ppm 37062tvoc_base 40523eCo2_base
+8fb85e66-8e45-4f7e-8137-09acdde16372 m5stack-bme280-device-bme280    10910 "2021-03-07T09:38:00Z" "2021-03-07 18:38:00+09:00"  18.5C 36.2% 1023.6hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+e05243ba-6053-4c7f-868d-52db8b0e6e65 m5stack-bme280-device-sgp30     10911 "2021-03-07T09:38:00Z" "2021-03-07 18:38:00+09:00"  NaN C NaN %   NaN hPa  3754ppb  1321ppm 37062tvoc_base 40523eCo2_base
+c54f333e-932d-4add-9570-8915a2f776ba m5stack-bme280-device-bme280    10912 "2021-03-07T09:39:00Z" "2021-03-07 18:39:00+09:00"  18.6C 36.1% 1023.5hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+1bceeab3-d108-4212-8cad-efe46e8ff960 m5stack-bme280-device-sgp30     10913 "2021-03-07T09:39:00Z" "2021-03-07 18:39:00+09:00"  NaN C NaN %   NaN hPa  3776ppb  1336ppm 37061tvoc_base 40523eCo2_base
+93d8ff5e-6785-4f93-915f-aebacc2730b0 m5stack-bme280-device-bme280    10914 "2021-03-07T09:40:00Z" "2021-03-07 18:40:00+09:00"  18.7C 36.3% 1023.6hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+319900e2-d206-4068-a495-37c0c2f065fe m5stack-bme280-device-sgp30     10915 "2021-03-07T09:40:00Z" "2021-03-07 18:40:00+09:00"  NaN C NaN %   NaN hPa  3719ppb  1328ppm 37061tvoc_base 40523eCo2_base
+49e469eb-1490-483d-a581-3634f705ab6d m5stack-bme280-device-bme280    10916 "2021-03-07T09:41:00Z" "2021-03-07 18:41:00+09:00"  18.7C 36.2% 1023.6hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+447e23c2-dc63-4964-a8cd-f4600bb0861f m5stack-bme280-device-sgp30     10917 "2021-03-07T09:41:00Z" "2021-03-07 18:41:00+09:00"  NaN C NaN %   NaN hPa  3625ppb  1324ppm 37061tvoc_base 40523eCo2_base
+ee552801-c6b1-42f4-b1e8-a9fa4dcbafb4 m5stack-bme280-device-bme280    10918 "2021-03-07T09:42:00Z" "2021-03-07 18:42:00+09:00"  18.8C 36.0% 1023.6hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+ce48ef35-0ca6-4d92-bcf0-2c671a83bc5b m5stack-bme280-device-sgp30     10919 "2021-03-07T09:42:00Z" "2021-03-07 18:42:00+09:00"  NaN C NaN %   NaN hPa  3610ppb  1327ppm 37061tvoc_base 40523eCo2_base
+aa033ddc-3b43-4e28-9b5d-a16e40bd3456 m5stack-bme280-device-bme280    10920 "2021-03-07T09:43:00Z" "2021-03-07 18:43:00+09:00"  18.9C 36.1% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+445ac744-01dc-44f2-8ed7-6dfa1062a2d8 m5stack-bme280-device-sgp30     10921 "2021-03-07T09:43:00Z" "2021-03-07 18:43:00+09:00"  NaN C NaN %   NaN hPa  3566ppb  1333ppm 37061tvoc_base 40523eCo2_base
+cfd308f8-e667-4585-9147-9d64f1b86864 m5stack-bme280-device-bme280    10922 "2021-03-07T09:44:00Z" "2021-03-07 18:44:00+09:00"  19.0C 36.1% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+1d6f28d3-4d27-4f51-86f7-373a564294fb m5stack-bme280-device-sgp30     10923 "2021-03-07T09:44:00Z" "2021-03-07 18:44:00+09:00"  NaN C NaN %   NaN hPa  3583ppb  1339ppm 37061tvoc_base 40523eCo2_base
+fbe16677-9a28-400c-beff-c56b6b925839 m5stack-bme280-device-bme280    10924 "2021-03-07T09:45:00Z" "2021-03-07 18:45:00+09:00"  19.1C 36.4% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+a52ad61d-db00-49a8-a1b6-91b13cb8f719 m5stack-bme280-device-sgp30     10925 "2021-03-07T09:45:00Z" "2021-03-07 18:45:00+09:00"  NaN C NaN %   NaN hPa  3533ppb  1342ppm 37060tvoc_base 40523eCo2_base
+3f631ca5-72df-4f49-9c48-e052b376dfcf m5stack-bme280-device-bme280    10926 "2021-03-07T09:46:00Z" "2021-03-07 18:46:00+09:00"  19.2C 36.2% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+fed93446-d55b-454b-a9e8-4d97f8aea4b2 m5stack-bme280-device-sgp30     10927 "2021-03-07T09:46:00Z" "2021-03-07 18:46:00+09:00"  NaN C NaN %   NaN hPa  3475ppb  1337ppm 37060tvoc_base 40523eCo2_base
+85c940f1-ab83-4a35-91cb-3dca8f079cfb m5stack-bme280-device-bme280    10928 "2021-03-07T09:47:00Z" "2021-03-07 18:47:00+09:00"  19.3C 35.8% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+36f38430-7e95-42a3-98ce-bdb2ee88b5d4 m5stack-bme280-device-sgp30     10929 "2021-03-07T09:47:00Z" "2021-03-07 18:47:00+09:00"  NaN C NaN %   NaN hPa  3430ppb  1343ppm 37060tvoc_base 40523eCo2_base
+a45b769f-22ca-4800-a66c-ab2d0737fe96 m5stack-bme280-device-bme280    10930 "2021-03-07T09:48:00Z" "2021-03-07 18:48:00+09:00"  19.4C 35.9% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+0d608712-737e-43c4-b618-8f73f4618339 m5stack-bme280-device-sgp30     10931 "2021-03-07T09:48:00Z" "2021-03-07 18:48:00+09:00"  NaN C NaN %   NaN hPa  3419ppb  1357ppm 37060tvoc_base 40522eCo2_base
+141b6bd5-0ed4-4dcd-ad18-b5fcc3c22e7d m5stack-bme280-device-bme280    10932 "2021-03-07T09:49:00Z" "2021-03-07 18:49:00+09:00"  19.4C 35.7% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+47efaa61-5681-4d61-a2b9-e327a7b7c832 m5stack-bme280-device-sgp30     10933 "2021-03-07T09:49:00Z" "2021-03-07 18:49:00+09:00"  NaN C NaN %   NaN hPa  3491ppb  1423ppm 37060tvoc_base 40522eCo2_base
+5686de6b-b8c8-4d2f-8d72-2ea6aae8e328 m5stack-bme280-device-bme280    10934 "2021-03-07T09:50:00Z" "2021-03-07 18:50:00+09:00"  19.5C 35.5% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+bcdbe5a2-b896-41f1-bfa3-016535e3159f m5stack-bme280-device-sgp30     10935 "2021-03-07T09:50:00Z" "2021-03-07 18:50:00+09:00"  NaN C NaN %   NaN hPa  3475ppb  1369ppm 37060tvoc_base 40522eCo2_base
+eb608c03-7e9a-4b7d-8c13-cbab054ea5ff m5stack-bme280-device-bme280    10936 "2021-03-07T09:51:00Z" "2021-03-07 18:51:00+09:00"  19.6C 35.9% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+c6e5f47f-cd9b-4039-a092-01831974d469 m5stack-bme280-device-sgp30     10937 "2021-03-07T09:51:00Z" "2021-03-07 18:51:00+09:00"  NaN C NaN %   NaN hPa  3325ppb  1357ppm 37060tvoc_base 40522eCo2_base
+3e4653d1-85f6-4c68-b633-4ffcbc6fc686 m5stack-bme280-device-bme280    10938 "2021-03-07T09:52:00Z" "2021-03-07 18:52:00+09:00"  19.7C 35.8% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+b84fea02-9578-4acd-8ac1-520603bab46a m5stack-bme280-device-sgp30     10939 "2021-03-07T09:52:00Z" "2021-03-07 18:52:00+09:00"  NaN C NaN %   NaN hPa  3283ppb  1354ppm 37059tvoc_base 40522eCo2_base
+ba40597f-d9a2-498e-a70e-3a425e02dca8 m5stack-bme280-device-bme280    10940 "2021-03-07T09:53:00Z" "2021-03-07 18:53:00+09:00"  19.8C 35.4% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+726f6fad-6064-4553-9874-9ba9120f5c20 m5stack-bme280-device-sgp30     10941 "2021-03-07T09:53:00Z" "2021-03-07 18:53:00+09:00"  NaN C NaN %   NaN hPa  3262ppb  1368ppm 37059tvoc_base 40522eCo2_base
+6b316d2b-4753-4696-aa59-8492f53a10ca m5stack-bme280-device-bme280    10942 "2021-03-07T09:54:00Z" "2021-03-07 18:54:00+09:00"  19.9C 35.4% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+7acf26fa-35c4-47a7-900d-3f15e50e3adc m5stack-bme280-device-sgp30     10943 "2021-03-07T09:54:00Z" "2021-03-07 18:54:00+09:00"  NaN C NaN %   NaN hPa  3238ppb  1364ppm 37059tvoc_base 40522eCo2_base
+f13253c6-ec11-429a-ab0e-e170e32bd02e m5stack-bme280-device-bme280    10944 "2021-03-07T09:55:00Z" "2021-03-07 18:55:00+09:00"  20.0C 35.2% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+c0bf0bd5-a1c4-413d-85f6-d0ea30cd0345 m5stack-bme280-device-sgp30     10945 "2021-03-07T09:55:00Z" "2021-03-07 18:55:00+09:00"  NaN C NaN %   NaN hPa  3247ppb  1400ppm 37059tvoc_base 40522eCo2_base
+cb1911bd-2afa-4a94-b369-4b246fd463b9 m5stack-bme280-device-bme280    10946 "2021-03-07T09:56:00Z" "2021-03-07 18:56:00+09:00"  20.1C 35.5% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+f34f2ffc-3975-46fd-9452-12aa09de6c2e m5stack-bme280-device-sgp30     10947 "2021-03-07T09:56:00Z" "2021-03-07 18:56:00+09:00"  NaN C NaN %   NaN hPa  3403ppb  1453ppm 37059tvoc_base 40522eCo2_base
+4184c496-e990-4c48-a25b-382b0a48c5a3 m5stack-bme280-device-bme280    10948 "2021-03-07T09:57:00Z" "2021-03-07 18:57:00+09:00"  20.2C 35.4% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+abbd3c20-62cd-455c-8a24-2b1097eb3532 m5stack-bme280-device-sgp30     10949 "2021-03-07T09:57:00Z" "2021-03-07 18:57:00+09:00"  NaN C NaN %   NaN hPa  3327ppb  1421ppm 37059tvoc_base 40522eCo2_base
+535104e1-acd1-457a-80d9-de4d0bf63505 m5stack-bme280-device-bme280    10950 "2021-03-07T09:58:00Z" "2021-03-07 18:58:00+09:00"  20.3C 35.7% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+e0b69ce3-524a-416d-a7f2-c2e4756ec980 m5stack-bme280-device-sgp30     10951 "2021-03-07T09:58:00Z" "2021-03-07 18:58:00+09:00"  NaN C NaN %   NaN hPa  3386ppb  1497ppm 37058tvoc_base 40522eCo2_base
+9dd28562-1739-492b-a595-35f239f988f9 m5stack-bme280-device-bme280    10952 "2021-03-07T09:59:00Z" "2021-03-07 18:59:00+09:00"  20.3C 35.6% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+33662e45-17ec-48dc-ac84-7b64e8dbd993 m5stack-bme280-device-sgp30     10953 "2021-03-07T09:59:00Z" "2021-03-07 18:59:00+09:00"  NaN C NaN %   NaN hPa  3342ppb  1439ppm 37058tvoc_base 40522eCo2_base
+6633b4fa-1029-4f84-af78-27afdacf8c9c m5stack-bme280-device-bme280    10954 "2021-03-07T10:00:00Z" "2021-03-07 19:00:00+09:00"  20.4C 35.0% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+fb629666-db71-42c2-a221-c748d38c6d47 m5stack-bme280-device-sgp30     10955 "2021-03-07T10:00:00Z" "2021-03-07 19:00:00+09:00"  NaN C NaN %   NaN hPa  3262ppb  1450ppm 37058tvoc_base 40522eCo2_base
+0c10a17a-bce1-431d-8f9e-ba0ec465548c m5stack-bme280-device-bme280    10956 "2021-03-07T10:01:00Z" "2021-03-07 19:01:00+09:00"  20.4C 34.9% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+3e63a22f-fc60-4f1b-8786-c2a2536ad1a9 m5stack-bme280-device-sgp30     10957 "2021-03-07T10:01:00Z" "2021-03-07 19:01:00+09:00"  NaN C NaN %   NaN hPa  3068ppb  1353ppm 37058tvoc_base 40522eCo2_base
+926117d0-647f-485a-a507-3fb1d01159b7 m5stack-bme280-device-bme280    10958 "2021-03-07T10:02:00Z" "2021-03-07 19:02:00+09:00"  20.5C 35.0% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+bffb13ae-6dcd-4a53-822b-542b3dc68ff9 m5stack-bme280-device-sgp30     10959 "2021-03-07T10:02:00Z" "2021-03-07 19:02:00+09:00"  NaN C NaN %   NaN hPa  2996ppb  1341ppm 37058tvoc_base 40522eCo2_base
+3747c63e-05b3-474f-bd1c-8ab3a7621c97 m5stack-bme280-device-bme280    10960 "2021-03-07T10:03:00Z" "2021-03-07 19:03:00+09:00"  20.6C 34.7% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+e0ce7556-5c68-4dba-ac37-c6b673298e4a m5stack-bme280-device-sgp30     10961 "2021-03-07T10:03:00Z" "2021-03-07 19:03:00+09:00"  NaN C NaN %   NaN hPa  2968ppb  1340ppm 37058tvoc_base 40522eCo2_base
+c4c2fbf7-12dc-4288-9c10-4bcb2be982dc m5stack-bme280-device-bme280    10962 "2021-03-07T10:04:00Z" "2021-03-07 19:04:00+09:00"  20.7C 35.0% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+54c8fe7d-ddb2-4576-8053-4af46ce1b239 m5stack-bme280-device-sgp30     10963 "2021-03-07T10:04:00Z" "2021-03-07 19:04:00+09:00"  NaN C NaN %   NaN hPa  3174ppb  1445ppm 37058tvoc_base 40522eCo2_base
+54e76d73-f568-49a0-a769-88072a99e2ff m5stack-bme280-device-bme280    10964 "2021-03-07T10:05:00Z" "2021-03-07 19:05:00+09:00"  20.7C 34.6% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+b29e3569-7a93-4b20-bd39-a574a90bcac3 m5stack-bme280-device-sgp30     10965 "2021-03-07T10:05:00Z" "2021-03-07 19:05:00+09:00"  NaN C NaN %   NaN hPa  2997ppb  1343ppm 37057tvoc_base 40522eCo2_base
+43b81e67-0bc0-45e5-8570-922136623f3a m5stack-bme280-device-bme280    10966 "2021-03-07T10:06:00Z" "2021-03-07 19:06:00+09:00"  20.8C 35.0% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+bacdb93e-29fb-47cd-bf8b-203799942f42 m5stack-bme280-device-sgp30     10967 "2021-03-07T10:06:00Z" "2021-03-07 19:06:00+09:00"  NaN C NaN %   NaN hPa  2976ppb  1346ppm 37057tvoc_base 40522eCo2_base
+4d4b527a-731b-4043-a950-1d70a2e4edb9 m5stack-bme280-device-bme280    10968 "2021-03-07T10:07:00Z" "2021-03-07 19:07:00+09:00"  20.8C 35.7% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+e61f8a2c-ac3e-4999-af39-8971ac0676fc m5stack-bme280-device-sgp30     10969 "2021-03-07T10:07:00Z" "2021-03-07 19:07:00+09:00"  NaN C NaN %   NaN hPa  2948ppb  1340ppm 37057tvoc_base 40522eCo2_base
+bb03a764-b079-489e-aa70-aa0fdac7b5f9 m5stack-bme280-device-bme280    10970 "2021-03-07T10:08:00Z" "2021-03-07 19:08:00+09:00"  20.9C 34.6% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+b44c2b7c-51a5-4b06-a352-18ea5aee18a1 m5stack-bme280-device-sgp30     10971 "2021-03-07T10:08:00Z" "2021-03-07 19:08:00+09:00"  NaN C NaN %   NaN hPa  2955ppb  1358ppm 37057tvoc_base 40522eCo2_base
+98b822e5-0a7b-4977-ad9e-635fdb090166 m5stack-bme280-device-bme280    10972 "2021-03-07T10:09:00Z" "2021-03-07 19:09:00+09:00"  20.9C 34.5% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+91fe3633-a1da-4d5f-9f77-42e2b037979c m5stack-bme280-device-sgp30     10973 "2021-03-07T10:09:00Z" "2021-03-07 19:09:00+09:00"  NaN C NaN %   NaN hPa  2924ppb  1334ppm 37057tvoc_base 40522eCo2_base
+6385191e-8c37-4698-9fcc-81e5d0946435 m5stack-bme280-device-bme280    10974 "2021-03-07T10:10:00Z" "2021-03-07 19:10:00+09:00"  21.0C 34.6% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+04b0fcb3-0178-4c21-a23b-df21c3ad2165 m5stack-bme280-device-sgp30     10975 "2021-03-07T10:10:00Z" "2021-03-07 19:10:00+09:00"  NaN C NaN %   NaN hPa  3069ppb  1420ppm 37057tvoc_base 40522eCo2_base
+a8d2d299-5e0e-4941-8477-d1e57df2520c m5stack-bme280-device-bme280    10976 "2021-03-07T10:11:00Z" "2021-03-07 19:11:00+09:00"  21.1C 35.2% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+47d5e279-3a4d-4915-a487-2be6fdb42f47 m5stack-bme280-device-sgp30     10977 "2021-03-07T10:11:00Z" "2021-03-07 19:11:00+09:00"  NaN C NaN %   NaN hPa  3951ppb  1879ppm 37056tvoc_base 40522eCo2_base
+99975394-fb43-4c61-baaf-560f26c55384 m5stack-bme280-device-bme280    10978 "2021-03-07T10:12:00Z" "2021-03-07 19:12:00+09:00"  21.1C 34.7% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+4048ea46-065e-4309-a70c-ddf0d1244995 m5stack-bme280-device-sgp30     10979 "2021-03-07T10:12:00Z" "2021-03-07 19:12:00+09:00"  NaN C NaN %   NaN hPa  3310ppb  1444ppm 37056tvoc_base 40522eCo2_base
+b1ec16b6-5a8c-4d2d-9829-b62b15b24745 m5stack-bme280-device-bme280    10980 "2021-03-07T10:13:00Z" "2021-03-07 19:13:00+09:00"  21.1C 34.6% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+cf6ffa88-acd5-40db-9b32-7d33f2bff3bc m5stack-bme280-device-sgp30     10981 "2021-03-07T10:13:00Z" "2021-03-07 19:13:00+09:00"  NaN C NaN %   NaN hPa  3003ppb  1441ppm 37056tvoc_base 40522eCo2_base
+37542250-26e8-44d7-b3e3-c9b8214d913c m5stack-bme280-device-bme280    10982 "2021-03-07T10:14:00Z" "2021-03-07 19:14:00+09:00"  21.1C 34.9% 1023.6hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+2126b991-00c6-4048-a343-b09160965c31 m5stack-bme280-device-sgp30     10983 "2021-03-07T10:14:00Z" "2021-03-07 19:14:00+09:00"  NaN C NaN %   NaN hPa  3025ppb  1467ppm 37056tvoc_base 40522eCo2_base
+c4a75db4-9d56-4ded-9384-c774b68cee4d m5stack-bme280-device-bme280    10984 "2021-03-07T10:15:00Z" "2021-03-07 19:15:00+09:00"  21.2C 34.9% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+0383f363-c837-4862-8379-44c9213afcf9 m5stack-bme280-device-sgp30     10985 "2021-03-07T10:15:00Z" "2021-03-07 19:15:00+09:00"  NaN C NaN %   NaN hPa  3106ppb  1468ppm 37056tvoc_base 40522eCo2_base
+e659bef9-9d92-4d6a-92aa-5c96752c6486 m5stack-bme280-device-bme280    10986 "2021-03-07T10:16:00Z" "2021-03-07 19:16:00+09:00"  21.2C 34.6% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+b6518b22-b255-4249-8c98-62d57275a54a m5stack-bme280-device-sgp30     10987 "2021-03-07T10:16:00Z" "2021-03-07 19:16:00+09:00"  NaN C NaN %   NaN hPa  2833ppb  1310ppm 37056tvoc_base 40522eCo2_base
+feb05b0b-0b61-4132-a7c4-d3ad4e067909 m5stack-bme280-device-bme280    10988 "2021-03-07T10:17:00Z" "2021-03-07 19:17:00+09:00"  21.3C 34.2% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+d7fc6353-5615-4858-928f-6445e61ec981 m5stack-bme280-device-sgp30     10989 "2021-03-07T10:17:00Z" "2021-03-07 19:17:00+09:00"  NaN C NaN %   NaN hPa  2757ppb  1279ppm 37056tvoc_base 40522eCo2_base
+7477ee87-3c2f-487f-90fd-809ad9a258b6 m5stack-bme280-device-bme280    10990 "2021-03-07T10:18:00Z" "2021-03-07 19:18:00+09:00"  21.3C 34.1% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+9467c582-fa20-4cb1-9381-cb2fbdaa938a m5stack-bme280-device-sgp30     10991 "2021-03-07T10:18:00Z" "2021-03-07 19:18:00+09:00"  NaN C NaN %   NaN hPa  2733ppb  1280ppm 37055tvoc_base 40522eCo2_base
+bf840f57-fe86-4e52-8550-60258427887b m5stack-bme280-device-bme280    10992 "2021-03-07T10:19:00Z" "2021-03-07 19:19:00+09:00"  21.3C 33.4% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+c9778249-2680-4c92-9a6d-b97befe67017 m5stack-bme280-device-sgp30     10993 "2021-03-07T10:19:00Z" "2021-03-07 19:19:00+09:00"  NaN C NaN %   NaN hPa  2672ppb  1213ppm 37055tvoc_base 40522eCo2_base
+5db93b70-b5a4-4b3b-8e25-a409c7debf85 m5stack-bme280-device-bme280    10994 "2021-03-07T10:20:00Z" "2021-03-07 19:20:00+09:00"  21.2C 33.1% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+373b5bcd-955b-44c6-934e-8d7ea6f5c919 m5stack-bme280-device-sgp30     10995 "2021-03-07T10:20:00Z" "2021-03-07 19:20:00+09:00"  NaN C NaN %   NaN hPa  2028ppb   898ppm 37055tvoc_base 40522eCo2_base
+dcd75c7d-7793-4f16-9733-9d2ab4eeb5c0 m5stack-bme280-device-bme280    10996 "2021-03-07T10:21:00Z" "2021-03-07 19:21:00+09:00"  21.2C 33.8% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+15467ab1-fb9b-4512-9a9d-d8ba7bfeca41 m5stack-bme280-device-sgp30     10997 "2021-03-07T10:21:00Z" "2021-03-07 19:21:00+09:00"  NaN C NaN %   NaN hPa  1771ppb   888ppm 37055tvoc_base 40522eCo2_base
+12ca1383-2009-4d6f-8b40-080b64ac42b2 m5stack-bme280-device-bme280    10998 "2021-03-07T10:22:00Z" "2021-03-07 19:22:00+09:00"  21.3C 33.4% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+eb2145e6-da79-4feb-ba60-f3f9aab335c7 m5stack-bme280-device-sgp30     10999 "2021-03-07T10:22:00Z" "2021-03-07 19:22:00+09:00"  NaN C NaN %   NaN hPa  1697ppb   841ppm 37055tvoc_base 40522eCo2_base
+e67e460f-df2e-40a2-acdc-0887973c7f7b m5stack-bme280-device-bme280    11000 "2021-03-07T10:23:00Z" "2021-03-07 19:23:00+09:00"  21.3C 33.5% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+67dc80f6-b4ab-48ac-b903-9f04dcf52a0e m5stack-bme280-device-sgp30     11001 "2021-03-07T10:23:00Z" "2021-03-07 19:23:00+09:00"  NaN C NaN %   NaN hPa  1726ppb   850ppm 37055tvoc_base 40522eCo2_base
+fe1b0b47-c831-47fa-ba2d-da8eda316fd8 m5stack-bme280-device-bme280    11002 "2021-03-07T10:24:00Z" "2021-03-07 19:24:00+09:00"  21.4C 33.7% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+0febf82b-65e0-4cb0-adb1-866f34135bf8 m5stack-bme280-device-sgp30     11003 "2021-03-07T10:24:00Z" "2021-03-07 19:24:00+09:00"  NaN C NaN %   NaN hPa  1772ppb   864ppm 37054tvoc_base 40522eCo2_base
+8742e8f7-4634-4e72-80f7-a751d43570b1 m5stack-bme280-device-bme280    11004 "2021-03-07T10:25:00Z" "2021-03-07 19:25:00+09:00"  21.4C 33.4% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+c9f318cb-ec33-47ff-8e34-a642bc6d63ef m5stack-bme280-device-sgp30     11005 "2021-03-07T10:25:00Z" "2021-03-07 19:25:00+09:00"  NaN C NaN %   NaN hPa  1823ppb   877ppm 37054tvoc_base 40522eCo2_base
+2ce00fb5-a265-4b3a-8046-96bebe9d4e8c m5stack-bme280-device-bme280    11006 "2021-03-07T10:26:00Z" "2021-03-07 19:26:00+09:00"  21.4C 33.5% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+e68cf162-1f8a-48d6-aa25-873fd2e8c1ea m5stack-bme280-device-sgp30     11007 "2021-03-07T10:26:00Z" "2021-03-07 19:26:00+09:00"  NaN C NaN %   NaN hPa  1837ppb   885ppm 37054tvoc_base 40522eCo2_base
+c5d1d1c9-90fc-4862-9b41-5ef27f8c501c m5stack-bme280-device-bme280    11008 "2021-03-07T10:27:00Z" "2021-03-07 19:27:00+09:00"  21.5C 33.8% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+93e648cc-66fa-4e9a-84a4-3b3878b0b494 m5stack-bme280-device-sgp30     11009 "2021-03-07T10:27:00Z" "2021-03-07 19:27:00+09:00"  NaN C NaN %   NaN hPa  1890ppb   898ppm 37054tvoc_base 40522eCo2_base
+b7ef690b-a858-4e53-bb74-71563fc7b662 m5stack-bme280-device-bme280    11010 "2021-03-07T10:28:00Z" "2021-03-07 19:28:00+09:00"  21.5C 33.9% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+15868ab8-03a5-467a-914c-dba9d2587ce2 m5stack-bme280-device-sgp30     11011 "2021-03-07T10:28:00Z" "2021-03-07 19:28:00+09:00"  NaN C NaN %   NaN hPa  1902ppb   909ppm 37054tvoc_base 40522eCo2_base
+6b061dbb-c4a9-4558-85bd-267ccc488811 m5stack-bme280-device-bme280    11012 "2021-03-07T10:29:00Z" "2021-03-07 19:29:00+09:00"  21.5C 33.9% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+b3389169-b1da-4531-9af9-b5397297617c m5stack-bme280-device-sgp30     11013 "2021-03-07T10:29:00Z" "2021-03-07 19:29:00+09:00"  NaN C NaN %   NaN hPa  1971ppb   956ppm 37054tvoc_base 40522eCo2_base
+60fb486f-374f-46cd-bd44-d3433154e1ef m5stack-bme280-device-bme280    11014 "2021-03-07T10:30:00Z" "2021-03-07 19:30:00+09:00"  21.5C 33.6% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+9182c289-8ef5-4b31-9101-c2efdf071ae5 m5stack-bme280-device-sgp30     11015 "2021-03-07T10:30:00Z" "2021-03-07 19:30:00+09:00"  NaN C NaN %   NaN hPa  1921ppb   917ppm 37054tvoc_base 40522eCo2_base
+a9dfe3bd-c729-481a-b50f-c541788e9a89 m5stack-bme280-device-bme280    11016 "2021-03-07T10:31:00Z" "2021-03-07 19:31:00+09:00"  21.5C 33.9% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+8cf1415f-7025-48b3-b854-50ffcfee705d m5stack-bme280-device-sgp30     11017 "2021-03-07T10:31:00Z" "2021-03-07 19:31:00+09:00"  NaN C NaN %   NaN hPa  1948ppb   952ppm 37053tvoc_base 40522eCo2_base
+b7724a11-fd88-4ba7-971e-3982ddc8d335 m5stack-bme280-device-bme280    11018 "2021-03-07T10:32:00Z" "2021-03-07 19:32:00+09:00"  21.6C 33.9% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+06ded32e-fae2-4f13-9752-1c80e0a02ce1 m5stack-bme280-device-sgp30     11019 "2021-03-07T10:32:00Z" "2021-03-07 19:32:00+09:00"  NaN C NaN %   NaN hPa  1992ppb   951ppm 37053tvoc_base 40522eCo2_base
+26b86ed6-4768-482e-a377-17f01dad6360 m5stack-bme280-device-bme280    11020 "2021-03-07T10:33:00Z" "2021-03-07 19:33:00+09:00"  21.6C 33.8% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+f82176c2-5820-46bd-810c-3ba59a2939a5 m5stack-bme280-device-sgp30     11021 "2021-03-07T10:33:00Z" "2021-03-07 19:33:00+09:00"  NaN C NaN %   NaN hPa  1912ppb   897ppm 37053tvoc_base 40522eCo2_base
+8ce7bb95-d3ad-408f-83f9-7b13bfad7a26 m5stack-bme280-device-bme280    11022 "2021-03-07T10:34:00Z" "2021-03-07 19:34:00+09:00"  21.6C 33.7% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+fce2038f-f240-4f19-a294-cb5e89d05e42 m5stack-bme280-device-sgp30     11023 "2021-03-07T10:34:00Z" "2021-03-07 19:34:00+09:00"  NaN C NaN %   NaN hPa  1901ppb   905ppm 37053tvoc_base 40522eCo2_base
+e304d32d-5e34-4d32-a8a6-42b312ed5f45 m5stack-bme280-device-bme280    11024 "2021-03-07T10:35:00Z" "2021-03-07 19:35:00+09:00"  21.6C 33.4% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+9e9df3b1-7ce4-4f49-aca7-a5e397f45d30 m5stack-bme280-device-sgp30     11025 "2021-03-07T10:35:00Z" "2021-03-07 19:35:00+09:00"  NaN C NaN %   NaN hPa  1925ppb   914ppm 37053tvoc_base 40522eCo2_base
+9048d1ec-e4f9-4471-af23-c8cffdf52403 m5stack-bme280-device-bme280    11026 "2021-03-07T10:36:00Z" "2021-03-07 19:36:00+09:00"  21.7C 33.7% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+d80a4c25-e7be-4a95-967d-507601e1f0f4 m5stack-bme280-device-sgp30     11027 "2021-03-07T10:36:00Z" "2021-03-07 19:36:00+09:00"  NaN C NaN %   NaN hPa  1957ppb   922ppm 37053tvoc_base 40522eCo2_base
+9c87143f-9a2a-403e-9d6c-925a550a3c20 m5stack-bme280-device-bme280    11028 "2021-03-07T10:37:00Z" "2021-03-07 19:37:00+09:00"  21.7C 33.5% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+c0a9832a-27e2-4de4-a38f-b9e33c31224a m5stack-bme280-device-sgp30     11029 "2021-03-07T10:37:00Z" "2021-03-07 19:37:00+09:00"  NaN C NaN %   NaN hPa  1911ppb   907ppm 37052tvoc_base 40522eCo2_base
+4a46f84f-e4ee-4650-84fa-0789ac97e14d m5stack-bme280-device-bme280    11030 "2021-03-07T10:38:00Z" "2021-03-07 19:38:00+09:00"  21.8C 33.5% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+cf83d5a3-a73f-4245-baeb-ce16fcc1d377 m5stack-bme280-device-sgp30     11031 "2021-03-07T10:38:00Z" "2021-03-07 19:38:00+09:00"  NaN C NaN %   NaN hPa  1937ppb   922ppm 37052tvoc_base 40522eCo2_base
+39ded0e7-bdcb-4564-a365-5efe6eb49766 m5stack-bme280-device-bme280    11032 "2021-03-07T10:39:00Z" "2021-03-07 19:39:00+09:00"  21.8C 33.6% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+1f305df7-f6ce-4a3f-859d-43fc0afd957c m5stack-bme280-device-sgp30     11033 "2021-03-07T10:39:00Z" "2021-03-07 19:39:00+09:00"  NaN C NaN %   NaN hPa  1957ppb   949ppm 37052tvoc_base 40522eCo2_base
+9af1c5f3-ca26-4e21-b08b-2cb58ae2d5b8 m5stack-bme280-device-bme280    11034 "2021-03-07T10:40:00Z" "2021-03-07 19:40:00+09:00"  21.9C 33.5% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+fb5359c5-60ce-4e43-82e0-d94b470d37cb m5stack-bme280-device-sgp30     11035 "2021-03-07T10:40:00Z" "2021-03-07 19:40:00+09:00"  NaN C NaN %   NaN hPa  2038ppb   982ppm 37052tvoc_base 40522eCo2_base
+1a79af83-a5e7-4f85-a8af-929e8ddf7716 m5stack-bme280-device-bme280    11036 "2021-03-07T10:41:00Z" "2021-03-07 19:41:00+09:00"  21.9C 33.6% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+f240f0ed-3b3f-4f89-989d-9e4af206b490 m5stack-bme280-device-sgp30     11037 "2021-03-07T10:41:00Z" "2021-03-07 19:41:00+09:00"  NaN C NaN %   NaN hPa  2022ppb   978ppm 37052tvoc_base 40522eCo2_base
+770111c8-d793-4751-911b-d06d7ca11c4b m5stack-bme280-device-bme280    11038 "2021-03-07T10:42:00Z" "2021-03-07 19:42:00+09:00"  21.9C 33.5% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+657ee275-9621-4f6a-93b7-d64d63d8a904 m5stack-bme280-device-sgp30     11039 "2021-03-07T10:42:00Z" "2021-03-07 19:42:00+09:00"  NaN C NaN %   NaN hPa  1973ppb   950ppm 37052tvoc_base 40522eCo2_base
+dfc8342a-427f-4269-9367-86bf107a2502 m5stack-bme280-device-bme280    11040 "2021-03-07T10:43:00Z" "2021-03-07 19:43:00+09:00"  21.9C 33.2% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+de9384fe-9d1d-42f6-a9ce-185a5d032da4 m5stack-bme280-device-sgp30     11041 "2021-03-07T10:43:00Z" "2021-03-07 19:43:00+09:00"  NaN C NaN %   NaN hPa  1958ppb   955ppm 37052tvoc_base 40522eCo2_base
+fe3d171f-5688-470e-b37e-7213fff3289d m5stack-bme280-device-bme280    11042 "2021-03-07T10:44:00Z" "2021-03-07 19:44:00+09:00"  21.9C 33.5% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+152c16bb-9e99-4042-8b52-51669b44ff03 m5stack-bme280-device-sgp30     11043 "2021-03-07T10:44:00Z" "2021-03-07 19:44:00+09:00"  NaN C NaN %   NaN hPa  1951ppb   950ppm 37051tvoc_base 40522eCo2_base
+8699070b-ec23-4a0b-9524-c70774e52060 m5stack-bme280-device-bme280    11044 "2021-03-07T10:45:00Z" "2021-03-07 19:45:00+09:00"  21.9C 33.3% 1023.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+3dff9189-1ca6-4122-a9d3-569a3a2f5320 m5stack-bme280-device-sgp30     11045 "2021-03-07T10:45:00Z" "2021-03-07 19:45:00+09:00"  NaN C NaN %   NaN hPa  1883ppb   912ppm 37051tvoc_base 40522eCo2_base
+1d1b1f76-2612-4821-b4c1-81c50fb76c2f m5stack-bme280-device-bme280    11046 "2021-03-07T10:46:00Z" "2021-03-07 19:46:00+09:00"  21.9C 33.4% 1023.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+691942fd-9df9-41ac-bbc6-0b0d29cae579 m5stack-bme280-device-sgp30     11047 "2021-03-07T10:46:00Z" "2021-03-07 19:46:00+09:00"  NaN C NaN %   NaN hPa  1883ppb   913ppm 37051tvoc_base 40522eCo2_base
+a79eeea4-c88a-4e47-a4ed-774a4aa49880 m5stack-bme280-device-bme280    11048 "2021-03-07T10:47:00Z" "2021-03-07 19:47:00+09:00"  21.9C 33.3% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+86753938-1fce-4409-b8cf-ea5b109e1ceb m5stack-bme280-device-sgp30     11049 "2021-03-07T10:47:00Z" "2021-03-07 19:47:00+09:00"  NaN C NaN %   NaN hPa  1840ppb   877ppm 37051tvoc_base 40522eCo2_base
+b8634ba3-8879-401d-a11b-fa027950a7df m5stack-bme280-device-bme280    11050 "2021-03-07T10:48:00Z" "2021-03-07 19:48:00+09:00"  22.0C 32.8% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+e4779700-82e5-4a32-b43c-6661b9c7c3dd m5stack-bme280-device-sgp30     11051 "2021-03-07T10:48:00Z" "2021-03-07 19:48:00+09:00"  NaN C NaN %   NaN hPa  1761ppb   873ppm 37051tvoc_base 40522eCo2_base
+2b2d0b1e-9d8a-41b5-a64c-03b218c365a5 m5stack-bme280-device-bme280    11052 "2021-03-07T10:49:00Z" "2021-03-07 19:49:00+09:00"  22.0C 32.4% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+6da641f8-1a8c-4e01-8c56-f25126f03d10 m5stack-bme280-device-sgp30     11053 "2021-03-07T10:49:00Z" "2021-03-07 19:49:00+09:00"  NaN C NaN %   NaN hPa  1514ppb   799ppm 37051tvoc_base 40522eCo2_base
+8a8aa0d9-53c1-406d-82e0-13615a59304e m5stack-bme280-device-bme280    11054 "2021-03-07T10:50:00Z" "2021-03-07 19:50:00+09:00"  22.0C 32.3% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+88acb0b1-49a2-40f9-81de-c62f93f685aa m5stack-bme280-device-sgp30     11055 "2021-03-07T10:50:00Z" "2021-03-07 19:50:00+09:00"  NaN C NaN %   NaN hPa  1296ppb   756ppm 37050tvoc_base 40522eCo2_base
+3420cad3-0ae1-4723-8865-78b9c2384eb7 m5stack-bme280-device-bme280    11056 "2021-03-07T10:51:00Z" "2021-03-07 19:51:00+09:00"  22.0C 32.0% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+dabdb118-d57f-40a5-b2e6-6b317d25708e m5stack-bme280-device-sgp30     11057 "2021-03-07T10:51:00Z" "2021-03-07 19:51:00+09:00"  NaN C NaN %   NaN hPa  1177ppb   716ppm 37050tvoc_base 40522eCo2_base
+409a75f7-52ca-40a4-983b-0e893ef6e17f m5stack-bme280-device-bme280    11058 "2021-03-07T10:52:00Z" "2021-03-07 19:52:00+09:00"  22.0C 31.8% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+2361006d-1ab0-429a-8af5-9d9ce3df2e4d m5stack-bme280-device-sgp30     11059 "2021-03-07T10:52:00Z" "2021-03-07 19:52:00+09:00"  NaN C NaN %   NaN hPa  1129ppb   731ppm 37050tvoc_base 40522eCo2_base
+502955b3-8b34-41be-8b4a-c5151b372f4c m5stack-bme280-device-bme280    11060 "2021-03-07T10:53:00Z" "2021-03-07 19:53:00+09:00"  22.0C 32.1% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+e662f7c9-0661-46f6-9a3b-1ab69eab65bd m5stack-bme280-device-sgp30     11061 "2021-03-07T10:53:00Z" "2021-03-07 19:53:00+09:00"  NaN C NaN %   NaN hPa  1129ppb   732ppm 37050tvoc_base 40522eCo2_base
+6e2f2bca-832f-4f7d-9d31-a0d474886c93 m5stack-bme280-device-bme280    11062 "2021-03-07T10:54:00Z" "2021-03-07 19:54:00+09:00"  22.0C 32.2% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+96b55149-0329-4caa-9413-33f483fa8b70 m5stack-bme280-device-sgp30     11063 "2021-03-07T10:54:00Z" "2021-03-07 19:54:00+09:00"  NaN C NaN %   NaN hPa  1120ppb   739ppm 37050tvoc_base 40522eCo2_base
+eacf75bf-630c-4515-aeef-13f4e605d9b0 m5stack-bme280-device-bme280    11064 "2021-03-07T10:55:00Z" "2021-03-07 19:55:00+09:00"  22.0C 31.9% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+31ebe25e-14f1-4045-9575-1b5c7bf8961a m5stack-bme280-device-sgp30     11065 "2021-03-07T10:55:00Z" "2021-03-07 19:55:00+09:00"  NaN C NaN %   NaN hPa  1163ppb   781ppm 37050tvoc_base 40522eCo2_base
+47aa318a-d271-461b-a110-c64117d4349a m5stack-bme280-device-bme280    11066 "2021-03-07T10:56:00Z" "2021-03-07 19:56:00+09:00"  22.0C 32.6% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+d1ebbd9c-ab9a-4d37-b772-0f80a3d6f01e m5stack-bme280-device-sgp30     11067 "2021-03-07T10:56:00Z" "2021-03-07 19:56:00+09:00"  NaN C NaN %   NaN hPa  1158ppb   748ppm 37050tvoc_base 40521eCo2_base
+24aae001-dffb-47b3-8938-62e8386a7e5f m5stack-bme280-device-bme280    11068 "2021-03-07T10:57:00Z" "2021-03-07 19:57:00+09:00"  22.0C 32.4% 1023.7hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+f4eae584-a1a5-4fde-967f-68e2431d2775 m5stack-bme280-device-sgp30     11069 "2021-03-07T10:57:00Z" "2021-03-07 19:57:00+09:00"  NaN C NaN %   NaN hPa  1169ppb   758ppm 37049tvoc_base 40521eCo2_base
+681c6c7d-2e20-4575-ad60-fe32325f253b m5stack-bme280-device-bme280    11070 "2021-03-07T10:58:00Z" "2021-03-07 19:58:00+09:00"  22.0C 32.5% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+0ba05332-ade9-4f69-8109-785be4ce2000 m5stack-bme280-device-sgp30     11071 "2021-03-07T10:58:00Z" "2021-03-07 19:58:00+09:00"  NaN C NaN %   NaN hPa  1179ppb   755ppm 37049tvoc_base 40521eCo2_base
+9760a9a5-f3c5-4902-bb04-074c219ed919 m5stack-bme280-device-bme280    11072 "2021-03-07T10:59:00Z" "2021-03-07 19:59:00+09:00"  22.1C 32.6% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+319f588b-fcda-4d50-885b-8da1e0c72237 m5stack-bme280-device-sgp30     11073 "2021-03-07T10:59:00Z" "2021-03-07 19:59:00+09:00"  NaN C NaN %   NaN hPa  1199ppb   759ppm 37049tvoc_base 40521eCo2_base
+89c3b35a-36ba-4f89-b370-626bb9cf3622 m5stack-bme280-device-bme280    11074 "2021-03-07T11:00:00Z" "2021-03-07 20:00:00+09:00"  22.1C 32.4% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+37466438-805b-4cab-a561-84fc36edf6ed m5stack-bme280-device-sgp30     11075 "2021-03-07T11:00:00Z" "2021-03-07 20:00:00+09:00"  NaN C NaN %   NaN hPa  1210ppb   760ppm 37049tvoc_base 40521eCo2_base
+5340f390-c021-4848-bfa5-8ae110d3eac2 m5stack-bme280-device-bme280    11076 "2021-03-07T11:01:00Z" "2021-03-07 20:01:00+09:00"  22.2C 32.5% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+fe7569b5-3f29-42c5-ae03-e5187ddb65c3 m5stack-bme280-device-sgp30     11077 "2021-03-07T11:01:00Z" "2021-03-07 20:01:00+09:00"  NaN C NaN %   NaN hPa  1226ppb   759ppm 37049tvoc_base 40521eCo2_base
+581b0f7e-28a6-49af-b259-7170aaec9219 m5stack-bme280-device-bme280    11078 "2021-03-07T11:02:00Z" "2021-03-07 20:02:00+09:00"  22.2C 32.5% 1023.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+26bcc74b-54e7-49f4-be49-7b12a52eba6d m5stack-bme280-device-sgp30     11079 "2021-03-07T11:02:00Z" "2021-03-07 20:02:00+09:00"  NaN C NaN %   NaN hPa  1225ppb   761ppm 37049tvoc_base 40521eCo2_base
+11211ed0-0521-4c90-bf5b-d372bda5d5c0 m5stack-bme280-device-bme280    11080 "2021-03-07T11:03:00Z" "2021-03-07 20:03:00+09:00"  22.3C 32.5% 1023.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+bdb2692a-3aea-40f4-8b46-2449f7af82d1 m5stack-bme280-device-sgp30     11081 "2021-03-07T11:03:00Z" "2021-03-07 20:03:00+09:00"  NaN C NaN %   NaN hPa  1244ppb   770ppm 37048tvoc_base 40521eCo2_base
+106ce300-df36-43b0-a288-f2936e409093 m5stack-bme280-device-bme280    11082 "2021-03-07T11:04:00Z" "2021-03-07 20:04:00+09:00"  22.3C 32.8% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+f02642af-2794-4c3e-a807-2ad49111efe4 m5stack-bme280-device-sgp30     11083 "2021-03-07T11:04:00Z" "2021-03-07 20:04:00+09:00"  NaN C NaN %   NaN hPa  1287ppb   806ppm 37048tvoc_base 40521eCo2_base
+5d9c3a9f-59b2-49b1-a004-12ddf27f939b m5stack-bme280-device-bme280    11084 "2021-03-07T11:05:00Z" "2021-03-07 20:05:00+09:00"  22.3C 32.5% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+c13eeea2-9e87-4ded-9427-47066f318c49 m5stack-bme280-device-sgp30     11085 "2021-03-07T11:05:00Z" "2021-03-07 20:05:00+09:00"  NaN C NaN %   NaN hPa  1374ppb   839ppm 37048tvoc_base 40521eCo2_base
+f7ef7304-3f1f-4ff7-a6fb-e3f4a05bbb73 m5stack-bme280-device-bme280    11086 "2021-03-07T11:06:00Z" "2021-03-07 20:06:00+09:00"  22.2C 32.9% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+d0ff8609-e8e3-4fd1-a325-246753ca5f96 m5stack-bme280-device-sgp30     11087 "2021-03-07T11:06:00Z" "2021-03-07 20:06:00+09:00"  NaN C NaN %   NaN hPa  1354ppb   823ppm 37048tvoc_base 40521eCo2_base
+39c6f9b2-1d97-46ea-8f3c-4aa7c7f1b545 m5stack-bme280-device-bme280    11088 "2021-03-07T11:07:00Z" "2021-03-07 20:07:00+09:00"  22.2C 33.1% 1023.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+d7708a35-6e6e-4e29-a5f8-1807ebd3e820 m5stack-bme280-device-sgp30     11089 "2021-03-07T11:07:00Z" "2021-03-07 20:07:00+09:00"  NaN C NaN %   NaN hPa  1332ppb   823ppm 37048tvoc_base 40521eCo2_base
+e31af825-48a0-402d-89f3-08a4a88b7ca2 m5stack-bme280-device-bme280    11090 "2021-03-07T11:08:00Z" "2021-03-07 20:08:00+09:00"  22.2C 32.6% 1023.8hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+0a3324a5-8802-4e24-ad2d-02300630a166 m5stack-bme280-device-sgp30     11091 "2021-03-07T11:08:00Z" "2021-03-07 20:08:00+09:00"  NaN C NaN %   NaN hPa  1318ppb   799ppm 37048tvoc_base 40521eCo2_base
+511bafc8-8e78-4944-bf7e-0d16006f1e5e m5stack-bme280-device-bme280    11092 "2021-03-07T11:09:00Z" "2021-03-07 20:09:00+09:00"  22.3C 32.4% 1023.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+56fc4fed-11d4-45d8-b8a0-5f5849585164 m5stack-bme280-device-sgp30     11093 "2021-03-07T11:09:00Z" "2021-03-07 20:09:00+09:00"  NaN C NaN %   NaN hPa  1267ppb   775ppm 37048tvoc_base 40521eCo2_base
+d12b7503-6fdd-4f4d-80bb-709dcc7ec466 m5stack-bme280-device-bme280    11094 "2021-03-07T11:10:00Z" "2021-03-07 20:10:00+09:00"  22.3C 32.6% 1023.9hPa  NaN ppb  NaN ppm  NaN tvoc_base  NaN eCo2_base
+e51a9fcd-a899-41f3-8c34-e08033f70cec m5stack-bme280-device-sgp30     11095 "2021-03-07T11:10:00Z" "2021-03-07 20:10:00+09:00"  NaN C NaN %   NaN hPa  1278ppb   779ppm 37047tvoc_base 40521eCo2_base

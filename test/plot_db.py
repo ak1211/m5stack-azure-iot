@@ -30,7 +30,7 @@ def time_sequential_data_frame(item_list):
     #
     data = [pickup(item) for item in item_list]
     df = pd.DataFrame(data=data, columns=columns)
-    return df.set_index('measuredAt')
+    return df
 
 
 def take_all_items_from_container(container):
@@ -65,10 +65,13 @@ def calculate_absolute_humidity(df):
 
 
 def plot(df, filename):
+    tz = timezone('Asia/Tokyo')
+    #
+    df['measuredAt'] = df['measuredAt'].map(lambda x: x.astimezone(tz))
     df = calculate_absolute_humidity(df)
+    df = df.set_index('measuredAt')
     print(df)
     #
-    tz = timezone('Asia/Tokyo')
     major_formatter = DateFormatter('\n%Y-%m-%d\n%H:%M:%S\n%Z', tz=tz)
     major_locator = DayLocator(interval=1, tz=tz)
     minor_formatter = DateFormatter('%H', tz=tz)
