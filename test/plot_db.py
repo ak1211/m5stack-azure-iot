@@ -143,7 +143,6 @@ def plot(df, filename):
     axs[3, 0].xaxis.set_major_locator(major_locator)
     axs[3, 0].xaxis.set_major_formatter(major_formatter)
     axs[3, 0].xaxis.set_minor_locator(minor_locator)
-    axs[3, 0].xaxis.set_minor_locator(HourLocator(interval=2, tz=tz))
     axs[3, 0].xaxis.set_minor_formatter(minor_formatter)
     axs[3, 0].set_yscale('log')
     axs[3, 0].set_ylabel('ppm')
