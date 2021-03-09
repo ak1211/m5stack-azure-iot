@@ -64,7 +64,7 @@ def calculate_absolute_humidity(df):
     return df
 
 
-def plot(df, filename):
+def plot(df, sensorIds, filename):
     tz = timezone('Asia/Tokyo')
     #
     df['measuredAt'] = df['measuredAt'].map(lambda x: x.astimezone(tz))
@@ -86,8 +86,11 @@ def plot(df, filename):
     axs[0, 0].set_ylim(-10.0, 60.0)
     axs[0, 0].set_ylabel('$^{\circ}C$')
     axs[0, 0].set_title('temperature', fontsize=18)
-    axs[0, 0].plot(df['temperature'].dropna(), 'o-',
-                   label='temperature[$^{\circ}C$]')
+    for sid in sensorIds:
+        qry_str = "sensorId=='{}'".format(sid)
+        ddf = df.query(qry_str).get('temperature').dropna()
+        if len(ddf) > 0:
+            axs[0, 0].plot(ddf, 'o-', label=sid)
     axs[0, 0].grid(which='both', axis='both')
     axs[0, 0].legend(fontsize=18)
     #
@@ -97,7 +100,11 @@ def plot(df, filename):
     axs[0, 1].xaxis.set_minor_formatter(minor_formatter)
     axs[0, 1].set_ylabel('hPa')
     axs[0, 1].set_title('pressure', fontsize=18)
-    axs[0, 1].plot(df['pressure'].dropna(), 's-', label='pressure[hPa]')
+    for sid in sensorIds:
+        qry_str = "sensorId=='{}'".format(sid)
+        ddf = df.query(qry_str).get('pressure').dropna()
+        if len(ddf) > 0:
+            axs[0, 1].plot(ddf, 's-', label=sid)
     axs[0, 1].grid(which='both', axis='both')
     axs[0, 1].legend(fontsize=18)
     #
@@ -107,8 +114,11 @@ def plot(df, filename):
     axs[1, 0].xaxis.set_minor_formatter(minor_formatter)
     axs[1, 0].set_ylabel('%RH')
     axs[1, 0].set_title('relative humidity', fontsize=18)
-    axs[1, 0].plot(df['humidity'].dropna(), 's-',
-                   label='relative humidity[%RH]')
+    for sid in sensorIds:
+        qry_str = "sensorId=='{}'".format(sid)
+        ddf = df.query(qry_str).get('humidity').dropna()
+        if len(ddf) > 0:
+            axs[1, 0].plot(ddf, 's-', label=sid)
     axs[1, 0].grid(which='both', axis='both')
     axs[1, 0].legend(fontsize=18)
     #
@@ -118,8 +128,7 @@ def plot(df, filename):
     axs[1, 1].xaxis.set_minor_formatter(minor_formatter)
     axs[1, 1].set_ylabel('$mg/m^3$')
     axs[1, 1].set_title('absolute humidity', fontsize=18)
-    axs[1, 1].plot(df['absolute_humidity'].dropna(), 's-',
-                   label='absolute humidity[$g/m^3$]')
+    axs[1, 1].plot(df['absolute_humidity'].dropna(), 's-')
     axs[1, 1].grid(which='both', axis='both')
     axs[1, 1].legend(fontsize=18)
     #
@@ -129,7 +138,11 @@ def plot(df, filename):
     axs[2, 0].xaxis.set_minor_formatter(minor_formatter)
     axs[2, 0].set_ylabel('ppm')
     axs[2, 0].set_title('equivalent CO2', fontsize=18)
-    axs[2, 0].plot(df['eCo2'].dropna(), 's-', label='eCO2[ppm]')
+    for sid in sensorIds:
+        qry_str = "sensorId=='{}'".format(sid)
+        ddf = df.query(qry_str).get('eCo2').dropna()
+        if len(ddf) > 0:
+            axs[2, 0].plot(ddf, 's-', label=sid)
     axs[2, 0].grid(which='both', axis='both')
     axs[2, 0].legend(fontsize=18)
     #
@@ -139,7 +152,11 @@ def plot(df, filename):
     axs[2, 1].xaxis.set_minor_formatter(minor_formatter)
     axs[2, 1].set_ylabel('ppb')
     axs[2, 1].set_title('Total VOC', fontsize=18)
-    axs[2, 1].plot(df['tvoc'].dropna(), 's-', label='TVOC[ppb]')
+    for sid in sensorIds:
+        qry_str = "sensorId=='{}'".format(sid)
+        ddf = df.query(qry_str).get('tvoc').dropna()
+        if len(ddf) > 0:
+            axs[2, 1].plot(ddf, 's-', label=sid)
     axs[2, 1].grid(which='both', axis='both')
     axs[2, 1].legend(fontsize=18)
     #
@@ -150,7 +167,11 @@ def plot(df, filename):
     axs[3, 0].set_yscale('log')
     axs[3, 0].set_ylabel('ppm')
     axs[3, 0].set_title('equivalent CO2', fontsize=18)
-    axs[3, 0].plot(df['eCo2'].dropna(), 's-', label='eCO2[ppm]')
+    for sid in sensorIds:
+        qry_str = "sensorId=='{}'".format(sid)
+        ddf = df.query(qry_str).get('eCo2').dropna()
+        if len(ddf) > 0:
+            axs[3, 0].plot(ddf, 's-', label=sid)
     axs[3, 0].grid(which='both', axis='both')
     axs[3, 0].legend(fontsize=18)
     #
@@ -161,12 +182,23 @@ def plot(df, filename):
     axs[3, 1].set_yscale('log')
     axs[3, 1].set_ylabel('ppb')
     axs[3, 1].set_title('Total VOC', fontsize=18)
-    axs[3, 1].plot(df['tvoc'].dropna(), 's-', label='TVOC[ppb]')
+    for sid in sensorIds:
+        qry_str = "sensorId=='{}'".format(sid)
+        ddf = df.query(qry_str).get('tvoc').dropna()
+        if len(ddf) > 0:
+            axs[3, 1].plot(ddf, 's-', label=sid)
     axs[3, 1].grid(which='both', axis='both')
     axs[3, 1].legend(fontsize=18)
     #
 #    fig.tight_layout()
     fig.savefig(filename)
+
+
+def take_sensorId(container):
+    results = list(container.query_items(
+        query="SELECT DISTINCT c.sensorId FROM c",
+        enable_cross_partition_query=True))
+    return [x.get('sensorId') for x in results]
 
 
 def take_first_and_last_items(container):
@@ -221,6 +253,8 @@ def run(url, key):
     container_name = "Measurements"
     database = cosmos_client.get_database_client(database_name)
     container = database.get_container_client(container_name)
+    #
+    sensorIds = take_sensorId(container)
     first_last_items = take_first_and_last_items(container)
     weeklies = split_weekly(first_last_items)
     for week in weeklies:
@@ -230,7 +264,7 @@ def run(url, key):
         begin_ = begin.strftime('%Y-%m-%d')
         end_ = end.strftime('%Y-%m-%d')
         filename = "{}_{}.png".format(begin_, end_)
-        plot(df, filename)
+        plot(df, sensorIds, filename)
         print("----------")
 
 
