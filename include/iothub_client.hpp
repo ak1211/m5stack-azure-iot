@@ -9,6 +9,7 @@
 #include "Esp32MQTTClient.h"
 #include "bme280_sensor.hpp"
 #include "sgp30_sensor.hpp"
+#include "scd30_sensor.hpp"
 
 // iso8601 format.
 // "2021-02-11T00:56:00.000+00:00"
@@ -76,6 +77,26 @@ inline JsonDocSets &mapToJson(JsonDocSets &output, const Sgp30::TvocEco2 &input)
     output.state["sgp30_baseline"]["updatedAt"] = at_field.at;
     output.state["sgp30_baseline"]["tvoc"] = input.tvoc_baseline;
     output.state["sgp30_baseline"]["eCo2"] = input.eCo2_baseline;
+    //
+    return output;
+}
+
+inline JsonDocSets &mapToJson(JsonDocSets &output, const Scd30::Co2TempHumi &input)
+{
+    struct Iso8601FormatField at_field = {};
+    struct tm utc;
+
+    gmtime_r(&input.at, &utc);
+    //
+    strftime(at_field.at, sizeof(at_field), "%Y-%m-%dT%H:%M:%SZ", &utc);
+    //
+    output.message["sensorId"] = input.sensor_id;
+    output.message["measuredAt"] = at_field.at;
+    output.message["co2"] = input.co2;
+    output.message["temperature"] = input.temperature;
+    output.message["humidity"] = input.relative_humidity;
+    //
+    output.state.clear();
     //
     return output;
 }

@@ -14,6 +14,7 @@
 
 #include "bme280_sensor.hpp"
 #include "sgp30_sensor.hpp"
+#include "scd30_sensor.hpp"
 #include "iothub_client.hpp"
 #include "credentials.h"
 
@@ -28,6 +29,7 @@ struct SystemProperties
 {
   Bme280::Sensor bme280;
   Sgp30::Sensor sgp30;
+  Scd30::Sensor scd30;
   File data_logging_file;
   clock_t startup_epoch;
   bool has_WIFI_connection;
@@ -38,6 +40,7 @@ struct SystemProperties
 static struct SystemProperties system_propaties = {
     .bme280 = Bme280::Sensor(Credentials.sensor_id.bme280),
     .sgp30 = Sgp30::Sensor(Credentials.sensor_id.sgp30),
+    .scd30 = Scd30::Sensor(Credentials.sensor_id.scd30),
     .data_logging_file = File(),
     .startup_epoch = clock(),
     .has_WIFI_connection = false,
@@ -61,6 +64,9 @@ static_assert(BME280_SENSING_EVERY_SECONDS < 60, "BME280_SENSING_EVERY_SECONDS i
 
 static const uint8_t SGP30_SENSING_EVERY_SECONDS = 1; // 1 seconds
 static_assert(SGP30_SENSING_EVERY_SECONDS == 1, "SGP30_SENSING_EVERY_SECONDS is shoud be 1 seconds.");
+
+static const uint8_t SCD30_SENSING_EVERY_SECONDS = 2; // 2 seconds
+static_assert(SCD30_SENSING_EVERY_SECONDS < 60, "SCD30_SENSING_EVERY_SECONDS is lesser than 60 seconds.");
 
 //
 static void write_header_to_log_file(File &file);
@@ -143,7 +149,10 @@ struct BatteryStatus getBatteryStatus()
 //
 //
 //
-void display(time_t time, const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *sgp)
+void display(time_t time,
+             const Bme280::TempHumiPres *bme,
+             const Sgp30::TvocEco2 *sgp,
+             const Scd30::Co2TempHumi *scd)
 {
   // time zone offset UTC+9 = asia/tokyo
   time_t local_time = time + 9 * 60 * 60;
@@ -202,11 +211,11 @@ void display(time_t time, const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2
   {
     char date_time[50] = "";
     strftime(date_time, sizeof(date_time), "%Y-%m-%d %H:%M:%SJST", &local);
-    lcd.setFont(&fonts::lgfxJapanGothic_28);
+    lcd.setFont(&fonts::lgfxJapanGothic_20);
     lcd.printf("%s\n", date_time);
   }
   //
-  lcd.setFont(&fonts::lgfxJapanGothic_28);
+  lcd.setFont(&fonts::lgfxJapanGothic_20);
   if (bme)
   {
     lcd.printf("温度 %6.1f ℃\n", bme->temperature);
@@ -217,6 +226,12 @@ void display(time_t time, const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2
   {
     lcd.printf("eCO2 %6d ppm\n", sgp->eCo2);
     lcd.printf("TVOC %6d ppb\n", sgp->tvoc);
+  }
+  if (scd)
+  {
+    lcd.printf("CO2 %6d ppm\n", scd->co2);
+    lcd.printf("温度 %6.1f ℃\n", scd->temperature);
+    lcd.printf("湿度 %6.1f ％\n", scd->relative_humidity);
   }
 }
 
@@ -395,6 +410,7 @@ void setup()
   {
     bool bme = system_propaties.bme280.begin();
     bool sgp = system_propaties.sgp30.begin();
+    bool scd = system_propaties.scd30.begin();
     do
     {
       if (!bme)
@@ -409,15 +425,23 @@ void setup()
         delay(100);
         sgp = system_propaties.sgp30.begin();
       }
-    } while (!(bme && sgp));
+      if (!scd)
+      {
+        lcd.print(F("SCD30センサが見つかりません。\n"));
+        delay(100);
+        scd = system_propaties.scd30.begin();
+      }
+    } while (!(bme && sgp && scd));
     lcd.fillScreen(background_color);
     assert(bme);
     assert(sgp);
+    assert(scd);
+    system_propaties.scd30.printSensorDetails();
     system_propaties.sgp30.printSensorDetails();
     system_propaties.bme280.printSensorDetails();
     //
     time_t now = time(NULL);
-    display(now, nullptr, nullptr);
+    display(now, nullptr, nullptr, nullptr);
   }
 
   //
@@ -429,7 +453,9 @@ void setup()
 //
 //
 //
-static void write_data_to_log_file(const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *sgp)
+static void write_data_to_log_file(const Bme280::TempHumiPres *bme,
+                                   const Sgp30::TvocEco2 *sgp,
+                                   const Scd30::Co2TempHumi *scd)
 {
   if (!bme)
   {
@@ -439,6 +465,11 @@ static void write_data_to_log_file(const Bme280::TempHumiPres *bme, const Sgp30:
   else if (!sgp)
   {
     ESP_LOGI("main", "SGP30 sensor has problems.");
+    return;
+  }
+  else if (!scd)
+  {
+    ESP_LOGI("main", "SCD30 sensor has problems.");
     return;
   }
   struct tm utc;
@@ -466,6 +497,12 @@ static void write_data_to_log_file(const Bme280::TempHumiPres *bme, const Sgp30:
     i += snprintf(&p[i], LENGTH - i, ", %5d", sgp->tvoc_baseline);
     // 8th field is eCo2 baseline
     i += snprintf(&p[i], LENGTH - i, ", %5d", sgp->eCo2_baseline);
+    // 9th field is co2
+    i += snprintf(&p[i], LENGTH - i, ", %5d", scd->co2);
+    // 10th field is temperature
+    i += snprintf(&p[i], LENGTH - i, ", %6.2f", scd->temperature);
+    // 11th field is relative_humidity
+    i += snprintf(&p[i], LENGTH - i, ", %6.2f", scd->relative_humidity);
 
     ESP_LOGI("main", "%s", p);
 
@@ -507,6 +544,12 @@ static void write_header_to_log_file(File &file)
   i += snprintf(&p[i], LENGTH - i, ", %s", "TVOC baseline");
   // 8th field is eCo2 baseline
   i += snprintf(&p[i], LENGTH - i, ", %s", "eCo2 baseline");
+  // 9th field is co2
+  i += snprintf(&p[i], LENGTH - i, ", %s", "Co2[ppm]");
+  // 10th field is temperature
+  i += snprintf(&p[i], LENGTH - i, ", %s", "temperature[C]");
+  // 11th field is relative_humidity
+  i += snprintf(&p[i], LENGTH - i, ", %s", "humidity[%RH]");
 
   ESP_LOGI("main", "%s", p);
 
@@ -521,13 +564,15 @@ static void write_header_to_log_file(File &file)
 //
 //
 //
-static void periodical_push_message()
+static void periodical_push_message(
+    const Bme280::TempHumiPres *bme280_sensed,
+    const Sgp30::TvocEco2 *sgp30_sensed,
+    const Scd30::Co2TempHumi *scd30_sensed)
 {
   JsonDocSets doc_sets = {};
 
-  // get the "latest" BME280 sensor values.
+  // BME280 sensor values.
   // Temperature, Relative Humidity, Pressure
-  const Bme280::TempHumiPres *bme280_sensed = system_propaties.bme280.getLatestTempHumiPres();
   if (bme280_sensed)
   {
     // calculate the Aboslute Humidity from Temperature and Relative Humidity
@@ -544,17 +589,26 @@ static void periodical_push_message()
   }
   doc_sets.message.clear();
   doc_sets.state.clear();
-  // get the "smoothed" SGP30 sensor values.
+  // SGP30 sensor values.
   // eCo2, TVOC
-  const Sgp30::TvocEco2 *sgp30_smoothed = system_propaties.sgp30.getTvocEco2WithSmoothing();
-  if (sgp30_smoothed)
+  if (sgp30_sensed)
   {
     IotHubClient::pushMessage(
         takeMessageFromJsonDocSets(
-            mapToJson(doc_sets, *sgp30_smoothed)));
+            mapToJson(doc_sets, *sgp30_sensed)));
+  }
+  doc_sets.message.clear();
+  doc_sets.state.clear();
+  // SCD30 sensor values.
+  // co2, Temperature, Relative Humidity
+  if (scd30_sensed)
+  {
+    IotHubClient::pushMessage(
+        takeMessageFromJsonDocSets(
+            mapToJson(doc_sets, *scd30_sensed)));
   }
   //
-  write_data_to_log_file(bme280_sensed, sgp30_smoothed);
+  write_data_to_log_file(bme280_sensed, sgp30_sensed, scd30_sensed);
 }
 
 //
@@ -596,13 +650,20 @@ static void periodical_update()
   {
     system_propaties.sgp30.sensing(measured_at);
   }
-  display(measured_at, system_propaties.bme280.getLatestTempHumiPres(), system_propaties.sgp30.getTvocEco2WithSmoothing());
+  if (utc.tm_sec % SCD30_SENSING_EVERY_SECONDS == 0)
+  {
+    system_propaties.scd30.sensing(measured_at);
+  }
+  auto bme280_sensed = system_propaties.bme280.getLatestTempHumiPres();
+  auto sgp30_sensed = system_propaties.sgp30.getTvocEco2WithSmoothing();
+  auto scd30_sensed = system_propaties.scd30.getCo2TempHumiWithSmoothing();
+  display(measured_at, bme280_sensed, sgp30_sensed, scd30_sensed);
   //
   if (!system_propaties.is_freestanding_mode)
   {
     if (utc.tm_sec == 0 && utc.tm_min % IOTHUB_PUSH_MESSAGE_EVERY_MINUTES == 0)
     {
-      periodical_push_message();
+      periodical_push_message(bme280_sensed, sgp30_sensed, scd30_sensed);
     }
     if (utc.tm_sec == 0 && utc.tm_min % IOTHUB_PUSH_STATE_EVERY_MINUTES == 0)
     {

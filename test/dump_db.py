@@ -23,6 +23,7 @@ def list_temp_humi_pres(item_list):
         tvoc_base = doc.get('tvoc_baseline')
         eCo2 = doc.get('eCo2')
         eCo2_base = doc.get('eCo2_baseline')
+        co2 = doc.get('co2')
         #
         output = '{} {:30}'.format(id_, sid)
         output += ' {:6} "{}" "{}"'.format(mid, at, at_asia_tokyo)
@@ -36,6 +37,7 @@ def list_temp_humi_pres(item_list):
             tvoc_base) if tvoc_base is not None else "  NaN tvoc_base"
         output += ' {:5}eCo2_base'.format(
             eCo2_base) if eCo2_base is not None else "  NaN eCo2_base"
+        output += ' {:5}ppm'.format(co2) if co2 is not None else "  NaN ppm"
         print(output)
 
 

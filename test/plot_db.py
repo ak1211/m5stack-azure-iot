@@ -22,7 +22,8 @@ def time_sequential_data_frame(item_list):
              ('humidity', lambda x: float(x) if x is not None else None),
              ('pressure', lambda x: float(x) if x is not None else None),
              ('tvoc', lambda x: int(x) if x is not None else None),
-             ('eCo2', lambda x: int(x) if x is not None else None)]
+             ('eCo2', lambda x: int(x) if x is not None else None),
+             ('co2', lambda x: int(x) if x is not None else None)]
     columns, _ = zip(*pairs)
 
     def pickup(item):
@@ -130,19 +131,24 @@ def plot(df, sensorIds, filename):
     axs[1, 1].set_title('absolute humidity', fontsize=18)
     axs[1, 1].plot(df['absolute_humidity'].dropna(), 's-')
     axs[1, 1].grid(which='both', axis='both')
-    axs[1, 1].legend(fontsize=18)
+#    axs[1, 1].legend(fontsize=18)
     #
     axs[2, 0].xaxis.set_major_locator(major_locator)
     axs[2, 0].xaxis.set_major_formatter(major_formatter)
     axs[2, 0].xaxis.set_minor_locator(minor_locator)
     axs[2, 0].xaxis.set_minor_formatter(minor_formatter)
     axs[2, 0].set_ylabel('ppm')
-    axs[2, 0].set_title('equivalent CO2', fontsize=18)
+    axs[2, 0].set_title('(equivalent) CO2', fontsize=18)
     for sid in sensorIds:
         qry_str = "sensorId=='{}'".format(sid)
         ddf = df.query(qry_str).get('eCo2').dropna()
         if len(ddf) > 0:
             axs[2, 0].plot(ddf, 's-', label=sid)
+        else:
+            ddf = df.query(qry_str).get('co2').dropna()
+            if len(ddf) > 0:
+                axs[2, 0].plot(ddf, 's-', label=sid)
+
     axs[2, 0].grid(which='both', axis='both')
     axs[2, 0].legend(fontsize=18)
     #
@@ -166,12 +172,16 @@ def plot(df, sensorIds, filename):
     axs[3, 0].xaxis.set_minor_formatter(minor_formatter)
     axs[3, 0].set_yscale('log')
     axs[3, 0].set_ylabel('ppm')
-    axs[3, 0].set_title('equivalent CO2', fontsize=18)
+    axs[3, 0].set_title('(equivalent) CO2', fontsize=18)
     for sid in sensorIds:
         qry_str = "sensorId=='{}'".format(sid)
         ddf = df.query(qry_str).get('eCo2').dropna()
         if len(ddf) > 0:
             axs[3, 0].plot(ddf, 's-', label=sid)
+        else:
+            ddf = df.query(qry_str).get('co2').dropna()
+            if len(ddf) > 0:
+                axs[3, 0].plot(ddf, 's-', label=sid)
     axs[3, 0].grid(which='both', axis='both')
     axs[3, 0].legend(fontsize=18)
     #
