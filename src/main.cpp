@@ -51,6 +51,8 @@ static struct SystemProperties system_propaties = {
 static const char *data_log_file_name = "/data-logging.csv";
 static const char *header_log_file_name = "/header-data-logging.csv";
 
+static const clock_t SUPPRESSION_TIME_OF_FIRST_PUSH = CLOCKS_PER_SEC * 180; // 180 seconds = 3 minutes
+
 static const uint16_t NUM_OF_TRY_TO_WIFI_CONNECTION = 50;
 
 static const uint8_t IOTHUB_PUSH_MESSAGE_EVERY_MINUTES = 1; // 1 mimutes
@@ -658,6 +660,11 @@ static void periodical_update()
   auto sgp30_sensed = system_propaties.sgp30.getTvocEco2WithSmoothing();
   auto scd30_sensed = system_propaties.scd30.getCo2TempHumiWithSmoothing();
   display(measured_at, bme280_sensed, sgp30_sensed, scd30_sensed);
+  //
+  if ((clock() - system_propaties.startup_epoch) <= SUPPRESSION_TIME_OF_FIRST_PUSH)
+  {
+    return;
+  }
   //
   if (!system_propaties.is_freestanding_mode)
   {

@@ -15,9 +15,9 @@ from datetime import datetime, timedelta
 from dateutil import parser
 
 
-def time_sequential_data_frame(item_list):
+def time_sequential_data_frame(item_list, tz):
     pairs = [('sensorId', lambda x:x),
-             ('measuredAt', parser.parse),
+             ('measuredAt', lambda x:parser.parse(x).astimezone(tz)),
              ('temperature', lambda x: float(x) if x is not None else None),
              ('humidity', lambda x: float(x) if x is not None else None),
              ('pressure', lambda x: float(x) if x is not None else None),
@@ -34,15 +34,15 @@ def time_sequential_data_frame(item_list):
     return df
 
 
-def take_all_items_from_container(container):
+def take_all_items_from_container(container, tz):
     item_list = list(container.read_all_items())
-    return time_sequential_data_frame(item_list)
+    return time_sequential_data_frame(item_list, tz)
 
 
-def take_items_from_container(container, begin, end):
-    begin_ = begin.isoformat()
-    end_ = end.isoformat()
-    print("{} -> {}".format(begin_, end_))
+def take_items_from_container(container, begin, end, tz):
+    begin_ = begin.astimezone(timezone('UTC')).isoformat()
+    end_ = end.astimezone(timezone('UTC')).isoformat()
+    print("{} -> {}".format(begin, end))
     item_list = list(container.query_items(
         query="SELECT * FROM c WHERE c.measuredAt BETWEEN @begin AND @end",
         parameters=[
@@ -50,7 +50,7 @@ def take_items_from_container(container, begin, end):
             {"name": "@end", "value": end_}
         ],
         enable_cross_partition_query=True))
-    return time_sequential_data_frame(item_list)
+    return time_sequential_data_frame(item_list, tz)
 
 
 def calculate_absolute_humidity(df):
@@ -65,10 +65,8 @@ def calculate_absolute_humidity(df):
     return df
 
 
-def plot(df, sensorIds, filename):
-    tz = timezone('Asia/Tokyo')
+def plot(df, sensorIds, filename, tz):
     #
-    df['measuredAt'] = df['measuredAt'].map(lambda x: x.astimezone(tz))
     df = calculate_absolute_humidity(df)
     df = df.set_index('measuredAt')
     print(df)
@@ -230,16 +228,14 @@ def take_first_and_last_items(container):
     return (first, last)
 
 
-def date_sequence(first, last):
-    first_ = datetime.strptime(first.get("measuredAt"), "%Y-%m-%dT%H:%M:%SZ")
-    last_ = datetime.strptime(last.get("measuredAt"), "%Y-%m-%dT%H:%M:%SZ")
-    t = first_
-    while t <= last_:
+def date_sequence(begin, end):
+    t = begin
+    while t <= end:
         yield t
         t += timedelta(days=1)
 
 
-def split_weekly(first_last_items):
+def split_weekly(begin, end):
     def attach_weeknumber(ds):
         return [(d.isocalendar()[1], d) for d in ds]
 
@@ -250,7 +246,7 @@ def split_weekly(first_last_items):
     def value(keyvalue):
         (k, v) = keyvalue
         return v
-    ds = date_sequence(*first_last_items)
+    ds = date_sequence(begin, end)
     xs = attach_weeknumber(ds)
     xxs = itertools.groupby(xs, key)
     for _, group in xxs:
@@ -264,17 +260,29 @@ def run(url, key):
     database = cosmos_client.get_database_client(database_name)
     container = database.get_container_client(container_name)
     #
+    tz = timezone('Asia/Tokyo')
     sensorIds = take_sensorId(container)
-    first_last_items = take_first_and_last_items(container)
-    weeklies = split_weekly(first_last_items)
+    (first_item, last_item) = take_first_and_last_items(container)
+    #
+    first = datetime.strptime(
+        first_item.get("measuredAt"), "%Y-%m-%dT%H:%M:%SZ")
+    first = first.astimezone(tz).replace(
+        hour=0, minute=0, second=0, microsecond=0)
+    #
+    last = datetime.strptime(
+        last_item.get("measuredAt"), "%Y-%m-%dT%H:%M:%SZ")
+    last = last.astimezone(tz).replace(
+        hour=23, minute=59, second=59, microsecond=999999)
+
+    weeklies = split_weekly(first, last)
     for week in weeklies:
         begin = week[0]
         end = week[-1] + timedelta(days=1) - timedelta(microseconds=1)
-        df = take_items_from_container(container, begin, end)
+        df = take_items_from_container(container, begin, end, tz)
         begin_ = begin.strftime('%Y-%m-%d')
         end_ = end.strftime('%Y-%m-%d')
         filename = "{}_{}.png".format(begin_, end_)
-        plot(df, sensorIds, filename)
+        plot(df, sensorIds, filename, tz)
         print("----------")
 
 

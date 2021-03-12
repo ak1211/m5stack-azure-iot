@@ -9,7 +9,7 @@ from datetime import datetime
 from dateutil import parser
 
 
-def list_temp_humi_pres(item_list):
+def list_temp_humi_pres_tvoc_co2(item_list):
     for doc in item_list:
         id_ = doc.get('id')
         sid = doc.get('sensorId')
@@ -41,10 +41,10 @@ def list_temp_humi_pres(item_list):
         print(output)
 
 
-def list_all_temp_humi_pres(container):
+def list_all_temp_humi_pres_tvoc_co2(container):
     item_list = list(container.read_all_items(max_item_count=100))
     print('Found {} items'.format(item_list.__len__()))
-    list_temp_humi_pres(item_list)
+    list_temp_humi_pres_tvoc_co2(item_list)
 
 
 if __name__ == "__main__":
@@ -58,4 +58,4 @@ if __name__ == "__main__":
         container_name = "Measurements"
         database = client.get_database_client(database_name)
         container = database.get_container_client(container_name)
-        list_all_temp_humi_pres(container)
+        list_all_temp_humi_pres_tvoc_co2(container)

@@ -127,6 +127,8 @@ public:
     }
     //
     static bool messageSending;
+
+private:
     static uint32_t message_id;
 };
 
