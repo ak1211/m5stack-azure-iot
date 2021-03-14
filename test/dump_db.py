@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 #
 # $ pip3 install azure-cosmos
+#
+# Copyright (c) 2021 Akihiro Yamamoto.
+# Licensed under the MIT License <https://spdx.org/licenses/MIT.html>
+# See LICENSE file in the project root for full license information.
 
 from azure.cosmos import CosmosClient
 import sys
