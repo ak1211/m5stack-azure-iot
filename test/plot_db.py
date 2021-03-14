@@ -71,7 +71,7 @@ def plot(df, sensorIds, filename, tz):
     df = df.set_index('measuredAt')
     print(df)
     #
-    major_formatter = DateFormatter('\n%Y-%m-%d\n%H:%M:%S\n%Z', tz=tz)
+    major_formatter = DateFormatter('\n%A\n%Y-%m-%d\n%H:%M:%S %Z', tz=tz)
     major_locator = DayLocator(interval=1, tz=tz)
     minor_formatter = DateFormatter('%H', tz=tz)
     minor_locator = HourLocator(byhour=range(0, 24, 6), tz=tz)
