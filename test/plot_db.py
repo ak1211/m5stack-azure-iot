@@ -75,10 +75,13 @@ def plot(df, sensorIds, filename, tz):
     df = df.set_index('measuredAt')
     print(df)
     #
-    major_formatter = DateFormatter('\n%A\n%Y-%m-%d\n%H:%M:%S %Z', tz=tz)
-    major_locator = DayLocator(interval=1, tz=tz)
+    major_formatter = DateFormatter('%a\n%Y-%m-%d\n%H:%M:%S\n%Z', tz=tz)
+    major_locator = DayLocator(tz=tz)
     minor_formatter = DateFormatter('%H', tz=tz)
     minor_locator = HourLocator(byhour=range(0, 24, 6), tz=tz)
+    #
+    xlim = [df.index[0].astimezone(tz).replace(hour=0, minute=0, second=0, microsecond=0),
+            df.index[-1]]
     #
     fig, axs = plt.subplots(4, 2, figsize=(32, 32))
     #
@@ -86,7 +89,8 @@ def plot(df, sensorIds, filename, tz):
     axs[0, 0].xaxis.set_major_formatter(major_formatter)
     axs[0, 0].xaxis.set_minor_locator(minor_locator)
     axs[0, 0].xaxis.set_minor_formatter(minor_formatter)
-    axs[0, 0].set_ylim(-10.0, 60.0)
+    axs[0, 0].set_xlim(xlim)
+    axs[0, 0].set_ybound(-10.0, 60.0)
     axs[0, 0].set_ylabel('$^{\circ}C$')
     axs[0, 0].set_title('temperature', fontsize=18)
     for sid in sensorIds:
@@ -101,6 +105,7 @@ def plot(df, sensorIds, filename, tz):
     axs[0, 1].xaxis.set_major_formatter(major_formatter)
     axs[0, 1].xaxis.set_minor_locator(minor_locator)
     axs[0, 1].xaxis.set_minor_formatter(minor_formatter)
+    axs[0, 1].set_xlim(xlim)
     axs[0, 1].set_ylabel('hPa')
     axs[0, 1].set_title('pressure', fontsize=18)
     for sid in sensorIds:
@@ -115,6 +120,7 @@ def plot(df, sensorIds, filename, tz):
     axs[1, 0].xaxis.set_major_formatter(major_formatter)
     axs[1, 0].xaxis.set_minor_locator(minor_locator)
     axs[1, 0].xaxis.set_minor_formatter(minor_formatter)
+    axs[1, 0].set_xlim(xlim)
     axs[1, 0].set_ylabel('%RH')
     axs[1, 0].set_title('relative humidity', fontsize=18)
     for sid in sensorIds:
@@ -129,6 +135,7 @@ def plot(df, sensorIds, filename, tz):
     axs[1, 1].xaxis.set_major_formatter(major_formatter)
     axs[1, 1].xaxis.set_minor_locator(minor_locator)
     axs[1, 1].xaxis.set_minor_formatter(minor_formatter)
+    axs[1, 1].set_xlim(xlim)
     axs[1, 1].set_ylabel('$mg/m^3$')
     axs[1, 1].set_title('absolute humidity', fontsize=18)
     axs[1, 1].plot(df['absolute_humidity'].dropna(), 's-')
@@ -139,6 +146,7 @@ def plot(df, sensorIds, filename, tz):
     axs[2, 0].xaxis.set_major_formatter(major_formatter)
     axs[2, 0].xaxis.set_minor_locator(minor_locator)
     axs[2, 0].xaxis.set_minor_formatter(minor_formatter)
+    axs[2, 0].set_xlim(xlim)
     axs[2, 0].set_ylabel('ppm')
     axs[2, 0].set_title('(equivalent) CO2', fontsize=18)
     for sid in sensorIds:
@@ -158,6 +166,7 @@ def plot(df, sensorIds, filename, tz):
     axs[2, 1].xaxis.set_major_formatter(major_formatter)
     axs[2, 1].xaxis.set_minor_locator(minor_locator)
     axs[2, 1].xaxis.set_minor_formatter(minor_formatter)
+    axs[2, 1].set_xlim(xlim)
     axs[2, 1].set_ylabel('ppb')
     axs[2, 1].set_title('Total VOC', fontsize=18)
     for sid in sensorIds:
@@ -172,6 +181,7 @@ def plot(df, sensorIds, filename, tz):
     axs[3, 0].xaxis.set_major_formatter(major_formatter)
     axs[3, 0].xaxis.set_minor_locator(minor_locator)
     axs[3, 0].xaxis.set_minor_formatter(minor_formatter)
+    axs[3, 0].set_xlim(xlim)
     axs[3, 0].set_yscale('log')
     axs[3, 0].set_ylabel('ppm')
     axs[3, 0].set_title('(equivalent) CO2', fontsize=18)
@@ -191,6 +201,7 @@ def plot(df, sensorIds, filename, tz):
     axs[3, 1].xaxis.set_major_formatter(major_formatter)
     axs[3, 1].xaxis.set_minor_locator(minor_locator)
     axs[3, 1].xaxis.set_minor_formatter(minor_formatter)
+    axs[3, 1].set_xlim(xlim)
     axs[3, 1].set_yscale('log')
     axs[3, 1].set_ylabel('ppb')
     axs[3, 1].set_title('Total VOC', fontsize=18)
