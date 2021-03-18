@@ -90,7 +90,7 @@ def plot(df, sensorIds, filename, tz):
     axs[0, 0].xaxis.set_minor_locator(minor_locator)
     axs[0, 0].xaxis.set_minor_formatter(minor_formatter)
     axs[0, 0].set_xlim(xlim)
-    axs[0, 0].set_ybound(-10.0, 60.0)
+    axs[0, 0].set_ylim(-10.0, 60.0)
     axs[0, 0].set_ylabel('$^{\circ}C$')
     axs[0, 0].set_title('temperature', fontsize=18)
     for sid in sensorIds:
@@ -106,6 +106,7 @@ def plot(df, sensorIds, filename, tz):
     axs[0, 1].xaxis.set_minor_locator(minor_locator)
     axs[0, 1].xaxis.set_minor_formatter(minor_formatter)
     axs[0, 1].set_xlim(xlim)
+    axs[0, 1].set_ylim(940.0, 1060.0)
     axs[0, 1].set_ylabel('hPa')
     axs[0, 1].set_title('pressure', fontsize=18)
     for sid in sensorIds:
@@ -121,6 +122,7 @@ def plot(df, sensorIds, filename, tz):
     axs[1, 0].xaxis.set_minor_locator(minor_locator)
     axs[1, 0].xaxis.set_minor_formatter(minor_formatter)
     axs[1, 0].set_xlim(xlim)
+    axs[1, 0].set_ylim(0.0, 100.0)
     axs[1, 0].set_ylabel('%RH')
     axs[1, 0].set_title('relative humidity', fontsize=18)
     for sid in sensorIds:
