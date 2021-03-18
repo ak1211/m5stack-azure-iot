@@ -281,15 +281,11 @@ def run(url, key):
     sensorIds = take_sensorId(container)
     (first_item, last_item) = take_first_and_last_items(container)
     #
-    first = datetime.strptime(
-        first_item.get("measuredAt"), "%Y-%m-%dT%H:%M:%SZ")
-    first = first.astimezone(tz).replace(
-        hour=0, minute=0, second=0, microsecond=0)
+    first = parser.parse(first_item.get("measuredAt")).astimezone(
+        tz).replace(hour=0, minute=0, second=0, microsecond=0)
     #
-    last = datetime.strptime(
-        last_item.get("measuredAt"), "%Y-%m-%dT%H:%M:%SZ")
-    last = last.astimezone(tz).replace(
-        hour=23, minute=59, second=59, microsecond=999999)
+    last = parser.parse(last_item.get("measuredAt")).astimezone(
+        tz).replace(hour=23, minute=59, second=59, microsecond=999999)
 
     weeklies = split_weekly(first, last)
     for week in weeklies:
