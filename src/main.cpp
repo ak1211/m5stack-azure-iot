@@ -161,7 +161,7 @@ void display(time_t time, const Bme280::TempHumiPres *bme,
   gmtime_r(&local_time, &local);
   //
   lcd.setCursor(0, 0);
-  lcd.setFont(&fonts::FreeSans9pt7b);
+  lcd.setFont(&fonts::lgfxJapanGothic_20);
   if (system_propaties.has_WIFI_connection) {
     lcd.setTextColor(TFT_GREEN, background_color);
     lcd.printf("  Wifi");
@@ -179,7 +179,7 @@ void display(time_t time, const Bme280::TempHumiPres *bme,
   //
   {
     struct Uptime up = uptime();
-    lcd.printf(" up %2d days, %2d:%2d\n", up.days, up.hours, up.minutes);
+    lcd.printf(" up %2ddays,%2d:%2d\n", up.days, up.hours, up.minutes);
   }
   //
   auto batt_info = getBatteryStatus();
