@@ -5,6 +5,7 @@
 #include "bme280_sensor.hpp"
 #include "credentials.h"
 #include "iothub_client.hpp"
+#include "local_database.hpp"
 #include "scd30_sensor.hpp"
 #include "sgp30_sensor.hpp"
 
@@ -15,20 +16,21 @@
 #include <ctime>
 #include <lwip/apps/sntp.h>
 
-#define LGFX_M5STACK_CORE2
+#define LGFX_M5STACK_CORE2ul
 #include <LovyanGFX.hpp>
 
 //
 // globals
 //
 static LGFX lcd;
-const unsigned long background_color = 0x000000U;
-const unsigned long message_text_color = 0xFFFFFFU;
+static unsigned long background_color = 0x000000U;
+static unsigned long message_text_color = 0xFFFFFFU;
 
 struct SystemProperties {
   Bme280::Sensor bme280;
   Sgp30::Sensor sgp30;
   Scd30::Sensor scd30;
+  LocalDatabase localDatabase;
   File data_logging_file;
   clock_t startup_epoch;
   bool has_WIFI_connection;
@@ -40,6 +42,7 @@ static struct SystemProperties system_propaties = {
     .bme280 = Bme280::Sensor(Credentials.sensor_id.bme280),
     .sgp30 = Sgp30::Sensor(Credentials.sensor_id.sgp30),
     .scd30 = Scd30::Sensor(Credentials.sensor_id.scd30),
+    .localDatabase = LocalDatabase("/sd/measurements.sqlite3"),
     .data_logging_file = File(),
     .startup_epoch = clock(),
     .has_WIFI_connection = false,
@@ -47,52 +50,340 @@ static struct SystemProperties system_propaties = {
     .is_data_logging_to_file = false,
 };
 
-static const char *data_log_file_name = "/data-logging.csv";
-static const char *header_log_file_name = "/header-data-logging.csv";
+static constexpr char data_log_file_name[] = "/data-logging.csv";
+static constexpr char header_log_file_name[] = "/header-data-logging.csv";
 
-static const clock_t SUPPRESSION_TIME_OF_FIRST_PUSH =
-    CLOCKS_PER_SEC * 180; // 180 seconds = 3 minutes
+static constexpr clock_t SUPPRESSION_TIME_OF_FIRST_PUSH =
+    CLOCKS_PER_SEC * 120; // 120 seconds = 2 minutes
 
-static const uint16_t NUM_OF_TRY_TO_WIFI_CONNECTION = 50;
+static constexpr uint16_t NUM_OF_TRY_TO_WIFI_CONNECTION = 50;
 
-static const uint8_t IOTHUB_PUSH_MESSAGE_EVERY_MINUTES = 1; // 1 mimutes
+static constexpr uint8_t IOTHUB_PUSH_MESSAGE_EVERY_MINUTES = 1; // 1 mimutes
 static_assert(IOTHUB_PUSH_MESSAGE_EVERY_MINUTES < 60,
               "IOTHUB_PUSH_MESSAGE_EVERY_MINUTES is lesser than 60 minutes.");
 
-static const uint8_t IOTHUB_PUSH_STATE_EVERY_MINUTES = 15; // 15 minutes
+static constexpr uint8_t IOTHUB_PUSH_STATE_EVERY_MINUTES = 15; // 15 minutes
 static_assert(IOTHUB_PUSH_STATE_EVERY_MINUTES < 60,
               "IOTHUB_PUSH_STATE_EVERY_MINUTES is lesser than 60 minutes.");
 
-static const uint8_t BME280_SENSING_EVERY_SECONDS = 2; // 2 seconds
+static constexpr uint8_t BME280_SENSING_EVERY_SECONDS = 2; // 2 seconds
 static_assert(BME280_SENSING_EVERY_SECONDS < 60,
               "BME280_SENSING_EVERY_SECONDS is lesser than 60 seconds.");
 
-static const uint8_t SGP30_SENSING_EVERY_SECONDS = 1; // 1 seconds
+static constexpr uint8_t SGP30_SENSING_EVERY_SECONDS = 1; // 1 seconds
 static_assert(SGP30_SENSING_EVERY_SECONDS == 1,
               "SGP30_SENSING_EVERY_SECONDS is shoud be 1 seconds.");
 
-static const uint8_t SCD30_SENSING_EVERY_SECONDS = 2; // 2 seconds
+static constexpr uint8_t SCD30_SENSING_EVERY_SECONDS = 2; // 2 seconds
 static_assert(SCD30_SENSING_EVERY_SECONDS < 60,
               "SCD30_SENSING_EVERY_SECONDS is lesser than 60 seconds.");
 
 //
-static void write_header_to_log_file(File &file);
 //
-static void sendConfirmationCallback(IOTHUB_CLIENT_CONFIRMATION_RESULT result);
-static void messageCallback(const char *payLoad, int size);
-static int deviceMethodCallback(const char *methodName,
-                                const unsigned char *payload, int size,
-                                unsigned char **response, int *response_size);
-static void
-connectionStatusCallback(IOTHUB_CLIENT_CONNECTION_STATUS result,
-                         IOTHUB_CLIENT_CONNECTION_STATUS_REASON reason);
-static void deviceTwinCallback(DEVICE_TWIN_UPDATE_STATE updateState,
-                               const unsigned char *payLoad, int size);
+//
+static void write_data_to_log_file(const Bme280::TempHumiPres *bme,
+                                   const Sgp30::TvocEco2 *sgp,
+                                   const Scd30::Co2TempHumi *scd) {
+  if (!bme) {
+    ESP_LOGI("main", "BME280 sensor has problems.");
+    return;
+  } else if (!sgp) {
+    ESP_LOGI("main", "SGP30 sensor has problems.");
+    return;
+  } else if (!scd) {
+    ESP_LOGI("main", "SCD30 sensor has problems.");
+    return;
+  }
+  struct tm utc;
+  gmtime_r(&bme->at, &utc);
+
+  const size_t LENGTH = 1024;
+  char *p = (char *)calloc(LENGTH + 1, sizeof(char));
+  if (p) {
+    size_t i;
+    i = 0;
+    // first field is date and time
+    i += strftime(&p[i], LENGTH - i, "%Y-%m-%dT%H:%M:%SZ", &utc);
+    // 2nd field is temperature
+    i += snprintf(&p[i], LENGTH - i, ", %6.2f", bme->temperature);
+    // 3nd field is relative_humidity
+    i += snprintf(&p[i], LENGTH - i, ", %6.2f", bme->relative_humidity);
+    // 4th field is pressure
+    i += snprintf(&p[i], LENGTH - i, ", %7.2f", bme->pressure);
+    // 5th field is TVOC
+    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp->tvoc);
+    // 6th field is eCo2
+    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp->eCo2);
+    // 7th field is TVOC baseline
+    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp->tvoc_baseline);
+    // 8th field is eCo2 baseline
+    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp->eCo2_baseline);
+    // 9th field is co2
+    i += snprintf(&p[i], LENGTH - i, ", %5d", scd->co2);
+    // 10th field is temperature
+    i += snprintf(&p[i], LENGTH - i, ", %6.2f", scd->temperature);
+    // 11th field is relative_humidity
+    i += snprintf(&p[i], LENGTH - i, ", %6.2f", scd->relative_humidity);
+
+    ESP_LOGI("main", "%s", p);
+
+    // write to file
+    size_t size = system_propaties.data_logging_file.println(p);
+    system_propaties.data_logging_file.flush();
+    ESP_LOGI("main", "wrote size:%u", size);
+  } else {
+    ESP_LOGE("main", "memory allocation error");
+  }
+
+  free(p);
+}
 
 //
 //
 //
-void releaseEvent(Event &e) {}
+static void write_header_to_log_file(File &file) {
+  const size_t LENGTH = 1024;
+  char *p = (char *)calloc(LENGTH + 1, sizeof(char));
+  size_t i;
+  i = 0;
+  // first field is date and time
+  i += snprintf(&p[i], LENGTH - i, "%s", "datetime");
+  // 2nd field is temperature
+  i += snprintf(&p[i], LENGTH - i, ", %s", "temperature[C]");
+  // 3nd field is relative_humidity
+  i += snprintf(&p[i], LENGTH - i, ", %s", "humidity[%RH]");
+  // 4th field is pressure
+  i += snprintf(&p[i], LENGTH - i, ", %s", "pressure[hPa]");
+  // 5th field is TVOC
+  i += snprintf(&p[i], LENGTH - i, ", %s", "TVOC[ppb]");
+  // 6th field is eCo2
+  i += snprintf(&p[i], LENGTH - i, ", %s", "eCo2[ppm]");
+  // 7th field is TVOC baseline
+  i += snprintf(&p[i], LENGTH - i, ", %s", "TVOC baseline");
+  // 8th field is eCo2 baseline
+  i += snprintf(&p[i], LENGTH - i, ", %s", "eCo2 baseline");
+  // 9th field is co2
+  i += snprintf(&p[i], LENGTH - i, ", %s", "Co2[ppm]");
+  // 10th field is temperature
+  i += snprintf(&p[i], LENGTH - i, ", %s", "temperature[C]");
+  // 11th field is relative_humidity
+  i += snprintf(&p[i], LENGTH - i, ", %s", "humidity[%RH]");
+
+  ESP_LOGI("main", "%s", p);
+
+  // write to file
+  size_t size = file.println(p);
+  file.flush();
+  ESP_LOGI("main", "wrote size:%u", size);
+
+  free(p);
+}
+
+//
+// callbacks
+//
+
+//
+//
+//
+static void sendConfirmationCallback(IOTHUB_CLIENT_CONFIRMATION_RESULT result) {
+  if (result == IOTHUB_CLIENT_CONFIRMATION_OK) {
+    ESP_LOGI("main", "Send Confirmation Callback finished.");
+  }
+}
+
+//
+//
+//
+static void messageCallback(const char *payLoad, int size) {
+  ESP_LOGI("main", "Message callback:%s", payLoad);
+}
+
+//
+//
+//
+static int deviceMethodCallback(const char *methodName,
+                                const unsigned char *payload, int size,
+                                unsigned char **response, int *response_size) {
+  ESP_LOGI("main", "Try to invoke method %s", methodName);
+  const char *responseMessage = "\"Successfully invoke device method\"";
+  int result = 200;
+
+  if (strcmp(methodName, "calibration") == 0) {
+    ESP_LOGI("main", "Start calibrate the sensor");
+    if (!system_propaties.sgp30.begin()) {
+      responseMessage = "\"calibration failed\"";
+      result = 503;
+    }
+  } else if (strcmp(methodName, "start") == 0) {
+    ESP_LOGI("main", "Start sending temperature and humidity data");
+    //    messageSending = true;
+  } else if (strcmp(methodName, "stop") == 0) {
+    ESP_LOGI("main", "Stop sending temperature and humidity data");
+    //    messageSending = false;
+  } else {
+    ESP_LOGI("main", "No method %s found", methodName);
+    responseMessage = "\"No method found\"";
+    result = 404;
+  }
+
+  *response_size = strlen(responseMessage) + 1;
+  *response = (unsigned char *)strdup(responseMessage);
+
+  return result;
+}
+
+//
+//
+//
+static void
+connectionStatusCallback(IOTHUB_CLIENT_CONNECTION_STATUS result,
+                         IOTHUB_CLIENT_CONNECTION_STATUS_REASON reason) {
+  switch (reason) {
+  case IOTHUB_CLIENT_CONNECTION_EXPIRED_SAS_TOKEN:
+    // SASトークンの有効期限切れ。
+    ESP_LOGI("main", "SAS token expired.");
+    if (result == IOTHUB_CLIENT_CONNECTION_UNAUTHENTICATED) {
+      //
+      // Info: >>>Connection status: timeout
+      // Info: >>>Re-connect.
+      // Info: Initializing SNTP
+      // assertion "Operating mode must not be set while SNTP client is running"
+      // failed: file
+      // "/home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/esp-idf/components/lwip/lwip/src/apps/sntp/sntp.c",
+      // line 600, function: sntp_setoperatingmode abort() was called at PC
+      // 0x401215bf on core 1
+      //
+      // Esp32MQTTClient 側で再接続時に以上のログが出てabortするので,
+      // この時点で SNTPを停止しておくことで abort を回避する。
+      ESP_LOGI("main", "SAS token expired, stop the SNTP.");
+      sntp_stop();
+    }
+    break;
+  case IOTHUB_CLIENT_CONNECTION_DEVICE_DISABLED:
+    ESP_LOGI("main", "IOTHUB_CLIENT_CONNECTION_DEVICE_DISABLED");
+    break;
+  case IOTHUB_CLIENT_CONNECTION_BAD_CREDENTIAL:
+    ESP_LOGI("main", "IOTHUB_CLIENT_CONNECTION_BAD_CREDENTIAL");
+    break;
+  case IOTHUB_CLIENT_CONNECTION_RETRY_EXPIRED:
+    ESP_LOGI("main", "IOTHUB_CLIENT_CONNECTION_RETRY_EXPIRED");
+    break;
+  case IOTHUB_CLIENT_CONNECTION_NO_NETWORK:
+    ESP_LOGI("main", "IOTHUB_CLIENT_CONNECTION_NO_NETWORK");
+    break;
+  case IOTHUB_CLIENT_CONNECTION_COMMUNICATION_ERROR:
+    ESP_LOGI("main", "IOTHUB_CLIENT_CONNECTION_COMMUNICATION_ERROR");
+    break;
+  case IOTHUB_CLIENT_CONNECTION_OK:
+    ESP_LOGI("main", "IOTHUB_CLIENT_CONNECTION_OK");
+    break;
+  }
+}
+
+//
+//
+//
+static void deviceTwinCallback(DEVICE_TWIN_UPDATE_STATE updateState,
+                               const unsigned char *payLoad, int size) {
+  switch (updateState) {
+  case DEVICE_TWIN_UPDATE_COMPLETE:
+    ESP_LOGI("main", "device_twin_update_complete");
+    break;
+
+  case DEVICE_TWIN_UPDATE_PARTIAL:
+    ESP_LOGI("main", "device_twin_update_partial");
+    break;
+  }
+
+  // Display Twin message.
+  char *buff = (char *)calloc(size + 1, sizeof(char));
+  if (!buff) {
+    ESP_LOGE("main", "memory allocation error");
+    return;
+  }
+
+  strncpy(buff, (const char *)payLoad, size);
+  ESP_LOGI("main", "%s", buff);
+
+  StaticJsonDocument<MESSAGE_MAX_LEN> json;
+  DeserializationError error = deserializeJson(json, buff);
+  if (error) {
+    ESP_LOGE("main", "%s", error.f_str());
+    return;
+  }
+  free(buff);
+  /*
+  //
+  const char *updatedAt = json["reported"]["sgp30_baseline"]["updatedAt"];
+  if (updatedAt)
+  {
+    ESP_LOGI("main", "%s", updatedAt);
+    // set baseline
+    uint16_t tvoc_baseline =
+  json["reported"]["sgp30_baseline"]["tvoc"].as<uint16_t>(); uint16_t
+  eCo2_baseline = json["reported"]["sgp30_baseline"]["eCo2"].as<uint16_t>();
+    ESP_LOGI("main", "eCo2:%d, TVOC:%d", eCo2_baseline, tvoc_baseline);
+    int ret = sgp30.setIAQBaseline(eCo2_baseline, tvoc_baseline);
+    ESP_LOGI("main", "setIAQBaseline():%d", ret);
+  }
+  */
+}
+
+//
+//
+//
+void releaseEvent(Event &e) {
+  union UDataSets {
+    LocalDatabase::Temp temp[10];
+    LocalDatabase::Humi humi[10];
+    LocalDatabase::Pres pres[10];
+    LocalDatabase::Co2 co2[10];
+    LocalDatabase::TVOC tvoc[10];
+  };
+
+  if (system_propaties.localDatabase.healthy()) {
+    UDataSets *p = (UDataSets *)malloc(sizeof(UDataSets));
+    if (p) {
+      size_t count;
+      count = system_propaties.localDatabase.take_least_n_temperatures(
+          system_propaties.bme280.sensor_id, 10, p->temp);
+      for (int i = 0; i < count; i++) {
+        system_propaties.localDatabase.printToSerial(p->temp[i]);
+      }
+      Serial.println("");
+      //
+      count = system_propaties.localDatabase.take_least_n_relative_humidities(
+          system_propaties.bme280.sensor_id, 10, p->humi);
+      for (int i = 0; i < count; i++) {
+        system_propaties.localDatabase.printToSerial(p->humi[i]);
+      }
+      Serial.println("");
+      //
+      count = system_propaties.localDatabase.take_least_n_pressure(
+          system_propaties.bme280.sensor_id, 10, p->pres);
+      for (int i = 0; i < count; i++) {
+        system_propaties.localDatabase.printToSerial(p->pres[i]);
+      }
+      Serial.println("");
+      //
+      count = system_propaties.localDatabase.take_least_n_carbon_deoxide(
+          system_propaties.scd30.sensor_id, 10, p->co2);
+      for (int i = 0; i < count; i++) {
+        system_propaties.localDatabase.printToSerial(p->co2[i]);
+      }
+      Serial.println("");
+      //
+      count = system_propaties.localDatabase.take_least_n_total_voc(
+          system_propaties.sgp30.sensor_id, 10, p->tvoc);
+      for (int i = 0; i < count; i++) {
+        system_propaties.localDatabase.printToSerial(p->tvoc[i]);
+      }
+      Serial.println("");
+    }
+    free(p);
+  }
+}
 
 //
 //
@@ -227,6 +518,11 @@ void setup() {
   // initializing M5Stack and UART, I2C, Touch, RTC, etc. peripherals.
   //
   M5.begin(true, true, true, true);
+
+  //
+  // initializing the local database
+  //
+  system_propaties.localDatabase.beginDb();
 
   switch (SD.cardType()) {
   case CARD_MMC: /* fallthrough */
@@ -413,107 +709,6 @@ void setup() {
 //
 //
 //
-static void write_data_to_log_file(const Bme280::TempHumiPres *bme,
-                                   const Sgp30::TvocEco2 *sgp,
-                                   const Scd30::Co2TempHumi *scd) {
-  if (!bme) {
-    ESP_LOGI("main", "BME280 sensor has problems.");
-    return;
-  } else if (!sgp) {
-    ESP_LOGI("main", "SGP30 sensor has problems.");
-    return;
-  } else if (!scd) {
-    ESP_LOGI("main", "SCD30 sensor has problems.");
-    return;
-  }
-  struct tm utc;
-  gmtime_r(&bme->at, &utc);
-
-  const size_t LENGTH = 1024;
-  char *p = (char *)calloc(LENGTH + 1, sizeof(char));
-  if (p) {
-    size_t i;
-    i = 0;
-    // first field is date and time
-    i += strftime(&p[i], LENGTH - i, "%Y-%m-%dT%H:%M:%SZ", &utc);
-    // 2nd field is temperature
-    i += snprintf(&p[i], LENGTH - i, ", %6.2f", bme->temperature);
-    // 3nd field is relative_humidity
-    i += snprintf(&p[i], LENGTH - i, ", %6.2f", bme->relative_humidity);
-    // 4th field is pressure
-    i += snprintf(&p[i], LENGTH - i, ", %7.2f", bme->pressure);
-    // 5th field is TVOC
-    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp->tvoc);
-    // 6th field is eCo2
-    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp->eCo2);
-    // 7th field is TVOC baseline
-    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp->tvoc_baseline);
-    // 8th field is eCo2 baseline
-    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp->eCo2_baseline);
-    // 9th field is co2
-    i += snprintf(&p[i], LENGTH - i, ", %5d", scd->co2);
-    // 10th field is temperature
-    i += snprintf(&p[i], LENGTH - i, ", %6.2f", scd->temperature);
-    // 11th field is relative_humidity
-    i += snprintf(&p[i], LENGTH - i, ", %6.2f", scd->relative_humidity);
-
-    ESP_LOGI("main", "%s", p);
-
-    // write to file
-    size_t size = system_propaties.data_logging_file.println(p);
-    system_propaties.data_logging_file.flush();
-    ESP_LOGI("main", "wrote size:%u", size);
-  } else {
-    ESP_LOGE("main", "memory allocation error");
-  }
-
-  free(p);
-}
-
-//
-//
-//
-static void write_header_to_log_file(File &file) {
-  const size_t LENGTH = 1024;
-  char *p = (char *)calloc(LENGTH + 1, sizeof(char));
-  size_t i;
-  i = 0;
-  // first field is date and time
-  i += snprintf(&p[i], LENGTH - i, "%s", "datetime");
-  // 2nd field is temperature
-  i += snprintf(&p[i], LENGTH - i, ", %s", "temperature[C]");
-  // 3nd field is relative_humidity
-  i += snprintf(&p[i], LENGTH - i, ", %s", "humidity[%RH]");
-  // 4th field is pressure
-  i += snprintf(&p[i], LENGTH - i, ", %s", "pressure[hPa]");
-  // 5th field is TVOC
-  i += snprintf(&p[i], LENGTH - i, ", %s", "TVOC[ppb]");
-  // 6th field is eCo2
-  i += snprintf(&p[i], LENGTH - i, ", %s", "eCo2[ppm]");
-  // 7th field is TVOC baseline
-  i += snprintf(&p[i], LENGTH - i, ", %s", "TVOC baseline");
-  // 8th field is eCo2 baseline
-  i += snprintf(&p[i], LENGTH - i, ", %s", "eCo2 baseline");
-  // 9th field is co2
-  i += snprintf(&p[i], LENGTH - i, ", %s", "Co2[ppm]");
-  // 10th field is temperature
-  i += snprintf(&p[i], LENGTH - i, ", %s", "temperature[C]");
-  // 11th field is relative_humidity
-  i += snprintf(&p[i], LENGTH - i, ", %s", "humidity[%RH]");
-
-  ESP_LOGI("main", "%s", p);
-
-  // write to file
-  size_t size = file.println(p);
-  file.flush();
-  ESP_LOGI("main", "wrote size:%u", size);
-
-  free(p);
-}
-
-//
-//
-//
 static void periodical_push_message(const Bme280::TempHumiPres *bme280_sensed,
                                     const Sgp30::TvocEco2 *sgp30_sensed,
                                     const Scd30::Co2TempHumi *scd30_sensed) {
@@ -550,7 +745,19 @@ static void periodical_push_message(const Bme280::TempHumiPres *bme280_sensed,
         takeMessageFromJsonDocSets(mapToJson(doc_sets, *scd30_sensed)));
   }
   //
+  // store to local database
+  //
   write_data_to_log_file(bme280_sensed, sgp30_sensed, scd30_sensed);
+  //
+  if (bme280_sensed) {
+    system_propaties.localDatabase.insert(*bme280_sensed);
+  }
+  if (sgp30_sensed) {
+    system_propaties.localDatabase.insert(*sgp30_sensed);
+  }
+  if (scd30_sensed) {
+    system_propaties.localDatabase.insert(*scd30_sensed);
+  }
 }
 
 //
@@ -628,149 +835,4 @@ void loop() {
     periodical_update();
     before_clock = now_clock;
   }
-}
-
-//
-//
-//
-static void sendConfirmationCallback(IOTHUB_CLIENT_CONFIRMATION_RESULT result) {
-  if (result == IOTHUB_CLIENT_CONFIRMATION_OK) {
-    ESP_LOGI("main", "Send Confirmation Callback finished.");
-  }
-}
-
-//
-//
-//
-static void messageCallback(const char *payLoad, int size) {
-  ESP_LOGI("main", "Message callback:%s", payLoad);
-}
-
-//
-//
-//
-static int deviceMethodCallback(const char *methodName,
-                                const unsigned char *payload, int size,
-                                unsigned char **response, int *response_size) {
-  ESP_LOGI("main", "Try to invoke method %s", methodName);
-  const char *responseMessage = "\"Successfully invoke device method\"";
-  int result = 200;
-
-  if (strcmp(methodName, "calibration") == 0) {
-    ESP_LOGI("main", "Start calibrate the sensor");
-    if (!system_propaties.sgp30.begin()) {
-      responseMessage = "\"calibration failed\"";
-      result = 503;
-    }
-  } else if (strcmp(methodName, "start") == 0) {
-    ESP_LOGI("main", "Start sending temperature and humidity data");
-    //    messageSending = true;
-  } else if (strcmp(methodName, "stop") == 0) {
-    ESP_LOGI("main", "Stop sending temperature and humidity data");
-    //    messageSending = false;
-  } else {
-    ESP_LOGI("main", "No method %s found", methodName);
-    responseMessage = "\"No method found\"";
-    result = 404;
-  }
-
-  *response_size = strlen(responseMessage) + 1;
-  *response = (unsigned char *)strdup(responseMessage);
-
-  return result;
-}
-
-//
-//
-//
-static void
-connectionStatusCallback(IOTHUB_CLIENT_CONNECTION_STATUS result,
-                         IOTHUB_CLIENT_CONNECTION_STATUS_REASON reason) {
-  switch (reason) {
-  case IOTHUB_CLIENT_CONNECTION_EXPIRED_SAS_TOKEN:
-    // SASトークンの有効期限切れ。
-    ESP_LOGI("main", "SAS token expired.");
-    if (result == IOTHUB_CLIENT_CONNECTION_UNAUTHENTICATED) {
-      //
-      // Info: >>>Connection status: timeout
-      // Info: >>>Re-connect.
-      // Info: Initializing SNTP
-      // assertion "Operating mode must not be set while SNTP client is running"
-      // failed: file
-      // "/home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/esp-idf/components/lwip/lwip/src/apps/sntp/sntp.c",
-      // line 600, function: sntp_setoperatingmode abort() was called at PC
-      // 0x401215bf on core 1
-      //
-      // Esp32MQTTClient 側で再接続時に以上のログが出てabortするので,
-      // この時点で SNTPを停止しておくことで abort を回避する。
-      ESP_LOGI("main", "SAS token expired, stop the SNTP.");
-      sntp_stop();
-    }
-    break;
-  case IOTHUB_CLIENT_CONNECTION_DEVICE_DISABLED:
-    ESP_LOGI("main", "IOTHUB_CLIENT_CONNECTION_DEVICE_DISABLED");
-    break;
-  case IOTHUB_CLIENT_CONNECTION_BAD_CREDENTIAL:
-    ESP_LOGI("main", "IOTHUB_CLIENT_CONNECTION_BAD_CREDENTIAL");
-    break;
-  case IOTHUB_CLIENT_CONNECTION_RETRY_EXPIRED:
-    ESP_LOGI("main", "IOTHUB_CLIENT_CONNECTION_RETRY_EXPIRED");
-    break;
-  case IOTHUB_CLIENT_CONNECTION_NO_NETWORK:
-    ESP_LOGI("main", "IOTHUB_CLIENT_CONNECTION_NO_NETWORK");
-    break;
-  case IOTHUB_CLIENT_CONNECTION_COMMUNICATION_ERROR:
-    ESP_LOGI("main", "IOTHUB_CLIENT_CONNECTION_COMMUNICATION_ERROR");
-    break;
-  case IOTHUB_CLIENT_CONNECTION_OK:
-    ESP_LOGI("main", "IOTHUB_CLIENT_CONNECTION_OK");
-    break;
-  }
-} //
-//
-//
-static void deviceTwinCallback(DEVICE_TWIN_UPDATE_STATE updateState,
-                               const unsigned char *payLoad, int size) {
-  switch (updateState) {
-  case DEVICE_TWIN_UPDATE_COMPLETE:
-    ESP_LOGI("main", "device_twin_update_complete");
-    break;
-
-  case DEVICE_TWIN_UPDATE_PARTIAL:
-    ESP_LOGI("main", "device_twin_update_partial");
-    break;
-  }
-
-  // Display Twin message.
-  char *buff = (char *)calloc(size + 1, sizeof(char));
-  if (!buff) {
-    ESP_LOGE("main", "memory allocation error");
-    return;
-  }
-
-  strncpy(buff, (const char *)payLoad, size);
-  ESP_LOGI("main", "%s", buff);
-
-  StaticJsonDocument<MESSAGE_MAX_LEN> json;
-  DeserializationError error = deserializeJson(json, buff);
-  if (error) {
-    ESP_LOGE("main", "%s", error.f_str());
-    return;
-  }
-  free(buff);
-  /*
-  //
-  const char *updatedAt = json["reported"]["sgp30_baseline"]["updatedAt"];
-  if (updatedAt)
-  {
-    ESP_LOGI("main", "%s", updatedAt);
-    // set baseline
-    uint16_t tvoc_baseline =
-  json["reported"]["sgp30_baseline"]["tvoc"].as<uint16_t>(); uint16_t
-  eCo2_baseline = json["reported"]["sgp30_baseline"]["eCo2"].as<uint16_t>();
-    ESP_LOGI("main", "eCo2:%d, TVOC:%d", eCo2_baseline, tvoc_baseline);
-    int ret = sgp30.setIAQBaseline(eCo2_baseline, tvoc_baseline);
-    ESP_LOGI("main", "setIAQBaseline():%d", ret);
-  }
-  */
 }

@@ -10,8 +10,8 @@
 #include <ctime>
 
 namespace Scd30 {
-static const uint8_t SMOOTHING_PERIOD_AS_2N = 5; // 2^5 =32
-static const uint8_t SMOOTHING_PERIOD = 1 << SMOOTHING_PERIOD_AS_2N;
+static constexpr uint8_t SMOOTHING_PERIOD_AS_2N = 5; // 2^5 =32
+static constexpr uint8_t SMOOTHING_PERIOD = 1 << SMOOTHING_PERIOD_AS_2N;
 //
 //
 //
@@ -38,6 +38,8 @@ inline uint32_t calculateAbsoluteHumidity(float temperature, float humidity) {
 class Sensor {
 public:
   static const size_t SENSOR_ID_MAX_LEN = 50;
+  const char sensor_id[SENSOR_ID_MAX_LEN + 1];
+  //
   Sensor(const char *custom_sensor_id) : sensor_id("") {
     memset(const_cast<char *>(sensor_id), 0, SENSOR_ID_MAX_LEN + 1);
     strncpy(const_cast<char *>(sensor_id), custom_sensor_id, SENSOR_ID_MAX_LEN);
@@ -75,8 +77,6 @@ public:
 private:
   SCD30 scd30;
   bool scd30_healthy;
-  //
-  const char sensor_id[SENSOR_ID_MAX_LEN + 1];
   //
   uint16_t co2_ring[SMOOTHING_PERIOD];      // ppm
   float temperature_ring[SMOOTHING_PERIOD]; // degree celsius

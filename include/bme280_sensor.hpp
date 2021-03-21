@@ -27,7 +27,9 @@ struct TempHumiPres {
 //
 class Sensor {
 public:
-  static const size_t SENSOR_ID_MAX_LEN = 50;
+  static constexpr size_t SENSOR_ID_MAX_LEN = 50;
+  const char sensor_id[SENSOR_ID_MAX_LEN + 1];
+  //
   Sensor(const char *custom_sensor_id) : sensor_id("") {
     memset(const_cast<char *>(sensor_id), 0, SENSOR_ID_MAX_LEN + 1);
     strncpy(const_cast<char *>(sensor_id), custom_sensor_id, SENSOR_ID_MAX_LEN);
@@ -66,7 +68,6 @@ private:
   Adafruit_Sensor *bme280_pressure;
   Adafruit_Sensor *bme280_humidity;
   //
-  const char sensor_id[SENSOR_ID_MAX_LEN + 1];
   struct TempHumiPres latest;
 };
 }; // namespace Bme280
