@@ -2,18 +2,16 @@
 // Licensed under the MIT License <https://spdx.org/licenses/MIT.html>
 // See LICENSE file in the project root for full license information.
 //
-#include <M5Core2.h>
 #include "sgp30_sensor.hpp"
+#include <M5Core2.h>
 
 using namespace Sgp30;
 
 //
 //
 //
-bool Sensor::begin()
-{
-  if (!sgp30.begin())
-  {
+bool Sensor::begin() {
+  if (!sgp30.begin()) {
     sgp30_healthy = false;
     return false;
   }
@@ -26,21 +24,18 @@ bool Sensor::begin()
 //
 //
 //
-TvocEco2 *Sensor::sensing(const time_t &measured_at)
-{
+TvocEco2 *Sensor::sensing(const time_t &measured_at) {
   if (!healthy())
     return nullptr;
   //
-  if (!sgp30.IAQmeasure())
-  {
+  if (!sgp30.IAQmeasure()) {
     sgp30_healthy = false;
     return nullptr;
   }
 
   uint16_t eco2_base;
   uint16_t tvoc_base;
-  if (!sgp30.getIAQBaseline(&eco2_base, &tvoc_base))
-  {
+  if (!sgp30.getIAQBaseline(&eco2_base, &tvoc_base)) {
     sgp30_healthy = false;
     return nullptr;
   }

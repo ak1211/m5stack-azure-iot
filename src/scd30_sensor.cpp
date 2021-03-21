@@ -2,21 +2,19 @@
 // Licensed under the MIT License <https://spdx.org/licenses/MIT.html>
 // See LICENSE file in the project root for full license information.
 //
-#include <M5Core2.h>
 #include "scd30_sensor.hpp"
+#include <M5Core2.h>
 
 using namespace Scd30;
 
 //
 //
 //
-Co2TempHumi *Sensor::sensing(const time_t &measured_at)
-{
+Co2TempHumi *Sensor::sensing(const time_t &measured_at) {
   if (!healthy())
     return nullptr;
   //
-  if (!scd30.dataAvailable())
-  {
+  if (!scd30.dataAvailable()) {
     return nullptr;
   }
   latest.sensor_id = smoothed.sensor_id = sensor_id;

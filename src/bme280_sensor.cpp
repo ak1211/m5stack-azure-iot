@@ -2,16 +2,15 @@
 // Licensed under the MIT License <https://spdx.org/licenses/MIT.html>
 // See LICENSE file in the project root for full license information.
 //
-#include <M5Core2.h>
 #include "bme280_sensor.hpp"
+#include <M5Core2.h>
 
 using namespace Bme280;
 
 //
 //
 //
-bool Sensor::begin(uint8_t i2c_address)
-{
+bool Sensor::begin(uint8_t i2c_address) {
   bme280_temperature = nullptr;
   bme280_pressure = nullptr;
   bme280_humidity = nullptr;
@@ -22,10 +21,8 @@ bool Sensor::begin(uint8_t i2c_address)
   bme280_pressure = bme280.getPressureSensor();
   bme280_humidity = bme280.getHumiditySensor();
   //
-  bme280.setSampling(Adafruit_BME280::MODE_FORCED,
-                     Adafruit_BME280::SAMPLING_X1,
-                     Adafruit_BME280::SAMPLING_X1,
-                     Adafruit_BME280::SAMPLING_X1,
+  bme280.setSampling(Adafruit_BME280::MODE_FORCED, Adafruit_BME280::SAMPLING_X1,
+                     Adafruit_BME280::SAMPLING_X1, Adafruit_BME280::SAMPLING_X1,
                      Adafruit_BME280::FILTER_OFF,
                      Adafruit_BME280::STANDBY_MS_1000);
   return true;
@@ -34,8 +31,7 @@ bool Sensor::begin(uint8_t i2c_address)
 //
 //
 //
-TempHumiPres *Sensor::sensing(const time_t &measured_at)
-{
+TempHumiPres *Sensor::sensing(const time_t &measured_at) {
   if (!healthy())
     return nullptr;
 
