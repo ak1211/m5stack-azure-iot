@@ -18,6 +18,11 @@
 #define M_PI 3.14159265358979323846
 #endif
 
+template <class T> struct Coord {
+  T x;
+  T y;
+};
+
 //
 class SystemHealthView : public Screen::View {
 public:
@@ -118,46 +123,50 @@ public:
     }
     // 秒表示
     constexpr int dot_radius = 4;
-    const int radius =
-        static_cast<int>(floor(min(half_width, half_height) * 0.9));
+    const int16_t radius =
+        static_cast<int16_t>(floor(min(half_width, half_height) * 0.9));
     //
     uint32_t bgcol = Screen::lcd.color888(77, 77, 77);
     uint32_t fgcol = Screen::lcd.color888(232, 107, 107);
     //
-    auto calculate_pos = [&](int tm_sec, int *x, int *y) {
-      constexpr double r90degrees = M_PI / 2.0;
-      constexpr double delta_radian = 2.0 * M_PI / 60.0;
-      const double rad =
-          delta_radian * static_cast<double>(60 - tm_sec) + r90degrees;
-      *x = static_cast<int>(half_width + radius * cos(rad));
-      *y = static_cast<int>(half_height - radius * sin(rad));
-    };
-    //
-    {
-      int x, y;
-      for (int s = 0; s < 60; s++) {
-        calculate_pos(s, &x, &y);
-        auto w = dot_radius + dot_radius + 1;
-        Screen::lcd.fillRect(x - dot_radius, y - dot_radius, w, w,
-                             background_color);
-      }
-      //
-      Screen::lcd.drawCircle(half_width, half_height, radius, bgcol);
-      //
-      calculate_pos(local.tm_sec, &x, &y);
-      Screen::lcd.fillCircle(x, y, dot_radius, fgcol);
+    for (int s = 0; s < 60; s++) {
+      Coord<int16_t> p = calculate_pos(radius, s);
+      auto w = dot_radius + dot_radius + 1;
+      Screen::lcd.fillRect(p.x - dot_radius, p.y - dot_radius, w, w,
+                           background_color);
     }
+    //
+    Screen::lcd.drawCircle(half_width, half_height, radius, bgcol);
+    //
+    Coord<int16_t> p = calculate_pos(radius, local.tm_sec);
+    Screen::lcd.fillCircle(p.x, p.y, dot_radius, fgcol);
   }
 
 private:
+  //
+  Coord<int16_t> calculate_pos(int r, int tm_sec) {
+    const auto half_width = Screen::lcd.width() / 2;
+    const auto half_height = Screen::lcd.height() / 2;
+    constexpr double r90degrees = M_PI / 2.0;
+    constexpr double delta_radian = 2.0 * M_PI / 60.0;
+    const double rad =
+        delta_radian * static_cast<double>(60 - tm_sec) + r90degrees;
+    return {
+        .x = static_cast<int16_t>(half_width + r * cos(rad)),
+        .y = static_cast<int16_t>(half_height - r * sin(rad)),
+    };
+  };
 };
 
 //
 void tile(const char *title, float now, float *before, const char *unit,
-          int32_t cx, int32_t cy, int32_t text_col, int32_t bg_col) {
+          int16_t sx, int16_t sy, int16_t width, int16_t height,
+          int32_t text_col, int32_t bg_col) {
   if (now == *before) {
     return;
   }
+  int16_t cx = sx + width / 2;
+  int16_t cy = sy + height / 2;
   Screen::lcd.setFont(&fonts::lgfxJapanGothic_32);
   Screen::lcd.setTextColor(bg_col, bg_col);
   Screen::lcd.drawFloat(*before, 1, cx, cy);
@@ -172,10 +181,13 @@ void tile(const char *title, float now, float *before, const char *unit,
 }
 //
 void tile(const char *title, uint16_t now, uint16_t *before, const char *unit,
-          int32_t cx, int32_t cy, int32_t text_col, int32_t bg_col) {
+          int16_t sx, int16_t sy, int16_t width, int16_t height,
+          int32_t text_col, int32_t bg_col) {
   if (now == *before) {
     return;
   }
+  int16_t cx = sx + width / 2;
+  int16_t cy = sy + height / 2;
   Screen::lcd.setFont(&fonts::lgfxJapanGothic_32);
   Screen::lcd.setTextColor(bg_col, bg_col);
   Screen::lcd.drawNumber(*before, cx, cy);
@@ -208,39 +220,37 @@ public:
   void render(const System::Status &status, const struct tm &local,
               const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *sgp,
               const Scd30::Co2TempHumi *scd) override {
-    const auto height_div_2 = Screen::lcd.height() / 2;
-    const auto width_div_3 = Screen::lcd.width() / 3;
-    //
     Screen::lcd.setTextDatum(textdatum_t::middle_center);
-    const int distance_x = width_div_3;
-    const int distance_y = height_div_2;
     //
-    const int x1 = width_div_3 / 2;
-    const int x2 = x1 + distance_x;
-    const int x3 = x1 + distance_x + distance_x;
+    const int16_t tile_width = Screen::lcd.width() / 3;
+    const int16_t tile_height = Screen::lcd.height() / 2;
     //
-    const int y1 = height_div_2 / 2;
-    const int y2 = y1 + distance_y;
+    const int x1 = 0;
+    const int x2 = x1 + tile_width;
+    const int x3 = x1 + tile_width + tile_width;
+    //
+    const int y1 = 0;
+    const int y2 = y1 + tile_height;
     // 温度
     if (bme) {
       tile("温度", bme->temperature, &before.temperature, "℃", x1, y1,
-           message_text_color, background_color);
+           tile_width, tile_height, message_text_color, background_color);
       tile("湿度", bme->relative_humidity, &before.relative_humidity, "%RH", x2,
-           y1, message_text_color, background_color);
-      tile("気圧", bme->pressure, &before.pressure, "hPa", x3, y1,
-           message_text_color, background_color);
+           y1, tile_width, tile_height, message_text_color, background_color);
+      tile("気圧", bme->pressure, &before.pressure, "hPa", x3, y1, tile_width,
+           tile_height, message_text_color, background_color);
     }
     // TVOC
     if (sgp) {
-      tile("TVOC", sgp->tvoc, &before.tvoc, "ppb", x1, y2, message_text_color,
-           background_color);
-      tile("eCo2", sgp->eCo2, &before.eCo2, "ppm", x2, y2, message_text_color,
-           background_color);
+      tile("TVOC", sgp->tvoc, &before.tvoc, "ppb", x1, y2, tile_width,
+           tile_height, message_text_color, background_color);
+      tile("eCo2", sgp->eCo2, &before.eCo2, "ppm", x2, y2, tile_width,
+           tile_height, message_text_color, background_color);
     }
     // Co2
     if (scd) {
-      tile("Co2", scd->co2, &before.co2, "ppm", x3, y2, message_text_color,
-           background_color);
+      tile("Co2", scd->co2, &before.co2, "ppm", x3, y2, tile_width, tile_height,
+           message_text_color, background_color);
     }
   }
 
@@ -440,7 +450,9 @@ class RelativeHumidityGraphView : public GraphView {
 public:
   RelativeHumidityGraphView(LocalDatabase &local_database)
       : GraphView(TFT_WHITE, TFT_BLACK, local_database, 0.0, 100.0) {
+    locators.push_back(25.0);
     locators.push_back(50.0);
+    locators.push_back(75.0);
   }
   //
   bool focusIn() override {
@@ -509,7 +521,9 @@ class PressureGraphView : public GraphView {
 public:
   PressureGraphView(LocalDatabase &local_database)
       : GraphView(TFT_WHITE, TFT_BLACK, local_database, 940.0, 1060.0) {
+    locators.push_back(970.0);
     locators.push_back(1000.0);
+    locators.push_back(1030.0);
   }
   //
   bool focusIn() override {
@@ -579,6 +593,7 @@ public:
       : GraphView(TFT_WHITE, TFT_BLACK, local_database, 400.0, 4000.0) {
     locators.push_back(1000.0);
     locators.push_back(2000.0);
+    locators.push_back(3000.0);
   }
   //
   bool focusIn() override {
@@ -650,6 +665,7 @@ public:
       : GraphView(TFT_WHITE, TFT_BLACK, local_database, 400.0, 4000.0) {
     locators.push_back(1000.0);
     locators.push_back(2000.0);
+    locators.push_back(3000.0);
   }
   //
   bool focusIn() override {
@@ -718,9 +734,9 @@ private:
 class TotalVocGraphView : public GraphView {
 public:
   TotalVocGraphView(LocalDatabase &local_database)
-      : GraphView(TFT_WHITE, TFT_BLACK, local_database, 400.0, 4000.0) {
-    locators.push_back(1000.0);
+      : GraphView(TFT_WHITE, TFT_BLACK, local_database, 0.0, 6000.0) {
     locators.push_back(2000.0);
+    locators.push_back(4000.0);
   }
   //
   bool focusIn() override {
