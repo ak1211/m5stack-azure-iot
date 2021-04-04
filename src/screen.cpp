@@ -388,19 +388,19 @@ public:
     setOffset(Screen::lcd.width() - (graph_width + graph_margin * 2) - 1,
               Screen::lcd.height() - (graph_height + graph_margin * 2) - 1);
     //
-    rawid = INT64_MIN;
+    init_rawid();
     if (!database.healthy()) {
       return false;
     }
-    return Screen::View::focusIn();
+    if (Screen::View::focusIn()) {
+      prepare();
+      return true;
+    } else {
+      return false;
+    }
   }
   //
-  void render(const System::Status &, const struct tm &local,
-              const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *,
-              const Scd30::Co2TempHumi *) override {
-    if (rawid == database.rawid_temperature) {
-      return;
-    }
+  void prepare() {
     grid();
     //
     Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
@@ -411,6 +411,14 @@ public:
     int16_t cx, cy;
     getGraphCenter(&cx, &cy);
     Screen::lcd.drawString("更新中", cx, cy);
+  }
+  //
+  void render(const System::Status &, const struct tm &local,
+              const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *,
+              const Scd30::Co2TempHumi *) override {
+    if (!need_for_update()) {
+      return;
+    }
     //
     // 次回の測定(毎分0秒)まで残り45秒以上ある場合だけ, この後の作業を開始する。
     //
@@ -443,6 +451,10 @@ public:
 
 private:
   int64_t rawid;
+  //
+  inline void init_rawid() { rawid = INT64_MIN; }
+  inline void update_rawid() { rawid = database.rawid_temperature; }
+  inline bool need_for_update() { return rawid != database.rawid_temperature; }
 };
 
 //
@@ -459,19 +471,19 @@ public:
     setOffset(Screen::lcd.width() - (graph_width + graph_margin * 2) - 1,
               Screen::lcd.height() - (graph_height + graph_margin * 2) - 1);
     //
-    rawid = INT64_MIN;
+    init_rawid();
     if (!database.healthy()) {
       return false;
     }
-    return Screen::View::focusIn();
+    if (Screen::View::focusIn()) {
+      prepare();
+      return true;
+    } else {
+      return false;
+    }
   }
   //
-  void render(const System::Status &, const struct tm &local,
-              const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *,
-              const Scd30::Co2TempHumi *) override {
-    if (rawid == database.rawid_relative_humidity) {
-      return;
-    }
+  void prepare() {
     grid();
     //
     Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
@@ -482,6 +494,14 @@ public:
     int16_t cx, cy;
     getGraphCenter(&cx, &cy);
     Screen::lcd.drawString("更新中", cx, cy);
+  }
+  //
+  void render(const System::Status &, const struct tm &local,
+              const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *,
+              const Scd30::Co2TempHumi *) override {
+    if (!need_for_update()) {
+      return;
+    }
     //
     // 次回の測定(毎分0秒)まで残り45秒以上ある場合だけ, この後の作業を開始する。
     //
@@ -507,13 +527,19 @@ public:
       //
       database.get_relative_humidities_desc(bme->sensor_id, graph_width / step,
                                             callback);
-      rawid = database.rawid_relative_humidity;
+      update_rawid();
       grid();
     }
   }
 
 private:
   int64_t rawid;
+  //
+  inline void init_rawid() { rawid = INT64_MIN; }
+  inline void update_rawid() { rawid = database.rawid_relative_humidity; }
+  inline bool need_for_update() {
+    return rawid != database.rawid_relative_humidity;
+  }
 };
 
 //
@@ -530,19 +556,19 @@ public:
     setOffset(Screen::lcd.width() - (graph_width + graph_margin * 2) - 1,
               Screen::lcd.height() - (graph_height + graph_margin * 2) - 1);
     //
-    rawid = INT64_MIN;
+    init_rawid();
     if (!database.healthy()) {
       return false;
     }
-    return Screen::View::focusIn();
+    if (Screen::View::focusIn()) {
+      prepare();
+      return true;
+    } else {
+      return false;
+    }
   }
   //
-  void render(const System::Status &, const struct tm &local,
-              const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *,
-              const Scd30::Co2TempHumi *) override {
-    if (rawid == database.rawid_pressure) {
-      return;
-    }
+  void prepare() {
     grid();
     //
     Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
@@ -553,6 +579,14 @@ public:
     int16_t cx, cy;
     getGraphCenter(&cx, &cy);
     Screen::lcd.drawString("更新中", cx, cy);
+  }
+  //
+  void render(const System::Status &, const struct tm &local,
+              const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *,
+              const Scd30::Co2TempHumi *) override {
+    if (!need_for_update()) {
+      return;
+    }
     //
     // 次回の測定(毎分0秒)まで残り45秒以上ある場合だけ, この後の作業を開始する。
     //
@@ -577,20 +611,25 @@ public:
       };
       //
       database.get_pressures_desc(bme->sensor_id, graph_width / step, callback);
-      rawid = database.rawid_pressure;
+      update_rawid();
       grid();
     }
   }
 
 private:
   int64_t rawid;
+  //
+  inline void init_rawid() { rawid = INT64_MIN; }
+  inline void update_rawid() { rawid = database.rawid_pressure; }
+  inline bool need_for_update() { return rawid != database.rawid_pressure; }
 };
 
 //
 class Co2GraphView : public GraphView {
 public:
   Co2GraphView(LocalDatabase &local_database)
-      : GraphView(TFT_WHITE, TFT_BLACK, local_database, 400.0, 4000.0) {
+      : GraphView(TFT_WHITE, TFT_BLACK, local_database, 0.0, 4000.0) {
+    locators.push_back(400.0);
     locators.push_back(1000.0);
     locators.push_back(2000.0);
     locators.push_back(3000.0);
@@ -600,29 +639,37 @@ public:
     setOffset(Screen::lcd.width() - (graph_width + graph_margin * 2) - 1,
               Screen::lcd.height() - (graph_height + graph_margin * 2) - 1);
     //
-    rawid = INT64_MIN;
+    init_rawid();
     if (!database.healthy()) {
       return false;
     }
-    return Screen::View::focusIn();
+    if (Screen::View::focusIn()) {
+      prepare();
+      return true;
+    } else {
+      return false;
+    }
   }
   //
-  void render(const System::Status &, const struct tm &local,
-              const Bme280::TempHumiPres *, const Sgp30::TvocEco2 *,
-              const Scd30::Co2TempHumi *scd) override {
-    if (rawid == database.rawid_carbon_dioxide) {
-      return;
-    }
+  void prepare() {
     grid();
     //
     Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
     Screen::lcd.setTextDatum(textdatum_t::top_left);
-    Screen::lcd.drawString("二酸化炭素 ppm", 3, 3);
+    Screen::lcd.drawString("二酸化炭素(CO2) ppm", 3, 3);
     //
     Screen::lcd.setTextDatum(textdatum_t::middle_center);
     int16_t cx, cy;
     getGraphCenter(&cx, &cy);
     Screen::lcd.drawString("更新中", cx, cy);
+  }
+  //
+  void render(const System::Status &, const struct tm &local,
+              const Bme280::TempHumiPres *, const Sgp30::TvocEco2 *,
+              const Scd30::Co2TempHumi *scd) override {
+    if (!need_for_update()) {
+      return;
+    }
     //
     // 次回の測定(毎分0秒)まで残り45秒以上ある場合だけ, この後の作業を開始する。
     //
@@ -649,20 +696,27 @@ public:
       //
       database.get_carbon_deoxides_desc(scd->sensor_id, graph_width / step,
                                         callback);
-      rawid = database.rawid_carbon_dioxide;
+      update_rawid();
       grid();
     }
   }
 
 private:
   int64_t rawid;
+  //
+  inline void init_rawid() { rawid = INT64_MIN; }
+  inline void update_rawid() { rawid = database.rawid_carbon_dioxide; }
+  inline bool need_for_update() {
+    return rawid != database.rawid_carbon_dioxide;
+  }
 };
 
 //
 class EquivalentCo2GraphView : public GraphView {
 public:
   EquivalentCo2GraphView(LocalDatabase &local_database)
-      : GraphView(TFT_WHITE, TFT_BLACK, local_database, 400.0, 4000.0) {
+      : GraphView(TFT_WHITE, TFT_BLACK, local_database, 0.0, 4000.0) {
+    locators.push_back(400.0);
     locators.push_back(1000.0);
     locators.push_back(2000.0);
     locators.push_back(3000.0);
@@ -672,19 +726,19 @@ public:
     setOffset(Screen::lcd.width() - (graph_width + graph_margin * 2) - 1,
               Screen::lcd.height() - (graph_height + graph_margin * 2) - 1);
     //
-    rawid = INT64_MIN;
+    init_rawid();
     if (!database.healthy()) {
       return false;
     }
-    return Screen::View::focusIn();
+    if (Screen::View::focusIn()) {
+      prepare();
+      return true;
+    } else {
+      return false;
+    }
   }
   //
-  void render(const System::Status &, const struct tm &local,
-              const Bme280::TempHumiPres *, const Sgp30::TvocEco2 *sgp,
-              const Scd30::Co2TempHumi *) override {
-    if (rawid == database.rawid_carbon_dioxide) {
-      return;
-    }
+  void prepare() {
     grid();
     //
     Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
@@ -695,6 +749,14 @@ public:
     int16_t cx, cy;
     getGraphCenter(&cx, &cy);
     Screen::lcd.drawString("更新中", cx, cy);
+  }
+  //
+  void render(const System::Status &, const struct tm &local,
+              const Bme280::TempHumiPres *, const Sgp30::TvocEco2 *sgp,
+              const Scd30::Co2TempHumi *) override {
+    if (!need_for_update()) {
+      return;
+    }
     //
     // 次回の測定(毎分0秒)まで残り45秒以上ある場合だけ, この後の作業を開始する。
     //
@@ -721,13 +783,19 @@ public:
       //
       database.get_carbon_deoxides_desc(sgp->sensor_id, graph_width / step,
                                         callback);
-      rawid = database.rawid_carbon_dioxide;
+      update_rawid();
       grid();
     }
   }
 
 private:
   int64_t rawid;
+  //
+  inline void init_rawid() { rawid = INT64_MIN; }
+  inline void update_rawid() { rawid = database.rawid_carbon_dioxide; }
+  inline bool need_for_update() {
+    return rawid != database.rawid_carbon_dioxide;
+  }
 };
 
 //
@@ -743,19 +811,19 @@ public:
     setOffset(Screen::lcd.width() - (graph_width + graph_margin * 2) - 1,
               Screen::lcd.height() - (graph_height + graph_margin * 2) - 1);
     //
-    rawid = INT64_MIN;
+    init_rawid();
     if (!database.healthy()) {
       return false;
     }
-    return Screen::View::focusIn();
+    if (Screen::View::focusIn()) {
+      prepare();
+      return true;
+    } else {
+      return false;
+    }
   }
   //
-  void render(const System::Status &, const struct tm &local,
-              const Bme280::TempHumiPres *, const Sgp30::TvocEco2 *sgp,
-              const Scd30::Co2TempHumi *) override {
-    if (rawid == database.rawid_total_voc) {
-      return;
-    }
+  void prepare() {
     grid();
     //
     Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
@@ -766,6 +834,14 @@ public:
     int16_t cx, cy;
     getGraphCenter(&cx, &cy);
     Screen::lcd.drawString("更新中", cx, cy);
+  }
+  //
+  void render(const System::Status &, const struct tm &local,
+              const Bme280::TempHumiPres *, const Sgp30::TvocEco2 *sgp,
+              const Scd30::Co2TempHumi *) override {
+    if (!need_for_update()) {
+      return;
+    }
     //
     // 次回の測定(毎分0秒)まで残り45秒以上ある場合だけ, この後の作業を開始する。
     //
@@ -793,13 +869,17 @@ public:
       //
       database.get_total_vocs_desc(sgp->sensor_id, graph_width / step,
                                    callback);
-      rawid = database.rawid_total_voc;
+      update_rawid();
       grid();
     }
   }
 
 private:
   int64_t rawid;
+  //
+  inline void init_rawid() { rawid = INT64_MIN; }
+  inline void update_rawid() { rawid = database.rawid_total_voc; }
+  inline bool need_for_update() { return rawid != database.rawid_total_voc; }
 };
 
 //
@@ -830,6 +910,7 @@ void Screen::begin(int32_t text_color, int32_t bg_color) {
   views[now_view]->focusIn();
 }
 
+//
 void Screen::home() {
   if (now_view == 0) {
     return;
