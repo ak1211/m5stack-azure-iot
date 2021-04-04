@@ -343,8 +343,6 @@ public:
     }
   }
   //
-
-  //
   void progressBar(uint16_t current, uint16_t min, uint16_t max) {
     const int16_t w = Screen::lcd.width();
     const int16_t h = Screen::lcd.height();
@@ -442,6 +440,7 @@ public:
         return true;
       };
       //
+      prepare();
       database.get_temperatures_desc(bme->sensor_id, graph_width / step,
                                      callback);
       rawid = database.rawid_temperature;
@@ -525,6 +524,7 @@ public:
         return true;
       };
       //
+      prepare();
       database.get_relative_humidities_desc(bme->sensor_id, graph_width / step,
                                             callback);
       update_rawid();
@@ -610,6 +610,7 @@ public:
         return true;
       };
       //
+      prepare();
       database.get_pressures_desc(bme->sensor_id, graph_width / step, callback);
       update_rawid();
       grid();
@@ -694,6 +695,7 @@ public:
         return true;
       };
       //
+      prepare();
       database.get_carbon_deoxides_desc(scd->sensor_id, graph_width / step,
                                         callback);
       update_rawid();
@@ -781,6 +783,7 @@ public:
         return true;
       };
       //
+      prepare();
       database.get_carbon_deoxides_desc(sgp->sensor_id, graph_width / step,
                                         callback);
       update_rawid();
@@ -866,7 +869,7 @@ public:
         return true;
       };
       //
-      //
+      prepare();
       database.get_total_vocs_desc(sgp->sensor_id, graph_width / step,
                                    callback);
       update_rawid();
