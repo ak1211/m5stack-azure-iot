@@ -7,7 +7,9 @@
 #include "iothub_client.hpp"
 #include "local_database.hpp"
 #include "scd30_sensor.hpp"
+#include "screen.hpp"
 #include "sgp30_sensor.hpp"
+#include "system_status.hpp"
 
 #include <ArduinoOTA.h>
 #include <M5Core2.h>
@@ -16,38 +18,35 @@
 #include <ctime>
 #include <lwip/apps/sntp.h>
 
-#define LGFX_M5STACK_CORE2ul
 #include <LovyanGFX.hpp>
 
 //
 // globals
 //
-static LGFX lcd;
-static unsigned long background_color = 0x000000U;
-static unsigned long message_text_color = 0xFFFFFFU;
-
 struct SystemProperties {
   Bme280::Sensor bme280;
   Sgp30::Sensor sgp30;
   Scd30::Sensor scd30;
   LocalDatabase localDatabase;
   File data_logging_file;
-  clock_t startup_epoch;
-  bool has_WIFI_connection;
-  bool is_freestanding_mode;
-  bool is_data_logging_to_file;
+  Screen screen;
+  System::Status status;
 };
 
-static struct SystemProperties system_propaties = {
+static SystemProperties system_properties = {
     .bme280 = Bme280::Sensor(Credentials.sensor_id.bme280),
     .sgp30 = Sgp30::Sensor(Credentials.sensor_id.sgp30),
     .scd30 = Scd30::Sensor(Credentials.sensor_id.scd30),
     .localDatabase = LocalDatabase("/sd/measurements.sqlite3"),
     .data_logging_file = File(),
-    .startup_epoch = clock(),
-    .has_WIFI_connection = false,
-    .is_freestanding_mode = false,
-    .is_data_logging_to_file = false,
+    .screen = Screen(system_properties.localDatabase),
+    .status =
+        {
+            .startup_epoch = clock(),
+            .has_WIFI_connection = false,
+            .is_freestanding_mode = false,
+            .is_data_logging_to_file = false,
+        },
 };
 
 static constexpr char data_log_file_name[] = "/data-logging.csv";
@@ -128,8 +127,8 @@ static void write_data_to_log_file(const Bme280::TempHumiPres *bme,
     ESP_LOGI("main", "%s", p);
 
     // write to file
-    size_t size = system_propaties.data_logging_file.println(p);
-    system_propaties.data_logging_file.flush();
+    size_t size = system_properties.data_logging_file.println(p);
+    system_properties.data_logging_file.flush();
     ESP_LOGI("main", "wrote size:%u", size);
   } else {
     ESP_LOGE("main", "memory allocation error");
@@ -211,7 +210,7 @@ static int deviceMethodCallback(const char *methodName,
 
   if (strcmp(methodName, "calibration") == 0) {
     ESP_LOGI("main", "Start calibrate the sensor");
-    if (!system_propaties.sgp30.begin()) {
+    if (!system_properties.sgp30.begin()) {
       responseMessage = "\"calibration failed\"";
       result = 503;
     }
@@ -333,181 +332,37 @@ static void deviceTwinCallback(DEVICE_TWIN_UPDATE_STATE updateState,
 //
 //
 //
-void releaseEvent(Event &e) {
-  union UDataSets {
-    LocalDatabase::Temp temp[10];
-    LocalDatabase::Humi humi[10];
-    LocalDatabase::Pres pres[10];
-    LocalDatabase::Co2 co2[10];
-    LocalDatabase::TVOC tvoc[10];
-  };
+void btnAEvent(Event &e) {
+  system_properties.screen.prev();
 
-  if (system_propaties.localDatabase.healthy()) {
-    UDataSets *p = (UDataSets *)malloc(sizeof(UDataSets));
-    if (p) {
-      size_t count;
-      count = system_propaties.localDatabase.take_least_n_temperatures(
-          system_propaties.bme280.sensor_id, 10, p->temp);
-      for (int i = 0; i < count; i++) {
-        system_propaties.localDatabase.printToSerial(p->temp[i]);
-      }
-      Serial.println("");
-      //
-      count = system_propaties.localDatabase.take_least_n_relative_humidities(
-          system_propaties.bme280.sensor_id, 10, p->humi);
-      for (int i = 0; i < count; i++) {
-        system_propaties.localDatabase.printToSerial(p->humi[i]);
-      }
-      Serial.println("");
-      //
-      count = system_propaties.localDatabase.take_least_n_pressure(
-          system_propaties.bme280.sensor_id, 10, p->pres);
-      for (int i = 0; i < count; i++) {
-        system_propaties.localDatabase.printToSerial(p->pres[i]);
-      }
-      Serial.println("");
-      //
-      count = system_propaties.localDatabase.take_least_n_carbon_deoxide(
-          system_propaties.scd30.sensor_id, 10, p->co2);
-      for (int i = 0; i < count; i++) {
-        system_propaties.localDatabase.printToSerial(p->co2[i]);
-      }
-      Serial.println("");
-      //
-      count = system_propaties.localDatabase.take_least_n_total_voc(
-          system_propaties.sgp30.sensor_id, 10, p->tvoc);
-      for (int i = 0; i < count; i++) {
-        system_propaties.localDatabase.printToSerial(p->tvoc[i]);
-      }
-      Serial.println("");
-    }
-    free(p);
-  }
+  auto bme280_sensed = system_properties.bme280.getLatestTempHumiPres();
+  auto sgp30_sensed = system_properties.sgp30.getTvocEco2WithSmoothing();
+  auto scd30_sensed = system_properties.scd30.getCo2TempHumiWithSmoothing();
+  system_properties.screen.update(system_properties.status, bme280_sensed->at,
+                                  bme280_sensed, sgp30_sensed, scd30_sensed);
 }
 
 //
 //
 //
-struct Uptime {
-  uint16_t days;
-  uint8_t hours;
-  uint8_t minutes;
-  uint8_t seconds;
-};
+void btnCEvent(Event &e) {
+  system_properties.screen.next();
 
-struct Uptime uptime() {
-  clock_t time_epoch = clock() - system_propaties.startup_epoch;
-  uint32_t seconds = static_cast<uint32_t>(time_epoch / CLOCKS_PER_SEC);
-  uint32_t minutes = seconds / 60;
-  uint32_t hours = minutes / 60;
-  uint32_t days = hours / 24;
-  return {
-      .days = static_cast<uint16_t>(days),
-      .hours = static_cast<uint8_t>(hours % 24),
-      .minutes = static_cast<uint8_t>(minutes % 60),
-      .seconds = static_cast<uint8_t>(seconds % 60),
-  };
+  auto bme280_sensed = system_properties.bme280.getLatestTempHumiPres();
+  auto sgp30_sensed = system_properties.sgp30.getTvocEco2WithSmoothing();
+  auto scd30_sensed = system_properties.scd30.getCo2TempHumiWithSmoothing();
+  system_properties.screen.update(system_properties.status, bme280_sensed->at,
+                                  bme280_sensed, sgp30_sensed, scd30_sensed);
 }
 
 //
 //
 //
-struct BatteryStatus {
-  float voltage;
-  float percentage;
-  float current;
-};
+void btnBEvent(Event &e) {
+  system_properties.screen.home();
 
-inline bool isBatteryCharging(struct BatteryStatus &stat) {
-  return (stat.current > 0.00f);
-}
-
-inline bool isBatteryDischarging(struct BatteryStatus &stat) {
-  return (stat.current < 0.00f);
-}
-
-struct BatteryStatus getBatteryStatus() {
-  float batt_v = M5.Axp.GetBatVoltage();
-  float batt_full_v = 4.18f;
-  float shutdown_v = 3.00f;
-  float indicated_v = batt_v - shutdown_v;
-  float fullscale_v = batt_full_v - shutdown_v;
-  float batt_percentage = 100.00f * indicated_v / fullscale_v;
-  float batt_current = M5.Axp.GetBatCurrent(); // mA
-  return {
-      .voltage = batt_v,
-      .percentage = min(batt_percentage, 100.0f),
-      .current = batt_current,
-  };
-}
-
-//
-//
-//
-void display(time_t time, const Bme280::TempHumiPres *bme,
-             const Sgp30::TvocEco2 *sgp, const Scd30::Co2TempHumi *scd) {
-  // time zone offset UTC+9 = asia/tokyo
-  time_t local_time = time + 9 * 60 * 60;
-  struct tm local;
-  gmtime_r(&local_time, &local);
-  //
-  lcd.setCursor(0, 0);
-  lcd.setFont(&fonts::lgfxJapanGothic_20);
-  if (system_propaties.has_WIFI_connection) {
-    lcd.setTextColor(TFT_GREEN, background_color);
-    lcd.printf("  Wifi");
-  } else {
-    lcd.setTextColor(TFT_RED, background_color);
-    lcd.printf("NoWifi");
-  }
-  lcd.setTextColor(message_text_color, background_color);
-  //
-  if (system_propaties.is_freestanding_mode) {
-    lcd.printf("/FREESTAND");
-  } else {
-    lcd.printf("/CONNECTED");
-  }
-  //
-  {
-    struct Uptime up = uptime();
-    lcd.printf(" up %2ddays,%2d:%2d\n", up.days, up.hours, up.minutes);
-  }
-  //
-  auto batt_info = getBatteryStatus();
-  char sign = ' ';
-  if (isBatteryCharging(batt_info)) {
-    sign = '+';
-  } else if (isBatteryDischarging(batt_info)) {
-    sign = '-';
-  } else {
-    sign = ' ';
-  }
-  lcd.printf("Batt %4.0f%% %4.2fV %c%5.3fA", batt_info.percentage,
-             batt_info.voltage, sign, abs(batt_info.current / 1000.0f));
-  lcd.print("\n");
-  //
-  {
-    char date_time[50] = "";
-    strftime(date_time, sizeof(date_time), "%Y-%m-%d %H:%M:%SJST", &local);
-    lcd.setFont(&fonts::lgfxJapanGothic_20);
-    lcd.printf("%s\n", date_time);
-  }
-  //
-  lcd.setFont(&fonts::lgfxJapanGothic_20);
-  if (bme) {
-    lcd.printf("温度 %6.1f ℃\n", bme->temperature);
-    lcd.printf("湿度 %6.1f ％\n", bme->relative_humidity);
-    lcd.printf("気圧 %6.1f hPa\n", bme->pressure);
-  }
-  if (sgp) {
-    lcd.printf("eCO2 %6d ppm\n", sgp->eCo2);
-    lcd.printf("TVOC %6d ppb\n", sgp->tvoc);
-  }
-  if (scd) {
-    lcd.printf("CO2 %6d ppm\n", scd->co2);
-    lcd.printf("温度 %6.1f ℃\n", scd->temperature);
-    lcd.printf("湿度 %6.1f ％\n", scd->relative_humidity);
-  }
+  system_properties.screen.update(system_properties.status, time(nullptr),
+                                  nullptr, nullptr, nullptr);
 }
 
 //
@@ -522,7 +377,7 @@ void setup() {
   //
   // initializing the local database
   //
-  system_propaties.localDatabase.beginDb();
+  system_properties.localDatabase.beginDb();
 
   switch (SD.cardType()) {
   case CARD_MMC: /* fallthrough */
@@ -531,52 +386,51 @@ void setup() {
     File f = SD.open(header_log_file_name, FILE_WRITE);
     write_header_to_log_file(f);
     f.close();
-    system_propaties.data_logging_file =
+    system_properties.data_logging_file =
         SD.open(data_log_file_name, FILE_APPEND);
-    system_propaties.is_data_logging_to_file = true;
+    system_properties.status.is_data_logging_to_file = true;
     break;
   }
   case CARD_NONE: /* fallthrough */
   case CARD_UNKNOWN:
-    system_propaties.is_data_logging_to_file = false;
+    system_properties.status.is_data_logging_to_file = false;
     break;
   }
 
   //
   // register the button hook
   //
-  M5.Buttons.addHandler(releaseEvent, E_RELEASE);
+  M5.BtnA.addHandler(btnAEvent, E_RELEASE);
+  M5.BtnB.addHandler(btnBEvent, E_RELEASE);
+  M5.BtnC.addHandler(btnCEvent, E_RELEASE);
 
   //
-  // initializing LovyanGFX
+  // initializing screen
   //
-  lcd.init();
-  lcd.setTextColor(message_text_color, background_color);
-  lcd.setCursor(0, 0);
-  lcd.setFont(&fonts::lgfxJapanGothic_20);
+  system_properties.screen.begin();
 
   //
   // connect to Wifi network
   //
-  lcd.println(F("Wifi Connecting..."));
+  Screen::lcd.println(F("Wifi Connecting..."));
   WiFi.begin(Credentials.wifi_ssid, Credentials.wifi_password);
-  system_propaties.has_WIFI_connection = false;
+  system_properties.status.has_WIFI_connection = false;
   for (int16_t n = 1; n <= NUM_OF_TRY_TO_WIFI_CONNECTION; n++) {
     if (WiFi.status() == WL_CONNECTED) {
-      system_propaties.has_WIFI_connection = true;
+      system_properties.status.has_WIFI_connection = true;
       break;
     } else {
       delay(500);
-      lcd.print(F("."));
+      Screen::lcd.print(F("."));
     }
   }
-  if (system_propaties.has_WIFI_connection) {
-    lcd.println(F("Wifi connected"));
-    lcd.println(F("IP address: "));
-    lcd.println(WiFi.localIP());
+  if (system_properties.status.has_WIFI_connection) {
+    Screen::lcd.println(F("Wifi connected"));
+    Screen::lcd.println(F("IP address: "));
+    Screen::lcd.println(WiFi.localIP());
   } else {
-    lcd.println(F("Wifi is NOT connected... freestanding."));
-    system_propaties.is_freestanding_mode = true;
+    Screen::lcd.println(F("Wifi is NOT connected... freestanding."));
+    system_properties.status.is_freestanding_mode = true;
   }
 
   //
@@ -617,7 +471,7 @@ void setup() {
   //
   // initializing IotHub client
   //
-  if (!system_propaties.is_freestanding_mode) {
+  if (!system_properties.status.is_freestanding_mode) {
     IotHubClient::init(sendConfirmationCallback, messageCallback,
                        deviceMethodCallback, deviceTwinCallback,
                        connectionStatusCallback);
@@ -651,59 +505,58 @@ void setup() {
     M5.Rtc.SetDate(&rtcDate);
   } else {
     ESP_LOGI("main", "sntp disabled.");
+    //
+    // get time and date from RTC
+    //
+    RTC_DateTypeDef rtcDate;
+    RTC_TimeTypeDef rtcTime;
+    M5.Rtc.GetDate(&rtcDate);
+    M5.Rtc.GetTime(&rtcTime);
+    ESP_LOGI("main", "RTC \"%04d-%02d-%02dT%02d:%02d:%02dZ\"", rtcDate.Year,
+             rtcDate.Month, rtcDate.Date, rtcTime.Hours, rtcTime.Minutes,
+             rtcTime.Seconds);
   }
-
-  //
-  // get time and date from RTC
-  //
-  RTC_DateTypeDef rtcDate;
-  RTC_TimeTypeDef rtcTime;
-  M5.Rtc.GetDate(&rtcDate);
-  M5.Rtc.GetTime(&rtcTime);
-  ESP_LOGI("main", "RTC \"%04d-%02d-%02dT%02d:%02d:%02dZ\"", rtcDate.Year,
-           rtcDate.Month, rtcDate.Date, rtcTime.Hours, rtcTime.Minutes,
-           rtcTime.Seconds);
 
   //
   // initializing sensor
   //
   {
-    bool bme = system_propaties.bme280.begin();
-    bool sgp = system_propaties.sgp30.begin();
-    bool scd = system_propaties.scd30.begin();
+    bool bme = system_properties.bme280.begin();
+    bool sgp = system_properties.sgp30.begin();
+    bool scd = system_properties.scd30.begin();
     do {
       if (!bme) {
-        lcd.print(F("BME280センサが見つかりません。\n"));
+        Screen::lcd.print(F("BME280センサが見つかりません。\n"));
         delay(100);
-        bme = system_propaties.bme280.begin();
+        bme = system_properties.bme280.begin();
       }
       if (!sgp) {
-        lcd.print(F("SGP30センサが見つかりません。\n"));
+        Screen::lcd.print(F("SGP30センサが見つかりません。\n"));
         delay(100);
-        sgp = system_propaties.sgp30.begin();
+        sgp = system_properties.sgp30.begin();
       }
       if (!scd) {
-        lcd.print(F("SCD30センサが見つかりません。\n"));
+        Screen::lcd.print(F("SCD30センサが見つかりません。\n"));
         delay(100);
-        scd = system_propaties.scd30.begin();
+        scd = system_properties.scd30.begin();
       }
     } while (!(bme && sgp && scd));
-    lcd.fillScreen(background_color);
+    Screen::lcd.clear();
     assert(bme);
     assert(sgp);
     assert(scd);
-    system_propaties.scd30.printSensorDetails();
-    system_propaties.sgp30.printSensorDetails();
-    system_propaties.bme280.printSensorDetails();
+    system_properties.scd30.printSensorDetails();
+    system_properties.sgp30.printSensorDetails();
+    system_properties.bme280.printSensorDetails();
     //
-    time_t now = time(NULL);
-    display(now, nullptr, nullptr, nullptr);
+    system_properties.screen.update(system_properties.status, time(nullptr),
+                                    nullptr, nullptr, nullptr);
   }
 
   //
   // start up
   //
-  system_propaties.startup_epoch = clock();
+  system_properties.status.startup_epoch = clock();
 }
 
 //
@@ -722,7 +575,7 @@ static void periodical_push_message(const Bme280::TempHumiPres *bme280_sensed,
         bme280_sensed->temperature, bme280_sensed->relative_humidity);
     ESP_LOGI("main", "absolute humidity: %d", absolute_humidity);
     // set "Absolute Humidity" to the SGP30 sensor.
-    if (!system_propaties.sgp30.setHumidity(absolute_humidity)) {
+    if (!system_properties.sgp30.setHumidity(absolute_humidity)) {
       ESP_LOGE("main", "setHumidity error.");
     }
     IotHubClient::pushMessage(
@@ -744,20 +597,6 @@ static void periodical_push_message(const Bme280::TempHumiPres *bme280_sensed,
     IotHubClient::pushMessage(
         takeMessageFromJsonDocSets(mapToJson(doc_sets, *scd30_sensed)));
   }
-  //
-  // store to local database
-  //
-  write_data_to_log_file(bme280_sensed, sgp30_sensed, scd30_sensed);
-  //
-  if (bme280_sensed) {
-    system_propaties.localDatabase.insert(*bme280_sensed);
-  }
-  if (sgp30_sensed) {
-    system_propaties.localDatabase.insert(*sgp30_sensed);
-  }
-  if (scd30_sensed) {
-    system_propaties.localDatabase.insert(*scd30_sensed);
-  }
 }
 
 //
@@ -765,12 +604,12 @@ static void periodical_push_message(const Bme280::TempHumiPres *bme280_sensed,
 //
 static void periodical_push_state() {
   JsonDocSets doc_sets = {};
-  struct BatteryStatus batt_state = getBatteryStatus();
+  auto batt_state = System::getBatteryStatus();
 
   // get the "smoothed" SGP30 sensor values.
   // eCo2, TVOC
   const Sgp30::TvocEco2 *sgp30_smoothed =
-      system_propaties.sgp30.getTvocEco2WithSmoothing();
+      system_properties.sgp30.getTvocEco2WithSmoothing();
   if (sgp30_smoothed) {
     auto json = takeStateFromJsonDocSets(mapToJson(doc_sets, *sgp30_smoothed));
     char buf[10];
@@ -783,37 +622,74 @@ static void periodical_push_state() {
 //
 //
 //
-static void periodical_update() {
+struct Measurements {
+  time_t measured_at;
+  const Bme280::TempHumiPres *bme280_sensed;
+  const Sgp30::TvocEco2 *sgp30_sensed;
+  const Scd30::Co2TempHumi *scd30_sensed;
+};
+
+static struct Measurements periodical_measurements() {
   time_t measured_at;
   time(&measured_at);
   struct tm utc;
   gmtime_r(&measured_at, &utc);
 
   if (utc.tm_sec % BME280_SENSING_EVERY_SECONDS == 0) {
-    system_propaties.bme280.sensing(measured_at);
+    system_properties.bme280.sensing(measured_at);
   }
   if (utc.tm_sec % SGP30_SENSING_EVERY_SECONDS == 0) {
-    system_propaties.sgp30.sensing(measured_at);
+    system_properties.sgp30.sensing(measured_at);
   }
   if (utc.tm_sec % SCD30_SENSING_EVERY_SECONDS == 0) {
-    system_propaties.scd30.sensing(measured_at);
+    system_properties.scd30.sensing(measured_at);
   }
-  auto bme280_sensed = system_propaties.bme280.getLatestTempHumiPres();
-  auto sgp30_sensed = system_propaties.sgp30.getTvocEco2WithSmoothing();
-  auto scd30_sensed = system_propaties.scd30.getCo2TempHumiWithSmoothing();
-  display(measured_at, bme280_sensed, sgp30_sensed, scd30_sensed);
+  auto bme280_sensed = system_properties.bme280.getLatestTempHumiPres();
+  auto sgp30_sensed = system_properties.sgp30.getTvocEco2WithSmoothing();
+  auto scd30_sensed = system_properties.scd30.getCo2TempHumiWithSmoothing();
+  return {measured_at, bme280_sensed, sgp30_sensed, scd30_sensed};
+}
+
+//
+//
+//
+static void periodical_send_to_iothub(struct Measurements &m) {
+  struct tm utc;
+  gmtime_r(&m.measured_at, &utc);
   //
-  if ((clock() - system_propaties.startup_epoch) <=
+  bool allowToPushMessage =
+      utc.tm_sec == 0 && utc.tm_min % IOTHUB_PUSH_MESSAGE_EVERY_MINUTES == 0;
+  bool allowToPushState =
+      utc.tm_sec == 0 && utc.tm_min % IOTHUB_PUSH_STATE_EVERY_MINUTES == 0;
+  //
+  if ((clock() - system_properties.status.startup_epoch) <=
       SUPPRESSION_TIME_OF_FIRST_PUSH) {
-    return;
+    // Discarding this measurements
+    allowToPushMessage = false;
+    allowToPushState = false;
   }
   //
-  if (!system_propaties.is_freestanding_mode) {
-    if (utc.tm_sec == 0 &&
-        utc.tm_min % IOTHUB_PUSH_MESSAGE_EVERY_MINUTES == 0) {
-      periodical_push_message(bme280_sensed, sgp30_sensed, scd30_sensed);
+  // insert to local database
+  //
+  if (allowToPushMessage) {
+    write_data_to_log_file(m.bme280_sensed, m.sgp30_sensed, m.scd30_sensed);
+    //
+    if (m.bme280_sensed) {
+      system_properties.localDatabase.insert(*m.bme280_sensed);
     }
-    if (utc.tm_sec == 0 && utc.tm_min % IOTHUB_PUSH_STATE_EVERY_MINUTES == 0) {
+    if (m.sgp30_sensed) {
+      system_properties.localDatabase.insert(*m.sgp30_sensed);
+    }
+    if (m.scd30_sensed) {
+      system_properties.localDatabase.insert(*m.scd30_sensed);
+    }
+  }
+  //
+  if (!system_properties.status.is_freestanding_mode) {
+    if (allowToPushMessage) {
+      periodical_push_message(m.bme280_sensed, m.sgp30_sensed, m.scd30_sensed);
+    }
+    if (allowToPushState) {
       periodical_push_state();
     }
     IotHubClient::update(true);
@@ -832,7 +708,11 @@ void loop() {
   clock_t now_clock = clock();
 
   if ((now_clock - before_clock) >= CLOCKS_PER_SEC) {
-    periodical_update();
+    auto m = periodical_measurements();
+    system_properties.screen.update(system_properties.status, m.measured_at,
+                                    m.bme280_sensed, m.sgp30_sensed,
+                                    m.scd30_sensed);
+    periodical_send_to_iothub(m);
     before_clock = now_clock;
   }
 }
