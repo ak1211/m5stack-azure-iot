@@ -18,9 +18,9 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-template <class T> struct Coord {
-  T x;
-  T y;
+struct Coord {
+  int16_t x;
+  int16_t y;
 };
 
 //
@@ -130,7 +130,7 @@ public:
     uint32_t fgcol = Screen::lcd.color888(232, 107, 107);
     //
     for (int s = 0; s < 60; s++) {
-      Coord<int16_t> p = calculate_pos(radius, s);
+      Coord p = calculate_pos(radius, s);
       auto w = dot_radius + dot_radius + 1;
       Screen::lcd.fillRect(p.x - dot_radius, p.y - dot_radius, w, w,
                            background_color);
@@ -138,13 +138,13 @@ public:
     //
     Screen::lcd.drawCircle(half_width, half_height, radius, bgcol);
     //
-    Coord<int16_t> p = calculate_pos(radius, local.tm_sec);
+    Coord p = calculate_pos(radius, local.tm_sec);
     Screen::lcd.fillCircle(p.x, p.y, dot_radius, fgcol);
   }
 
 private:
   //
-  Coord<int16_t> calculate_pos(int r, int tm_sec) {
+  Coord calculate_pos(int r, int tm_sec) {
     const auto half_width = Screen::lcd.width() / 2;
     const auto half_height = Screen::lcd.height() / 2;
     constexpr double r90degrees = M_PI / 2.0;
@@ -205,64 +205,149 @@ void tile(const char *title, uint16_t now, uint16_t *before, const char *unit,
 class SummaryView : public Screen::View {
 public:
   //
-  SummaryView() : View(TFT_WHITE, TFT_BLACK) {}
+  class Tile {
+  public:
+    char caption[7];
+    char unit[7];
+    char before[7];
+    char now[7];
+    int32_t text_color;
+    int32_t background_color;
+    Coord left_top;
+    int16_t width;
+    int16_t height;
+    Tile(const char *caption_, const char *unit_, int32_t text_col,
+         int32_t bg_col) {
+      strncpy(caption, caption_, sizeof(caption));
+      strncpy(unit, unit_, sizeof(unit));
+      strncpy(before, "", sizeof(before));
+      strncpy(now, "", sizeof(now));
+      text_color = text_col;
+      background_color = bg_col;
+    }
+    //
+    Tile &setCoord(Coord xy, int16_t w, int16_t h) {
+      left_top = xy;
+      width = w;
+      height = h;
+      return *this;
+    }
+    //
+    Tile &prepare() {
+      int16_t cx = left_top.x + width / 2;
+      int16_t cy = left_top.y + height / 2;
+      Screen::lcd.fillRect(left_top.x, left_top.y, width, height,
+                           background_color);
+      //
+      Screen::lcd.setTextDatum(textdatum_t::middle_center);
+      Screen::lcd.setTextColor(text_color, background_color);
+      Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
+      Screen::lcd.drawString(caption, cx - 32, cy - 32);
+      Screen::lcd.drawString(unit, cx + 32, cy + 32);
+      return *this;
+    }
+    //
+    void render_notavailable() {
+      strncpy(now, "N/A", sizeof(now));
+      render_sub();
+    }
+    //
+    void render_value_uint16(uint16_t v) {
+      snprintf(now, sizeof(now), "%d", v);
+      render_sub();
+    }
+    //
+    void render_value_float(float v) {
+      snprintf(now, sizeof(now), "%.1f", v);
+      render_sub();
+    }
+
+  private:
+    void render_sub() {
+      if (strcmp(now, before) == 0) {
+        return;
+      }
+      int16_t cx = left_top.x + width / 2;
+      int16_t cy = left_top.y + height / 2;
+      Screen::lcd.setFont(&fonts::lgfxJapanGothic_32);
+      Screen::lcd.setTextDatum(textdatum_t::middle_center);
+      Screen::lcd.setTextColor(background_color, background_color);
+      Screen::lcd.drawString(before, cx, cy);
+      Screen::lcd.setTextColor(text_color, background_color);
+      Screen::lcd.drawString(now, cx, cy);
+      //
+      memcpy(before, now, sizeof(before));
+    }
+  };
+  //
+  SummaryView()
+      : View(TFT_WHITE, TFT_BLACK),
+        tile_temperature("温度", "℃", message_text_color, background_color),
+        tile_relative_humidity("湿度", "%RH", message_text_color,
+                               background_color),
+        tile_pressure("気圧", "hPa", message_text_color, background_color),
+        tile_tvoc("TVOC", "ppb", message_text_color, background_color),
+        tile_eCo2("eCO2", "ppm", message_text_color, background_color),
+        tile_co2("CO2", "ppm", message_text_color, background_color) {}
   //
   bool focusIn() override {
-    before.temperature = 9999.0;
-    before.relative_humidity = 9999.0;
-    before.pressure = 9999.0;
-    before.tvoc = 65535U;
-    before.eCo2 = 65535U;
-    before.co2 = 65535U;
-    return Screen::View::focusIn();
+    const int16_t w = Screen::lcd.width() / 3;
+    const int16_t h = Screen::lcd.height() / 2;
+    //
+    const Coord c1 = {.x = 0, .y = 0};
+    const Coord c2 = {.x = w, .y = 0};
+    const Coord c3 = {.x = w + w, .y = 0};
+    const Coord c4 = {.x = 0, .y = h};
+    const Coord c5 = {.x = w, .y = h};
+    const Coord c6 = {.x = w + w, .y = h};
+    //
+    if (Screen::View::focusIn()) {
+      tile_temperature.setCoord(c1, w, h).prepare();
+      tile_relative_humidity.setCoord(c2, w, h).prepare();
+      tile_pressure.setCoord(c3, w, h).prepare();
+      tile_tvoc.setCoord(c4, w, h).prepare();
+      tile_eCo2.setCoord(c5, w, h).prepare();
+      tile_co2.setCoord(c6, w, h).prepare();
+      return true;
+    } else {
+      return false;
+    }
   }
   //
   void render(const System::Status &status, const struct tm &local,
               const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *sgp,
               const Scd30::Co2TempHumi *scd) override {
-    Screen::lcd.setTextDatum(textdatum_t::middle_center);
-    //
-    const int16_t tile_width = Screen::lcd.width() / 3;
-    const int16_t tile_height = Screen::lcd.height() / 2;
-    //
-    const int x1 = 0;
-    const int x2 = x1 + tile_width;
-    const int x3 = x1 + tile_width + tile_width;
-    //
-    const int y1 = 0;
-    const int y2 = y1 + tile_height;
-    // 温度
+
     if (bme) {
-      tile("温度", bme->temperature, &before.temperature, "℃", x1, y1,
-           tile_width, tile_height, message_text_color, background_color);
-      tile("湿度", bme->relative_humidity, &before.relative_humidity, "%RH", x2,
-           y1, tile_width, tile_height, message_text_color, background_color);
-      tile("気圧", bme->pressure, &before.pressure, "hPa", x3, y1, tile_width,
-           tile_height, message_text_color, background_color);
+      tile_temperature.render_value_float(bme->temperature);
+      tile_relative_humidity.render_value_float(bme->relative_humidity);
+      tile_pressure.render_value_float(bme->pressure);
+    } else {
+      tile_temperature.render_notavailable();
+      tile_relative_humidity.render_notavailable();
+      tile_pressure.render_notavailable();
     }
-    // TVOC
     if (sgp) {
-      tile("TVOC", sgp->tvoc, &before.tvoc, "ppb", x1, y2, tile_width,
-           tile_height, message_text_color, background_color);
-      tile("eCo2", sgp->eCo2, &before.eCo2, "ppm", x2, y2, tile_width,
-           tile_height, message_text_color, background_color);
+      tile_tvoc.render_value_uint16(sgp->tvoc);
+      tile_eCo2.render_value_uint16(sgp->eCo2);
+    } else {
+      tile_tvoc.render_notavailable();
+      tile_eCo2.render_notavailable();
     }
-    // Co2
     if (scd) {
-      tile("Co2", scd->co2, &before.co2, "ppm", x3, y2, tile_width, tile_height,
-           message_text_color, background_color);
+      tile_co2.render_value_uint16(scd->co2);
+    } else {
+      tile_co2.render_notavailable();
     }
   }
 
 private:
-  struct {
-    float temperature;
-    float relative_humidity;
-    float pressure;
-    uint16_t tvoc;
-    uint16_t eCo2;
-    uint16_t co2;
-  } before;
+  Tile tile_temperature;
+  Tile tile_relative_humidity;
+  Tile tile_pressure;
+  Tile tile_tvoc;
+  Tile tile_eCo2;
+  Tile tile_co2;
 };
 
 //
@@ -274,7 +359,7 @@ public:
   const uint32_t line_color = Screen::lcd.color888(232, 120, 120);
   //
   static constexpr int16_t graph_margin = 8;
-  static constexpr int16_t graph_width = 200;
+  static constexpr int16_t graph_width = 240;
   static constexpr int16_t graph_height = 180;
   //
   GraphView(int32_t text_color, int32_t bg_color, LocalDatabase &local_database,
@@ -418,7 +503,8 @@ public:
       return;
     }
     //
-    // 次回の測定(毎分0秒)まで残り45秒以上ある場合だけ, この後の作業を開始する。
+    // 次回の測定(毎分0秒)まで残り45秒以上ある場合だけ,
+    // この後の作業を開始する。
     //
     if (60 - local.tm_sec >= 45) {
       const int16_t y_top = coord_y(value_max);
@@ -502,7 +588,8 @@ public:
       return;
     }
     //
-    // 次回の測定(毎分0秒)まで残り45秒以上ある場合だけ, この後の作業を開始する。
+    // 次回の測定(毎分0秒)まで残り45秒以上ある場合だけ,
+    // この後の作業を開始する。
     //
     if (60 - local.tm_sec >= 45) {
       const int16_t y_top = coord_y(value_max);
@@ -588,7 +675,8 @@ public:
       return;
     }
     //
-    // 次回の測定(毎分0秒)まで残り45秒以上ある場合だけ, この後の作業を開始する。
+    // 次回の測定(毎分0秒)まで残り45秒以上ある場合だけ,
+    // この後の作業を開始する。
     //
     if (60 - local.tm_sec >= 45) {
       const int16_t y_top = coord_y(value_max);
@@ -672,7 +760,8 @@ public:
       return;
     }
     //
-    // 次回の測定(毎分0秒)まで残り45秒以上ある場合だけ, この後の作業を開始する。
+    // 次回の測定(毎分0秒)まで残り45秒以上ある場合だけ,
+    // この後の作業を開始する。
     //
     if (60 - local.tm_sec >= 45) {
       const int16_t y_top = coord_y(value_max);
@@ -760,7 +849,8 @@ public:
       return;
     }
     //
-    // 次回の測定(毎分0秒)まで残り45秒以上ある場合だけ, この後の作業を開始する。
+    // 次回の測定(毎分0秒)まで残り45秒以上ある場合だけ,
+    // この後の作業を開始する。
     //
     if (60 - local.tm_sec >= 45) {
       const int16_t y_top = coord_y(value_max);
@@ -846,7 +936,8 @@ public:
       return;
     }
     //
-    // 次回の測定(毎分0秒)まで残り45秒以上ある場合だけ, この後の作業を開始する。
+    // 次回の測定(毎分0秒)まで残り45秒以上ある場合だけ,
+    // この後の作業を開始する。
     //
     if (60 - local.tm_sec >= 45) {
       const int16_t y_top = coord_y(value_max);
