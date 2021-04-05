@@ -23,6 +23,20 @@ struct Coord {
   int16_t y;
 };
 
+struct Rectangle {
+  int16_t x;
+  int16_t y;
+  int16_t w;
+  int16_t h;
+  //
+  inline Coord center() {
+    return {
+        .x = static_cast<int16_t>(x + w / 2),
+        .y = static_cast<int16_t>(y + h / 2),
+    };
+  }
+};
+
 //
 class SystemHealthView : public Screen::View {
 public:
@@ -130,7 +144,7 @@ public:
     uint32_t fgcol = Screen::lcd.color888(232, 107, 107);
     //
     for (int s = 0; s < 60; s++) {
-      Coord p = calculate_pos(radius, s);
+      Coord p = calculate(radius, s);
       auto w = dot_radius + dot_radius + 1;
       Screen::lcd.fillRect(p.x - dot_radius, p.y - dot_radius, w, w,
                            background_color);
@@ -138,13 +152,13 @@ public:
     //
     Screen::lcd.drawCircle(half_width, half_height, radius, bgcol);
     //
-    Coord p = calculate_pos(radius, local.tm_sec);
+    Coord p = calculate(radius, local.tm_sec);
     Screen::lcd.fillCircle(p.x, p.y, dot_radius, fgcol);
   }
 
 private:
   //
-  Coord calculate_pos(int r, int tm_sec) {
+  Coord calculate(int r, int tm_sec) {
     const auto half_width = Screen::lcd.width() / 2;
     const auto half_height = Screen::lcd.height() / 2;
     constexpr double r90degrees = M_PI / 2.0;
@@ -159,49 +173,6 @@ private:
 };
 
 //
-void tile(const char *title, float now, float *before, const char *unit,
-          int16_t sx, int16_t sy, int16_t width, int16_t height,
-          int32_t text_col, int32_t bg_col) {
-  if (now == *before) {
-    return;
-  }
-  int16_t cx = sx + width / 2;
-  int16_t cy = sy + height / 2;
-  Screen::lcd.setFont(&fonts::lgfxJapanGothic_32);
-  Screen::lcd.setTextColor(bg_col, bg_col);
-  Screen::lcd.drawFloat(*before, 1, cx, cy);
-  Screen::lcd.setTextColor(text_col, bg_col);
-  Screen::lcd.drawFloat(now, 1, cx, cy);
-  //
-  *before = now;
-  //
-  Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
-  Screen::lcd.drawString(title, cx - 32, cy - 32);
-  Screen::lcd.drawString(unit, cx + 32, cy + 32);
-}
-//
-void tile(const char *title, uint16_t now, uint16_t *before, const char *unit,
-          int16_t sx, int16_t sy, int16_t width, int16_t height,
-          int32_t text_col, int32_t bg_col) {
-  if (now == *before) {
-    return;
-  }
-  int16_t cx = sx + width / 2;
-  int16_t cy = sy + height / 2;
-  Screen::lcd.setFont(&fonts::lgfxJapanGothic_32);
-  Screen::lcd.setTextColor(bg_col, bg_col);
-  Screen::lcd.drawNumber(*before, cx, cy);
-  Screen::lcd.setTextColor(text_col, bg_col);
-  Screen::lcd.drawNumber(now, cx, cy);
-  //
-  *before = now;
-  //
-  Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
-  Screen::lcd.drawString(title, cx - 32, cy - 32);
-  Screen::lcd.drawString(unit, cx + 32, cy + 32);
-}
-
-//
 class SummaryView : public Screen::View {
 public:
   //
@@ -213,9 +184,7 @@ public:
     char now[7];
     int32_t text_color;
     int32_t background_color;
-    Coord left_top;
-    int16_t width;
-    int16_t height;
+    Rectangle rect;
     Tile(const char *caption_, const char *unit_, int32_t text_col,
          int32_t bg_col) {
       strncpy(caption, caption_, sizeof(caption));
@@ -226,57 +195,56 @@ public:
       background_color = bg_col;
     }
     //
-    Tile &setCoord(Coord xy, int16_t w, int16_t h) {
-      left_top = xy;
-      width = w;
-      height = h;
+    Tile &setRectangle(Rectangle r) {
+      rect = r;
       return *this;
     }
     //
     Tile &prepare() {
-      int16_t cx = left_top.x + width / 2;
-      int16_t cy = left_top.y + height / 2;
-      Screen::lcd.fillRect(left_top.x, left_top.y, width, height,
-                           background_color);
+      Coord center = rect.center();
+      Screen::lcd.fillRect(rect.x, rect.y, rect.w, rect.h, background_color);
       //
       Screen::lcd.setTextDatum(textdatum_t::middle_center);
       Screen::lcd.setTextColor(text_color, background_color);
       Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
-      Screen::lcd.drawString(caption, cx - 32, cy - 32);
-      Screen::lcd.drawString(unit, cx + 32, cy + 32);
+      Screen::lcd.drawString(caption, center.x - 32, center.y - 32);
+      Screen::lcd.drawString(unit, center.x + 32, center.y + 32);
+      //
+      render();
       return *this;
     }
     //
     void render_notavailable() {
       strncpy(now, "N/A", sizeof(now));
-      render_sub();
+      if (strncmp(now, before, sizeof(before)) != 0) {
+        render();
+      }
     }
     //
     void render_value_uint16(uint16_t v) {
       snprintf(now, sizeof(now), "%d", v);
-      render_sub();
+      if (strncmp(now, before, sizeof(before)) != 0) {
+        render();
+      }
     }
     //
     void render_value_float(float v) {
       snprintf(now, sizeof(now), "%.1f", v);
-      render_sub();
-    }
-
-  private:
-    void render_sub() {
-      if (strcmp(now, before) == 0) {
-        return;
+      if (strncmp(now, before, sizeof(before)) != 0) {
+        render();
       }
-      int16_t cx = left_top.x + width / 2;
-      int16_t cy = left_top.y + height / 2;
+    }
+    //
+    void render() {
+      Coord center = rect.center();
       Screen::lcd.setFont(&fonts::lgfxJapanGothic_32);
       Screen::lcd.setTextDatum(textdatum_t::middle_center);
       Screen::lcd.setTextColor(background_color, background_color);
-      Screen::lcd.drawString(before, cx, cy);
+      Screen::lcd.drawString(before, center.x, center.y);
       Screen::lcd.setTextColor(text_color, background_color);
-      Screen::lcd.drawString(now, cx, cy);
+      Screen::lcd.drawString(now, center.x, center.y);
       //
-      memcpy(before, now, sizeof(before));
+      strncpy(before, now, sizeof(before));
     }
   };
   //
@@ -291,23 +259,26 @@ public:
         tile_co2("CO2", "ppm", message_text_color, background_color) {}
   //
   bool focusIn() override {
-    const int16_t w = Screen::lcd.width() / 3;
-    const int16_t h = Screen::lcd.height() / 2;
+    const int16_t w = static_cast<int16_t>(Screen::lcd.width() / 3);
+    const int16_t h = static_cast<int16_t>(Screen::lcd.height() / 2);
     //
-    const Coord c1 = {.x = 0, .y = 0};
-    const Coord c2 = {.x = w, .y = 0};
-    const Coord c3 = {.x = w + w, .y = 0};
-    const Coord c4 = {.x = 0, .y = h};
-    const Coord c5 = {.x = w, .y = h};
-    const Coord c6 = {.x = w + w, .y = h};
+    Rectangle r[2][3];
+    for (int16_t row = 0; row < 2; ++row) {
+      for (int16_t col = 0; col < 3; ++col) {
+        r[row][col].x = w * col;
+        r[row][col].y = h * row;
+        r[row][col].w = w;
+        r[row][col].h = h;
+      }
+    }
     //
     if (Screen::View::focusIn()) {
-      tile_temperature.setCoord(c1, w, h).prepare();
-      tile_relative_humidity.setCoord(c2, w, h).prepare();
-      tile_pressure.setCoord(c3, w, h).prepare();
-      tile_tvoc.setCoord(c4, w, h).prepare();
-      tile_eCo2.setCoord(c5, w, h).prepare();
-      tile_co2.setCoord(c6, w, h).prepare();
+      tile_temperature.setRectangle(r[0][0]).prepare();
+      tile_relative_humidity.setRectangle(r[0][1]).prepare();
+      tile_pressure.setRectangle(r[0][2]).prepare();
+      tile_tvoc.setRectangle(r[1][0]).prepare();
+      tile_eCo2.setRectangle(r[1][1]).prepare();
+      tile_co2.setRectangle(r[1][2]).prepare();
       return true;
     } else {
       return false;
