@@ -35,12 +35,31 @@ struct Rectangle {
         .y = static_cast<int16_t>(y + h / 2),
     };
   }
+  //
+  inline bool isInside(Coord c) {
+    bool xx = (x <= c.x) && (c.x <= x + w);
+    bool yy = (y <= c.y) && (c.y <= y + h);
+    return xx && yy;
+  }
+};
+
+//
+enum RegistedViewId : uint32_t {
+  IdSystemHealthView,
+  IdClockView,
+  IdSummaryView,
+  IdTemperatureGraphView,
+  IdRelativeHumidityGraphView,
+  IdPressureGraphView,
+  IdTotalVocGraphView,
+  IdEquivalentCo2GraphView,
+  IdCo2GraphView,
 };
 
 //
 class SystemHealthView : public Screen::View {
 public:
-  SystemHealthView() : View(TFT_WHITE, TFT_BLACK) {}
+  SystemHealthView() : View(IdSystemHealthView, TFT_WHITE, TFT_BLACK) {}
   //
   void render(const System::Status &status, const struct tm &local,
               const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *sgp,
@@ -114,7 +133,7 @@ private:
 //
 class ClockView : public Screen::View {
 public:
-  ClockView() : View(TFT_WHITE, TFT_BLACK) {}
+  ClockView() : View(IdClockView, TFT_WHITE, TFT_BLACK) {}
   //
   void render(const System::Status &, const struct tm &local,
               const Bme280::TempHumiPres *, const Sgp30::TvocEco2 *,
@@ -173,152 +192,198 @@ private:
 };
 
 //
+class Tile {
+public:
+  typedef std::pair<const char *, const char *> CaptionT;
+  //
+  uint32_t tap_to_move_view_id;
+  const CaptionT &caption;
+  char before[7];
+  char now[7];
+  int32_t text_color;
+  int32_t background_color;
+  Rectangle rect;
+  Tile(uint32_t tapToMoveViewId, const CaptionT &caption_, int32_t text_col,
+       int32_t bg_col)
+      : tap_to_move_view_id(tapToMoveViewId), caption(caption_) {
+    strncpy(before, "", sizeof(before));
+    strncpy(now, "", sizeof(now));
+    text_color = text_col;
+    background_color = bg_col;
+  }
+  //
+  inline bool isEqual(const CaptionT &right) { return caption == right; }
+  //
+  Tile &setRectangle(Rectangle r) {
+    rect = r;
+    return *this;
+  }
+  //
+  Tile &prepare() {
+    Coord center = rect.center();
+    Screen::lcd.fillRect(rect.x, rect.y, rect.w, rect.h, background_color);
+    //
+    Screen::lcd.setTextDatum(textdatum_t::middle_center);
+    Screen::lcd.setTextColor(text_color, background_color);
+    Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
+    Screen::lcd.drawString(std::get<0>(caption), center.x - 32, center.y - 32);
+    Screen::lcd.drawString(std::get<1>(caption), center.x + 32, center.y + 32);
+    //
+    render();
+    return *this;
+  }
+  //
+  void render_notavailable() {
+    strncpy(now, "N/A", sizeof(now));
+    if (strncmp(now, before, sizeof(before)) != 0) {
+      render();
+    }
+  }
+  //
+  void render_value_uint16(uint16_t v) {
+    snprintf(now, sizeof(now), "%d", v);
+    if (strncmp(now, before, sizeof(before)) != 0) {
+      render();
+    }
+  }
+  //
+  void render_value_float(float v) {
+    snprintf(now, sizeof(now), "%.1f", v);
+    if (strncmp(now, before, sizeof(before)) != 0) {
+      render();
+    }
+  }
+  //
+  void render() {
+    Coord center = rect.center();
+    Screen::lcd.setFont(&fonts::lgfxJapanGothic_32);
+    Screen::lcd.setTextDatum(textdatum_t::middle_center);
+    Screen::lcd.setTextColor(background_color, background_color);
+    Screen::lcd.drawString(before, center.x, center.y);
+    Screen::lcd.setTextColor(text_color, background_color);
+    Screen::lcd.drawString(now, center.x, center.y);
+    //
+    strncpy(before, now, sizeof(before));
+  }
+};
+
+//
 class SummaryView : public Screen::View {
 public:
   //
-  class Tile {
-  public:
-    char caption[7];
-    char unit[7];
-    char before[7];
-    char now[7];
-    int32_t text_color;
-    int32_t background_color;
-    Rectangle rect;
-    Tile(const char *caption_, const char *unit_, int32_t text_col,
-         int32_t bg_col) {
-      strncpy(caption, caption_, sizeof(caption));
-      strncpy(unit, unit_, sizeof(unit));
-      strncpy(before, "", sizeof(before));
-      strncpy(now, "", sizeof(now));
-      text_color = text_col;
-      background_color = bg_col;
-    }
-    //
-    Tile &setRectangle(Rectangle r) {
-      rect = r;
-      return *this;
-    }
-    //
-    Tile &prepare() {
-      Coord center = rect.center();
-      Screen::lcd.fillRect(rect.x, rect.y, rect.w, rect.h, background_color);
-      //
-      Screen::lcd.setTextDatum(textdatum_t::middle_center);
-      Screen::lcd.setTextColor(text_color, background_color);
-      Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
-      Screen::lcd.drawString(caption, center.x - 32, center.y - 32);
-      Screen::lcd.drawString(unit, center.x + 32, center.y + 32);
-      //
-      render();
-      return *this;
-    }
-    //
-    void render_notavailable() {
-      strncpy(now, "N/A", sizeof(now));
-      if (strncmp(now, before, sizeof(before)) != 0) {
-        render();
-      }
-    }
-    //
-    void render_value_uint16(uint16_t v) {
-      snprintf(now, sizeof(now), "%d", v);
-      if (strncmp(now, before, sizeof(before)) != 0) {
-        render();
-      }
-    }
-    //
-    void render_value_float(float v) {
-      snprintf(now, sizeof(now), "%.1f", v);
-      if (strncmp(now, before, sizeof(before)) != 0) {
-        render();
-      }
-    }
-    //
-    void render() {
-      Coord center = rect.center();
-      Screen::lcd.setFont(&fonts::lgfxJapanGothic_32);
-      Screen::lcd.setTextDatum(textdatum_t::middle_center);
-      Screen::lcd.setTextColor(background_color, background_color);
-      Screen::lcd.drawString(before, center.x, center.y);
-      Screen::lcd.setTextColor(text_color, background_color);
-      Screen::lcd.drawString(now, center.x, center.y);
-      //
-      strncpy(before, now, sizeof(before));
-    }
-  };
-  //
   SummaryView()
-      : View(TFT_WHITE, TFT_BLACK),
-        tile_temperature("温度", "℃", message_text_color, background_color),
-        tile_relative_humidity("湿度", "%RH", message_text_color,
-                               background_color),
-        tile_pressure("気圧", "hPa", message_text_color, background_color),
-        tile_tvoc("TVOC", "ppb", message_text_color, background_color),
-        tile_eCo2("eCO2", "ppm", message_text_color, background_color),
-        tile_co2("CO2", "ppm", message_text_color, background_color) {}
+      : View(IdSummaryView, TFT_WHITE, TFT_BLACK),
+        t_temperature(std::make_pair("温度", "℃")),
+        t_relative_humidity(std::make_pair("湿度", "%RH")),
+        t_pressure(std::make_pair("気圧", "hPa")),
+        t_tvoc(std::make_pair("TVOC", "ppb")),
+        t_eCo2(std::make_pair("eCO2", "ppm")),
+        t_co2(std::make_pair("CO2", "ppm")),
+        tiles{
+            Tile(IdTemperatureGraphView, t_temperature, message_text_color,
+                 background_color),
+            Tile(IdRelativeHumidityGraphView, t_relative_humidity,
+                 message_text_color, background_color),
+            Tile(IdPressureGraphView, t_pressure, message_text_color,
+                 background_color),
+            Tile(IdTotalVocGraphView, t_tvoc, message_text_color,
+                 background_color),
+            Tile(IdEquivalentCo2GraphView, t_eCo2, message_text_color,
+                 background_color),
+            Tile(IdCo2GraphView, t_co2, message_text_color, background_color),
+        } {}
   //
   bool focusIn() override {
-    const int16_t w = static_cast<int16_t>(Screen::lcd.width() / 3);
-    const int16_t h = static_cast<int16_t>(Screen::lcd.height() / 2);
-    //
-    Rectangle r[2][3];
-    for (int16_t row = 0; row < 2; ++row) {
-      for (int16_t col = 0; col < 3; ++col) {
-        r[row][col].x = w * col;
-        r[row][col].y = h * row;
-        r[row][col].w = w;
-        r[row][col].h = h;
-      }
-    }
+    const int16_t w = Screen::lcd.width() / 3;
+    const int16_t h = Screen::lcd.height() / 2;
     //
     if (Screen::View::focusIn()) {
-      tile_temperature.setRectangle(r[0][0]).prepare();
-      tile_relative_humidity.setRectangle(r[0][1]).prepare();
-      tile_pressure.setRectangle(r[0][2]).prepare();
-      tile_tvoc.setRectangle(r[1][0]).prepare();
-      tile_eCo2.setRectangle(r[1][1]).prepare();
-      tile_co2.setRectangle(r[1][2]).prepare();
+      for (int16_t i = 0; i < tiles.size(); ++i) {
+        int16_t col = i % 3;
+        int16_t row = i / 3;
+        Rectangle r;
+        r.x = w * col;
+        r.y = h * row;
+        r.w = w;
+        r.h = h;
+        tiles[i].setRectangle(r).prepare();
+      }
       return true;
     } else {
       return false;
     }
   }
   //
+  void releaseEvent(Screen *screen, Event &e) override {
+    Coord c = {
+        .x = e.to.x,
+        .y = e.to.y,
+    };
+    for (auto t : tiles) {
+      if (t.rect.isInside(c)) {
+        screen->moveByViewId(t.tap_to_move_view_id);
+      }
+    }
+  }
+  //
   void render(const System::Status &status, const struct tm &local,
               const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *sgp,
               const Scd30::Co2TempHumi *scd) override {
-
-    if (bme) {
-      tile_temperature.render_value_float(bme->temperature);
-      tile_relative_humidity.render_value_float(bme->relative_humidity);
-      tile_pressure.render_value_float(bme->pressure);
-    } else {
-      tile_temperature.render_notavailable();
-      tile_relative_humidity.render_notavailable();
-      tile_pressure.render_notavailable();
+#define BME(_X_)                                                               \
+  do {                                                                         \
+    if (bme) {                                                                 \
+      t.render_value_float(bme->_X_);                                          \
+    } else {                                                                   \
+      t.render_notavailable();                                                 \
+    }                                                                          \
+  } while (0)
+    //
+#define SGP(_X_)                                                               \
+  do {                                                                         \
+    if (sgp) {                                                                 \
+      t.render_value_uint16(sgp->_X_);                                         \
+    } else {                                                                   \
+      t.render_notavailable();                                                 \
+    }                                                                          \
+  } while (0)
+    //
+#define SCD(_X_)                                                               \
+  do {                                                                         \
+    if (scd) {                                                                 \
+      t.render_value_uint16(scd->_X_);                                         \
+    } else {                                                                   \
+      t.render_notavailable();                                                 \
+    }                                                                          \
+  } while (0)
+    //
+    for (auto t : tiles) {
+      if (t.isEqual(t_temperature)) {
+        BME(temperature);
+      } else if (t.isEqual(t_relative_humidity)) {
+        BME(relative_humidity);
+      } else if (t.isEqual(t_pressure)) {
+        BME(pressure);
+      } else if (t.isEqual(t_tvoc)) {
+        SGP(tvoc);
+      } else if (t.isEqual(t_eCo2)) {
+        SGP(eCo2);
+      } else if (t.isEqual(t_co2)) {
+        SCD(co2);
+      }
     }
-    if (sgp) {
-      tile_tvoc.render_value_uint16(sgp->tvoc);
-      tile_eCo2.render_value_uint16(sgp->eCo2);
-    } else {
-      tile_tvoc.render_notavailable();
-      tile_eCo2.render_notavailable();
-    }
-    if (scd) {
-      tile_co2.render_value_uint16(scd->co2);
-    } else {
-      tile_co2.render_notavailable();
-    }
+#undef SCD
+#undef SGP
+#undef BME
   }
 
 private:
-  Tile tile_temperature;
-  Tile tile_relative_humidity;
-  Tile tile_pressure;
-  Tile tile_tvoc;
-  Tile tile_eCo2;
-  Tile tile_co2;
+  Tile::CaptionT t_temperature;
+  Tile::CaptionT t_relative_humidity;
+  Tile::CaptionT t_pressure;
+  Tile::CaptionT t_tvoc;
+  Tile::CaptionT t_eCo2;
+  Tile::CaptionT t_co2;
+  std::array<Tile, 6> tiles;
 };
 
 //
@@ -333,10 +398,10 @@ public:
   static constexpr int16_t graph_width = 240;
   static constexpr int16_t graph_height = 180;
   //
-  GraphView(int32_t text_color, int32_t bg_color, LocalDatabase &local_database,
-            double vmin, double vmax)
-      : View(text_color, bg_color), database(local_database), value_min(vmin),
-        value_max(vmax) {
+  GraphView(uint32_t id, int32_t text_color, int32_t bg_color,
+            LocalDatabase &local_database, double vmin, double vmax)
+      : View(id, text_color, bg_color), database(local_database),
+        value_min(vmin), value_max(vmax) {
     //
     setOffset(0, 0);
     locators.push_back(value_min);
@@ -426,13 +491,16 @@ protected:
   const double value_min;
   const double value_max;
   std::vector<double> locators;
+
+private:
 };
 
 //
 class TemperatureGraphView : public GraphView {
 public:
   TemperatureGraphView(LocalDatabase &local_database)
-      : GraphView(TFT_WHITE, TFT_BLACK, local_database, -10.0, 60.0) {
+      : GraphView(IdTemperatureGraphView, TFT_WHITE, TFT_BLACK, local_database,
+                  -10.0, 60.0) {
     locators.push_back(0.0);
     locators.push_back(20.0);
     locators.push_back(40.0);
@@ -517,7 +585,8 @@ private:
 class RelativeHumidityGraphView : public GraphView {
 public:
   RelativeHumidityGraphView(LocalDatabase &local_database)
-      : GraphView(TFT_WHITE, TFT_BLACK, local_database, 0.0, 100.0) {
+      : GraphView(IdRelativeHumidityGraphView, TFT_WHITE, TFT_BLACK,
+                  local_database, 0.0, 100.0) {
     locators.push_back(25.0);
     locators.push_back(50.0);
     locators.push_back(75.0);
@@ -604,7 +673,8 @@ private:
 class PressureGraphView : public GraphView {
 public:
   PressureGraphView(LocalDatabase &local_database)
-      : GraphView(TFT_WHITE, TFT_BLACK, local_database, 940.0, 1060.0) {
+      : GraphView(IdPressureGraphView, TFT_WHITE, TFT_BLACK, local_database,
+                  940.0, 1060.0) {
     locators.push_back(970.0);
     locators.push_back(1000.0);
     locators.push_back(1030.0);
@@ -685,14 +755,13 @@ private:
 };
 
 //
-class Co2GraphView : public GraphView {
+class TotalVocGraphView : public GraphView {
 public:
-  Co2GraphView(LocalDatabase &local_database)
-      : GraphView(TFT_WHITE, TFT_BLACK, local_database, 0.0, 4000.0) {
-    locators.push_back(400.0);
-    locators.push_back(1000.0);
+  TotalVocGraphView(LocalDatabase &local_database)
+      : GraphView(IdTotalVocGraphView, TFT_WHITE, TFT_BLACK, local_database,
+                  0.0, 6000.0) {
     locators.push_back(2000.0);
-    locators.push_back(3000.0);
+    locators.push_back(4000.0);
   }
   //
   bool focusIn() override {
@@ -716,7 +785,7 @@ public:
     //
     Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
     Screen::lcd.setTextDatum(textdatum_t::top_left);
-    Screen::lcd.drawString("二酸化炭素(CO2) ppm", 3, 3);
+    Screen::lcd.drawString("総揮発性有機化合物(TVOC) ppb", 3, 3);
     //
     Screen::lcd.setTextDatum(textdatum_t::middle_center);
     int16_t cx, cy;
@@ -725,8 +794,8 @@ public:
   }
   //
   void render(const System::Status &, const struct tm &local,
-              const Bme280::TempHumiPres *, const Sgp30::TvocEco2 *,
-              const Scd30::Co2TempHumi *scd) override {
+              const Bme280::TempHumiPres *, const Sgp30::TvocEco2 *sgp,
+              const Scd30::Co2TempHumi *) override {
     if (!need_for_update()) {
       return;
     }
@@ -743,12 +812,12 @@ public:
       getGraphRight(&rx, nullptr);
       int16_t x = step;
       // 最新のデータを得る
-      auto callback = [&](size_t counter, time_t at, uint16_t co2, uint16_t,
+      auto callback = [&](size_t counter, time_t at, uint16_t tvoc, uint16_t,
                           bool) {
         // 消去
         Screen::lcd.fillRect(rx - x, y_top, step, y_length, background_color);
         // 書き込む
-        int16_t y = coord_y(co2);
+        int16_t y = coord_y(tvoc);
         Screen::lcd.fillRect(rx - x, y, step / 2, abs(y - y_bottom),
                              line_color);
         x += step;
@@ -756,8 +825,8 @@ public:
       };
       //
       prepare();
-      database.get_carbon_deoxides_desc(scd->sensor_id, graph_width / step,
-                                        callback);
+      database.get_total_vocs_desc(sgp->sensor_id, graph_width / step,
+                                   callback);
       update_rawid();
       grid();
     }
@@ -767,17 +836,16 @@ private:
   int64_t rawid;
   //
   inline void init_rawid() { rawid = INT64_MIN; }
-  inline void update_rawid() { rawid = database.rawid_carbon_dioxide; }
-  inline bool need_for_update() {
-    return rawid != database.rawid_carbon_dioxide;
-  }
+  inline void update_rawid() { rawid = database.rawid_total_voc; }
+  inline bool need_for_update() { return rawid != database.rawid_total_voc; }
 };
 
 //
 class EquivalentCo2GraphView : public GraphView {
 public:
   EquivalentCo2GraphView(LocalDatabase &local_database)
-      : GraphView(TFT_WHITE, TFT_BLACK, local_database, 0.0, 4000.0) {
+      : GraphView(IdEquivalentCo2GraphView, TFT_WHITE, TFT_BLACK,
+                  local_database, 0.0, 4000.0) {
     locators.push_back(400.0);
     locators.push_back(1000.0);
     locators.push_back(2000.0);
@@ -863,12 +931,15 @@ private:
 };
 
 //
-class TotalVocGraphView : public GraphView {
+class Co2GraphView : public GraphView {
 public:
-  TotalVocGraphView(LocalDatabase &local_database)
-      : GraphView(TFT_WHITE, TFT_BLACK, local_database, 0.0, 6000.0) {
+  Co2GraphView(LocalDatabase &local_database)
+      : GraphView(IdCo2GraphView, TFT_WHITE, TFT_BLACK, local_database, 0.0,
+                  4000.0) {
+    locators.push_back(400.0);
+    locators.push_back(1000.0);
     locators.push_back(2000.0);
-    locators.push_back(4000.0);
+    locators.push_back(3000.0);
   }
   //
   bool focusIn() override {
@@ -892,7 +963,7 @@ public:
     //
     Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
     Screen::lcd.setTextDatum(textdatum_t::top_left);
-    Screen::lcd.drawString("総揮発性有機化合物(TVOC) ppb", 3, 3);
+    Screen::lcd.drawString("二酸化炭素(CO2) ppm", 3, 3);
     //
     Screen::lcd.setTextDatum(textdatum_t::middle_center);
     int16_t cx, cy;
@@ -901,8 +972,8 @@ public:
   }
   //
   void render(const System::Status &, const struct tm &local,
-              const Bme280::TempHumiPres *, const Sgp30::TvocEco2 *sgp,
-              const Scd30::Co2TempHumi *) override {
+              const Bme280::TempHumiPres *, const Sgp30::TvocEco2 *,
+              const Scd30::Co2TempHumi *scd) override {
     if (!need_for_update()) {
       return;
     }
@@ -919,12 +990,12 @@ public:
       getGraphRight(&rx, nullptr);
       int16_t x = step;
       // 最新のデータを得る
-      auto callback = [&](size_t counter, time_t at, uint16_t tvoc, uint16_t,
+      auto callback = [&](size_t counter, time_t at, uint16_t co2, uint16_t,
                           bool) {
         // 消去
         Screen::lcd.fillRect(rx - x, y_top, step, y_length, background_color);
         // 書き込む
-        int16_t y = coord_y(tvoc);
+        int16_t y = coord_y(co2);
         Screen::lcd.fillRect(rx - x, y, step / 2, abs(y - y_bottom),
                              line_color);
         x += step;
@@ -932,8 +1003,8 @@ public:
       };
       //
       prepare();
-      database.get_total_vocs_desc(sgp->sensor_id, graph_width / step,
-                                   callback);
+      database.get_carbon_deoxides_desc(scd->sensor_id, graph_width / step,
+                                        callback);
       update_rawid();
       grid();
     }
@@ -943,8 +1014,10 @@ private:
   int64_t rawid;
   //
   inline void init_rawid() { rawid = INT64_MIN; }
-  inline void update_rawid() { rawid = database.rawid_total_voc; }
-  inline bool need_for_update() { return rawid != database.rawid_total_voc; }
+  inline void update_rawid() { rawid = database.rawid_carbon_dioxide; }
+  inline bool need_for_update() {
+    return rawid != database.rawid_carbon_dioxide;
+  }
 };
 
 //
@@ -954,13 +1027,14 @@ LGFX Screen::lcd;
 Screen::Screen(LocalDatabase &local_database)
     : views{new ClockView(),
             new SummaryView(),
-            new SystemHealthView(),
             new TemperatureGraphView(local_database),
             new RelativeHumidityGraphView(local_database),
             new PressureGraphView(local_database),
-            new Co2GraphView(local_database),
+            new TotalVocGraphView(local_database),
             new EquivalentCo2GraphView(local_database),
-            new TotalVocGraphView(local_database)},
+            new Co2GraphView(local_database),
+            new SystemHealthView(),
+            },
       now_view(0) {}
 
 //
@@ -976,33 +1050,42 @@ void Screen::begin(int32_t text_color, int32_t bg_color) {
 }
 
 //
-void Screen::home() {
-  if (now_view == 0) {
-    return;
+bool Screen::moveToView(int go_view) {
+  if (now_view == go_view) {
+    return false;
   }
-  int8_t go = 0;
-  if (views[go]->focusIn()) {
+  if (views[go_view]->focusIn()) {
     views[now_view]->focusOut();
-    now_view = go;
+    now_view = go_view;
+    return true;
+  } else {
+    return false;
   }
 }
 
 //
+void Screen::home() { moveToView(0); }
+
+//
 void Screen::prev() {
   int8_t go = (now_view + total_views - 1) % total_views;
-  if (views[go]->focusIn()) {
-    views[now_view]->focusOut();
-    now_view = go;
-  }
+  moveToView(go);
 }
 
 //
 void Screen::next() {
   int8_t go = (now_view + 1) % total_views;
-  if (views[go]->focusIn()) {
-    views[now_view]->focusOut();
-    now_view = go;
+  moveToView(go);
+}
+
+//
+bool Screen::moveByViewId(uint32_t view_id) {
+  for (int16_t i = 0; i < sizeof(views); ++i) {
+    if (views[i]->view_id == view_id) {
+      return moveToView(i);
+    }
   }
+  return false;
 }
 
 //
@@ -1016,3 +1099,6 @@ void Screen::update(const System::Status &status, time_t time,
 
   views[now_view]->render(status, local, bme, sgp, scd);
 }
+
+//
+void Screen::releaseEvent(Event &e) { views[now_view]->releaseEvent(this, e); }

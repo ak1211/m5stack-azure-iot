@@ -345,6 +345,16 @@ void btnAEvent(Event &e) {
 //
 //
 //
+void btnBEvent(Event &e) {
+  system_properties.screen.home();
+
+  system_properties.screen.update(system_properties.status, time(nullptr),
+                                  nullptr, nullptr, nullptr);
+}
+
+//
+//
+//
 void btnCEvent(Event &e) {
   system_properties.screen.next();
 
@@ -358,12 +368,7 @@ void btnCEvent(Event &e) {
 //
 //
 //
-void btnBEvent(Event &e) {
-  system_properties.screen.home();
-
-  system_properties.screen.update(system_properties.status, time(nullptr),
-                                  nullptr, nullptr, nullptr);
-}
+void releaseEvent(Event &e) { system_properties.screen.releaseEvent(e); }
 
 //
 //
@@ -403,6 +408,7 @@ void setup() {
   M5.BtnA.addHandler(btnAEvent, E_RELEASE);
   M5.BtnB.addHandler(btnBEvent, E_RELEASE);
   M5.BtnC.addHandler(btnCEvent, E_RELEASE);
+  M5.background.addHandler(releaseEvent, E_RELEASE);
 
   //
   // initializing screen
