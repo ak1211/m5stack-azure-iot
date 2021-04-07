@@ -205,9 +205,8 @@ public:
   Rectangle rect;
   Tile(uint32_t tapToMoveViewId, const CaptionT &caption_, int32_t text_col,
        int32_t bg_col)
-      : tap_to_move_view_id(tapToMoveViewId), caption(caption_) {
-    strncpy(before, "", sizeof(before));
-    strncpy(now, "", sizeof(now));
+      : tap_to_move_view_id(tapToMoveViewId),
+        caption(caption_), before{}, now{} {
     text_color = text_col;
     background_color = bg_col;
   }
@@ -258,12 +257,13 @@ public:
     Coord center = rect.center();
     Screen::lcd.setFont(&fonts::lgfxJapanGothic_32);
     Screen::lcd.setTextDatum(textdatum_t::middle_center);
-    Screen::lcd.setTextColor(background_color, background_color);
-    Screen::lcd.drawString(before, center.x, center.y);
-    Screen::lcd.setTextColor(text_color, background_color);
+    int16_t w = Screen::lcd.textWidth("123456");
+    int16_t h = Screen::lcd.fontHeight();
+    Screen::lcd.fillRect(center.x - w / 2, center.y - h / 2, w, h,
+                         background_color);
+    Screen::lcd.setTextColor(text_color);
     Screen::lcd.drawString(now, center.x, center.y);
-    //
-    strncpy(before, now, sizeof(before));
+    strcpy(before, now);
   }
 };
 
@@ -491,8 +491,6 @@ protected:
   const double value_min;
   const double value_max;
   std::vector<double> locators;
-
-private:
 };
 
 //
@@ -1040,7 +1038,7 @@ Screen::Screen(LocalDatabase &local_database)
 //
 void Screen::begin(int32_t text_color, int32_t bg_color) {
   Screen::lcd.init();
-  Screen::lcd.setBaseColor(bg_color);
+  Screen::lcd.setBaseColor(TFT_BLACK);
   Screen::lcd.setTextColor(text_color, bg_color);
   Screen::lcd.setCursor(0, 0);
   Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
