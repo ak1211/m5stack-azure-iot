@@ -540,10 +540,9 @@ public:
       return;
     }
     //
-    // 次回の測定(毎分0秒)まで残り45秒以上ある場合だけ,
-    // この後の作業を開始する。
+    // 次回の測定(毎分0秒)を邪魔しない時間を選んで,この後の作業を開始する。
     //
-    if (60 - local.tm_sec >= 45) {
+    if (5 <= local.tm_sec && local.tm_sec <= 30) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
@@ -626,10 +625,9 @@ public:
       return;
     }
     //
-    // 次回の測定(毎分0秒)まで残り45秒以上ある場合だけ,
-    // この後の作業を開始する。
+    // 次回の測定(毎分0秒)を邪魔しない時間を選んで,この後の作業を開始する。
     //
-    if (60 - local.tm_sec >= 45) {
+    if (5 <= local.tm_sec && local.tm_sec <= 30) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
@@ -714,10 +712,9 @@ public:
       return;
     }
     //
-    // 次回の測定(毎分0秒)まで残り45秒以上ある場合だけ,
-    // この後の作業を開始する。
+    // 次回の測定(毎分0秒)を邪魔しない時間を選んで,この後の作業を開始する。
     //
-    if (60 - local.tm_sec >= 45) {
+    if (5 <= local.tm_sec && local.tm_sec <= 30) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
@@ -798,10 +795,9 @@ public:
       return;
     }
     //
-    // 次回の測定(毎分0秒)まで残り45秒以上ある場合だけ,
-    // この後の作業を開始する。
+    // 次回の測定(毎分0秒)を邪魔しない時間を選んで,この後の作業を開始する。
     //
-    if (60 - local.tm_sec >= 45) {
+    if (5 <= local.tm_sec && local.tm_sec <= 30) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
@@ -886,10 +882,9 @@ public:
       return;
     }
     //
-    // 次回の測定(毎分0秒)まで残り45秒以上ある場合だけ,
-    // この後の作業を開始する。
+    // 次回の測定(毎分0秒)を邪魔しない時間を選んで,この後の作業を開始する。
     //
-    if (60 - local.tm_sec >= 45) {
+    if (5 <= local.tm_sec && local.tm_sec <= 30) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
@@ -976,10 +971,9 @@ public:
       return;
     }
     //
-    // 次回の測定(毎分0秒)まで残り45秒以上ある場合だけ,
-    // この後の作業を開始する。
+    // 次回の測定(毎分0秒)を邪魔しない時間を選んで,この後の作業を開始する。
     //
-    if (60 - local.tm_sec >= 45) {
+    if (5 <= local.tm_sec && local.tm_sec <= 30) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
