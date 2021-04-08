@@ -536,13 +536,10 @@ public:
   void render(const System::Status &, const struct tm &local,
               const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *,
               const Scd30::Co2TempHumi *) override {
-    if (!need_for_update()) {
-      return;
-    }
     //
-    // 次回の測定(毎分0秒)を邪魔しない時間を選んで,この後の作業を開始する。
+    // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
-    if (5 <= local.tm_sec && local.tm_sec <= 30) {
+    if (need_for_update() && 5 <= local.tm_sec && local.tm_sec <= 30) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
@@ -621,13 +618,10 @@ public:
   void render(const System::Status &, const struct tm &local,
               const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *,
               const Scd30::Co2TempHumi *) override {
-    if (!need_for_update()) {
-      return;
-    }
     //
-    // 次回の測定(毎分0秒)を邪魔しない時間を選んで,この後の作業を開始する。
+    // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
-    if (5 <= local.tm_sec && local.tm_sec <= 30) {
+    if (need_for_update() && 5 <= local.tm_sec && local.tm_sec <= 30) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
@@ -708,13 +702,10 @@ public:
   void render(const System::Status &, const struct tm &local,
               const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *,
               const Scd30::Co2TempHumi *) override {
-    if (!need_for_update()) {
-      return;
-    }
     //
-    // 次回の測定(毎分0秒)を邪魔しない時間を選んで,この後の作業を開始する。
+    // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
-    if (5 <= local.tm_sec && local.tm_sec <= 30) {
+    if (need_for_update() && 5 <= local.tm_sec && local.tm_sec <= 30) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
@@ -791,13 +782,10 @@ public:
   void render(const System::Status &, const struct tm &local,
               const Bme280::TempHumiPres *, const Sgp30::TvocEco2 *sgp,
               const Scd30::Co2TempHumi *) override {
-    if (!need_for_update()) {
-      return;
-    }
     //
-    // 次回の測定(毎分0秒)を邪魔しない時間を選んで,この後の作業を開始する。
+    // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
-    if (5 <= local.tm_sec && local.tm_sec <= 30) {
+    if (need_for_update() && 5 <= local.tm_sec && local.tm_sec <= 30) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
@@ -878,13 +866,10 @@ public:
   void render(const System::Status &, const struct tm &local,
               const Bme280::TempHumiPres *, const Sgp30::TvocEco2 *sgp,
               const Scd30::Co2TempHumi *) override {
-    if (!need_for_update()) {
-      return;
-    }
     //
-    // 次回の測定(毎分0秒)を邪魔しない時間を選んで,この後の作業を開始する。
+    // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
-    if (5 <= local.tm_sec && local.tm_sec <= 30) {
+    if (need_for_update() && 5 <= local.tm_sec && local.tm_sec <= 30) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
@@ -967,13 +952,10 @@ public:
   void render(const System::Status &, const struct tm &local,
               const Bme280::TempHumiPres *, const Sgp30::TvocEco2 *,
               const Scd30::Co2TempHumi *scd) override {
-    if (!need_for_update()) {
-      return;
-    }
     //
-    // 次回の測定(毎分0秒)を邪魔しない時間を選んで,この後の作業を開始する。
+    // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
-    if (5 <= local.tm_sec && local.tm_sec <= 30) {
+    if (need_for_update() && 5 <= local.tm_sec && local.tm_sec <= 30) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
