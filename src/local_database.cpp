@@ -230,7 +230,7 @@ bool LocalDatabase::beginDb() {
     }
   }
 
-  ESP_LOGI("main", "beginDb() is success.");
+  ESP_LOGD("main", "beginDb() is success.");
   return true;
 //
 error:
@@ -249,7 +249,7 @@ bool LocalDatabase::insert(const Bme280::TempHumiPres &bme) {
   int64_t h =
       insert_relative_humidity(bme.sensor_id, bme.at, bme.relative_humidity);
   if (t >= 0 && p >= 0 && h >= 0) {
-    ESP_LOGI("main", "storeTheMeasurements(BME280) is success.");
+    ESP_LOGD("main", "storeTheMeasurements(BME280) is success.");
     return true;
   } else {
     return false;

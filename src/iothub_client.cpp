@@ -45,7 +45,7 @@ JsonDocument *IotHubClient::pushMessage(JsonDocument &doc) {
   }
   doc["messageId"] = message_id;
   serializeJson(doc, messagePayload, MESSAGE_MAX_LEN);
-  ESP_LOGI("main", "messagePayload:%s", messagePayload);
+  ESP_LOGD("main", "messagePayload:%s", messagePayload);
   message_id = message_id + 1;
   //
   EVENT_INSTANCE *message =
@@ -71,7 +71,7 @@ JsonDocument *IotHubClient::pushState(JsonDocument &doc) {
     return nullptr;
   }
   serializeJson(doc, statePayload, MESSAGE_MAX_LEN);
-  ESP_LOGI("main", "statePayload:%s", statePayload);
+  ESP_LOGD("main", "statePayload:%s", statePayload);
   EVENT_INSTANCE *state = Esp32MQTTClient_Event_Generate(statePayload, STATE);
   Esp32MQTTClient_SendEventInstance(state);
   //

@@ -84,13 +84,13 @@ static void write_data_to_log_file(const Bme280::TempHumiPres *bme,
                                    const Sgp30::TvocEco2 *sgp,
                                    const Scd30::Co2TempHumi *scd) {
   if (!bme) {
-    ESP_LOGI("main", "BME280 sensor has problems.");
+    ESP_LOGE("main", "BME280 sensor has problems.");
     return;
   } else if (!sgp) {
-    ESP_LOGI("main", "SGP30 sensor has problems.");
+    ESP_LOGE("main", "SGP30 sensor has problems.");
     return;
   } else if (!scd) {
-    ESP_LOGI("main", "SCD30 sensor has problems.");
+    ESP_LOGE("main", "SCD30 sensor has problems.");
     return;
   }
   struct tm utc;
@@ -124,12 +124,12 @@ static void write_data_to_log_file(const Bme280::TempHumiPres *bme,
     // 11th field is relative_humidity
     i += snprintf(&p[i], LENGTH - i, ", %6.2f", scd->relative_humidity);
 
-    ESP_LOGI("main", "%s", p);
+    ESP_LOGD("main", "%s", p);
 
     // write to file
     size_t size = system_properties.data_logging_file.println(p);
     system_properties.data_logging_file.flush();
-    ESP_LOGI("main", "wrote size:%u", size);
+    ESP_LOGD("main", "wrote size:%u", size);
   } else {
     ESP_LOGE("main", "memory allocation error");
   }
@@ -168,12 +168,12 @@ static void write_header_to_log_file(File &file) {
   // 11th field is relative_humidity
   i += snprintf(&p[i], LENGTH - i, ", %s", "humidity[%RH]");
 
-  ESP_LOGI("main", "%s", p);
+  ESP_LOGD("main", "%s", p);
 
   // write to file
   size_t size = file.println(p);
   file.flush();
-  ESP_LOGI("main", "wrote size:%u", size);
+  ESP_LOGD("main", "wrote size:%u", size);
 
   free(p);
 }
@@ -187,7 +187,7 @@ static void write_header_to_log_file(File &file) {
 //
 static void sendConfirmationCallback(IOTHUB_CLIENT_CONFIRMATION_RESULT result) {
   if (result == IOTHUB_CLIENT_CONFIRMATION_OK) {
-    ESP_LOGI("main", "Send Confirmation Callback finished.");
+    ESP_LOGD("main", "Send Confirmation Callback finished.");
   }
 }
 
@@ -241,7 +241,7 @@ connectionStatusCallback(IOTHUB_CLIENT_CONNECTION_STATUS result,
   switch (reason) {
   case IOTHUB_CLIENT_CONNECTION_EXPIRED_SAS_TOKEN:
     // SASトークンの有効期限切れ。
-    ESP_LOGI("main", "SAS token expired.");
+    ESP_LOGD("main", "SAS token expired.");
     if (result == IOTHUB_CLIENT_CONNECTION_UNAUTHENTICATED) {
       //
       // Info: >>>Connection status: timeout
@@ -255,27 +255,27 @@ connectionStatusCallback(IOTHUB_CLIENT_CONNECTION_STATUS result,
       //
       // Esp32MQTTClient 側で再接続時に以上のログが出てabortするので,
       // この時点で SNTPを停止しておくことで abort を回避する。
-      ESP_LOGI("main", "SAS token expired, stop the SNTP.");
+      ESP_LOGD("main", "SAS token expired, stop the SNTP.");
       sntp_stop();
     }
     break;
   case IOTHUB_CLIENT_CONNECTION_DEVICE_DISABLED:
-    ESP_LOGI("main", "IOTHUB_CLIENT_CONNECTION_DEVICE_DISABLED");
+    ESP_LOGE("main", "IOTHUB_CLIENT_CONNECTION_DEVICE_DISABLED");
     break;
   case IOTHUB_CLIENT_CONNECTION_BAD_CREDENTIAL:
-    ESP_LOGI("main", "IOTHUB_CLIENT_CONNECTION_BAD_CREDENTIAL");
+    ESP_LOGE("main", "IOTHUB_CLIENT_CONNECTION_BAD_CREDENTIAL");
     break;
   case IOTHUB_CLIENT_CONNECTION_RETRY_EXPIRED:
-    ESP_LOGI("main", "IOTHUB_CLIENT_CONNECTION_RETRY_EXPIRED");
+    ESP_LOGE("main", "IOTHUB_CLIENT_CONNECTION_RETRY_EXPIRED");
     break;
   case IOTHUB_CLIENT_CONNECTION_NO_NETWORK:
-    ESP_LOGI("main", "IOTHUB_CLIENT_CONNECTION_NO_NETWORK");
+    ESP_LOGE("main", "IOTHUB_CLIENT_CONNECTION_NO_NETWORK");
     break;
   case IOTHUB_CLIENT_CONNECTION_COMMUNICATION_ERROR:
-    ESP_LOGI("main", "IOTHUB_CLIENT_CONNECTION_COMMUNICATION_ERROR");
+    ESP_LOGE("main", "IOTHUB_CLIENT_CONNECTION_COMMUNICATION_ERROR");
     break;
   case IOTHUB_CLIENT_CONNECTION_OK:
-    ESP_LOGI("main", "IOTHUB_CLIENT_CONNECTION_OK");
+    ESP_LOGD("main", "IOTHUB_CLIENT_CONNECTION_OK");
     break;
   }
 }
@@ -287,11 +287,11 @@ static void deviceTwinCallback(DEVICE_TWIN_UPDATE_STATE updateState,
                                const unsigned char *payLoad, int size) {
   switch (updateState) {
   case DEVICE_TWIN_UPDATE_COMPLETE:
-    ESP_LOGI("main", "device_twin_update_complete");
+    ESP_LOGD("main", "device_twin_update_complete");
     break;
 
   case DEVICE_TWIN_UPDATE_PARTIAL:
-    ESP_LOGI("main", "device_twin_update_partial");
+    ESP_LOGD("main", "device_twin_update_partial");
     break;
   }
 
@@ -312,21 +312,20 @@ static void deviceTwinCallback(DEVICE_TWIN_UPDATE_STATE updateState,
     return;
   }
   free(buff);
-  /*
   //
   const char *updatedAt = json["reported"]["sgp30_baseline"]["updatedAt"];
-  if (updatedAt)
-  {
+  if (updatedAt) {
     ESP_LOGI("main", "%s", updatedAt);
     // set baseline
     uint16_t tvoc_baseline =
-  json["reported"]["sgp30_baseline"]["tvoc"].as<uint16_t>(); uint16_t
-  eCo2_baseline = json["reported"]["sgp30_baseline"]["eCo2"].as<uint16_t>();
-    ESP_LOGI("main", "eCo2:%d, TVOC:%d", eCo2_baseline, tvoc_baseline);
-    int ret = sgp30.setIAQBaseline(eCo2_baseline, tvoc_baseline);
-    ESP_LOGI("main", "setIAQBaseline():%d", ret);
+        json["reported"]["sgp30_baseline"]["tvoc"].as<uint16_t>();
+    uint16_t eCo2_baseline =
+        json["reported"]["sgp30_baseline"]["eCo2"].as<uint16_t>();
+    ESP_LOGD("main", "eCo2:%d, TVOC:%d", eCo2_baseline, tvoc_baseline);
+    int ret =
+        system_properties.sgp30.setIAQBaseline(eCo2_baseline, tvoc_baseline);
+    ESP_LOGD("main", "setIAQBaseline():%d", ret);
   }
-  */
 }
 
 //
@@ -487,12 +486,12 @@ void setup() {
   // set to Real Time Clock
   //
   if (sntp_enabled()) {
-    ESP_LOGI("main", "sntp enabled.");
+    ESP_LOGD("main", "sntp enabled.");
     //
     time_t tm_now;
     struct tm utc;
     time(&tm_now);
-    ESP_LOGI("main", "tm_now: %d", tm_now);
+    ESP_LOGD("main", "tm_now: %d", tm_now);
     gmtime_r(&tm_now, &utc);
     //
     RTC_TimeTypeDef rtcTime = {
@@ -510,7 +509,7 @@ void setup() {
     };
     M5.Rtc.SetDate(&rtcDate);
   } else {
-    ESP_LOGI("main", "sntp disabled.");
+    ESP_LOGD("main", "sntp disabled.");
     //
     // get time and date from RTC
     //
@@ -518,7 +517,7 @@ void setup() {
     RTC_TimeTypeDef rtcTime;
     M5.Rtc.GetDate(&rtcDate);
     M5.Rtc.GetTime(&rtcTime);
-    ESP_LOGI("main", "RTC \"%04d-%02d-%02dT%02d:%02d:%02dZ\"", rtcDate.Year,
+    ESP_LOGD("main", "RTC \"%04d-%02d-%02dT%02d:%02d:%02dZ\"", rtcDate.Year,
              rtcDate.Month, rtcDate.Date, rtcTime.Hours, rtcTime.Minutes,
              rtcTime.Seconds);
   }
@@ -551,9 +550,11 @@ void setup() {
     assert(bme);
     assert(sgp);
     assert(scd);
+    /*
     system_properties.scd30.printSensorDetails();
     system_properties.sgp30.printSensorDetails();
     system_properties.bme280.printSensorDetails();
+    */
     //
     system_properties.screen.update(system_properties.status, time(nullptr),
                                     nullptr, nullptr, nullptr);
