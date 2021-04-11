@@ -313,6 +313,7 @@ static void deviceTwinCallback(DEVICE_TWIN_UPDATE_STATE updateState,
   }
   free(buff);
   //
+  /*
   const char *updatedAt = json["reported"]["sgp30_baseline"]["updatedAt"];
   if (updatedAt) {
     ESP_LOGI("main", "%s", updatedAt);
@@ -326,6 +327,7 @@ static void deviceTwinCallback(DEVICE_TWIN_UPDATE_STATE updateState,
         system_properties.sgp30.setIAQBaseline(eCo2_baseline, tvoc_baseline);
     ESP_LOGD("main", "setIAQBaseline():%d", ret);
   }
+  */
 }
 
 //
