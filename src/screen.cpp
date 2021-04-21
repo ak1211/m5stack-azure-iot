@@ -44,7 +44,7 @@ struct Rectangle {
 };
 
 //
-enum RegistedViewId : uint32_t {
+enum RegisteredViewId : uint32_t {
   IdSystemHealthView,
   IdClockView,
   IdSummaryView,
@@ -115,19 +115,28 @@ public:
       Screen::lcd.printf("温度 %6.1f ℃\n", bme->temperature);
       Screen::lcd.printf("湿度 %6.1f ％\n", bme->relative_humidity);
       Screen::lcd.printf("気圧 %6.1f hPa\n", bme->pressure);
+    } else {
+      Screen::lcd.printf("温度 ------ ℃\n");
+      Screen::lcd.printf("湿度 ------ ％\n");
+      Screen::lcd.printf("気圧 ------ hPa\n");
     }
     if (sgp) {
       Screen::lcd.printf("eCO2 %6d ppm\n", sgp->eCo2);
       Screen::lcd.printf("TVOC %6d ppb\n", sgp->tvoc);
+    } else {
+      Screen::lcd.printf("eCO2 ------ ppm\n");
+      Screen::lcd.printf("TVOC ------ ppb\n");
     }
     if (scd) {
       Screen::lcd.printf("CO2 %6d ppm\n", scd->co2);
       Screen::lcd.printf("温度 %6.1f ℃\n", scd->temperature);
       Screen::lcd.printf("湿度 %6.1f ％\n", scd->relative_humidity);
+    } else {
+      Screen::lcd.printf("CO2 ------ ppm\n");
+      Screen::lcd.printf("温度 ------ ℃\n");
+      Screen::lcd.printf("湿度 ------ ％\n");
     }
   }
-
-private:
 };
 
 //
@@ -147,11 +156,13 @@ public:
 
     // 月日表示
     {
-      char buffer[16];
-      sprintf(buffer, "%2d月%2d日", local.tm_mon + 1, local.tm_mday);
+      char buffer[20];
+      snprintf(buffer, sizeof(buffer), "%2d月%2d日", local.tm_mon + 1,
+               local.tm_mday);
       Screen::lcd.drawString(buffer, half_width, half_height - line_height);
       // 時分表示
-      sprintf(buffer, "%2d時%2d分", local.tm_hour, local.tm_min);
+      snprintf(buffer, sizeof(buffer), "%2d時%2d分", local.tm_hour,
+               local.tm_min);
       Screen::lcd.drawString(buffer, half_width, half_height + line_height);
     }
     // 秒表示
@@ -536,6 +547,13 @@ public:
   void render(const System::Status &, const struct tm &local,
               const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *,
               const Scd30::Co2TempHumi *) override {
+    if (!bme) {
+      Screen::lcd.setTextDatum(textdatum_t::middle_center);
+      int16_t cx, cy;
+      getGraphCenter(&cx, &cy);
+      Screen::lcd.drawString("BME280センサー異常。", cx, cy);
+      return;
+    }
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
@@ -618,6 +636,13 @@ public:
   void render(const System::Status &, const struct tm &local,
               const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *,
               const Scd30::Co2TempHumi *) override {
+    if (!bme) {
+      Screen::lcd.setTextDatum(textdatum_t::middle_center);
+      int16_t cx, cy;
+      getGraphCenter(&cx, &cy);
+      Screen::lcd.drawString("BME280センサー異常。", cx, cy);
+      return;
+    }
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
@@ -702,6 +727,13 @@ public:
   void render(const System::Status &, const struct tm &local,
               const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *,
               const Scd30::Co2TempHumi *) override {
+    if (!bme) {
+      Screen::lcd.setTextDatum(textdatum_t::middle_center);
+      int16_t cx, cy;
+      getGraphCenter(&cx, &cy);
+      Screen::lcd.drawString("BME280センサー異常。", cx, cy);
+      return;
+    }
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
@@ -782,6 +814,13 @@ public:
   void render(const System::Status &, const struct tm &local,
               const Bme280::TempHumiPres *, const Sgp30::TvocEco2 *sgp,
               const Scd30::Co2TempHumi *) override {
+    if (!sgp) {
+      Screen::lcd.setTextDatum(textdatum_t::middle_center);
+      int16_t cx, cy;
+      getGraphCenter(&cx, &cy);
+      Screen::lcd.drawString("SGP30センサー異常。", cx, cy);
+      return;
+    }
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
@@ -866,6 +905,13 @@ public:
   void render(const System::Status &, const struct tm &local,
               const Bme280::TempHumiPres *, const Sgp30::TvocEco2 *sgp,
               const Scd30::Co2TempHumi *) override {
+    if (!sgp) {
+      Screen::lcd.setTextDatum(textdatum_t::middle_center);
+      int16_t cx, cy;
+      getGraphCenter(&cx, &cy);
+      Screen::lcd.drawString("SGP30センサー異常。", cx, cy);
+      return;
+    }
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
@@ -952,6 +998,13 @@ public:
   void render(const System::Status &, const struct tm &local,
               const Bme280::TempHumiPres *, const Sgp30::TvocEco2 *,
               const Scd30::Co2TempHumi *scd) override {
+    if (!scd) {
+      Screen::lcd.setTextDatum(textdatum_t::middle_center);
+      int16_t cx, cy;
+      getGraphCenter(&cx, &cy);
+      Screen::lcd.drawString("SCD30センサー異常。", cx, cy);
+      return;
+    }
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //

@@ -18,7 +18,11 @@
 #include <ctime>
 #include <lwip/apps/sntp.h>
 
+#include <Adafruit_NeoPixel.h>
 #include <LovyanGFX.hpp>
+
+static constexpr uint16_t NUMPIXELS = 10;
+static constexpr uint16_t GPIO_PIN_NEOPIXEL = 25;
 
 //
 // globals
@@ -31,6 +35,7 @@ struct SystemProperties {
   File data_logging_file;
   Screen screen;
   System::Status status;
+  Adafruit_NeoPixel pixels;
 };
 
 static SystemProperties system_properties = {
@@ -47,6 +52,8 @@ static SystemProperties system_properties = {
             .is_freestanding_mode = false,
             .is_data_logging_to_file = false,
         },
+    .pixels =
+        Adafruit_NeoPixel(NUMPIXELS, GPIO_PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800),
 };
 
 static constexpr char data_log_file_name[] = "/data-logging.csv";
@@ -379,7 +386,13 @@ void setup() {
   // initializing M5Stack and UART, I2C, Touch, RTC, etc. peripherals.
   //
   M5.begin(true, true, true, true);
-
+  system_properties.pixels.begin();
+  system_properties.pixels.setBrightness(64);
+  for (int i = 0; i < system_properties.pixels.numPixels(); ++i) {
+    system_properties.pixels.setPixelColor(i,
+                                           Adafruit_NeoPixel::Color(0, 0, 0));
+  }
+  system_properties.pixels.show();
   //
   // initializing the local database
   //
@@ -653,10 +666,9 @@ static struct Measurements periodical_measurements() {
   if (utc.tm_sec % SCD30_SENSING_EVERY_SECONDS == 0) {
     system_properties.scd30.sensing(measured_at);
   }
-  auto bme280_sensed = system_properties.bme280.getLatestTempHumiPres();
-  auto sgp30_sensed = system_properties.sgp30.getTvocEco2WithSmoothing();
-  auto scd30_sensed = system_properties.scd30.getCo2TempHumiWithSmoothing();
-  return {measured_at, bme280_sensed, sgp30_sensed, scd30_sensed};
+  return {measured_at, system_properties.bme280.getLatestTempHumiPres(),
+          system_properties.sgp30.getTvocEco2WithSmoothing(),
+          system_properties.scd30.getCo2TempHumiWithSmoothing()};
 }
 
 //
@@ -718,6 +730,32 @@ void loop() {
 
   if ((now_clock - before_clock) >= CLOCKS_PER_SEC) {
     auto m = periodical_measurements();
+    uint32_t c = Adafruit_NeoPixel::Color(0, 0, 0);
+    if (m.scd30_sensed) {
+      if (0 <= m.scd30_sensed->co2 && m.scd30_sensed->co2 < 499) {
+        // blue
+        c = Adafruit_NeoPixel::Color(21, 21, 88);
+      } else if (500 <= m.scd30_sensed->co2 && m.scd30_sensed->co2 < 899) {
+        // bluegreen
+        c = Adafruit_NeoPixel::Color(21, 88, 88);
+      } else if (900 <= m.scd30_sensed->co2 && m.scd30_sensed->co2 < 1199) {
+        // green
+        c = Adafruit_NeoPixel::Color(0, 204, 0);
+      } else if (1200 <= m.scd30_sensed->co2 && m.scd30_sensed->co2 < 1699) {
+        // yellow
+        c = Adafruit_NeoPixel::Color(204, 204, 0);
+      } else if (1700 <= m.scd30_sensed->co2 && m.scd30_sensed->co2 < 2499) {
+        // pink
+        c = Adafruit_NeoPixel::Color(204, 0, 102);
+      } else {
+        // red
+        c = Adafruit_NeoPixel::Color(204, 0, 0);
+      }
+      for (int i = 0; i < system_properties.pixels.numPixels(); ++i) {
+        system_properties.pixels.setPixelColor(i, c);
+      }
+      system_properties.pixels.show();
+    }
     system_properties.screen.update(system_properties.status, m.measured_at,
                                     m.bme280_sensed, m.sgp30_sensed,
                                     m.scd30_sensed);

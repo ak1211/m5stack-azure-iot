@@ -40,10 +40,18 @@ TempHumiPres *Sensor::sensing(const time_t &measured_at) {
   sensors_event_t humidity_event;
   sensors_event_t pressure_event;
   //
-  bme280.takeForcedMeasurement();
-  bme280_temperature->getEvent(&temperature_event);
-  bme280_humidity->getEvent(&humidity_event);
-  bme280_pressure->getEvent(&pressure_event);
+  if (!bme280.takeForcedMeasurement()) {
+    return nullptr;
+  }
+  if (bme280_temperature && !bme280_temperature->getEvent(&temperature_event)) {
+    return nullptr;
+  }
+  if (bme280_humidity && !bme280_humidity->getEvent(&humidity_event)) {
+    return nullptr;
+  }
+  if (bme280_pressure && !bme280_pressure->getEvent(&pressure_event)) {
+    return nullptr;
+  }
 
   latest.sensor_id = sensor_id;
   latest.at = measured_at;
