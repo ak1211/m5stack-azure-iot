@@ -93,10 +93,12 @@ static void write_data_to_log_file(const Bme280::TempHumiPres *bme,
   if (!bme) {
     ESP_LOGE("main", "BME280 sensor has problems.");
     return;
-  } else if (!sgp) {
+  }
+  if (!sgp) {
     ESP_LOGE("main", "SGP30 sensor has problems.");
     return;
-  } else if (!scd) {
+  }
+  if (!scd) {
     ESP_LOGE("main", "SCD30 sensor has problems.");
     return;
   }
@@ -346,7 +348,7 @@ void btnAEvent(Event &e) {
   auto bme280_sensed = system_properties.bme280.getLatestTempHumiPres();
   auto sgp30_sensed = system_properties.sgp30.getTvocEco2WithSmoothing();
   auto scd30_sensed = system_properties.scd30.getCo2TempHumiWithSmoothing();
-  system_properties.screen.update(system_properties.status, bme280_sensed->at,
+  system_properties.screen.update(system_properties.status, time(nullptr),
                                   bme280_sensed, sgp30_sensed, scd30_sensed);
 }
 
@@ -369,7 +371,7 @@ void btnCEvent(Event &e) {
   auto bme280_sensed = system_properties.bme280.getLatestTempHumiPres();
   auto sgp30_sensed = system_properties.sgp30.getTvocEco2WithSmoothing();
   auto scd30_sensed = system_properties.scd30.getCo2TempHumiWithSmoothing();
-  system_properties.screen.update(system_properties.status, bme280_sensed->at,
+  system_properties.screen.update(system_properties.status, time(nullptr),
                                   bme280_sensed, sgp30_sensed, scd30_sensed);
 }
 

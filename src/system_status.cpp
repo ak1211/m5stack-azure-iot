@@ -6,7 +6,11 @@
 
 #include <M5Core2.h>
 #include <SD.h>
+#include <algorithm>
 #include <ctime>
+
+#undef max
+#undef min
 
 //
 //
@@ -31,14 +35,14 @@ System::Uptime System::uptime(const Status &status) {
 System::BatteryStatus System::getBatteryStatus() {
   float batt_v = M5.Axp.GetBatVoltage();
   float batt_full_v = 4.18f;
-  float shutdown_v = 3.00f;
+  float shutdown_v = 3.30f;
   float indicated_v = batt_v - shutdown_v;
   float fullscale_v = batt_full_v - shutdown_v;
   float batt_percentage = 100.00f * indicated_v / fullscale_v;
   float batt_current = M5.Axp.GetBatCurrent(); // mA
   return {
       .voltage = batt_v,
-      .percentage = min(batt_percentage, 100.0f),
+      .percentage = std::max(0.0f, std::min(batt_percentage, 100.0f)),
       .current = batt_current,
   };
 }
