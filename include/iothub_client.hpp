@@ -5,9 +5,7 @@
 #ifndef IOTHUB_CLIENT_HPP
 #define IOTHUB_CLIENT_HPP
 
-#include "bme280_sensor.hpp"
-#include "scd30_sensor.hpp"
-#include "sgp30_sensor.hpp"
+#include "sensor.hpp"
 #include <Arduinojson.h>
 #include <Esp32MQTTClient.h>
 
@@ -36,8 +34,7 @@ takeStateFromJsonDocSets(JsonDocSets &doc_sets) {
   return doc_sets.state;
 }
 
-inline JsonDocSets &mapToJson(JsonDocSets &output,
-                              const Bme280::TempHumiPres &input) {
+inline JsonDocSets &mapToJson(JsonDocSets &output, const TempHumiPres &input) {
   struct Iso8601FormatField at_field = {};
   struct tm utc;
 
@@ -47,17 +44,16 @@ inline JsonDocSets &mapToJson(JsonDocSets &output,
   //
   output.message["sensorId"] = input.sensor_id;
   output.message["measuredAt"] = at_field.at;
-  output.message["temperature"] = input.temperature;
-  output.message["humidity"] = input.relative_humidity;
-  output.message["pressure"] = input.pressure;
+  output.message["temperature"] = input.temperature.value;
+  output.message["humidity"] = input.relative_humidity.value;
+  output.message["pressure"] = input.pressure.value;
   //
   output.state.clear();
   //
   return output;
 }
 
-inline JsonDocSets &mapToJson(JsonDocSets &output,
-                              const Sgp30::TvocEco2 &input) {
+inline JsonDocSets &mapToJson(JsonDocSets &output, const TvocEco2 &input) {
   struct Iso8601FormatField at_field = {};
   struct tm utc;
 
@@ -67,20 +63,19 @@ inline JsonDocSets &mapToJson(JsonDocSets &output,
   //
   output.message["sensorId"] = input.sensor_id;
   output.message["measuredAt"] = at_field.at;
-  output.message["tvoc"] = input.tvoc;
-  output.message["eCo2"] = input.eCo2;
-  output.message["tvoc_baseline"] = input.tvoc_baseline;
-  output.message["eCo2_baseline"] = input.eCo2_baseline;
+  output.message["tvoc"] = input.tvoc.value;
+  output.message["eCo2"] = input.eCo2.value;
+  output.message["tvoc_baseline"] = input.tvoc_baseline.value;
+  output.message["eCo2_baseline"] = input.eCo2_baseline.value;
   //
   output.state["sgp30_baseline"]["updatedAt"] = at_field.at;
-  output.state["sgp30_baseline"]["tvoc"] = input.tvoc_baseline;
-  output.state["sgp30_baseline"]["eCo2"] = input.eCo2_baseline;
+  output.state["sgp30_baseline"]["tvoc"] = input.tvoc_baseline.value;
+  output.state["sgp30_baseline"]["eCo2"] = input.eCo2_baseline.value;
   //
   return output;
 }
 
-inline JsonDocSets &mapToJson(JsonDocSets &output,
-                              const Scd30::Co2TempHumi &input) {
+inline JsonDocSets &mapToJson(JsonDocSets &output, const Co2TempHumi &input) {
   struct Iso8601FormatField at_field = {};
   struct tm utc;
 
@@ -90,9 +85,9 @@ inline JsonDocSets &mapToJson(JsonDocSets &output,
   //
   output.message["sensorId"] = input.sensor_id;
   output.message["measuredAt"] = at_field.at;
-  output.message["co2"] = input.co2;
-  output.message["temperature"] = input.temperature;
-  output.message["humidity"] = input.relative_humidity;
+  output.message["co2"] = input.co2.value;
+  output.message["temperature"] = input.temperature.value;
+  output.message["humidity"] = input.relative_humidity.value;
   //
   output.state.clear();
   //

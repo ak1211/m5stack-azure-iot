@@ -5,10 +5,7 @@
 #ifndef LOCAL_DATABASE_HPP
 #define LOCAL_DATABASE_HPP
 
-#include "bme280_sensor.hpp"
-#include "scd30_sensor.hpp"
-#include "sgp30_sensor.hpp"
-
+#include "sensor.hpp"
 #include <cstddef>
 #include <cstring>
 #include <functional>
@@ -39,9 +36,9 @@ public:
   //
   bool beginDb();
   //
-  bool insert(const Bme280::TempHumiPres &bme);
-  bool insert(const Sgp30::TvocEco2 &sgp);
-  bool insert(const Scd30::Co2TempHumi &scd);
+  bool insert(const TempHumiPres &);
+  bool insert(const TvocEco2 &);
+  bool insert(const Co2TempHumi &);
   //
   int64_t insert_temperature(const char *sensor_id, const time_t &at,
                              float degc);

@@ -6,7 +6,6 @@
 #include "screen.hpp"
 #include "local_database.hpp"
 #include "system_status.hpp"
-
 #include <M5Core2.h>
 #include <cmath>
 #include <ctime>
@@ -62,8 +61,7 @@ public:
   SystemHealthView() : View(IdSystemHealthView, TFT_WHITE, TFT_BLACK) {}
   //
   void render(const System::Status &status, const struct tm &local,
-              const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *sgp,
-              const Scd30::Co2TempHumi *scd) override {
+              const Bme280 &bme, const Sgp30 &sgp, const Scd30 &scd) override {
     //
     Screen::lcd.setCursor(0, 0);
     Screen::lcd.setTextDatum(textdatum_t::top_left);
@@ -111,26 +109,26 @@ public:
     }
     //
     Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
-    if (bme) {
-      Screen::lcd.printf("温度 %6.1f ℃\n", bme->temperature);
-      Screen::lcd.printf("湿度 %6.1f ％\n", bme->relative_humidity);
-      Screen::lcd.printf("気圧 %6.1f hPa\n", bme->pressure);
+    if (bme.good()) {
+      Screen::lcd.printf("温度 %6.1f ℃\n", bme.get().temperature.value);
+      Screen::lcd.printf("湿度 %6.1f ％\n", bme.get().relative_humidity.value);
+      Screen::lcd.printf("気圧 %6.1f hPa\n", bme.get().pressure.value);
     } else {
       Screen::lcd.printf("温度 ------ ℃\n");
       Screen::lcd.printf("湿度 ------ ％\n");
       Screen::lcd.printf("気圧 ------ hPa\n");
     }
-    if (sgp) {
-      Screen::lcd.printf("eCO2 %6d ppm\n", sgp->eCo2);
-      Screen::lcd.printf("TVOC %6d ppb\n", sgp->tvoc);
+    if (sgp.good()) {
+      Screen::lcd.printf("eCO2 %6d ppm\n", sgp.get().eCo2.value);
+      Screen::lcd.printf("TVOC %6d ppb\n", sgp.get().tvoc.value);
     } else {
       Screen::lcd.printf("eCO2 ------ ppm\n");
       Screen::lcd.printf("TVOC ------ ppb\n");
     }
-    if (scd) {
-      Screen::lcd.printf("CO2 %6d ppm\n", scd->co2);
-      Screen::lcd.printf("温度 %6.1f ℃\n", scd->temperature);
-      Screen::lcd.printf("湿度 %6.1f ％\n", scd->relative_humidity);
+    if (scd.good()) {
+      Screen::lcd.printf("CO2 %6d ppm\n", scd.get().co2.value);
+      Screen::lcd.printf("温度 %6.1f ℃\n", scd.get().temperature.value);
+      Screen::lcd.printf("湿度 %6.1f ％\n", scd.get().relative_humidity.value);
     } else {
       Screen::lcd.printf("CO2 ------ ppm\n");
       Screen::lcd.printf("温度 ------ ℃\n");
@@ -144,9 +142,8 @@ class ClockView : public Screen::View {
 public:
   ClockView() : View(IdClockView, TFT_WHITE, TFT_BLACK) {}
   //
-  void render(const System::Status &, const struct tm &local,
-              const Bme280::TempHumiPres *, const Sgp30::TvocEco2 *,
-              const Scd30::Co2TempHumi *) override {
+  void render(const System::Status &, const struct tm &local, const Bme280 &,
+              const Sgp30 &, const Scd30 &) override {
     const auto half_width = Screen::lcd.width() / 2;
     const auto half_height = Screen::lcd.height() / 2;
     const auto line_height = 40;
@@ -338,12 +335,11 @@ public:
   }
   //
   void render(const System::Status &status, const struct tm &local,
-              const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *sgp,
-              const Scd30::Co2TempHumi *scd) override {
+              const Bme280 &bme, const Sgp30 &sgp, const Scd30 &scd) override {
 #define BME(_X_)                                                               \
   do {                                                                         \
-    if (bme) {                                                                 \
-      t.render_value_float(bme->_X_);                                          \
+    if (bme.good()) {                                                          \
+      t.render_value_float(bme.get()._X_.value);                               \
     } else {                                                                   \
       t.render_notavailable();                                                 \
     }                                                                          \
@@ -351,8 +347,8 @@ public:
     //
 #define SGP(_X_)                                                               \
   do {                                                                         \
-    if (sgp) {                                                                 \
-      t.render_value_uint16(sgp->_X_);                                         \
+    if (sgp.good()) {                                                          \
+      t.render_value_uint16(sgp.get()._X_.value);                              \
     } else {                                                                   \
       t.render_notavailable();                                                 \
     }                                                                          \
@@ -360,8 +356,8 @@ public:
     //
 #define SCD(_X_)                                                               \
   do {                                                                         \
-    if (scd) {                                                                 \
-      t.render_value_uint16(scd->_X_);                                         \
+    if (scd.good()) {                                                          \
+      t.render_value_uint16(scd.get()._X_.value);                              \
     } else {                                                                   \
       t.render_notavailable();                                                 \
     }                                                                          \
@@ -544,10 +540,9 @@ public:
     Screen::lcd.drawString("更新中", cx, cy);
   }
   //
-  void render(const System::Status &, const struct tm &local,
-              const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *,
-              const Scd30::Co2TempHumi *) override {
-    if (!bme) {
+  void render(const System::Status &, const struct tm &local, const Bme280 &bme,
+              const Sgp30 &, const Scd30 &) override {
+    if (bme.nothing()) {
       Screen::lcd.setTextDatum(textdatum_t::middle_center);
       int16_t cx, cy;
       getGraphCenter(&cx, &cy);
@@ -578,7 +573,7 @@ public:
       };
       //
       prepare();
-      database.get_temperatures_desc(bme->sensor_id, graph_width / step,
+      database.get_temperatures_desc(bme.get().sensor_id, graph_width / step,
                                      callback);
       rawid = database.rawid_temperature;
       grid();
@@ -633,10 +628,9 @@ public:
     Screen::lcd.drawString("更新中", cx, cy);
   }
   //
-  void render(const System::Status &, const struct tm &local,
-              const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *,
-              const Scd30::Co2TempHumi *) override {
-    if (!bme) {
+  void render(const System::Status &, const struct tm &local, const Bme280 &bme,
+              const Sgp30 &, const Scd30 &) override {
+    if (bme.nothing()) {
       Screen::lcd.setTextDatum(textdatum_t::middle_center);
       int16_t cx, cy;
       getGraphCenter(&cx, &cy);
@@ -667,8 +661,8 @@ public:
       };
       //
       prepare();
-      database.get_relative_humidities_desc(bme->sensor_id, graph_width / step,
-                                            callback);
+      database.get_relative_humidities_desc(bme.get().sensor_id,
+                                            graph_width / step, callback);
       update_rawid();
       grid();
     }
@@ -724,10 +718,9 @@ public:
     Screen::lcd.drawString("更新中", cx, cy);
   }
   //
-  void render(const System::Status &, const struct tm &local,
-              const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *,
-              const Scd30::Co2TempHumi *) override {
-    if (!bme) {
+  void render(const System::Status &, const struct tm &local, const Bme280 &bme,
+              const Sgp30 &, const Scd30 &) override {
+    if (bme.nothing()) {
       Screen::lcd.setTextDatum(textdatum_t::middle_center);
       int16_t cx, cy;
       getGraphCenter(&cx, &cy);
@@ -758,7 +751,8 @@ public:
       };
       //
       prepare();
-      database.get_pressures_desc(bme->sensor_id, graph_width / step, callback);
+      database.get_pressures_desc(bme.get().sensor_id, graph_width / step,
+                                  callback);
       update_rawid();
       grid();
     }
@@ -811,10 +805,9 @@ public:
     Screen::lcd.drawString("更新中", cx, cy);
   }
   //
-  void render(const System::Status &, const struct tm &local,
-              const Bme280::TempHumiPres *, const Sgp30::TvocEco2 *sgp,
-              const Scd30::Co2TempHumi *) override {
-    if (!sgp) {
+  void render(const System::Status &, const struct tm &local, const Bme280 &,
+              const Sgp30 &sgp, const Scd30 &) override {
+    if (sgp.nothing()) {
       Screen::lcd.setTextDatum(textdatum_t::middle_center);
       int16_t cx, cy;
       getGraphCenter(&cx, &cy);
@@ -846,7 +839,7 @@ public:
       };
       //
       prepare();
-      database.get_total_vocs_desc(sgp->sensor_id, graph_width / step,
+      database.get_total_vocs_desc(sgp.get().sensor_id, graph_width / step,
                                    callback);
       update_rawid();
       grid();
@@ -902,10 +895,9 @@ public:
     Screen::lcd.drawString("更新中", cx, cy);
   }
   //
-  void render(const System::Status &, const struct tm &local,
-              const Bme280::TempHumiPres *, const Sgp30::TvocEco2 *sgp,
-              const Scd30::Co2TempHumi *) override {
-    if (!sgp) {
+  void render(const System::Status &, const struct tm &local, const Bme280 &,
+              const Sgp30 &sgp, const Scd30 &) override {
+    if (sgp.nothing()) {
       Screen::lcd.setTextDatum(textdatum_t::middle_center);
       int16_t cx, cy;
       getGraphCenter(&cx, &cy);
@@ -937,7 +929,7 @@ public:
       };
       //
       prepare();
-      database.get_carbon_deoxides_desc(sgp->sensor_id, graph_width / step,
+      database.get_carbon_deoxides_desc(sgp.get().sensor_id, graph_width / step,
                                         callback);
       update_rawid();
       grid();
@@ -995,10 +987,9 @@ public:
     Screen::lcd.drawString("更新中", cx, cy);
   }
   //
-  void render(const System::Status &, const struct tm &local,
-              const Bme280::TempHumiPres *, const Sgp30::TvocEco2 *,
-              const Scd30::Co2TempHumi *scd) override {
-    if (!scd) {
+  void render(const System::Status &, const struct tm &local, const Bme280 &,
+              const Sgp30 &, const Scd30 &scd) override {
+    if (scd.nothing()) {
       Screen::lcd.setTextDatum(textdatum_t::middle_center);
       int16_t cx, cy;
       getGraphCenter(&cx, &cy);
@@ -1030,7 +1021,7 @@ public:
       };
       //
       prepare();
-      database.get_carbon_deoxides_desc(scd->sensor_id, graph_width / step,
+      database.get_carbon_deoxides_desc(scd.get().sensor_id, graph_width / step,
                                         callback);
       update_rawid();
       grid();
@@ -1117,8 +1108,7 @@ bool Screen::moveByViewId(uint32_t view_id) {
 
 //
 void Screen::update(const System::Status &status, time_t time,
-                    const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *sgp,
-                    const Scd30::Co2TempHumi *scd) {
+                    const Bme280 &bme, const Sgp30 &sgp, const Scd30 &scd) {
   // time zone offset UTC+9 = asia/tokyo
   time_t local_time = time + 9 * 60 * 60;
   struct tm local;
