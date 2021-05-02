@@ -5,12 +5,9 @@
 #ifndef SCREEN_HPP
 #define SCREEN_HPP
 
-#include "bme280_sensor.hpp"
 #include "local_database.hpp"
-#include "scd30_sensor.hpp"
-#include "sgp30_sensor.hpp"
+#include "sensor.hpp"
 #include "system_status.hpp"
-
 #include <M5Core2.h>
 #include <ctime>
 
@@ -44,9 +41,8 @@ public:
     virtual void releaseEvent(Screen *screen, Event &e) {}
     //
     virtual void render(const System::Status &status, const struct tm &local,
-                        const Bme280::TempHumiPres *bme,
-                        const Sgp30::TvocEco2 *sgp,
-                        const Scd30::Co2TempHumi *scd) {}
+                        const Bme280 &bme, const Sgp30 &sgp, const Scd30 &scd) {
+    }
   };
   //
   static LGFX lcd;
@@ -60,9 +56,8 @@ public:
   //
   void begin(int32_t text_color = TFT_WHITE, int32_t bg_color = TFT_BLACK);
   //
-  void update(const System::Status &status, time_t time,
-              const Bme280::TempHumiPres *bme, const Sgp30::TvocEco2 *sgp,
-              const Scd30::Co2TempHumi *scd);
+  void update(const System::Status &status, time_t time, const Bme280 &bme,
+              const Sgp30 &sgp, const Scd30 &scd);
   //
   void releaseEvent(Event &e);
   //

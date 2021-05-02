@@ -3,7 +3,6 @@
 // See LICENSE file in the project root for full license information.
 //
 #include "local_database.hpp"
-
 #include <Arduino.h>
 
 //
@@ -240,14 +239,14 @@ error:
 //
 //
 //
-bool LocalDatabase::insert(const Bme280::TempHumiPres &bme) {
+bool LocalDatabase::insert(const TempHumiPres &bme) {
   if (!healthy()) {
     return false;
   }
-  int64_t t = insert_temperature(bme.sensor_id, bme.at, bme.temperature);
-  int64_t p = insert_pressure(bme.sensor_id, bme.at, bme.pressure);
-  int64_t h =
-      insert_relative_humidity(bme.sensor_id, bme.at, bme.relative_humidity);
+  int64_t t = insert_temperature(bme.sensor_id, bme.at, bme.temperature.value);
+  int64_t p = insert_pressure(bme.sensor_id, bme.at, bme.pressure.value);
+  int64_t h = insert_relative_humidity(bme.sensor_id, bme.at,
+                                       bme.relative_humidity.value);
   if (t >= 0 && p >= 0 && h >= 0) {
     ESP_LOGD("main", "storeTheMeasurements(BME280) is success.");
     return true;
@@ -259,14 +258,14 @@ bool LocalDatabase::insert(const Bme280::TempHumiPres &bme) {
 //
 //
 //
-bool LocalDatabase::insert(const Sgp30::TvocEco2 &sgp) {
+bool LocalDatabase::insert(const TvocEco2 &v) {
   if (!healthy()) {
     return false;
   }
   int64_t t =
-      insert_total_voc(sgp.sensor_id, sgp.at, sgp.tvoc, &sgp.tvoc_baseline);
-  int64_t c = insert_carbon_dioxide(sgp.sensor_id, sgp.at, sgp.eCo2,
-                                    &sgp.eCo2_baseline);
+      insert_total_voc(v.sensor_id, v.at, v.tvoc.value, &v.tvoc_baseline.value);
+  int64_t c = insert_carbon_dioxide(v.sensor_id, v.at, v.eCo2.value,
+                                    &v.eCo2_baseline.value);
   if (t >= 0 && c >= 0) {
     ESP_LOGI("main", "storeTheMeasurements(SGP30) is success.");
     return true;
@@ -278,14 +277,14 @@ bool LocalDatabase::insert(const Sgp30::TvocEco2 &sgp) {
 //
 //
 //
-bool LocalDatabase::insert(const Scd30::Co2TempHumi &scd) {
+bool LocalDatabase::insert(const Co2TempHumi &v) {
   if (!healthy()) {
     return false;
   }
-  int64_t t = insert_temperature(scd.sensor_id, scd.at, scd.temperature);
+  int64_t t = insert_temperature(v.sensor_id, v.at, v.temperature.value);
   int64_t p =
-      insert_relative_humidity(scd.sensor_id, scd.at, scd.relative_humidity);
-  int64_t c = insert_carbon_dioxide(scd.sensor_id, scd.at, scd.co2, nullptr);
+      insert_relative_humidity(v.sensor_id, v.at, v.relative_humidity.value);
+  int64_t c = insert_carbon_dioxide(v.sensor_id, v.at, v.co2.value, nullptr);
   if (t >= 0 && p >= 0 && c >= 0) {
     ESP_LOGI("main", "storeTheMeasurements(SCD30) is success.");
     return true;
