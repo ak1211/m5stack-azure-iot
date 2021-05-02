@@ -5,7 +5,7 @@
 #ifndef SCD30_SENSOR_HPP
 #define SCD30_SENSOR_HPP
 
-#include <SparkFun_SCD30_Arduino_Library.h>
+#include <Adafruit_SCD30.h>
 #include <cstdint>
 #include <ctime>
 
@@ -75,7 +75,7 @@ public:
   bool healthy() { return scd30_healthy; }
 
 private:
-  SCD30 scd30;
+  Adafruit_SCD30 scd30;
   bool scd30_healthy;
   //
   uint16_t co2_ring[SMOOTHING_PERIOD];      // ppm

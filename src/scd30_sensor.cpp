@@ -14,14 +14,18 @@ Co2TempHumi *Sensor::sensing(const time_t &measured_at) {
   if (!healthy())
     return nullptr;
   //
-  if (!scd30.dataAvailable()) {
+  if (!scd30.dataReady()) {
+    return nullptr;
+  }
+  if (!scd30.read()) {
+    ESP_LOGE("main", "scd30 reading data failed.");
     return nullptr;
   }
   latest.sensor_id = smoothed.sensor_id = sensor_id;
   latest.at = smoothed.at = measured_at;
-  latest.co2 = scd30.getCO2();
-  latest.temperature = scd30.getTemperature();
-  latest.relative_humidity = scd30.getHumidity();
+  latest.co2 = scd30.CO2;
+  latest.temperature = scd30.temperature;
+  latest.relative_humidity = scd30.relative_humidity;
 
   pushRing(latest.co2, latest.temperature, latest.relative_humidity);
 
