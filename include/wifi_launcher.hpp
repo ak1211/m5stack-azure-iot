@@ -6,6 +6,7 @@
 #define WIFI_LAUNCHER_HPP
 
 #include <cstdint>
+#include <string>
 
 //
 //
@@ -16,7 +17,7 @@ public:
   //
   WifiLauncher() : wifi_connected(false) {}
   bool hasWifiConnection() { return wifi_connected; }
-  bool begin(const char *wifi_ssid, const char *wifi_password);
+  bool begin(const std::string &wifi_ssid, const std::string &wifi_password);
 
 private:
   bool wifi_connected;

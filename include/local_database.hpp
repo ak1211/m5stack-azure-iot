@@ -7,26 +7,22 @@
 
 #include "sensor.hpp"
 #include <cstddef>
-#include <cstring>
 #include <functional>
 #include <sqlite3.h>
+#include <string>
 
 //
 //
 //
 class LocalDatabase {
 public:
-  constexpr static size_t FILENAME_MAX_LEN = 50;
-  //
   int64_t rawid_temperature;
   int64_t rawid_relative_humidity;
   int64_t rawid_pressure;
   int64_t rawid_carbon_dioxide;
   int64_t rawid_total_voc;
   //
-  LocalDatabase(const char *filename) : sqlite3_filename("") {
-    memset(const_cast<char *>(sqlite3_filename), 0, FILENAME_MAX_LEN + 1);
-    strncpy(const_cast<char *>(sqlite3_filename), filename, FILENAME_MAX_LEN);
+  LocalDatabase(const std::string &filename) : sqlite3_filename(filename) {
     database = nullptr;
     rawid_temperature = rawid_relative_humidity = rawid_pressure = -1;
     rawid_carbon_dioxide = rawid_total_voc = -1;
@@ -140,7 +136,7 @@ Serial.println("");
 */
 
 private:
-  const char sqlite3_filename[FILENAME_MAX_LEN + 1];
+  const std::string sqlite3_filename;
   sqlite3 *database;
   //
   int64_t raw_insert_time_and_float(const char *query, const char *sensor_id,

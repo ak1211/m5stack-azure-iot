@@ -10,7 +10,8 @@ Peripherals Peripherals::_instance = Peripherals();
 //
 //
 Peripherals::Peripherals()
-    : ticktack(), bme280(Sensor<Bme280>(sensor_id_bme280)),
+    : ticktack(TickTack()), power_status(PowerStatus()),
+      bme280(Sensor<Bme280>(sensor_id_bme280)),
       sgp30(Sensor<Sgp30>(sensor_id_sgp30)),
       scd30(Sensor<Scd30>(sensor_id_scd30)),
       local_database(LocalDatabase(sqlite3_file_name)),
@@ -20,7 +21,8 @@ Peripherals::Peripherals()
   ESP_LOGD("peripherals", "Peripherals construct success.");
 }
 //
-bool Peripherals::begin(const char *wifi_ssid, const char *wifi_password) {
+bool Peripherals::begin(const std::string &wifi_ssid,
+                        const std::string &wifi_password) {
   // initializing screen
   _instance.screen.begin();
   // initializing the neopixel leds

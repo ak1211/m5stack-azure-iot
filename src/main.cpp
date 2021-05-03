@@ -389,14 +389,17 @@ static void periodical_push_message(const MeasurementSets &m) {
 //
 //
 static void periodical_push_state(const MeasurementSets &m) {
+  Peripherals &peri = Peripherals::getInstance();
+  if (peri.power_status.needToUpdate()) {
+    peri.power_status.update();
+  }
   JsonDocSets doc_sets = {};
-  auto batt_state = System::getBatteryStatus();
-
   if (m.sgp30.good()) {
     auto json = takeStateFromJsonDocSets(mapToJson(doc_sets, m.sgp30.get()));
     char buf[10];
     memset(buf, '\0', sizeof(buf));
-    snprintf(buf, 10, "%d%%", static_cast<int>(batt_state.percentage));
+    snprintf(buf, 10, "%d%%",
+             static_cast<int>(peri.power_status.getBatteryPercentage()));
     json["batteryLevel"] = buf;
     IotHubClient::pushState(json);
   }

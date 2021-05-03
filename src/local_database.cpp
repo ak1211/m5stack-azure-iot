@@ -185,7 +185,7 @@ bool LocalDatabase::beginDb() {
     goto error;
   }
   //
-  result = sqlite3_open_v2(sqlite3_filename, &database,
+  result = sqlite3_open_v2(sqlite3_filename.c_str(), &database,
                            SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE, nullptr);
   if (result != SQLITE_OK) {
     ESP_LOGE("main", "sqlite3_open() failed. reason:\"%s\"",

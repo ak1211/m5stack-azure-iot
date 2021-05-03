@@ -6,8 +6,6 @@
 #define SCREEN_HPP
 
 #include "local_database.hpp"
-#include "sensor.hpp"
-#include "system_status.hpp"
 #include <M5Core2.h>
 #include <ctime>
 

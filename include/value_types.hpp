@@ -6,7 +6,18 @@
 #define VALUE_TYPES_HPP
 
 #include <cstdint>
-#include <ctime>
+
+// [V] voltage
+struct Voltage final {
+  Voltage(float init = 0.0f) : value(init) {}
+  float value;
+};
+
+// [A] ampere
+struct Ampere final {
+  Ampere(float init = 0.0f) : value(init) {}
+  float value;
+};
 
 // degree celsius
 struct DegC final {
@@ -14,13 +25,13 @@ struct DegC final {
   float value;
 };
 
-// hecto-pascal
+// [hPa] hecto-pascal
 struct HPa final {
   HPa(float init = 0.0f) : value(init) {}
   float value;
 };
 
-// % relative humidity
+// [%] relative humidity
 struct PcRH final {
   PcRH(float init = 0.0f) : value(init) {}
   float value;
@@ -32,13 +43,13 @@ struct MilligramPerCubicMetre final {
   uint32_t value;
 };
 
-// parts per million
+// [ppm] parts per million
 struct Ppm final {
   Ppm(uint16_t init = 0u) : value(init) {}
   uint16_t value;
 };
 
-// parts per billion
+// [ppb] parts per billion
 struct Ppb final {
   Ppb(uint16_t init = 0u) : value(init) {}
   uint16_t value;

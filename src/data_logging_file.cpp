@@ -15,7 +15,7 @@ bool DataLoggingFile::begin() {
   case CARD_SD:  /* fallthrough */
   case CARD_SDHC: {
     write_header_to_log_file();
-    data_logging_file = SD.open(data_fname, FILE_APPEND);
+    data_logging_file = SD.open(data_fname.c_str(), FILE_APPEND);
     _ready = true;
     break;
   }
@@ -98,7 +98,7 @@ void DataLoggingFile::write_data_to_log_file(const Bme280 &bme,
 //
 //
 void DataLoggingFile::write_header_to_log_file() {
-  File f = SD.open(header_fname, FILE_WRITE);
+  File f = SD.open(header_fname.c_str(), FILE_WRITE);
   //
   const size_t LENGTH = 1024;
   char *p = (char *)calloc(LENGTH + 1, sizeof(char));
