@@ -6,8 +6,8 @@
 #define DATA_LOGGIING_FILE_HPP
 
 #include "sensor.hpp"
-#include <M5Core2.h>
-#include <cstring>
+#include <FS.h>
+#include <string>
 
 //
 //
@@ -16,10 +16,7 @@ class DataLoggingFile {
 public:
   constexpr static size_t FILENAME_MAX_LEN = 50;
   DataLoggingFile(const char *datafilename, const char *headerfilename)
-      : data_fname{'\0'}, header_fname{'\0'}, _ready{false} {
-    strncpy(const_cast<char *>(data_fname), datafilename, FILENAME_MAX_LEN);
-    strncpy(const_cast<char *>(header_fname), headerfilename, FILENAME_MAX_LEN);
-  }
+      : data_fname(datafilename), header_fname(headerfilename), _ready{false} {}
   bool begin();
   bool ready() { return _ready; }
   void write_data_to_log_file(const Bme280 &bme, const Sgp30 &sgp,
@@ -27,9 +24,8 @@ public:
   void write_header_to_log_file();
 
 private:
-  const char data_fname[FILENAME_MAX_LEN + 1];
-  const char header_fname[FILENAME_MAX_LEN + 1];
-
+  const std::string data_fname;
+  const std::string header_fname;
   File data_logging_file;
   bool _ready;
 };

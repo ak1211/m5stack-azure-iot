@@ -3,14 +3,9 @@
 // See LICENSE file in the project root for full license information.
 //
 #define _USE_MATH_DEFINES
-#include "screen.hpp"
-#include "local_database.hpp"
 #include "peripherals.hpp"
-#include "system_status.hpp"
 #include <M5Core2.h>
-#include <cmath>
 #include <ctime>
-#include <queue>
 
 #include <LovyanGFX.hpp>
 
@@ -67,7 +62,7 @@ public:
     Screen::lcd.setCursor(0, 0);
     Screen::lcd.setTextDatum(textdatum_t::top_left);
     Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
-    if (peri.status.has_WIFI_connection) {
+    if (peri.wifi_launcher.hasWifiConnection()) {
       Screen::lcd.setTextColor(TFT_GREEN, background_color);
       Screen::lcd.printf("  Wifi");
     } else {
@@ -76,30 +71,27 @@ public:
     }
     Screen::lcd.setTextColor(message_text_color, background_color);
     //
-    if (peri.status.is_freestanding_mode) {
-      Screen::lcd.printf("/FREESTAND");
-    } else {
-      Screen::lcd.printf("/CONNECTED");
-    }
-    //
     {
-      auto up = uptime(peri.status);
-      Screen::lcd.printf(" up %2ddays,%2d:%2d\n", up.days, up.hours,
-                         up.minutes);
+      TickTack::Uptime up = peri.ticktack.uptime();
+      Screen::lcd.printf(" up %2ddays,%2d:%2d:%3d\n", up.days, up.hours,
+                         up.minutes, up.seconds);
     }
     //
-    auto batt_info = System::getBatteryStatus();
+    if (peri.power_status.needToUpdate()) {
+      peri.power_status.update();
+    }
     char sign = ' ';
-    if (System::isBatteryCharging(batt_info)) {
+    if (peri.power_status.isBatteryCharging()) {
       sign = '+';
-    } else if (System::isBatteryDischarging(batt_info)) {
+    } else if (peri.power_status.isBatteryDischarging()) {
       sign = '-';
     } else {
       sign = ' ';
     }
-    Screen::lcd.printf("Batt %4.0f%% %4.2fV %c%5.3fA", batt_info.percentage,
-                       batt_info.voltage, sign,
-                       abs(batt_info.current / 1000.0f));
+    Screen::lcd.printf("Batt %4.0f%% %4.2fV %c%5.3fA",
+                       peri.power_status.getBatteryPercentage(),
+                       peri.power_status.getBatteryVoltage().value, sign,
+                       peri.power_status.getBatteryChargingCurrent().value);
     Screen::lcd.print("\n");
     //
     {

@@ -10,30 +10,27 @@ Peripherals Peripherals::_instance = Peripherals();
 //
 //
 Peripherals::Peripherals()
-    : bme280(Sensor<Bme280>(sensor_id_bme280)),
+    : ticktack(TickTack()), power_status(PowerStatus()),
+      bme280(Sensor<Bme280>(sensor_id_bme280)),
       sgp30(Sensor<Sgp30>(sensor_id_sgp30)),
       scd30(Sensor<Scd30>(sensor_id_scd30)),
       local_database(LocalDatabase(sqlite3_file_name)),
       data_logging_file(
           DataLoggingFile(data_log_file_name, header_log_file_name)),
-      screen(Screen(local_database)), status({
-                                          .startup_epoch = clock(),
-                                          .has_WIFI_connection = false,
-                                          .is_freestanding_mode = false,
-                                      }),
-      led_signal(LedSignal()) {
+      screen(Screen(local_database)), led_signal(LedSignal()), wifi_launcher() {
   ESP_LOGD("peripherals", "Peripherals construct success.");
 }
 //
-bool Peripherals::begin() {
+bool Peripherals::begin(const std::string &wifi_ssid,
+                        const std::string &wifi_password) {
+  // initializing screen
+  _instance.screen.begin();
   // initializing the neopixel leds
   _instance.led_signal.begin();
   // initializing the data logging file
   _instance.data_logging_file.begin();
   // initializing the local database
   _instance.local_database.beginDb();
-  // initializing screen
-  _instance.screen.begin();
   // initializing sensor
   {
     HasSensor bme = _instance.bme280.begin(BME280_I2C_ADDRESS);
@@ -64,7 +61,8 @@ bool Peripherals::begin() {
     system_properties.bme280.printSensorDetails();
     */
   }
-
+  // connect to Wifi network
+  _instance.wifi_launcher.begin(wifi_ssid, wifi_password);
   //
   return true;
 }

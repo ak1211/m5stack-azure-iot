@@ -16,8 +16,8 @@
 //
 // globals
 //
-constexpr static clock_t SUPPRESSION_TIME_OF_FIRST_PUSH =
-    CLOCKS_PER_SEC * 120; // 120 seconds = 2 minutes
+constexpr static clock_t SUPPRESSION_SECONDS_OF_FIRST_PUSH =
+    120; // 120 seconds = 2 minutes
 
 constexpr static uint16_t NUM_OF_TRY_TO_WIFI_CONNECTION = 50;
 
@@ -212,7 +212,7 @@ void setup() {
   // initializing M5Stack and UART, I2C, Touch, RTC, etc. peripherals.
   //
   M5.begin(true, true, true, true);
-  Peripherals::begin();
+  Peripherals::begin(Credentials.wifi_ssid, Credentials.wifi_password);
   Peripherals &peri = Peripherals::getInstance();
 
   //
@@ -222,30 +222,6 @@ void setup() {
   M5.BtnB.addHandler(btnBEvent, E_RELEASE);
   M5.BtnC.addHandler(btnCEvent, E_RELEASE);
   M5.background.addHandler(releaseEvent, E_RELEASE);
-
-  //
-  // connect to Wifi network
-  //
-  Screen::lcd.println(F("Wifi Connecting..."));
-  WiFi.begin(Credentials.wifi_ssid, Credentials.wifi_password);
-  peri.status.has_WIFI_connection = false;
-  for (int16_t n = 1; n <= NUM_OF_TRY_TO_WIFI_CONNECTION; n++) {
-    if (WiFi.status() == WL_CONNECTED) {
-      peri.status.has_WIFI_connection = true;
-      break;
-    } else {
-      delay(500);
-      Screen::lcd.print(F("."));
-    }
-  }
-  if (peri.status.has_WIFI_connection) {
-    Screen::lcd.println(F("Wifi connected"));
-    Screen::lcd.println(F("IP address: "));
-    Screen::lcd.println(WiFi.localIP());
-  } else {
-    Screen::lcd.println(F("Wifi is NOT connected... freestanding."));
-    peri.status.is_freestanding_mode = true;
-  }
 
   //
   // OTA
@@ -285,7 +261,7 @@ void setup() {
   //
   // initializing IotHub client
   //
-  if (!peri.status.is_freestanding_mode) {
+  if (peri.wifi_launcher.hasWifiConnection()) {
     IotHubClient::init(sendConfirmationCallback, messageCallback,
                        deviceMethodCallback, deviceTwinCallback,
                        connectionStatusCallback);
@@ -333,8 +309,6 @@ void setup() {
 
   //
   // start up
-  //
-  peri.status.startup_epoch = clock();
   //
   peri.screen.repaint(time(nullptr));
 }
@@ -415,14 +389,17 @@ static void periodical_push_message(const MeasurementSets &m) {
 //
 //
 static void periodical_push_state(const MeasurementSets &m) {
+  Peripherals &peri = Peripherals::getInstance();
+  if (peri.power_status.needToUpdate()) {
+    peri.power_status.update();
+  }
   JsonDocSets doc_sets = {};
-  auto batt_state = System::getBatteryStatus();
-
   if (m.sgp30.good()) {
     auto json = takeStateFromJsonDocSets(mapToJson(doc_sets, m.sgp30.get()));
     char buf[10];
     memset(buf, '\0', sizeof(buf));
-    snprintf(buf, 10, "%d%%", static_cast<int>(batt_state.percentage));
+    snprintf(buf, 10, "%d%%",
+             static_cast<int>(peri.power_status.getBatteryPercentage()));
     json["batteryLevel"] = buf;
     IotHubClient::pushState(json);
   }
@@ -442,7 +419,7 @@ static void periodical_send_to_iothub(const MeasurementSets &m) {
 
   Peripherals &peri = Peripherals::getInstance();
   //
-  if ((clock() - peri.status.startup_epoch) <= SUPPRESSION_TIME_OF_FIRST_PUSH) {
+  if (peri.ticktack.uptime_seconds() <= SUPPRESSION_SECONDS_OF_FIRST_PUSH) {
     // Discarding this measurements
     allowToPushMessage = false;
     allowToPushState = false;
@@ -464,7 +441,7 @@ static void periodical_send_to_iothub(const MeasurementSets &m) {
     }
   }
   //
-  if (!peri.status.is_freestanding_mode) {
+  if (peri.wifi_launcher.hasWifiConnection()) {
     if (allowToPushMessage) {
       periodical_push_message(m);
     }

@@ -8,9 +8,13 @@
 #include "data_logging_file.hpp"
 #include "led_signal.hpp"
 #include "local_database.hpp"
+#include "power_status.hpp"
 #include "screen.hpp"
 #include "sensor.hpp"
-#include "system_status.hpp"
+#include "ticktack.hpp"
+#include "wifi_launcher.hpp"
+#include <cstdint>
+#include <string>
 
 //
 //
@@ -27,16 +31,19 @@ public:
   constexpr static const char *sensor_id_sgp30 = "m5stack-bme280-device-sgp30";
   constexpr static const char *sensor_id_scd30 = "m5stack-bme280-device-scd30";
   //
+  TickTack ticktack;
+  PowerStatus power_status;
   Sensor<Bme280> bme280;
   Sensor<Sgp30> sgp30;
   Sensor<Scd30> scd30;
   LocalDatabase local_database;
   DataLoggingFile data_logging_file;
   Screen screen;
-  System::Status status;
   LedSignal led_signal;
+  WifiLauncher wifi_launcher;
   //
-  static bool begin();
+  static bool begin(const std::string &wifi_ssid,
+                    const std::string &wifi_password);
   static Peripherals &getInstance();
 
 private:
