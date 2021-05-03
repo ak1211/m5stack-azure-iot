@@ -17,7 +17,7 @@ struct Iso8601FormatField {
 };
 static_assert(sizeof(Iso8601FormatField) == 30, "something went Wrong");
 
-static constexpr size_t MESSAGE_MAX_LEN = JSON_STRING_SIZE(1024);
+constexpr static size_t MESSAGE_MAX_LEN = JSON_STRING_SIZE(1024);
 
 struct JsonDocSets {
   StaticJsonDocument<MESSAGE_MAX_LEN> message;

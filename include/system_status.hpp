@@ -16,7 +16,6 @@ struct Status {
   clock_t startup_epoch;
   bool has_WIFI_connection;
   bool is_freestanding_mode;
-  bool is_data_logging_to_file;
 };
 
 //
