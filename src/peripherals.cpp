@@ -3,22 +3,17 @@
 // See LICENSE file in the project root for full license information.
 //
 #include "peripherals.hpp"
-#include "credentials.h"
 
-static constexpr char data_log_file_name[] = "/data-logging.csv";
-static constexpr char header_log_file_name[] = "/header-data-logging.csv";
-
-static constexpr uint8_t BME280_I2C_ADDRESS = 0x76;
 Peripherals Peripherals::_instance = Peripherals();
 
 //
 //
 //
 Peripherals::Peripherals()
-    : bme280(Sensor<Bme280>(Credentials.sensor_id.bme280)),
-      sgp30(Sensor<Sgp30>(Credentials.sensor_id.sgp30)),
-      scd30(Sensor<Scd30>(Credentials.sensor_id.scd30)),
-      local_database(LocalDatabase("/sd/measurements.sqlite3")),
+    : bme280(Sensor<Bme280>(sensor_id_bme280)),
+      sgp30(Sensor<Sgp30>(sensor_id_sgp30)),
+      scd30(Sensor<Scd30>(sensor_id_scd30)),
+      local_database(LocalDatabase(sqlite3_file_name)),
       data_logging_file(
           DataLoggingFile(data_log_file_name, header_log_file_name)),
       screen(Screen(local_database)), status({

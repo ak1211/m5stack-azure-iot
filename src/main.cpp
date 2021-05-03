@@ -16,28 +16,28 @@
 //
 // globals
 //
-static constexpr clock_t SUPPRESSION_TIME_OF_FIRST_PUSH =
+constexpr static clock_t SUPPRESSION_TIME_OF_FIRST_PUSH =
     CLOCKS_PER_SEC * 120; // 120 seconds = 2 minutes
 
-static constexpr uint16_t NUM_OF_TRY_TO_WIFI_CONNECTION = 50;
+constexpr static uint16_t NUM_OF_TRY_TO_WIFI_CONNECTION = 50;
 
-static constexpr uint8_t IOTHUB_PUSH_MESSAGE_EVERY_MINUTES = 1; // 1 mimutes
+constexpr static uint8_t IOTHUB_PUSH_MESSAGE_EVERY_MINUTES = 1; // 1 mimutes
 static_assert(IOTHUB_PUSH_MESSAGE_EVERY_MINUTES < 60,
               "IOTHUB_PUSH_MESSAGE_EVERY_MINUTES is lesser than 60 minutes.");
 
-static constexpr uint8_t IOTHUB_PUSH_STATE_EVERY_MINUTES = 15; // 15 minutes
+constexpr static uint8_t IOTHUB_PUSH_STATE_EVERY_MINUTES = 15; // 15 minutes
 static_assert(IOTHUB_PUSH_STATE_EVERY_MINUTES < 60,
               "IOTHUB_PUSH_STATE_EVERY_MINUTES is lesser than 60 minutes.");
 
-static constexpr uint8_t BME280_SENSING_EVERY_SECONDS = 2; // 2 seconds
+constexpr static uint8_t BME280_SENSING_EVERY_SECONDS = 2; // 2 seconds
 static_assert(BME280_SENSING_EVERY_SECONDS < 60,
               "BME280_SENSING_EVERY_SECONDS is lesser than 60 seconds.");
 
-static constexpr uint8_t SGP30_SENSING_EVERY_SECONDS = 1; // 1 seconds
+constexpr static uint8_t SGP30_SENSING_EVERY_SECONDS = 1; // 1 seconds
 static_assert(SGP30_SENSING_EVERY_SECONDS == 1,
               "SGP30_SENSING_EVERY_SECONDS is shoud be 1 seconds.");
 
-static constexpr uint8_t SCD30_SENSING_EVERY_SECONDS = 2; // 2 seconds
+constexpr static uint8_t SCD30_SENSING_EVERY_SECONDS = 2; // 2 seconds
 static_assert(SCD30_SENSING_EVERY_SECONDS < 60,
               "SCD30_SENSING_EVERY_SECONDS is lesser than 60 seconds.");
 

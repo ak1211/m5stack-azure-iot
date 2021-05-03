@@ -8,7 +8,7 @@
 //
 //
 //
-static constexpr char schema_temperature[] =
+constexpr static char schema_temperature[] =
     "CREATE TABLE IF NOT EXISTS temperature"
     "(id INTEGER PRIMARY KEY AUTOINCREMENT"
     ",sensor_id TEXT NOT NULL"
@@ -40,7 +40,7 @@ size_t LocalDatabase::get_temperatures_desc(
 //
 //
 //
-static constexpr char schema_relative_humidity[] =
+constexpr static char schema_relative_humidity[] =
     "CREATE TABLE IF NOT EXISTS relative_humidity"
     "(id INTEGER PRIMARY KEY AUTOINCREMENT"
     ",sensor_id TEXT NOT NULL"
@@ -72,7 +72,7 @@ size_t LocalDatabase::get_relative_humidities_desc(
 //
 //
 //
-static constexpr char schema_pressure[] =
+constexpr static char schema_pressure[] =
     "CREATE TABLE IF NOT EXISTS pressure"
     "(id INTEGER PRIMARY KEY AUTOINCREMENT"
     ",sensor_id TEXT NOT NULL"
@@ -104,7 +104,7 @@ size_t LocalDatabase::get_pressures_desc(
 //
 //
 //
-static constexpr char schema_carbon_dioxide[] =
+constexpr static char schema_carbon_dioxide[] =
     "CREATE TABLE IF NOT EXISTS carbon_dioxide"
     "(id INTEGER PRIMARY KEY AUTOINCREMENT"
     ",sensor_id TEXT NOT NULL"
@@ -140,7 +140,7 @@ size_t LocalDatabase::get_carbon_deoxides_desc(
 //
 //
 //
-static constexpr char schema_total_voc[] =
+constexpr static char schema_total_voc[] =
     "CREATE TABLE IF NOT EXISTS total_voc"
     "(id INTEGER PRIMARY KEY AUTOINCREMENT"
     ",sensor_id TEXT NOT NULL"

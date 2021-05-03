@@ -13,9 +13,9 @@
 //
 class LedSignal {
 public:
-  static constexpr uint16_t NUMPIXELS = 10;
-  static constexpr uint16_t GPIO_PIN_NEOPIXEL = 25;
-  static constexpr uint8_t BME280_I2C_ADDRESS = 0x76;
+  constexpr static uint16_t NUMPIXELS = 10;
+  constexpr static uint16_t GPIO_PIN_NEOPIXEL = 25;
+  constexpr static uint8_t BME280_I2C_ADDRESS = 0x76;
   //
   LedSignal() {
     pixels =

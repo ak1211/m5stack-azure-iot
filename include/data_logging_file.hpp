@@ -14,7 +14,7 @@
 //
 class DataLoggingFile {
 public:
-  static constexpr size_t FILENAME_MAX_LEN = 50;
+  constexpr static size_t FILENAME_MAX_LEN = 50;
   DataLoggingFile(const char *datafilename, const char *headerfilename)
       : data_fname{'\0'}, header_fname{'\0'}, _ready{false} {
     strncpy(const_cast<char *>(data_fname), datafilename, FILENAME_MAX_LEN);

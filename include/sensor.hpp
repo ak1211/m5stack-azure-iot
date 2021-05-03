@@ -14,7 +14,7 @@
 #include <cstdint>
 #include <ctime>
 
-static constexpr uint8_t SMA_PERIOD = 10;
+constexpr static uint8_t SMA_PERIOD = 10;
 
 enum class HasSensor { Ok, NoSensorFound };
 
@@ -33,6 +33,7 @@ private:
 
 template <class T> class Sensor {
 public:
+  const char *getSensorId() = 0;
   void printSensorDetails() = 0;
   HasSensor begin() = 0;
   bool ready() = 0;
@@ -54,6 +55,7 @@ using Bme280 = MeasuredValues<TempHumiPres>;
 template <> class Sensor<Bme280> {
 public:
   Sensor(const char *custom_sensor_id) : sensor_id(custom_sensor_id) {}
+  const char *getSensorId() { return sensor_id; }
   void printSensorDetails();
   HasSensor begin(uint8_t i2c_address);
   bool ready();
@@ -86,6 +88,7 @@ public:
   Sensor(const char *custom_sensor_id)
       : sensor_id(custom_sensor_id),
         last_measured_at(0), last_eCo2_baseline{}, last_tvoc_baseline{} {}
+  const char *getSensorId() { return sensor_id; }
   void printSensorDetails();
   HasSensor begin();
   bool ready();
@@ -122,6 +125,7 @@ template <> class Sensor<Scd30> {
 public:
   Sensor(const char *custom_sensor_id)
       : sensor_id(custom_sensor_id), last_measured_at(0) {}
+  const char *getSensorId() { return sensor_id; }
   void printSensorDetails();
   HasSensor begin();
   bool ready();

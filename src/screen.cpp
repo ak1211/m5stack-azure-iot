@@ -407,9 +407,9 @@ public:
   const uint32_t grid_color = Screen::lcd.color888(200, 200, 200);
   const uint32_t line_color = Screen::lcd.color888(232, 120, 120);
   //
-  static constexpr int16_t graph_margin = 8;
-  static constexpr int16_t graph_width = 240;
-  static constexpr int16_t graph_height = 180;
+  constexpr static int16_t graph_margin = 8;
+  constexpr static int16_t graph_width = 240;
+  constexpr static int16_t graph_height = 180;
   //
   GraphView(uint32_t id, int32_t text_color, int32_t bg_color,
             LocalDatabase &local_database, double vmin, double vmax)
@@ -547,15 +547,6 @@ public:
   }
   //
   void render(const struct tm &local) override {
-    Peripherals &peri = Peripherals::getInstance();
-    Bme280 bme = peri.bme280.valuesWithSMA();
-    if (bme.nothing()) {
-      Screen::lcd.setTextDatum(textdatum_t::middle_center);
-      int16_t cx, cy;
-      getGraphCenter(&cx, &cy);
-      Screen::lcd.drawString("BME280センサー異常。", cx, cy);
-      return;
-    }
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
@@ -580,8 +571,9 @@ public:
       };
       //
       prepare();
-      database.get_temperatures_desc(bme.get().sensor_id, graph_width / step,
-                                     callback);
+      Peripherals &peri = Peripherals::getInstance();
+      database.get_temperatures_desc(peri.bme280.getSensorId(),
+                                     graph_width / step, callback);
       rawid = database.rawid_temperature;
       grid();
     }
@@ -636,15 +628,6 @@ public:
   }
   //
   void render(const struct tm &local) override {
-    Peripherals &peri = Peripherals::getInstance();
-    Bme280 bme = peri.bme280.valuesWithSMA();
-    if (bme.nothing()) {
-      Screen::lcd.setTextDatum(textdatum_t::middle_center);
-      int16_t cx, cy;
-      getGraphCenter(&cx, &cy);
-      Screen::lcd.drawString("BME280センサー異常。", cx, cy);
-      return;
-    }
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
@@ -669,7 +652,8 @@ public:
       };
       //
       prepare();
-      database.get_relative_humidities_desc(bme.get().sensor_id,
+      Peripherals &peri = Peripherals::getInstance();
+      database.get_relative_humidities_desc(peri.bme280.getSensorId(),
                                             graph_width / step, callback);
       update_rawid();
       grid();
@@ -727,15 +711,6 @@ public:
   }
   //
   void render(const struct tm &local) override {
-    Peripherals &peri = Peripherals::getInstance();
-    Bme280 bme = peri.bme280.valuesWithSMA();
-    if (bme.nothing()) {
-      Screen::lcd.setTextDatum(textdatum_t::middle_center);
-      int16_t cx, cy;
-      getGraphCenter(&cx, &cy);
-      Screen::lcd.drawString("BME280センサー異常。", cx, cy);
-      return;
-    }
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
@@ -760,7 +735,8 @@ public:
       };
       //
       prepare();
-      database.get_pressures_desc(bme.get().sensor_id, graph_width / step,
+      Peripherals &peri = Peripherals::getInstance();
+      database.get_pressures_desc(peri.bme280.getSensorId(), graph_width / step,
                                   callback);
       update_rawid();
       grid();
@@ -815,15 +791,6 @@ public:
   }
   //
   void render(const struct tm &local) override {
-    Peripherals &peri = Peripherals::getInstance();
-    Sgp30 sgp = peri.sgp30.valuesWithSMA();
-    if (sgp.nothing()) {
-      Screen::lcd.setTextDatum(textdatum_t::middle_center);
-      int16_t cx, cy;
-      getGraphCenter(&cx, &cy);
-      Screen::lcd.drawString("SGP30センサー異常。", cx, cy);
-      return;
-    }
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
@@ -849,7 +816,8 @@ public:
       };
       //
       prepare();
-      database.get_total_vocs_desc(sgp.get().sensor_id, graph_width / step,
+      Peripherals &peri = Peripherals::getInstance();
+      database.get_total_vocs_desc(peri.sgp30.getSensorId(), graph_width / step,
                                    callback);
       update_rawid();
       grid();
@@ -906,15 +874,6 @@ public:
   }
   //
   void render(const struct tm &local) override {
-    Peripherals &peri = Peripherals::getInstance();
-    Sgp30 sgp = peri.sgp30.valuesWithSMA();
-    if (sgp.nothing()) {
-      Screen::lcd.setTextDatum(textdatum_t::middle_center);
-      int16_t cx, cy;
-      getGraphCenter(&cx, &cy);
-      Screen::lcd.drawString("SGP30センサー異常。", cx, cy);
-      return;
-    }
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
@@ -940,8 +899,9 @@ public:
       };
       //
       prepare();
-      database.get_carbon_deoxides_desc(sgp.get().sensor_id, graph_width / step,
-                                        callback);
+      Peripherals &peri = Peripherals::getInstance();
+      database.get_carbon_deoxides_desc(peri.sgp30.getSensorId(),
+                                        graph_width / step, callback);
       update_rawid();
       grid();
     }
@@ -999,15 +959,6 @@ public:
   }
   //
   void render(const struct tm &local) override {
-    Peripherals &peri = Peripherals::getInstance();
-    Scd30 scd = peri.scd30.valuesWithSMA();
-    if (scd.nothing()) {
-      Screen::lcd.setTextDatum(textdatum_t::middle_center);
-      int16_t cx, cy;
-      getGraphCenter(&cx, &cy);
-      Screen::lcd.drawString("SCD30センサー異常。", cx, cy);
-      return;
-    }
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
@@ -1033,8 +984,9 @@ public:
       };
       //
       prepare();
-      database.get_carbon_deoxides_desc(scd.get().sensor_id, graph_width / step,
-                                        callback);
+      Peripherals &peri = Peripherals::getInstance();
+      database.get_carbon_deoxides_desc(peri.scd30.getSensorId(),
+                                        graph_width / step, callback);
       update_rawid();
       grid();
     }

@@ -66,7 +66,7 @@ public:
   bool moveByViewId(uint32_t view_id);
 
 private:
-  static constexpr int8_t total_views = 9;
+  constexpr static int8_t total_views = 9;
   View *views[total_views];
   int8_t now_view;
   //

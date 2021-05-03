@@ -16,7 +16,7 @@
 //
 class LocalDatabase {
 public:
-  static constexpr size_t FILENAME_MAX_LEN = 50;
+  constexpr static size_t FILENAME_MAX_LEN = 50;
   //
   int64_t rawid_temperature;
   int64_t rawid_relative_humidity;
