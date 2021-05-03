@@ -5,6 +5,7 @@
 #define _USE_MATH_DEFINES
 #include "screen.hpp"
 #include "local_database.hpp"
+#include "peripherals.hpp"
 #include "system_status.hpp"
 #include <M5Core2.h>
 #include <cmath>
@@ -60,13 +61,13 @@ class SystemHealthView : public Screen::View {
 public:
   SystemHealthView() : View(IdSystemHealthView, TFT_WHITE, TFT_BLACK) {}
   //
-  void render(const System::Status &status, const struct tm &local,
-              const Bme280 &bme, const Sgp30 &sgp, const Scd30 &scd) override {
+  void render(const struct tm &local) override {
+    Peripherals &peri = Peripherals::getInstance();
     //
     Screen::lcd.setCursor(0, 0);
     Screen::lcd.setTextDatum(textdatum_t::top_left);
     Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
-    if (status.has_WIFI_connection) {
+    if (peri.status.has_WIFI_connection) {
       Screen::lcd.setTextColor(TFT_GREEN, background_color);
       Screen::lcd.printf("  Wifi");
     } else {
@@ -75,14 +76,14 @@ public:
     }
     Screen::lcd.setTextColor(message_text_color, background_color);
     //
-    if (status.is_freestanding_mode) {
+    if (peri.status.is_freestanding_mode) {
       Screen::lcd.printf("/FREESTAND");
     } else {
       Screen::lcd.printf("/CONNECTED");
     }
     //
     {
-      auto up = uptime(status);
+      auto up = uptime(peri.status);
       Screen::lcd.printf(" up %2ddays,%2d:%2d\n", up.days, up.hours,
                          up.minutes);
     }
@@ -109,6 +110,7 @@ public:
     }
     //
     Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
+    Bme280 bme = peri.bme280.valuesWithSMA();
     if (bme.good()) {
       Screen::lcd.printf("温度 %6.1f ℃\n", bme.get().temperature.value);
       Screen::lcd.printf("湿度 %6.1f ％\n", bme.get().relative_humidity.value);
@@ -118,6 +120,7 @@ public:
       Screen::lcd.printf("湿度 ------ ％\n");
       Screen::lcd.printf("気圧 ------ hPa\n");
     }
+    Sgp30 sgp = peri.sgp30.valuesWithSMA();
     if (sgp.good()) {
       Screen::lcd.printf("eCO2 %6d ppm\n", sgp.get().eCo2.value);
       Screen::lcd.printf("TVOC %6d ppb\n", sgp.get().tvoc.value);
@@ -125,6 +128,7 @@ public:
       Screen::lcd.printf("eCO2 ------ ppm\n");
       Screen::lcd.printf("TVOC ------ ppb\n");
     }
+    Scd30 scd = peri.scd30.valuesWithSMA();
     if (scd.good()) {
       Screen::lcd.printf("CO2 %6d ppm\n", scd.get().co2.value);
       Screen::lcd.printf("温度 %6.1f ℃\n", scd.get().temperature.value);
@@ -142,8 +146,7 @@ class ClockView : public Screen::View {
 public:
   ClockView() : View(IdClockView, TFT_WHITE, TFT_BLACK) {}
   //
-  void render(const System::Status &, const struct tm &local, const Bme280 &,
-              const Sgp30 &, const Scd30 &) override {
+  void render(const struct tm &local) override {
     const auto half_width = Screen::lcd.width() / 2;
     const auto half_height = Screen::lcd.height() / 2;
     const auto line_height = 40;
@@ -334,8 +337,11 @@ public:
     }
   }
   //
-  void render(const System::Status &status, const struct tm &local,
-              const Bme280 &bme, const Sgp30 &sgp, const Scd30 &scd) override {
+  void render(const struct tm &local) override {
+    Peripherals &peri = Peripherals::getInstance();
+    Bme280 bme = peri.bme280.valuesWithSMA();
+    Sgp30 sgp = peri.sgp30.valuesWithSMA();
+    Scd30 scd = peri.scd30.valuesWithSMA();
 #define BME(_X_)                                                               \
   do {                                                                         \
     if (bme.good()) {                                                          \
@@ -540,8 +546,9 @@ public:
     Screen::lcd.drawString("更新中", cx, cy);
   }
   //
-  void render(const System::Status &, const struct tm &local, const Bme280 &bme,
-              const Sgp30 &, const Scd30 &) override {
+  void render(const struct tm &local) override {
+    Peripherals &peri = Peripherals::getInstance();
+    Bme280 bme = peri.bme280.valuesWithSMA();
     if (bme.nothing()) {
       Screen::lcd.setTextDatum(textdatum_t::middle_center);
       int16_t cx, cy;
@@ -628,8 +635,9 @@ public:
     Screen::lcd.drawString("更新中", cx, cy);
   }
   //
-  void render(const System::Status &, const struct tm &local, const Bme280 &bme,
-              const Sgp30 &, const Scd30 &) override {
+  void render(const struct tm &local) override {
+    Peripherals &peri = Peripherals::getInstance();
+    Bme280 bme = peri.bme280.valuesWithSMA();
     if (bme.nothing()) {
       Screen::lcd.setTextDatum(textdatum_t::middle_center);
       int16_t cx, cy;
@@ -718,8 +726,9 @@ public:
     Screen::lcd.drawString("更新中", cx, cy);
   }
   //
-  void render(const System::Status &, const struct tm &local, const Bme280 &bme,
-              const Sgp30 &, const Scd30 &) override {
+  void render(const struct tm &local) override {
+    Peripherals &peri = Peripherals::getInstance();
+    Bme280 bme = peri.bme280.valuesWithSMA();
     if (bme.nothing()) {
       Screen::lcd.setTextDatum(textdatum_t::middle_center);
       int16_t cx, cy;
@@ -805,8 +814,9 @@ public:
     Screen::lcd.drawString("更新中", cx, cy);
   }
   //
-  void render(const System::Status &, const struct tm &local, const Bme280 &,
-              const Sgp30 &sgp, const Scd30 &) override {
+  void render(const struct tm &local) override {
+    Peripherals &peri = Peripherals::getInstance();
+    Sgp30 sgp = peri.sgp30.valuesWithSMA();
     if (sgp.nothing()) {
       Screen::lcd.setTextDatum(textdatum_t::middle_center);
       int16_t cx, cy;
@@ -895,8 +905,9 @@ public:
     Screen::lcd.drawString("更新中", cx, cy);
   }
   //
-  void render(const System::Status &, const struct tm &local, const Bme280 &,
-              const Sgp30 &sgp, const Scd30 &) override {
+  void render(const struct tm &local) override {
+    Peripherals &peri = Peripherals::getInstance();
+    Sgp30 sgp = peri.sgp30.valuesWithSMA();
     if (sgp.nothing()) {
       Screen::lcd.setTextDatum(textdatum_t::middle_center);
       int16_t cx, cy;
@@ -987,8 +998,9 @@ public:
     Screen::lcd.drawString("更新中", cx, cy);
   }
   //
-  void render(const System::Status &, const struct tm &local, const Bme280 &,
-              const Sgp30 &, const Scd30 &scd) override {
+  void render(const struct tm &local) override {
+    Peripherals &peri = Peripherals::getInstance();
+    Scd30 scd = peri.scd30.valuesWithSMA();
     if (scd.nothing()) {
       Screen::lcd.setTextDatum(textdatum_t::middle_center);
       int16_t cx, cy;
@@ -1107,14 +1119,19 @@ bool Screen::moveByViewId(uint32_t view_id) {
 }
 
 //
-void Screen::update(const System::Status &status, time_t time,
-                    const Bme280 &bme, const Sgp30 &sgp, const Scd30 &scd) {
+void Screen::update(time_t time) {
   // time zone offset UTC+9 = asia/tokyo
   time_t local_time = time + 9 * 60 * 60;
   struct tm local;
   gmtime_r(&local_time, &local);
 
-  views[now_view]->render(status, local, bme, sgp, scd);
+  views[now_view]->render(local);
+}
+
+//
+void Screen::repaint(time_t time) {
+  views[now_view]->focusIn();
+  update(time);
 }
 
 //

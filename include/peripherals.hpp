@@ -1,0 +1,39 @@
+// Copyright (c) 2021 Akihiro Yamamoto.
+// Licensed under the MIT License <https://spdx.org/licenses/MIT.html>
+// See LICENSE file in the project root for full license information.
+//
+#ifndef PERIPHERALS_HPP
+#define PERIPHERALS_HPP
+
+#include "data_logging_file.hpp"
+#include "led_signal.hpp"
+#include "local_database.hpp"
+#include "screen.hpp"
+#include "sensor.hpp"
+#include "system_status.hpp"
+
+//
+//
+//
+class Peripherals {
+public:
+  Sensor<Bme280> bme280;
+  Sensor<Sgp30> sgp30;
+  Sensor<Scd30> scd30;
+  LocalDatabase local_database;
+  DataLoggingFile data_logging_file;
+  Screen screen;
+  System::Status status;
+  LedSignal led_signal;
+  //
+  static bool begin();
+  static Peripherals &getInstance();
+
+private:
+  static Peripherals _instance;
+  void operator=(const Peripherals &);
+  Peripherals(const Peripherals &);
+  Peripherals();
+};
+
+#endif // PERIPHERALS_HPP

@@ -40,9 +40,7 @@ public:
     //
     virtual void releaseEvent(Screen *screen, Event &e) {}
     //
-    virtual void render(const System::Status &status, const struct tm &local,
-                        const Bme280 &bme, const Sgp30 &sgp, const Scd30 &scd) {
-    }
+    virtual void render(const struct tm &local) {}
   };
   //
   static LGFX lcd;
@@ -56,8 +54,8 @@ public:
   //
   void begin(int32_t text_color = TFT_WHITE, int32_t bg_color = TFT_BLACK);
   //
-  void update(const System::Status &status, time_t time, const Bme280 &bme,
-              const Sgp30 &sgp, const Scd30 &scd);
+  void update(time_t time);
+  void repaint(time_t time);
   //
   void releaseEvent(Event &e);
   //
