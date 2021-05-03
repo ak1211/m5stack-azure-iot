@@ -11,6 +11,8 @@
 #include "screen.hpp"
 #include "sensor.hpp"
 #include "system_status.hpp"
+#include "ticktack.hpp"
+#include "wifi_launcher.hpp"
 
 //
 //
@@ -27,16 +29,17 @@ public:
   constexpr static const char *sensor_id_sgp30 = "m5stack-bme280-device-sgp30";
   constexpr static const char *sensor_id_scd30 = "m5stack-bme280-device-scd30";
   //
+  TickTack ticktack;
   Sensor<Bme280> bme280;
   Sensor<Sgp30> sgp30;
   Sensor<Scd30> scd30;
   LocalDatabase local_database;
   DataLoggingFile data_logging_file;
   Screen screen;
-  System::Status status;
   LedSignal led_signal;
+  WifiLauncher wifi_launcher;
   //
-  static bool begin();
+  static bool begin(const char *wifi_ssid, const char *wifi_password);
   static Peripherals &getInstance();
 
 private:

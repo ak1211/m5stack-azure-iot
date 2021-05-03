@@ -15,23 +15,6 @@
 //
 //
 //
-System::Uptime System::uptime(const Status &status) {
-  clock_t time_epoch = clock() - status.startup_epoch;
-  uint32_t seconds = static_cast<uint32_t>(time_epoch / CLOCKS_PER_SEC);
-  uint32_t minutes = seconds / 60;
-  uint32_t hours = minutes / 60;
-  uint32_t days = hours / 24;
-  return {
-      .days = static_cast<uint16_t>(days),
-      .hours = static_cast<uint8_t>(hours % 24),
-      .minutes = static_cast<uint8_t>(minutes % 60),
-      .seconds = static_cast<uint8_t>(seconds % 60),
-  };
-}
-
-//
-//
-//
 System::BatteryStatus System::getBatteryStatus() {
   float batt_v = M5.Axp.GetBatVoltage();
   float batt_full_v = 4.18f;

@@ -9,14 +9,6 @@
 #include <ctime>
 
 namespace System {
-//
-//
-//
-struct Status {
-  clock_t startup_epoch;
-  bool has_WIFI_connection;
-  bool is_freestanding_mode;
-};
 
 //
 //
@@ -42,11 +34,6 @@ inline bool isBatteryCharging(const BatteryStatus &stat) {
 inline bool isBatteryDischarging(const BatteryStatus &stat) {
   return (stat.current < 0.00f);
 }
-
-//
-//
-//
-extern Uptime uptime(const Status &status);
 
 //
 //
