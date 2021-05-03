@@ -10,14 +10,17 @@ Peripherals Peripherals::_instance = Peripherals();
 //
 //
 Peripherals::Peripherals()
-    : ticktack(TickTack()), power_status(PowerStatus()),
+    : ticktack(TickTack()),
+      power_status(PowerStatus()),
       bme280(Sensor<Bme280>(sensor_id_bme280)),
       sgp30(Sensor<Sgp30>(sensor_id_sgp30)),
       scd30(Sensor<Scd30>(sensor_id_scd30)),
       local_database(LocalDatabase(sqlite3_file_name)),
       data_logging_file(
           DataLoggingFile(data_log_file_name, header_log_file_name)),
-      screen(Screen(local_database)), led_signal(LedSignal()), wifi_launcher() {
+      screen(Screen(local_database)),
+      led_signal(LedSignal()),
+      wifi_launcher() {
   ESP_LOGD("peripherals", "Peripherals construct success.");
 }
 //

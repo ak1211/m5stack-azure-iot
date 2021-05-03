@@ -209,7 +209,9 @@ public:
   Tile(uint32_t tapToMoveViewId, const CaptionT &caption_, int32_t text_col,
        int32_t bg_col)
       : tap_to_move_view_id(tapToMoveViewId),
-        caption(caption_), before{}, now{} {
+        caption(caption_),
+        before{},
+        now{} {
     text_color = text_col;
     background_color = bg_col;
   }
@@ -405,8 +407,10 @@ public:
   //
   GraphView(uint32_t id, int32_t text_color, int32_t bg_color,
             LocalDatabase &local_database, double vmin, double vmax)
-      : View(id, text_color, bg_color), database(local_database),
-        value_min(vmin), value_max(vmax) {
+      : View(id, text_color, bg_color),
+        database(local_database),
+        value_min(vmin),
+        value_max(vmax) {
     //
     setOffset(0, 0);
     locators.push_back(value_min);

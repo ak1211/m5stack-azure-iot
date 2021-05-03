@@ -22,7 +22,8 @@ public:
     int32_t background_color;
     //
     View(uint32_t id, int32_t text_color, int32_t bg_color)
-        : view_id(id), message_text_color(text_color),
+        : view_id(id),
+          message_text_color(text_color),
           background_color(bg_color) {}
     //
     virtual ~View() {}

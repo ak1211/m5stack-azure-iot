@@ -87,7 +87,9 @@ template <> class Sensor<Sgp30> {
 public:
   Sensor(const char *custom_sensor_id)
       : sensor_id(custom_sensor_id),
-        last_measured_at(0), last_eCo2_baseline{}, last_tvoc_baseline{} {}
+        last_measured_at(0),
+        last_eCo2_baseline{},
+        last_tvoc_baseline{} {}
   const char *getSensorId() { return sensor_id; }
   void printSensorDetails();
   HasSensor begin();
