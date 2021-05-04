@@ -6,7 +6,7 @@
 #define LOCAL_DATABASE_HPP
 
 #include "sensor.hpp"
-#include <cstddef>
+#include "value_types.hpp"
 #include <functional>
 #include <sqlite3.h>
 #include <string>
@@ -39,15 +39,16 @@ public:
   bool insert(const TvocEco2 &);
   bool insert(const Co2TempHumi &);
   //
-  int64_t insert_temperature(const char *sensor_id, time_t at, float degc);
-  int64_t insert_relative_humidity(const char *sensor_id, time_t at, float rh);
-  int64_t insert_pressure(const char *sensor_id, time_t at, float hpa);
-  int64_t insert_carbon_dioxide(const char *sensor_id, time_t at, uint16_t ppm,
+  int64_t insert_temperature(const char *sensor_id, std::time_t at, DegC degc);
+  int64_t insert_relative_humidity(const char *sensor_id, std::time_t at,
+                                   PcRH rh);
+  int64_t insert_pressure(const char *sensor_id, std::time_t at, HPa hpa);
+  int64_t insert_carbon_dioxide(const char *sensor_id, std::time_t at, Ppm ppm,
                                 const uint16_t *baseline);
-  int64_t insert_total_voc(const char *sensor_id, time_t at, uint16_t ppb,
+  int64_t insert_total_voc(const char *sensor_id, std::time_t at, Ppb ppb,
                            const uint16_t *baseline);
   //
-  typedef std::function<bool(size_t counter, time_t at, float v)>
+  typedef std::function<bool(size_t counter, std::time_t at, float v)>
       CallbackRowTimeAndFloat;
   //
   size_t get_temperatures_desc(const char *sensor_id, size_t limit,
@@ -59,7 +60,7 @@ public:
   size_t get_pressures_desc(const char *sensor_id, size_t limit,
                             CallbackRowTimeAndFloat callback);
   //
-  typedef std::function<bool(size_t counter, time_t at, uint16_t v1,
+  typedef std::function<bool(size_t counter, std::time_t at, uint16_t v1,
                              uint16_t v2, bool has_v2)>
       CallbackRowTimeAndUint16AndNullableUint16;
   //
@@ -74,7 +75,7 @@ public:
   //
   void printToSerial(Temp t) {
   // time zone offset UTC+9 = asia/tokyo
-  time_t local_time = t.at + 9 * 60 * 60;
+  std::time_t local_time = t.at + 9 * 60 * 60;
   struct tm local;
   gmtime_r(&local_time, &local);
   char buffer[50];
@@ -85,7 +86,7 @@ public:
   //
   void printToSerial(Humi h) {
   // time zone offset UTC+9 = asia/tokyo
-  time_t local_time = h.at + 9 * 60 * 60;
+  std::time_t local_time = h.at + 9 * 60 * 60;
   struct tm local;
   gmtime_r(&local_time, &local);
   char buffer[50];
@@ -96,7 +97,7 @@ public:
   //
   void printToSerial(Pres p) {
   // time zone offset UTC+9 = asia/tokyo
-  time_t local_time = p.at + 9 * 60 * 60;
+  std::time_t local_time = p.at + 9 * 60 * 60;
   struct tm local;
   gmtime_r(&local_time, &local);
   char buffer[50];
@@ -107,7 +108,7 @@ public:
   //
   void printToSerial(Co2 c) {
   // time zone offset UTC+9 = asia/tokyo
-  time_t local_time = c.at + 9 * 60 * 60;
+  std::time_t local_time = c.at + 9 * 60 * 60;
   struct tm local;
   gmtime_r(&local_time, &local);
   char buffer[50] = "";
@@ -122,7 +123,7 @@ public:
   //
   void printToSerial(TVOC t) {
   // time zone offset UTC+9 = asia/tokyo
-  time_t local_time = t.at + 9 * 60 * 60;
+  std::time_t local_time = t.at + 9 * 60 * 60;
   struct tm local;
   gmtime_r(&local_time, &local);
   char buffer[50] = "";
@@ -141,10 +142,10 @@ private:
   sqlite3 *database;
   //
   int64_t raw_insert_time_and_float(const char *query, const char *sensor_id,
-                                    time_t time, float float_value);
+                                    std::time_t time, float float_value);
   //
   int64_t raw_insert_time_and_uint16_and_nullable_uint16(
-      const char *query, const char *sensor_id, time_t time,
+      const char *query, const char *sensor_id, std::time_t time,
       uint16_t uint16_value, const uint16_t *nullable_uint16_value);
   //
   size_t raw_get_n_desc_time_and_float(const char *query, const char *sensor_id,

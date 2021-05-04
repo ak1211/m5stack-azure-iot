@@ -18,11 +18,6 @@ constexpr static const char *TAG = "MainModule";
 //
 // globals
 //
-constexpr static clock_t SUPPRESSION_SECONDS_OF_FIRST_PUSH =
-    120; // 120 seconds = 2 minutes
-
-constexpr static uint16_t NUM_OF_TRY_TO_WIFI_CONNECTION = 50;
-
 constexpr static uint8_t IOTHUB_PUSH_MESSAGE_EVERY_MINUTES = 1; // 1 mimutes
 static_assert(IOTHUB_PUSH_MESSAGE_EVERY_MINUTES < 60,
               "IOTHUB_PUSH_MESSAGE_EVERY_MINUTES is lesser than 60 minutes.");
@@ -373,23 +368,19 @@ static void periodical_push_message(const MeasurementSets &m) {
 //
 //
 //
-static void periodical_push_state(const MeasurementSets &m) {
+static void periodical_push_state() {
   Peripherals &peri = Peripherals::getInstance();
   if (peri.power_status.needToUpdate()) {
     peri.power_status.update();
   }
-  JsonDocSets doc_sets = {};
-  if (m.sgp30.good()) {
-    auto json = takeStateFromJsonDocSets(mapToJson(doc_sets, m.sgp30.get()));
-    char buf[10];
-    memset(buf, '\0', sizeof(buf));
-    snprintf(buf, 10, "%d%%",
-             static_cast<int>(peri.power_status.getBatteryPercentage()));
-    json["batteryLevel"] = buf;
-    uint32_t upseconds = peri.ticktack.uptime_seconds();
-    json["uptime"] = upseconds;
-    IotHubClient::pushState(json);
-  }
+  StaticJsonDocument<1024> json;
+  char buf[10] = {'\0'};
+  snprintf(buf, 10, "%d%%",
+           static_cast<int>(peri.power_status.getBatteryPercentage()));
+  json["batteryLevel"] = buf;
+  uint32_t upseconds = peri.ticktack.uptime_seconds();
+  json["uptime"] = upseconds;
+  IotHubClient::pushState(json);
 }
 
 //
@@ -406,16 +397,13 @@ static void periodical_send_to_iothub(const MeasurementSets &m) {
 
   Peripherals &peri = Peripherals::getInstance();
   //
-  if (peri.ticktack.uptime_seconds() <= SUPPRESSION_SECONDS_OF_FIRST_PUSH) {
-    // Discarding this measurements
-    allowToPushMessage = false;
-    allowToPushState = false;
-  }
-  //
   // insert to local database
   //
   if (allowToPushMessage) {
-    peri.data_logging_file.write_data_to_log_file(m.bme280, m.sgp30, m.scd30);
+    if (m.bme280.good() && m.sgp30.good() && m.scd30.good()) {
+      peri.data_logging_file.write_data_to_log_file(
+          m.bme280.get(), m.sgp30.get(), m.scd30.get());
+    }
     //
     if (m.bme280.good()) {
       peri.local_database.insert(m.bme280.get());
@@ -433,7 +421,7 @@ static void periodical_send_to_iothub(const MeasurementSets &m) {
       periodical_push_message(m);
     }
     if (allowToPushState) {
-      periodical_push_state(m);
+      periodical_push_state();
     }
     IotHubClient::update(true);
   }

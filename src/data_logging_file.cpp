@@ -32,24 +32,15 @@ bool DataLoggingFile::begin() {
 //
 //
 //
-void DataLoggingFile::write_data_to_log_file(const Bme280 &bme,
-                                             const Sgp30 &sgp,
-                                             const Scd30 &scd) {
-  if (bme.nothing()) {
-    ESP_LOGE(TAG, "BME280 sensor has problems.");
-    return;
-  }
-  if (sgp.nothing()) {
-    ESP_LOGE(TAG, "SGP30 sensor has problems.");
-    return;
-  }
-  if (scd.nothing()) {
-    ESP_LOGE(tAG, "SCD30 sensor has problems.");
-    return;
+void DataLoggingFile::write_data_to_log_file(const TempHumiPres &bme,
+                                             const TvocEco2 &sgp,
+                                             const Co2TempHumi &scd) {
+  if (bme.at != sgp.at || bme.at != scd.at) {
+    ESP_LOGD(TAG, "at field is differ.");
   }
   struct tm utc;
   {
-    time_t at = bme.get().at;
+    time_t at = bme.at;
     gmtime_r(&at, &utc);
   }
 
@@ -61,27 +52,25 @@ void DataLoggingFile::write_data_to_log_file(const Bme280 &bme,
     // first field is date and time
     i += strftime(&p[i], LENGTH - i, "%Y-%m-%dT%H:%M:%SZ", &utc);
     // 2nd field is temperature
-    i += snprintf(&p[i], LENGTH - i, ", %6.2f", bme.get().temperature.value);
+    i += snprintf(&p[i], LENGTH - i, ", %6.2f", bme.temperature.value);
     // 3nd field is relative_humidity
-    i += snprintf(&p[i], LENGTH - i, ", %6.2f",
-                  bme.get().relative_humidity.value);
+    i += snprintf(&p[i], LENGTH - i, ", %6.2f", bme.relative_humidity.value);
     // 4th field is pressure
-    i += snprintf(&p[i], LENGTH - i, ", %7.2f", bme.get().pressure.value);
+    i += snprintf(&p[i], LENGTH - i, ", %7.2f", bme.pressure.value);
     // 5th field is TVOC
-    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp.get().tvoc.value);
+    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp.tvoc.value);
     // 6th field is eCo2
-    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp.get().eCo2.value);
+    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp.eCo2.value);
     // 7th field is TVOC baseline
-    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp.get().tvoc_baseline.value);
+    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp.tvoc_baseline.value);
     // 8th field is eCo2 baseline
-    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp.get().eCo2_baseline.value);
+    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp.eCo2_baseline.value);
     // 9th field is co2
-    i += snprintf(&p[i], LENGTH - i, ", %5d", scd.get().co2.value);
+    i += snprintf(&p[i], LENGTH - i, ", %5d", scd.co2.value);
     // 10th field is temperature
-    i += snprintf(&p[i], LENGTH - i, ", %6.2f", scd.get().temperature.value);
+    i += snprintf(&p[i], LENGTH - i, ", %6.2f", scd.temperature.value);
     // 11th field is relative_humidity
-    i += snprintf(&p[i], LENGTH - i, ", %6.2f",
-                  scd.get().relative_humidity.value);
+    i += snprintf(&p[i], LENGTH - i, ", %6.2f", scd.relative_humidity.value);
 
     ESP_LOGD(TAG, "%s", p);
 
