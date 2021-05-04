@@ -5,6 +5,8 @@
 #include "data_logging_file.hpp"
 #include <SD.h>
 
+constexpr static const char *TAG = "LoggingModule";
+
 //
 //
 //
@@ -21,7 +23,7 @@ bool DataLoggingFile::begin() {
   }
   case CARD_NONE: /* fallthrough */
   case CARD_UNKNOWN:
-    ESP_LOGD("main", "No MEMORY CARD found.");
+    ESP_LOGD(TAG, "No MEMORY CARD found.");
     break;
   }
   return _ready;
@@ -34,15 +36,15 @@ void DataLoggingFile::write_data_to_log_file(const Bme280 &bme,
                                              const Sgp30 &sgp,
                                              const Scd30 &scd) {
   if (bme.nothing()) {
-    ESP_LOGE("main", "BME280 sensor has problems.");
+    ESP_LOGE(TAG, "BME280 sensor has problems.");
     return;
   }
   if (sgp.nothing()) {
-    ESP_LOGE("main", "SGP30 sensor has problems.");
+    ESP_LOGE(TAG, "SGP30 sensor has problems.");
     return;
   }
   if (scd.nothing()) {
-    ESP_LOGE("main", "SCD30 sensor has problems.");
+    ESP_LOGE(tAG, "SCD30 sensor has problems.");
     return;
   }
   struct tm utc;
@@ -81,14 +83,14 @@ void DataLoggingFile::write_data_to_log_file(const Bme280 &bme,
     i += snprintf(&p[i], LENGTH - i, ", %6.2f",
                   scd.get().relative_humidity.value);
 
-    ESP_LOGD("main", "%s", p);
+    ESP_LOGD(TAG, "%s", p);
 
     // write to file
     size_t size = data_logging_file.println(p);
     data_logging_file.flush();
-    ESP_LOGD("main", "wrote size:%u", size);
+    ESP_LOGD(TAG, "wrote size:%u", size);
   } else {
-    ESP_LOGE("main", "memory allocation error");
+    ESP_LOGE(TAG, "memory allocation error");
   }
 
   free(p);
@@ -127,12 +129,12 @@ void DataLoggingFile::write_header_to_log_file() {
   // 11th field is relative_humidity
   i += snprintf(&p[i], LENGTH - i, ", %s", "humidity[%RH]");
 
-  ESP_LOGD("main", "%s", p);
+  ESP_LOGD(TAG, "%s", p);
 
   // write to file
   size_t size = data_logging_file.println(p);
   data_logging_file.flush();
-  ESP_LOGD("main", "wrote size:%u", size);
+  ESP_LOGD(TAG, "wrote size:%u", size);
 
   free(p);
   //

@@ -10,6 +10,8 @@
 #include <ctime>
 #include <lwip/apps/sntp.h>
 
+constexpr static const char *TAG = "IoTHubModule";
+
 uint32_t IotHubClient::message_id = 0;
 
 //
@@ -40,12 +42,12 @@ JsonDocument *IotHubClient::pushMessage(JsonDocument &doc) {
   //
   char *messagePayload = (char *)calloc(MESSAGE_MAX_LEN + 1, sizeof(char));
   if (!messagePayload) {
-    ESP_LOGE("main", "memory allocation error.");
+    ESP_LOGE(TAG, "memory allocation error.");
     return nullptr;
   }
   doc["messageId"] = message_id;
   serializeJson(doc, messagePayload, MESSAGE_MAX_LEN);
-  ESP_LOGD("main", "messagePayload:%s", messagePayload);
+  ESP_LOGD(TAG, "messagePayload:%s", messagePayload);
   message_id = message_id + 1;
   //
   EVENT_INSTANCE *message =
@@ -67,11 +69,11 @@ JsonDocument *IotHubClient::pushState(JsonDocument &doc) {
   //
   char *statePayload = (char *)calloc(MESSAGE_MAX_LEN + 1, sizeof(char));
   if (!statePayload) {
-    ESP_LOGE("main", "memory allocation error.");
+    ESP_LOGE(TAG, "memory allocation error.");
     return nullptr;
   }
   serializeJson(doc, statePayload, MESSAGE_MAX_LEN);
-  ESP_LOGD("main", "statePayload:%s", statePayload);
+  ESP_LOGD(TAG, "statePayload:%s", statePayload);
   EVENT_INSTANCE *state = Esp32MQTTClient_Event_Generate(statePayload, STATE);
   Esp32MQTTClient_SendEventInstance(state);
   //

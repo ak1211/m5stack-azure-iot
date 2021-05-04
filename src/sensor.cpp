@@ -5,6 +5,8 @@
 #include "sensor.hpp"
 #include <cmath>
 
+constexpr static const char *TAG = "SensorModule";
+
 //
 // Bosch BME280 Humidity and Pressure Sensor
 //
@@ -18,7 +20,7 @@ void Sensor<Bme280>::printSensorDetails() {
     pressure->printSensorDetails();
     humidity->printSensorDetails();
   } else {
-    ESP_LOGE("sensor", "BME280 sensor has problems.");
+    ESP_LOGE(TAG, "BME280 sensor has problems.");
   }
 }
 //
@@ -44,24 +46,24 @@ bool Sensor<Bme280>::readyToRead(std::time_t now) {
 //
 Bme280 Sensor<Bme280>::read(std::time_t measured_at) {
   if (!active()) {
-    ESP_LOGE("sensor", "BME280 sensor inactived.");
+    ESP_LOGE(TAG, "BME280 sensor inactived.");
     return Bme280();
   }
   bme280.takeForcedMeasurement();
 
   float temperature = bme280.readTemperature();
   if (!std::isfinite(temperature)) {
-    ESP_LOGE("sensor", "BME280 sensor: temperature is not finite.");
+    ESP_LOGE(TAG, "BME280 sensor: temperature is not finite.");
     return Bme280();
   }
   float pressure = bme280.readPressure();
   if (!std::isfinite(pressure)) {
-    ESP_LOGE("sensor", "BME280 sensor: pressure is not finite.");
+    ESP_LOGE(TAG, "BME280 sensor: pressure is not finite.");
     return Bme280();
   }
   float humidity = bme280.readHumidity();
   if (!std::isfinite(humidity)) {
-    ESP_LOGE("sensor", "BME280 sensor: humidity is not finite.");
+    ESP_LOGE(TAG, "BME280 sensor: humidity is not finite.");
     return Bme280();
   }
   //
@@ -120,17 +122,17 @@ bool Sensor<Sgp30>::readyToRead(std::time_t now) {
 //
 Sgp30 Sensor<Sgp30>::read(std::time_t measured_at) {
   if (!active()) {
-    ESP_LOGE("sensor", "SGP30 sensor inactived.");
+    ESP_LOGE(TAG, "SGP30 sensor inactived.");
     return Sgp30();
   }
   if (!sgp30.IAQmeasure()) {
-    ESP_LOGE("sensor", "SGP30 sensing failed.");
+    ESP_LOGE(TAG, "SGP30 sensing failed.");
     return Sgp30();
   }
   uint16_t tvoc_base;
   uint16_t eco2_base;
   if (!sgp30.getIAQBaseline(&eco2_base, &tvoc_base)) {
-    ESP_LOGE("sensor", "SGP30 sensing failed.");
+    ESP_LOGE(TAG, "SGP30 sensing failed.");
     return Sgp30();
   }
   // successfully
@@ -194,7 +196,7 @@ void Sensor<Scd30>::printSensorDetails() {
     temperature->printSensorDetails();
     humidity->printSensorDetails();
   } else {
-    ESP_LOGE("sensor", "SCD30 sensor has problems.");
+    ESP_LOGE(TAG, "SCD30 sensor has problems.");
   }
 }
 //
@@ -213,15 +215,15 @@ bool Sensor<Scd30>::readyToRead(std::time_t now) {
 //
 Scd30 Sensor<Scd30>::read(std::time_t measured_at) {
   if (!active()) {
-    ESP_LOGE("sensor", "SCD30 sensor inactived.");
+    ESP_LOGE(TAG, "SCD30 sensor inactived.");
     return Scd30();
   }
   if (!scd30.dataReady()) {
-    ESP_LOGE("sensor", "SCD30 sensor is not ready.");
+    ESP_LOGE(TAG, "SCD30 sensor is not ready.");
     return Scd30();
   }
   if (!scd30.read()) {
-    ESP_LOGE("sensor", "SCD30 sensing failed.");
+    ESP_LOGE(TAG, "SCD30 sensing failed.");
     return Scd30();
   }
   // successfully

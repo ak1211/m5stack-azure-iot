@@ -13,6 +13,8 @@
 
 #include <LovyanGFX.hpp>
 
+constexpr static const char *TAG = "MainModule";
+
 //
 // globals
 //
@@ -36,37 +38,37 @@ static_assert(IOTHUB_PUSH_STATE_EVERY_MINUTES < 60,
 //
 static void sendConfirmationCallback(IOTHUB_CLIENT_CONFIRMATION_RESULT result) {
   if (result == IOTHUB_CLIENT_CONFIRMATION_OK) {
-    ESP_LOGD("main", "Send Confirmation Callback finished.");
+    ESP_LOGD(TAG, "Send Confirmation Callback finished.");
   }
 }
 //
 static void messageCallback(const char *payLoad, int size) {
-  ESP_LOGI("main", "Message callback:%s", payLoad);
+  ESP_LOGI(TAG, "Message callback:%s", payLoad);
 }
 //
 static int deviceMethodCallback(const char *methodName,
                                 const unsigned char *payload, int size,
                                 unsigned char **response, int *response_size) {
-  ESP_LOGI("main", "Try to invoke method %s", methodName);
+  ESP_LOGI(TAG, "Try to invoke method %s", methodName);
   const char *responseMessage = "\"Successfully invoke device method\"";
   int result = 200;
 
   if (strcmp(methodName, "calibration") == 0) {
     /*
-    ESP_LOGI("main", "Start calibrate the sensor");
+    ESP_LOGI(TAG, "Start calibrate the sensor");
     if (!system_properties.sgp30.begin()) {
       responseMessage = "\"calibration failed\"";
       result = 503;
     }
     */
   } else if (strcmp(methodName, "start") == 0) {
-    ESP_LOGI("main", "Start sending temperature and humidity data");
+    ESP_LOGI(TAG, "Start sending temperature and humidity data");
     //    messageSending = true;
   } else if (strcmp(methodName, "stop") == 0) {
-    ESP_LOGI("main", "Stop sending temperature and humidity data");
+    ESP_LOGI(TAG, "Stop sending temperature and humidity data");
     //    messageSending = false;
   } else {
-    ESP_LOGI("main", "No method %s found", methodName);
+    ESP_LOGI(TAG, "No method %s found", methodName);
     responseMessage = "\"No method found\"";
     result = 404;
   }
@@ -83,7 +85,7 @@ connectionStatusCallback(IOTHUB_CLIENT_CONNECTION_STATUS result,
   switch (reason) {
   case IOTHUB_CLIENT_CONNECTION_EXPIRED_SAS_TOKEN:
     // SASトークンの有効期限切れ。
-    ESP_LOGD("main", "SAS token expired.");
+    ESP_LOGD(TAG, "SAS token expired.");
     if (result == IOTHUB_CLIENT_CONNECTION_UNAUTHENTICATED) {
       //
       // Info: >>>Connection status: timeout
@@ -97,27 +99,27 @@ connectionStatusCallback(IOTHUB_CLIENT_CONNECTION_STATUS result,
       //
       // Esp32MQTTClient 側で再接続時に以上のログが出てabortするので,
       // この時点で SNTPを停止しておくことで abort を回避する。
-      ESP_LOGD("main", "SAS token expired, stop the SNTP.");
+      ESP_LOGD(TAG, "SAS token expired, stop the SNTP.");
       sntp_stop();
     }
     break;
   case IOTHUB_CLIENT_CONNECTION_DEVICE_DISABLED:
-    ESP_LOGE("main", "IOTHUB_CLIENT_CONNECTION_DEVICE_DISABLED");
+    ESP_LOGE(TAG, "IOTHUB_CLIENT_CONNECTION_DEVICE_DISABLED");
     break;
   case IOTHUB_CLIENT_CONNECTION_BAD_CREDENTIAL:
-    ESP_LOGE("main", "IOTHUB_CLIENT_CONNECTION_BAD_CREDENTIAL");
+    ESP_LOGE(TAG, "IOTHUB_CLIENT_CONNECTION_BAD_CREDENTIAL");
     break;
   case IOTHUB_CLIENT_CONNECTION_RETRY_EXPIRED:
-    ESP_LOGE("main", "IOTHUB_CLIENT_CONNECTION_RETRY_EXPIRED");
+    ESP_LOGE(TAG, "IOTHUB_CLIENT_CONNECTION_RETRY_EXPIRED");
     break;
   case IOTHUB_CLIENT_CONNECTION_NO_NETWORK:
-    ESP_LOGE("main", "IOTHUB_CLIENT_CONNECTION_NO_NETWORK");
+    ESP_LOGE(TAG, "IOTHUB_CLIENT_CONNECTION_NO_NETWORK");
     break;
   case IOTHUB_CLIENT_CONNECTION_COMMUNICATION_ERROR:
-    ESP_LOGE("main", "IOTHUB_CLIENT_CONNECTION_COMMUNICATION_ERROR");
+    ESP_LOGE(TAG, "IOTHUB_CLIENT_CONNECTION_COMMUNICATION_ERROR");
     break;
   case IOTHUB_CLIENT_CONNECTION_OK:
-    ESP_LOGD("main", "IOTHUB_CLIENT_CONNECTION_OK");
+    ESP_LOGD(TAG, "IOTHUB_CLIENT_CONNECTION_OK");
     break;
   }
 }
@@ -126,28 +128,28 @@ static void deviceTwinCallback(DEVICE_TWIN_UPDATE_STATE updateState,
                                const unsigned char *payLoad, int size) {
   switch (updateState) {
   case DEVICE_TWIN_UPDATE_COMPLETE:
-    ESP_LOGD("main", "device_twin_update_complete");
+    ESP_LOGD(TAG, "device_twin_update_complete");
     break;
 
   case DEVICE_TWIN_UPDATE_PARTIAL:
-    ESP_LOGD("main", "device_twin_update_partial");
+    ESP_LOGD(TAG, "device_twin_update_partial");
     break;
   }
 
   // Display Twin message.
   char *buff = (char *)calloc(size + 1, sizeof(char));
   if (!buff) {
-    ESP_LOGE("main", "memory allocation error");
+    ESP_LOGE(TAG, "memory allocation error");
     return;
   }
 
   strncpy(buff, (const char *)payLoad, size);
-  ESP_LOGI("main", "%s", buff);
+  ESP_LOGI(TAG, "%s", buff);
 
   StaticJsonDocument<MESSAGE_MAX_LEN> json;
   DeserializationError error = deserializeJson(json, buff);
   if (error) {
-    ESP_LOGE("main", "%s", error.f_str());
+    ESP_LOGE(TAG, "%s", error.f_str());
     return;
   }
   free(buff);
@@ -155,16 +157,16 @@ static void deviceTwinCallback(DEVICE_TWIN_UPDATE_STATE updateState,
   /*
   const char *updatedAt = json["reported"]["sgp30_baseline"]["updatedAt"];
   if (updatedAt) {
-    ESP_LOGI("main", "%s", updatedAt);
+    ESP_LOGI(TAG, "%s", updatedAt);
     // set baseline
     uint16_t tvoc_baseline =
         json["reported"]["sgp30_baseline"]["tvoc"].as<uint16_t>();
     uint16_t eCo2_baseline =
         json["reported"]["sgp30_baseline"]["eCo2"].as<uint16_t>();
-    ESP_LOGD("main", "eCo2:%d, TVOC:%d", eCo2_baseline, tvoc_baseline);
+    ESP_LOGD(TAG, "eCo2:%d, TVOC:%d", eCo2_baseline, tvoc_baseline);
     int ret =
         system_properties.sgp30.setIAQBaseline(eCo2_baseline, tvoc_baseline);
-    ESP_LOGD("main", "setIAQBaseline():%d", ret);
+    ESP_LOGD(TAG, "setIAQBaseline():%d", ret);
   }
   */
 }
@@ -259,12 +261,12 @@ void setup() {
   // set to Real Time Clock
   //
   if (sntp_enabled()) {
-    ESP_LOGD("main", "sntp enabled.");
+    ESP_LOGD(TAG, "sntp enabled.");
     //
     time_t tm_now;
     struct tm utc;
     time(&tm_now);
-    ESP_LOGD("main", "tm_now: %d", tm_now);
+    ESP_LOGD(TAG, "tm_now: %d", tm_now);
     gmtime_r(&tm_now, &utc);
     //
     RTC_TimeTypeDef rtcTime = {
@@ -282,7 +284,7 @@ void setup() {
     };
     M5.Rtc.SetDate(&rtcDate);
   } else {
-    ESP_LOGD("main", "sntp disabled.");
+    ESP_LOGD(TAG, "sntp disabled.");
     //
     // get time and date from RTC
     //
@@ -290,7 +292,7 @@ void setup() {
     RTC_TimeTypeDef rtcTime;
     M5.Rtc.GetDate(&rtcDate);
     M5.Rtc.GetTime(&rtcTime);
-    ESP_LOGD("main", "RTC \"%04d-%02d-%02dT%02d:%02d:%02dZ\"", rtcDate.Year,
+    ESP_LOGD(TAG, "RTC \"%04d-%02d-%02dT%02d:%02d:%02dZ\"", rtcDate.Year,
              rtcDate.Month, rtcDate.Date, rtcTime.Hours, rtcTime.Minutes,
              rtcTime.Seconds);
   }
@@ -342,10 +344,10 @@ static void periodical_push_message(const MeasurementSets &m) {
     // calculate the Aboslute Humidity from Temperature and Relative Humidity
     MilligramPerCubicMetre absolute_humidity = calculateAbsoluteHumidity(
         m.bme280.get().temperature, m.bme280.get().relative_humidity);
-    ESP_LOGI("main", "absolute humidity: %d", absolute_humidity.value);
+    ESP_LOGI(TAG, "absolute humidity: %d", absolute_humidity.value);
     // set "Absolute Humidity" to the SGP30 sensor.
     if (!peri.sgp30.setHumidity(absolute_humidity)) {
-      ESP_LOGE("main", "setHumidity error.");
+      ESP_LOGE(TAG, "setHumidity error.");
     }
     IotHubClient::pushMessage(
         takeMessageFromJsonDocSets(mapToJson(doc_sets, m.bme280.get())));

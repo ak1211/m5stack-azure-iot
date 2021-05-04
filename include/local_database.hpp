@@ -22,13 +22,16 @@ public:
   int64_t rawid_carbon_dioxide;
   int64_t rawid_total_voc;
   //
-  LocalDatabase(const std::string &filename) : sqlite3_filename(filename) {
-    database = nullptr;
-    rawid_temperature = rawid_relative_humidity = rawid_pressure = -1;
-    rawid_carbon_dioxide = rawid_total_voc = -1;
-  };
+  LocalDatabase(const std::string &filename)
+      : rawid_temperature{-1},
+        rawid_relative_humidity{-1},
+        rawid_pressure{-1},
+        rawid_carbon_dioxide{-1},
+        rawid_total_voc{-1},
+        sqlite3_filename(filename),
+        database(nullptr) {}
   //
-  bool healthy() { return database != nullptr ? true : false; }
+  bool healthy() { return (database != nullptr); }
   //
   bool beginDb();
   //
@@ -36,15 +39,13 @@ public:
   bool insert(const TvocEco2 &);
   bool insert(const Co2TempHumi &);
   //
-  int64_t insert_temperature(const char *sensor_id, const time_t &at,
-                             float degc);
-  int64_t insert_relative_humidity(const char *sensor_id, const time_t &at,
-                                   float rh);
-  int64_t insert_pressure(const char *sensor_id, const time_t &at, float hpa);
-  int64_t insert_carbon_dioxide(const char *sensor_id, const time_t &at,
-                                uint16_t ppm, const uint16_t *baseline);
-  int64_t insert_total_voc(const char *sensor_id, const time_t &at,
-                           uint16_t ppb, const uint16_t *baseline);
+  int64_t insert_temperature(const char *sensor_id, time_t at, float degc);
+  int64_t insert_relative_humidity(const char *sensor_id, time_t at, float rh);
+  int64_t insert_pressure(const char *sensor_id, time_t at, float hpa);
+  int64_t insert_carbon_dioxide(const char *sensor_id, time_t at, uint16_t ppm,
+                                const uint16_t *baseline);
+  int64_t insert_total_voc(const char *sensor_id, time_t at, uint16_t ppb,
+                           const uint16_t *baseline);
   //
   typedef std::function<bool(size_t counter, time_t at, float v)>
       CallbackRowTimeAndFloat;
@@ -70,70 +71,70 @@ public:
   get_total_vocs_desc(const char *sensor_id, size_t limit,
                       CallbackRowTimeAndUint16AndNullableUint16 callback);
   /*
-//
-void printToSerial(Temp t) {
-// time zone offset UTC+9 = asia/tokyo
-time_t local_time = t.at + 9 * 60 * 60;
-struct tm local;
-gmtime_r(&local_time, &local);
-char buffer[50];
-strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S+09:00", &local);
-Serial.printf("%s, %f[C]", buffer, t.degc);
-Serial.println("");
-}
-//
-void printToSerial(Humi h) {
-// time zone offset UTC+9 = asia/tokyo
-time_t local_time = h.at + 9 * 60 * 60;
-struct tm local;
-gmtime_r(&local_time, &local);
-char buffer[50];
-strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S+09:00", &local);
-Serial.printf("%s, %f[%%]", buffer, h.rh);
-Serial.println("");
-}
-//
-void printToSerial(Pres p) {
-// time zone offset UTC+9 = asia/tokyo
-time_t local_time = p.at + 9 * 60 * 60;
-struct tm local;
-gmtime_r(&local_time, &local);
-char buffer[50];
-strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S+09:00", &local);
-Serial.printf("%s, %f[hpa]", buffer, p.hpa);
-Serial.println("");
-}
-//
-void printToSerial(Co2 c) {
-// time zone offset UTC+9 = asia/tokyo
-time_t local_time = c.at + 9 * 60 * 60;
-struct tm local;
-gmtime_r(&local_time, &local);
-char buffer[50] = "";
-strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S+09:00", &local);
-if (c.has_baseline) {
-Serial.printf("%s, %d[ppm], %d[baseline]", buffer, c.ppm, c.baseline);
-} else {
-Serial.printf("%s, %d[ppm]", buffer, c.ppm);
-}
-Serial.println("");
-}
-//
-void printToSerial(TVOC t) {
-// time zone offset UTC+9 = asia/tokyo
-time_t local_time = t.at + 9 * 60 * 60;
-struct tm local;
-gmtime_r(&local_time, &local);
-char buffer[50] = "";
-strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S+09:00", &local);
-if (t.has_baseline) {
-Serial.printf("%s, %d[ppb], %d[baseline]", buffer, t.ppb, t.baseline);
-} else {
-Serial.printf("%s, %d[ppb]", buffer, t.ppb);
-}
-Serial.println("");
-}
-*/
+  //
+  void printToSerial(Temp t) {
+  // time zone offset UTC+9 = asia/tokyo
+  time_t local_time = t.at + 9 * 60 * 60;
+  struct tm local;
+  gmtime_r(&local_time, &local);
+  char buffer[50];
+  strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S+09:00", &local);
+  Serial.printf("%s, %f[C]", buffer, t.degc);
+  Serial.println("");
+  }
+  //
+  void printToSerial(Humi h) {
+  // time zone offset UTC+9 = asia/tokyo
+  time_t local_time = h.at + 9 * 60 * 60;
+  struct tm local;
+  gmtime_r(&local_time, &local);
+  char buffer[50];
+  strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S+09:00", &local);
+  Serial.printf("%s, %f[%%]", buffer, h.rh);
+  Serial.println("");
+  }
+  //
+  void printToSerial(Pres p) {
+  // time zone offset UTC+9 = asia/tokyo
+  time_t local_time = p.at + 9 * 60 * 60;
+  struct tm local;
+  gmtime_r(&local_time, &local);
+  char buffer[50];
+  strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S+09:00", &local);
+  Serial.printf("%s, %f[hpa]", buffer, p.hpa);
+  Serial.println("");
+  }
+  //
+  void printToSerial(Co2 c) {
+  // time zone offset UTC+9 = asia/tokyo
+  time_t local_time = c.at + 9 * 60 * 60;
+  struct tm local;
+  gmtime_r(&local_time, &local);
+  char buffer[50] = "";
+  strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S+09:00", &local);
+  if (c.has_baseline) {
+  Serial.printf("%s, %d[ppm], %d[baseline]", buffer, c.ppm, c.baseline);
+  } else {
+  Serial.printf("%s, %d[ppm]", buffer, c.ppm);
+  }
+  Serial.println("");
+  }
+  //
+  void printToSerial(TVOC t) {
+  // time zone offset UTC+9 = asia/tokyo
+  time_t local_time = t.at + 9 * 60 * 60;
+  struct tm local;
+  gmtime_r(&local_time, &local);
+  char buffer[50] = "";
+  strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S+09:00", &local);
+  if (t.has_baseline) {
+  Serial.printf("%s, %d[ppb], %d[baseline]", buffer, t.ppb, t.baseline);
+  } else {
+  Serial.printf("%s, %d[ppb]", buffer, t.ppb);
+  }
+  Serial.println("");
+  }
+  */
 
 private:
   const std::string sqlite3_filename;

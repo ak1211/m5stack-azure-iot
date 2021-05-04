@@ -4,6 +4,8 @@
 //
 #include "peripherals.hpp"
 
+constexpr static const char *TAG = "PeripheralsModule";
+
 Peripherals Peripherals::_instance = Peripherals();
 
 //
@@ -21,7 +23,7 @@ Peripherals::Peripherals()
       screen(Screen(local_database)),
       led_signal(LedSignal()),
       wifi_launcher() {
-  ESP_LOGD("peripherals", "Peripherals construct success.");
+  ESP_LOGD(TAG, "Peripherals construct success.");
 }
 //
 bool Peripherals::begin(const std::string &wifi_ssid,
