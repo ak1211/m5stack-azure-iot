@@ -29,18 +29,6 @@ constexpr static uint8_t IOTHUB_PUSH_STATE_EVERY_MINUTES = 15; // 15 minutes
 static_assert(IOTHUB_PUSH_STATE_EVERY_MINUTES < 60,
               "IOTHUB_PUSH_STATE_EVERY_MINUTES is lesser than 60 minutes.");
 
-constexpr static uint8_t BME280_SENSING_EVERY_SECONDS = 2; // 2 seconds
-static_assert(BME280_SENSING_EVERY_SECONDS < 60,
-              "BME280_SENSING_EVERY_SECONDS is lesser than 60 seconds.");
-
-constexpr static uint8_t SGP30_SENSING_EVERY_SECONDS = 1; // 1 seconds
-static_assert(SGP30_SENSING_EVERY_SECONDS == 1,
-              "SGP30_SENSING_EVERY_SECONDS is shoud be 1 seconds.");
-
-constexpr static uint8_t SCD30_SENSING_EVERY_SECONDS = 2; // 2 seconds
-static_assert(SCD30_SENSING_EVERY_SECONDS < 60,
-              "SCD30_SENSING_EVERY_SECONDS is lesser than 60 seconds.");
-
 //
 // callbacks
 //
@@ -317,33 +305,29 @@ void setup() {
 //
 //
 struct MeasurementSets {
-  time_t measured_at;
+  std::time_t measured_at;
   Bme280 bme280;
   Sgp30 sgp30;
   Scd30 scd30;
 };
 
 static struct MeasurementSets periodical_measurement_sets() {
-  time_t measured_at;
-  time(&measured_at);
-  struct tm utc;
-  gmtime_r(&measured_at, &utc);
-
   Peripherals &peri = Peripherals::getInstance();
+  std::time_t now = std::time(nullptr);
 
-  if (peri.bme280.ready() && utc.tm_sec % BME280_SENSING_EVERY_SECONDS == 0) {
-    peri.bme280.measure(measured_at);
+  if (peri.bme280.readyToRead(now)) {
+    peri.bme280.read(now);
   }
-  if (peri.sgp30.ready() && utc.tm_sec % SGP30_SENSING_EVERY_SECONDS == 0) {
-    peri.sgp30.measure(measured_at);
+  if (peri.sgp30.readyToRead(now)) {
+    peri.sgp30.read(now);
   }
-  if (peri.scd30.ready() && utc.tm_sec % SCD30_SENSING_EVERY_SECONDS == 0) {
-    peri.scd30.measure(measured_at);
+  if (peri.scd30.readyToRead(now)) {
+    peri.scd30.read(now);
   }
-  return {.measured_at = measured_at,
-          .bme280 = peri.bme280.valuesWithSMA(),
-          .sgp30 = peri.sgp30.valuesWithSMA(),
-          .scd30 = peri.scd30.valuesWithSMA()};
+  return {.measured_at = now,
+          .bme280 = peri.bme280.calculateSMA(),
+          .sgp30 = peri.sgp30.calculateSMA(),
+          .scd30 = peri.scd30.calculateSMA()};
 }
 
 //
@@ -401,6 +385,8 @@ static void periodical_push_state(const MeasurementSets &m) {
     snprintf(buf, 10, "%d%%",
              static_cast<int>(peri.power_status.getBatteryPercentage()));
     json["batteryLevel"] = buf;
+    uint32_t upseconds = peri.ticktack.uptime_seconds();
+    json["uptime"] = upseconds;
     IotHubClient::pushState(json);
   }
 }

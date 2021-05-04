@@ -73,8 +73,8 @@ public:
     //
     {
       TickTack::Uptime up = peri.ticktack.uptime();
-      Screen::lcd.printf(" up %2ddays,%2d:%2d:%3d\n", up.days, up.hours,
-                         up.minutes, up.seconds);
+      Screen::lcd.printf(" uptime %2ddays,%2dh:%2dm\n", up.days, up.hours,
+                         up.minutes);
     }
     //
     if (peri.power_status.needToUpdate()) {
@@ -102,7 +102,7 @@ public:
     }
     //
     Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
-    Bme280 bme = peri.bme280.valuesWithSMA();
+    Bme280 bme = peri.bme280.calculateSMA();
     if (bme.good()) {
       Screen::lcd.printf("温度 %6.1f ℃\n", bme.get().temperature.value);
       Screen::lcd.printf("湿度 %6.1f ％\n", bme.get().relative_humidity.value);
@@ -112,7 +112,7 @@ public:
       Screen::lcd.printf("湿度 ------ ％\n");
       Screen::lcd.printf("気圧 ------ hPa\n");
     }
-    Sgp30 sgp = peri.sgp30.valuesWithSMA();
+    Sgp30 sgp = peri.sgp30.calculateSMA();
     if (sgp.good()) {
       Screen::lcd.printf("eCO2 %6d ppm\n", sgp.get().eCo2.value);
       Screen::lcd.printf("TVOC %6d ppb\n", sgp.get().tvoc.value);
@@ -120,7 +120,7 @@ public:
       Screen::lcd.printf("eCO2 ------ ppm\n");
       Screen::lcd.printf("TVOC ------ ppb\n");
     }
-    Scd30 scd = peri.scd30.valuesWithSMA();
+    Scd30 scd = peri.scd30.calculateSMA();
     if (scd.good()) {
       Screen::lcd.printf("CO2 %6d ppm\n", scd.get().co2.value);
       Screen::lcd.printf("温度 %6.1f ℃\n", scd.get().temperature.value);
@@ -333,9 +333,9 @@ public:
   //
   void render(const struct tm &local) override {
     Peripherals &peri = Peripherals::getInstance();
-    Bme280 bme = peri.bme280.valuesWithSMA();
-    Sgp30 sgp = peri.sgp30.valuesWithSMA();
-    Scd30 scd = peri.scd30.valuesWithSMA();
+    Bme280 bme = peri.bme280.calculateSMA();
+    Sgp30 sgp = peri.sgp30.calculateSMA();
+    Scd30 scd = peri.scd30.calculateSMA();
 #define BME(_X_)                                                               \
   do {                                                                         \
     if (bme.good()) {                                                          \

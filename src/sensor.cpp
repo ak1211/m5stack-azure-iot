@@ -3,6 +3,7 @@
 // See LICENSE file in the project root for full license information.
 //
 #include "sensor.hpp"
+#include <cmath>
 
 //
 // Bosch BME280 Humidity and Pressure Sensor
@@ -25,59 +26,63 @@ HasSensor Sensor<Bme280>::begin(uint8_t i2c_address) {
   if (!bme280.begin(i2c_address)) {
     return HasSensor::NoSensorFound;
   }
-  bme280.setSampling(Adafruit_BME280::MODE_FORCED, Adafruit_BME280::SAMPLING_X1,
-                     Adafruit_BME280::SAMPLING_X1, Adafruit_BME280::SAMPLING_X1,
-                     Adafruit_BME280::FILTER_OFF,
-                     Adafruit_BME280::STANDBY_MS_1000);
+  // weather monitoring
+  // forced mode, 1x temperature / 1x humidity / 1x pressure oversampling,
+  // filter off
+  bme280.setSampling(Adafruit_BME280::MODE_FORCED,
+                     Adafruit_BME280::SAMPLING_X1, // temperature
+                     Adafruit_BME280::SAMPLING_X1, // pressure
+                     Adafruit_BME280::SAMPLING_X1, // humidity
+                     Adafruit_BME280::FILTER_OFF);
+  initialized = true;
   return HasSensor::Ok;
 }
 //
-bool Sensor<Bme280>::ready() { return true; }
+bool Sensor<Bme280>::readyToRead(std::time_t now) {
+  return active() && difftime(now, last_measured_at) >= SENSING_INTERVAL;
+}
 //
-Bme280 Sensor<Bme280>::measure(std::time_t measured_at) {
-  if (!ready()) {
-    ESP_LOGE("sensor", "BME280 sensor not ready.");
+Bme280 Sensor<Bme280>::read(std::time_t measured_at) {
+  if (!active()) {
+    ESP_LOGE("sensor", "BME280 sensor inactived.");
     return Bme280();
   }
-  Adafruit_Sensor *temperature = bme280.getTemperatureSensor();
-  Adafruit_Sensor *pressure = bme280.getPressureSensor();
-  Adafruit_Sensor *humidity = bme280.getHumiditySensor();
+  bme280.takeForcedMeasurement();
+
+  float temperature = bme280.readTemperature();
+  if (!std::isfinite(temperature)) {
+    ESP_LOGE("sensor", "BME280 sensor: temperature is not finite.");
+    return Bme280();
+  }
+  float pressure = bme280.readPressure();
+  if (!std::isfinite(pressure)) {
+    ESP_LOGE("sensor", "BME280 sensor: pressure is not finite.");
+    return Bme280();
+  }
+  float humidity = bme280.readHumidity();
+  if (!std::isfinite(humidity)) {
+    ESP_LOGE("sensor", "BME280 sensor: humidity is not finite.");
+    return Bme280();
+  }
   //
-  sensors_event_t temperature_event;
-  sensors_event_t humidity_event;
-  sensors_event_t pressure_event;
+  DegC temp = DegC(temperature);
+  HPa pres = HPa(pressure / 100.0f); // pascal to hecto-pascal
+  PcRH humi = PcRH(humidity);
   //
-  if (!bme280.takeForcedMeasurement()) {
-    ESP_LOGE("sensor", "BME280 sensing failed.");
-    return Bme280();
-  }
-  if (temperature && !temperature->getEvent(&temperature_event)) {
-    ESP_LOGE("sensor", "BME280 sensing failed.");
-    return Bme280();
-  }
-  if (humidity && !humidity->getEvent(&humidity_event)) {
-    ESP_LOGE("sensor", "BME280 sensing failed.");
-    return Bme280();
-  }
-  if (pressure && !pressure->getEvent(&pressure_event)) {
-    ESP_LOGE("sensor", "BME280 sensing failed.");
-    return Bme280();
-  }
-  // successfully
   last_measured_at = measured_at;
-  sma_temperature.push_back(temperature_event.temperature);
-  sma_relative_humidity.push_back(humidity_event.relative_humidity);
-  sma_pressure.push_back(pressure_event.pressure);
+  sma_temperature.push_back(temp.value);
+  sma_relative_humidity.push_back(humi.value);
+  sma_pressure.push_back(pres.value);
   return Bme280({
       .sensor_id = this->sensor_id,
       .at = measured_at,
-      .temperature = DegC(temperature_event.temperature),
-      .relative_humidity = PcRH(humidity_event.relative_humidity),
-      .pressure = HPa(pressure_event.pressure),
+      .temperature = temp,
+      .relative_humidity = humi,
+      .pressure = pres,
   });
 }
 //
-Bme280 Sensor<Bme280>::valuesWithSMA() {
+Bme280 Sensor<Bme280>::calculateSMA() {
   if (sma_temperature.ready() && sma_relative_humidity.ready() &&
       sma_pressure.ready()) {
     return Bme280({
@@ -105,14 +110,17 @@ HasSensor Sensor<Sgp30>::begin() {
   if (!sgp30.begin()) {
     return HasSensor::NoSensorFound;
   }
+  initialized = true;
   return HasSensor::Ok;
 }
 //
-bool Sensor<Sgp30>::ready() { return true; }
+bool Sensor<Sgp30>::readyToRead(std::time_t now) {
+  return active() && difftime(now, last_measured_at) >= SENSING_INTERVAL;
+}
 //
-Sgp30 Sensor<Sgp30>::measure(std::time_t measured_at) {
-  if (!ready()) {
-    ESP_LOGE("sensor", "SGP30 sensor not ready.");
+Sgp30 Sensor<Sgp30>::read(std::time_t measured_at) {
+  if (!active()) {
+    ESP_LOGE("sensor", "SGP30 sensor inactived.");
     return Sgp30();
   }
   if (!sgp30.IAQmeasure()) {
@@ -141,7 +149,7 @@ Sgp30 Sensor<Sgp30>::measure(std::time_t measured_at) {
   });
 }
 //
-Sgp30 Sensor<Sgp30>::valuesWithSMA() {
+Sgp30 Sensor<Sgp30>::calculateSMA() {
   if (sma_eCo2.ready() && sma_tvoc.ready()) {
     return Sgp30({
         .sensor_id = this->sensor_id,
@@ -194,14 +202,22 @@ HasSensor Sensor<Scd30>::begin() {
   if (!scd30.begin()) {
     return HasSensor::NoSensorFound;
   }
+  initialized = true;
   return HasSensor::Ok;
 }
 //
-bool Sensor<Scd30>::ready() { return scd30.dataReady(); }
+bool Sensor<Scd30>::readyToRead(std::time_t now) {
+  return active() && difftime(now, last_measured_at) >= SENSING_INTERVAL &&
+         scd30.dataReady();
+}
 //
-Scd30 Sensor<Scd30>::measure(std::time_t measured_at) {
-  if (!ready()) {
-    ESP_LOGE("sensor", "SCD30 sensor not ready.");
+Scd30 Sensor<Scd30>::read(std::time_t measured_at) {
+  if (!active()) {
+    ESP_LOGE("sensor", "SCD30 sensor inactived.");
+    return Scd30();
+  }
+  if (!scd30.dataReady()) {
+    ESP_LOGE("sensor", "SCD30 sensor is not ready.");
     return Scd30();
   }
   if (!scd30.read()) {
@@ -222,7 +238,7 @@ Scd30 Sensor<Scd30>::measure(std::time_t measured_at) {
   });
 }
 //
-Scd30 Sensor<Scd30>::valuesWithSMA() {
+Scd30 Sensor<Scd30>::calculateSMA() {
   if (sma_co2.ready() && sma_temperature.ready() &&
       sma_relative_humidity.ready()) {
     return Scd30({
