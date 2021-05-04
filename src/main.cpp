@@ -402,7 +402,7 @@ static void periodical_send_to_iothub(const MeasurementSets &m) {
   if (allowToPushMessage) {
     if (m.bme280.good() && m.sgp30.good() && m.scd30.good()) {
       peri.data_logging_file.write_data_to_log_file(
-          m.bme280.get(), m.sgp30.get(), m.scd30.get());
+          m.measured_at, m.bme280.get(), m.sgp30.get(), m.scd30.get());
     }
     //
     if (m.bme280.good()) {

@@ -32,17 +32,11 @@ bool DataLoggingFile::begin() {
 //
 //
 //
-void DataLoggingFile::write_data_to_log_file(const TempHumiPres &bme,
+void DataLoggingFile::write_data_to_log_file(time_t at, const TempHumiPres &bme,
                                              const TvocEco2 &sgp,
                                              const Co2TempHumi &scd) {
-  if (bme.at != sgp.at || bme.at != scd.at) {
-    ESP_LOGD(TAG, "at field is differ.");
-  }
   struct tm utc;
-  {
-    time_t at = bme.at;
-    gmtime_r(&at, &utc);
-  }
+  gmtime_r(&at, &utc);
 
   const size_t LENGTH = 1024;
   char *p = (char *)calloc(LENGTH + 1, sizeof(char));

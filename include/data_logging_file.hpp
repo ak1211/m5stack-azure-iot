@@ -19,7 +19,7 @@ public:
       : data_fname(datafilename), header_fname(headerfilename), _ready{false} {}
   bool begin();
   bool ready() { return _ready; }
-  void write_data_to_log_file(const TempHumiPres &, const TvocEco2 &,
+  void write_data_to_log_file(time_t at, const TempHumiPres &, const TvocEco2 &,
                               const Co2TempHumi &);
   void write_header_to_log_file();
 
