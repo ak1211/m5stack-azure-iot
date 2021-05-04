@@ -122,11 +122,11 @@ public:
     }
     Scd30 scd = peri.scd30.calculateSMA();
     if (scd.good()) {
-      Screen::lcd.printf("CO2 %6d ppm\n", scd.get().co2.value);
+      Screen::lcd.printf("CO2  %6d ppm\n", scd.get().co2.value);
       Screen::lcd.printf("温度 %6.1f ℃\n", scd.get().temperature.value);
       Screen::lcd.printf("湿度 %6.1f ％\n", scd.get().relative_humidity.value);
     } else {
-      Screen::lcd.printf("CO2 ------ ppm\n");
+      Screen::lcd.printf("CO2  ------ ppm\n");
       Screen::lcd.printf("温度 ------ ℃\n");
       Screen::lcd.printf("湿度 ------ ％\n");
     }

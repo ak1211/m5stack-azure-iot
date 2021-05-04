@@ -311,9 +311,8 @@ struct MeasurementSets {
   Scd30 scd30;
 };
 
-static struct MeasurementSets periodical_measurement_sets() {
+static struct MeasurementSets periodical_measurement_sets(std::time_t now) {
   Peripherals &peri = Peripherals::getInstance();
-  std::time_t now = std::time(nullptr);
 
   if (peri.bme280.readyToRead(now)) {
     peri.bme280.read(now);
@@ -448,7 +447,7 @@ void loop() {
   clock_t now_clock = clock();
 
   if ((now_clock - before_clock) >= CLOCKS_PER_SEC) {
-    MeasurementSets m = periodical_measurement_sets();
+    MeasurementSets m = periodical_measurement_sets(std::time(nullptr));
     Peripherals &peri = Peripherals::getInstance();
     peri.screen.update(m.measured_at);
     if (m.scd30.good()) {

@@ -53,11 +53,11 @@ struct TempHumiPres {
 using Bme280 = MeasuredValues<TempHumiPres>;
 template <> class Sensor<Bme280> {
 public:
-  constexpr static uint8_t SMA_PERIOD = 20;
-  constexpr static uint8_t SENSING_INTERVAL = 10; // 10 seconds
+  constexpr static uint8_t INTERVAL = 10;                  // 10 seconds
+  constexpr static uint8_t SMA_PERIOD = 1 + 60 / INTERVAL; // 60 minutes
   //
   Sensor(const char *custom_sensor_id)
-      : sensor_id(custom_sensor_id), initialized(false) {}
+      : sensor_id{custom_sensor_id}, initialized{false}, last_measured_at{0} {}
   const char *getSensorId() { return sensor_id; }
   void printSensorDetails();
   HasSensor begin(uint8_t i2c_address);
@@ -90,15 +90,15 @@ struct TvocEco2 {
 using Sgp30 = MeasuredValues<TvocEco2>;
 template <> class Sensor<Sgp30> {
 public:
-  constexpr static uint8_t SMA_PERIOD = 60;
-  constexpr static uint8_t SENSING_INTERVAL = 1; // 1 seconds
+  constexpr static uint8_t INTERVAL = 1;                   // 1 seconds
+  constexpr static uint8_t SMA_PERIOD = 1 + 60 / INTERVAL; // 60 minutes
   //
   Sensor(const char *custom_sensor_id)
-      : sensor_id(custom_sensor_id),
-        initialized(false),
-        last_measured_at(0),
-        last_eCo2_baseline{},
-        last_tvoc_baseline{} {}
+      : sensor_id{custom_sensor_id},
+        initialized{false},
+        last_measured_at{0},
+        last_eCo2_baseline{0},
+        last_tvoc_baseline{0} {}
   const char *getSensorId() { return sensor_id; }
   void printSensorDetails();
   HasSensor begin();
@@ -136,11 +136,11 @@ struct Co2TempHumi {
 using Scd30 = MeasuredValues<Co2TempHumi>;
 template <> class Sensor<Scd30> {
 public:
-  constexpr static uint8_t SMA_PERIOD = 3;
-  constexpr static uint8_t SENSING_INTERVAL = 20; // 20 seconds
+  constexpr static uint8_t INTERVAL = 20;                  // 20 seconds
+  constexpr static uint8_t SMA_PERIOD = 1 + 60 / INTERVAL; // 60 minutes
   //
   Sensor(const char *custom_sensor_id)
-      : sensor_id(custom_sensor_id), initialized(false), last_measured_at(0) {}
+      : sensor_id{custom_sensor_id}, initialized{false}, last_measured_at{0} {}
   const char *getSensorId() { return sensor_id; }
   void printSensorDetails();
   HasSensor begin();

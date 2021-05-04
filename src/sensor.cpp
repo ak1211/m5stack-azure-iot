@@ -39,7 +39,7 @@ HasSensor Sensor<Bme280>::begin(uint8_t i2c_address) {
 }
 //
 bool Sensor<Bme280>::readyToRead(std::time_t now) {
-  return active() && difftime(now, last_measured_at) >= SENSING_INTERVAL;
+  return active() && (difftime(now, last_measured_at) >= INTERVAL);
 }
 //
 Bme280 Sensor<Bme280>::read(std::time_t measured_at) {
@@ -115,7 +115,7 @@ HasSensor Sensor<Sgp30>::begin() {
 }
 //
 bool Sensor<Sgp30>::readyToRead(std::time_t now) {
-  return active() && difftime(now, last_measured_at) >= SENSING_INTERVAL;
+  return active() && (difftime(now, last_measured_at) >= INTERVAL);
 }
 //
 Sgp30 Sensor<Sgp30>::read(std::time_t measured_at) {
@@ -207,7 +207,7 @@ HasSensor Sensor<Scd30>::begin() {
 }
 //
 bool Sensor<Scd30>::readyToRead(std::time_t now) {
-  return active() && difftime(now, last_measured_at) >= SENSING_INTERVAL &&
+  return active() && (difftime(now, last_measured_at) >= INTERVAL) &&
          scd30.dataReady();
 }
 //

@@ -5,27 +5,22 @@
 #ifndef MOVING_AVERAGE_HPP
 #define MOVING_AVERAGE_HPP
 
-#include <array>
-#include <cmath>
 #include <cstdint>
 
-template <uint8_t N, class value_t = uint16_t, class sum_t = uint32_t>
-class SimpleMovingAverage {
+template <uint8_t N, class value_t, class sum_t> class SimpleMovingAverage {
 public:
-  SimpleMovingAverage() : n_of_pushed(0), position(0), ring{} {};
+  static_assert(N > 0, "N must be a natural number.");
   //
-  bool ready() { return (n_of_pushed >= N); }
+  SimpleMovingAverage() : ready_to_go{false}, position{}, ring{} {};
+  //
+  inline bool ready() { return ready_to_go; }
   void push_back(value_t v) {
-    if (n_of_pushed == 0) {
-      for (int_fast8_t i = 0; i < N; ++i) {
-        ring[i] = v;
-      }
+    ring[position] = v;
+    if ((position + 1) < N) {
+      position = position + 1;
     } else {
-      ring[position] = v;
-    }
-    position = (position + 1) % N;
-    if (n_of_pushed < UINT16_MAX) {
-      n_of_pushed = n_of_pushed + 1;
+      ready_to_go = true;
+      position = 0;
     }
   }
   value_t calculate() {
@@ -38,7 +33,7 @@ public:
   }
 
 private:
-  uint_fast16_t n_of_pushed;
+  bool ready_to_go;
   uint_fast16_t position;
   value_t ring[N];
 };
