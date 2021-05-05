@@ -62,19 +62,17 @@ bool Peripherals::begin(const std::string &wifi_ssid,
     HasSensor sgp = HasSensor::NoSensorFound;
     HasSensor scd = HasSensor::NoSensorFound;
     while (1) {
-      bme = _instance.bme280.begin(std::time(nullptr), BME280_I2C_ADDRESS);
+      bme = _instance.bme280.begin(BME280_I2C_ADDRESS);
       if (bme == HasSensor::NoSensorFound) {
         Screen::lcd.print(F("BME280センサが見つかりません。\n"));
         delay(100);
       }
-      sgp = _instance.sgp30.begin(std::time(nullptr), baseline_eco2_measured_at,
-                                  baseline_eco2, baseline_tvoc_measured_at,
-                                  baseline_tvoc);
+      sgp = _instance.sgp30.begin(baseline_eco2, baseline_tvoc);
       if (sgp == HasSensor::NoSensorFound) {
         Screen::lcd.print(F("SGP30センサが見つかりません。\n"));
         delay(100);
       }
-      scd = _instance.scd30.begin(std::time(nullptr));
+      scd = _instance.scd30.begin();
       if (scd == HasSensor::NoSensorFound) {
         Screen::lcd.print(F("SCD30センサが見つかりません。\n"));
         delay(100);

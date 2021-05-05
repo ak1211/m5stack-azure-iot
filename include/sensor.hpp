@@ -21,8 +21,7 @@ template <class T> class Sensor {
 public:
   SensorDescriptor getSensorDescriptor() = 0;
   void printSensorDetails() = 0;
-  HasSensor begin(std::time_t now) = 0;
-  double uptime(std::time_t now) = 0;
+  HasSensor begin() = 0;
   bool active() = 0;
   bool readyToRead(std::time_t now) = 0;
   T read(std::time_t measured_at) = 0;
@@ -48,12 +47,10 @@ public:
   Sensor(SensorDescriptor custom_sensor_descriptor)
       : sensor_descriptor{custom_sensor_descriptor},
         initialized{false},
-        startup_time{0},
         last_measured_at{0} {}
   SensorDescriptor getSensorDescriptor() { return sensor_descriptor; }
   void printSensorDetails();
-  HasSensor begin(std::time_t now, uint8_t i2c_address);
-  double uptime(std::time_t now);
+  HasSensor begin(uint8_t i2c_address);
   bool active() { return initialized; }
   bool readyToRead(std::time_t now);
   Bme280 read(std::time_t measured_at);
@@ -62,7 +59,6 @@ public:
 private:
   SensorDescriptor sensor_descriptor;
   bool initialized;
-  std::time_t startup_time;
   std::time_t last_measured_at;
   Adafruit_BME280 bme280;
   SimpleMovingAverage<SMA_PERIOD, float, double> sma_temperature;
@@ -90,16 +86,11 @@ public:
   Sensor(SensorDescriptor custom_sensor_descriptor)
       : sensor_descriptor{custom_sensor_descriptor},
         initialized{false},
-        startup_time{0},
         last_tvoc_eco2{} {}
   SensorDescriptor getSensorDescriptor() { return sensor_descriptor; }
   void printSensorDetails();
-  HasSensor begin(std::time_t now,
-                  std::time_t eco2_base_measured_at,      //
-                  MeasuredValues<BaselineECo2> eco2_base, //
-                  std::time_t tvoc_base_measured_at,      //
+  HasSensor begin(MeasuredValues<BaselineECo2> eco2_base,
                   MeasuredValues<BaselineTotalVoc> tvoc_base);
-  double uptime(std::time_t now);
   bool active() { return initialized; }
   bool readyToRead(std::time_t now);
   Sgp30 read(std::time_t measured_at);
@@ -111,7 +102,6 @@ public:
 private:
   SensorDescriptor sensor_descriptor;
   bool initialized;
-  std::time_t startup_time;
   TvocEco2 last_tvoc_eco2;
   Adafruit_SGP30 sgp30;
   SimpleMovingAverage<SMA_PERIOD, uint16_t, uint32_t> sma_eCo2;
@@ -139,11 +129,10 @@ public:
   Sensor(SensorDescriptor custom_sensor_descriptor)
       : sensor_descriptor{custom_sensor_descriptor},
         initialized{false},
-        startup_time{0},
         last_measured_at{0} {}
   SensorDescriptor getSensorDescriptor() { return sensor_descriptor; }
   void printSensorDetails();
-  HasSensor begin(std::time_t now);
+  HasSensor begin();
   double uptime(std::time_t now);
   bool active() { return initialized; }
   bool readyToRead(std::time_t now);
@@ -153,7 +142,6 @@ public:
 private:
   SensorDescriptor sensor_descriptor;
   bool initialized;
-  std::time_t startup_time;
   std::time_t last_measured_at;
   Adafruit_SCD30 scd30;
   SimpleMovingAverage<SMA_PERIOD, uint16_t, uint32_t> sma_co2;

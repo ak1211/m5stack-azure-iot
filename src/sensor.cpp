@@ -3,6 +3,7 @@
 // See LICENSE file in the project root for full license information.
 //
 #include "sensor.hpp"
+#include "peripherals.hpp"
 #include <cmath>
 
 constexpr static const char *TAG = "SensorModule";
@@ -24,8 +25,7 @@ void Sensor<Bme280>::printSensorDetails() {
   }
 }
 //
-HasSensor Sensor<Bme280>::begin(std::time_t now, uint8_t i2c_address) {
-  startup_time = now;
+HasSensor Sensor<Bme280>::begin(uint8_t i2c_address) {
   if (!bme280.begin(i2c_address)) {
     return HasSensor::NoSensorFound;
   }
@@ -39,10 +39,6 @@ HasSensor Sensor<Bme280>::begin(std::time_t now, uint8_t i2c_address) {
                      Adafruit_BME280::FILTER_OFF);
   initialized = true;
   return HasSensor::Ok;
-}
-//
-double Sensor<Bme280>::uptime(std::time_t now) {
-  return difftime(now, startup_time);
 }
 //
 bool Sensor<Bme280>::readyToRead(std::time_t now) {
@@ -113,36 +109,24 @@ void Sensor<Sgp30>::printSensorDetails() {
                 sgp30.serialnumber[2]);
 }
 //
-HasSensor Sensor<Sgp30>::begin(std::time_t now,
-                               std::time_t eco2_base_measured_at,      //
-                               MeasuredValues<BaselineECo2> eco2_base, //
-                               std::time_t tvoc_base_measured_at,      //
+HasSensor Sensor<Sgp30>::begin(MeasuredValues<BaselineECo2> eco2_base,
                                MeasuredValues<BaselineTotalVoc> tvoc_base) {
-  startup_time = now;
   if (!sgp30.begin()) {
     return HasSensor::NoSensorFound;
   }
   if (eco2_base.good() && tvoc_base.good()) {
-    std::time_t at = min(eco2_base_measured_at, tvoc_base_measured_at);
-    double elapsed_time = difftime(now, at);
-    // 7日間有効
-    if (elapsed_time < 7.0f * 24.0f * 60.0f * 60.0f) {
-      // baseline set to SGP30
-      bool result =
-          setIAQBaseline(eco2_base.get().value, tvoc_base.get().value);
-      ESP_LOGD(TAG, "SGP30 setIAQBaseline result is %d.", result);
+    // baseline set to SGP30
+    bool result = setIAQBaseline(eco2_base.get().value, tvoc_base.get().value);
+    if (result) {
+      ESP_LOGI(TAG, "SGP30 setIAQBaseline success");
     } else {
-      ESP_LOGD(TAG, "SGP30 built-in Automatic Baseline Correction algorithm.");
+      ESP_LOGE(TAG, "SGP30 setIAQBaseline failure");
     }
   } else {
-    ESP_LOGD(TAG, "SGP30 built-in Automatic Baseline Correction algorithm.");
+    ESP_LOGI(TAG, "SGP30 built-in Automatic Baseline Correction algorithm.");
   }
   initialized = true;
   return HasSensor::Ok;
-}
-//
-double Sensor<Sgp30>::uptime(std::time_t now) {
-  return difftime(now, startup_time);
 }
 //
 bool Sensor<Sgp30>::readyToRead(std::time_t now) {
@@ -158,12 +142,16 @@ Sgp30 Sensor<Sgp30>::read(std::time_t measured_at) {
     ESP_LOGE(TAG, "SGP30 sensing failed.");
     return Sgp30();
   }
-  // 稼働時間が 12h　を超えた場合のみベースラインを取得する
-  auto eco2_base = MeasuredValues<BaselineECo2>();
-  auto tvoc_base = MeasuredValues<BaselineTotalVoc>();
-  if (uptime(measured_at) >= 12.0f * 60.0f * 60.0f) {
+  // 稼働時間が 12h　を超えている状態のときにベースラインを取得する
+  MeasuredValues<BaselineECo2> eco2_base{};
+  MeasuredValues<BaselineTotalVoc> tvoc_base{};
+  Peripherals &peri = Peripherals::getInstance();
+  uint32_t uptime_seconds = peri.ticktack.uptime_seconds();
+  constexpr uint32_t half_day = 12 * 60 * 60; // 43200 seconds
+  if (uptime_seconds > half_day) {
     uint16_t eco2;
     uint16_t tvoc;
+    ESP_LOGE(TAG, "SGP30 baseline sensing.");
     if (!sgp30.getIAQBaseline(&eco2, &tvoc)) {
       ESP_LOGE(TAG, "SGP30 sensing failed.");
       return Sgp30();
@@ -235,8 +223,7 @@ void Sensor<Scd30>::printSensorDetails() {
   }
 }
 //
-HasSensor Sensor<Scd30>::begin(std::time_t now) {
-  startup_time = now;
+HasSensor Sensor<Scd30>::begin() {
   if (!scd30.begin()) {
     return HasSensor::NoSensorFound;
   }
@@ -244,9 +231,6 @@ HasSensor Sensor<Scd30>::begin(std::time_t now) {
   return HasSensor::Ok;
 }
 //
-double Sensor<Scd30>::uptime(std::time_t now) {
-  return difftime(now, startup_time);
-} //
 bool Sensor<Scd30>::readyToRead(std::time_t now) {
   return active() && (difftime(now, last_measured_at) >= INTERVAL) &&
          scd30.dataReady();
