@@ -2,19 +2,23 @@
 // Licensed under the MIT License <https://spdx.org/licenses/MIT.html>
 // See LICENSE file in the project root for full license information.
 //
-#ifndef POWER_STATUS_HPP
-#define POWER_STATUS_HPP
+#ifndef SYSTEM_POWER_HPP
+#define SYSTEM_POWER_HPP
 
 #include "value_types.hpp"
 #include <ctime>
 
-class PowerStatus {
+class SystemPower {
 public:
   constexpr static clock_t UPDATE_INTERVAL = 10 * CLOCKS_PER_SEC; // 10 seconds
-  PowerStatus() : update_at{0} {}
+  SystemPower() : update_at{0} {}
+  void begin();
   inline bool needToUpdate() {
     return (clock() - update_at >= UPDATE_INTERVAL);
   }
+  enum class PowerNow { External, Internal };
+  PowerNow power_now();
+  //
   inline Voltage getBatteryVoltage() { return battery_voltage; }
   inline float getBatteryPercentage() { return battery_percentage; }
   Ampere getBatteryChargingCurrent();
@@ -29,4 +33,4 @@ private:
   Ampere battery_current;
 };
 
-#endif // POWER_STATUS_HPP
+#endif // SYSTEM_POWER_HPP

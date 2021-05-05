@@ -76,7 +76,7 @@ Bme280 Sensor<Bme280>::read(std::time_t measured_at) {
   sma_relative_humidity.push_back(humi.value);
   sma_pressure.push_back(pres.value);
   return Bme280({
-      .sensor_id = this->sensor_id,
+      .sensor_descriptor = getSensorDescriptor(),
       .at = measured_at,
       .temperature = temp,
       .relative_humidity = humi,
@@ -88,8 +88,8 @@ Bme280 Sensor<Bme280>::calculateSMA() {
   if (sma_temperature.ready() && sma_relative_humidity.ready() &&
       sma_pressure.ready()) {
     return Bme280({
-        .sensor_id = this->sensor_id,
-        .at = this->last_measured_at,
+        .sensor_descriptor = getSensorDescriptor(),
+        .at = last_measured_at,
         .temperature = DegC(sma_temperature.calculate()),
         .relative_humidity = PcRH(sma_relative_humidity.calculate()),
         .pressure = HPa(sma_pressure.calculate()),
@@ -142,7 +142,7 @@ Sgp30 Sensor<Sgp30>::read(std::time_t measured_at) {
   sma_eCo2.push_back(sgp30.eCO2);
   sma_tvoc.push_back(sgp30.TVOC);
   return Sgp30({
-      .sensor_id = this->sensor_id,
+      .sensor_descriptor = getSensorDescriptor(),
       .at = measured_at,
       .eCo2 = Ppm(sgp30.eCO2),
       .tvoc = Ppb(sgp30.TVOC),
@@ -154,8 +154,8 @@ Sgp30 Sensor<Sgp30>::read(std::time_t measured_at) {
 Sgp30 Sensor<Sgp30>::calculateSMA() {
   if (sma_eCo2.ready() && sma_tvoc.ready()) {
     return Sgp30({
-        .sensor_id = this->sensor_id,
-        .at = this->last_measured_at,
+        .sensor_descriptor = getSensorDescriptor(),
+        .at = last_measured_at,
         .eCo2 = Ppm(sma_eCo2.calculate()),
         .tvoc = Ppb(sma_tvoc.calculate()),
         .eCo2_baseline = BaselineECo2(this->last_eCo2_baseline),
@@ -232,7 +232,7 @@ Scd30 Sensor<Scd30>::read(std::time_t measured_at) {
   sma_temperature.push_back(scd30.temperature);
   sma_relative_humidity.push_back(scd30.relative_humidity);
   return Scd30({
-      .sensor_id = this->sensor_id,
+      .sensor_descriptor = getSensorDescriptor(),
       .at = measured_at,
       .co2 = Ppm(scd30.CO2),
       .temperature = DegC(scd30.temperature),
@@ -244,8 +244,8 @@ Scd30 Sensor<Scd30>::calculateSMA() {
   if (sma_co2.ready() && sma_temperature.ready() &&
       sma_relative_humidity.ready()) {
     return Scd30({
-        .sensor_id = this->sensor_id,
-        .at = this->last_measured_at,
+        .sensor_descriptor = getSensorDescriptor(),
+        .at = last_measured_at,
         .co2 = Ppm(sma_co2.calculate()),
         .temperature = DegC(sma_temperature.calculate()),
         .relative_humidity = PcRH(sma_relative_humidity.calculate()),

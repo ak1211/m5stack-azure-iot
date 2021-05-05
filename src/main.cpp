@@ -329,39 +329,67 @@ static struct MeasurementSets periodical_measurement_sets(std::time_t now) {
 //
 //
 //
+static std::string &
+absolute_sensor_id_from_SensorDescriptor(std::string &output,
+                                         SensorDescriptor descriptor) {
+  std::string strDescriptor;
+  descriptor.toString(strDescriptor);
+  //
+  output = Credentials.device_id;
+  output.push_back('-');
+  output += strDescriptor;
+  return output;
+}
+
+//
+//
+//
 static void periodical_push_message(const MeasurementSets &m) {
   JsonDocSets doc_sets = {};
 
   // BME280 sensor values.
   // Temperature, Relative Humidity, Pressure
   if (m.bme280.good()) {
+    TempHumiPres temp_humi_pres = m.bme280.get();
+    //
     Peripherals &peri = Peripherals::getInstance();
     // calculate the Aboslute Humidity from Temperature and Relative Humidity
     MilligramPerCubicMetre absolute_humidity = calculateAbsoluteHumidity(
-        m.bme280.get().temperature, m.bme280.get().relative_humidity);
+        temp_humi_pres.temperature, temp_humi_pres.relative_humidity);
     ESP_LOGI(TAG, "absolute humidity: %d", absolute_humidity.value);
     // set "Absolute Humidity" to the SGP30 sensor.
     if (!peri.sgp30.setHumidity(absolute_humidity)) {
       ESP_LOGE(TAG, "setHumidity error.");
     }
-    IotHubClient::pushMessage(
-        takeMessageFromJsonDocSets(mapToJson(doc_sets, m.bme280.get())));
+    std::string sensor_id;
+    absolute_sensor_id_from_SensorDescriptor(sensor_id,
+                                             temp_humi_pres.sensor_descriptor);
+    IotHubClient::pushMessage(takeMessageFromJsonDocSets(
+        mapToJson(doc_sets, sensor_id, temp_humi_pres)));
   }
   doc_sets.message.clear();
   doc_sets.state.clear();
   // SGP30 sensor values.
   // eCo2, TVOC
   if (m.sgp30.good()) {
+    TvocEco2 tvoc_eco2 = m.sgp30.get();
+    std::string sensor_id;
+    absolute_sensor_id_from_SensorDescriptor(sensor_id,
+                                             tvoc_eco2.sensor_descriptor);
     IotHubClient::pushMessage(
-        takeMessageFromJsonDocSets(mapToJson(doc_sets, m.sgp30.get())));
+        takeMessageFromJsonDocSets(mapToJson(doc_sets, sensor_id, tvoc_eco2)));
   }
   doc_sets.message.clear();
   doc_sets.state.clear();
   // SCD30 sensor values.
   // co2, Temperature, Relative Humidity
   if (m.scd30.good()) {
-    IotHubClient::pushMessage(
-        takeMessageFromJsonDocSets(mapToJson(doc_sets, m.scd30.get())));
+    Co2TempHumi co2_temp_humi = m.scd30.get();
+    std::string sensor_id;
+    absolute_sensor_id_from_SensorDescriptor(sensor_id,
+                                             co2_temp_humi.sensor_descriptor);
+    IotHubClient::pushMessage(takeMessageFromJsonDocSets(
+        mapToJson(doc_sets, sensor_id, co2_temp_humi)));
   }
 }
 
@@ -370,13 +398,13 @@ static void periodical_push_message(const MeasurementSets &m) {
 //
 static void periodical_push_state() {
   Peripherals &peri = Peripherals::getInstance();
-  if (peri.power_status.needToUpdate()) {
-    peri.power_status.update();
+  if (peri.system_power.needToUpdate()) {
+    peri.system_power.update();
   }
   StaticJsonDocument<1024> json;
   char buf[10] = {'\0'};
   snprintf(buf, 10, "%d%%",
-           static_cast<int>(peri.power_status.getBatteryPercentage()));
+           static_cast<int>(peri.system_power.getBatteryPercentage()));
   json["batteryLevel"] = buf;
   uint32_t upseconds = peri.ticktack.uptime_seconds();
   json["uptime"] = upseconds;
@@ -396,14 +424,16 @@ static void periodical_send_to_iothub(const MeasurementSets &m) {
       utc.tm_sec == 0 && utc.tm_min % IOTHUB_PUSH_STATE_EVERY_MINUTES == 0;
 
   Peripherals &peri = Peripherals::getInstance();
-  //
-  // insert to local database
-  //
   if (allowToPushMessage) {
+    //
+    // insert to local logging file
+    //
     if (m.bme280.good() && m.sgp30.good() && m.scd30.good()) {
       peri.data_logging_file.write_data_to_log_file(
           m.measured_at, m.bme280.get(), m.sgp30.get(), m.scd30.get());
     }
+    //
+    // insert to local database
     //
     if (m.bme280.good()) {
       peri.local_database.insert(m.bme280.get());
@@ -417,6 +447,9 @@ static void periodical_send_to_iothub(const MeasurementSets &m) {
   }
   //
   if (peri.wifi_launcher.hasWifiConnection()) {
+    //
+    // send to IoT Hub
+    //
     if (allowToPushMessage) {
       periodical_push_message(m);
     }
@@ -432,6 +465,7 @@ static void periodical_send_to_iothub(const MeasurementSets &m) {
 //
 void loop() {
   ArduinoOTA.handle();
+  delay(1);
 
   static clock_t before_clock = 0;
   clock_t now_clock = clock();

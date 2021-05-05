@@ -77,21 +77,21 @@ public:
                          up.minutes);
     }
     //
-    if (peri.power_status.needToUpdate()) {
-      peri.power_status.update();
+    if (peri.system_power.needToUpdate()) {
+      peri.system_power.update();
     }
     char sign = ' ';
-    if (peri.power_status.isBatteryCharging()) {
+    if (peri.system_power.isBatteryCharging()) {
       sign = '+';
-    } else if (peri.power_status.isBatteryDischarging()) {
+    } else if (peri.system_power.isBatteryDischarging()) {
       sign = '-';
     } else {
       sign = ' ';
     }
     Screen::lcd.printf("Batt %4.0f%% %4.2fV %c%5.3fA",
-                       peri.power_status.getBatteryPercentage(),
-                       peri.power_status.getBatteryVoltage().value, sign,
-                       peri.power_status.getBatteryChargingCurrent().value);
+                       peri.system_power.getBatteryPercentage(),
+                       peri.system_power.getBatteryVoltage().value, sign,
+                       peri.system_power.getBatteryChargingCurrent().value);
     Screen::lcd.print("\n");
     //
     {
@@ -238,7 +238,7 @@ public:
   }
   //
   void render_notavailable() {
-    strncpy(now, "N/A", sizeof(now));
+    strncpy(now, "-", sizeof(now));
     if (strncmp(now, before, sizeof(before)) != 0) {
       render();
     }
@@ -529,34 +529,54 @@ public:
     }
   }
   //
-  void prepare() {
-    grid();
-    //
-    Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
-    Screen::lcd.setTextDatum(textdatum_t::top_left);
-    Screen::lcd.drawString("温度 ℃", 3, 3);
-    //
+  void showUpdateMessage() {
     Screen::lcd.setTextDatum(textdatum_t::middle_center);
     int16_t cx, cy;
     getGraphCenter(&cx, &cy);
     Screen::lcd.drawString("更新中", cx, cy);
   }
   //
+  void hideUpdateMessage() {
+    Screen::lcd.setTextColor(background_color);
+    Screen::lcd.setTextDatum(textdatum_t::middle_center);
+    int16_t cx, cy;
+    getGraphCenter(&cx, &cy);
+    Screen::lcd.drawString("更新中", cx, cy);
+    Screen::lcd.setTextColor(message_text_color, background_color);
+  }
+  //
+  void prepare() {
+    grid();
+    //
+    Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
+    Screen::lcd.setTextDatum(textdatum_t::top_left);
+    Screen::lcd.drawString("温度 ℃", 3, 3);
+  }
+  //
   void render(const struct tm &local) override {
+    if (!need_for_update()) {
+      return;
+    }
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
-    if (need_for_update() && 5 <= local.tm_sec && local.tm_sec <= 30) {
+    if (1 <= local.tm_sec && local.tm_sec <= 50) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
       const int16_t y0 = coord_y(0.0);
-      const int8_t step = 4;
+      const int8_t step = 2;
       int16_t rx;
       getGraphRight(&rx, nullptr);
       int16_t x = step;
+      uint16_t counter = 0;
+      (void)counter;
       // 最新のデータを得る
       auto callback = [&](size_t counter, time_t at, float degc) {
+        if (counter == 0) {
+          hideUpdateMessage();
+        }
+        counter = counter + 1;
         // 消去
         Screen::lcd.fillRect(rx - x, y_top, step, y_length, background_color);
         // 書き込む
@@ -566,12 +586,14 @@ public:
         return true;
       };
       //
-      prepare();
       Peripherals &peri = Peripherals::getInstance();
-      database.get_temperatures_desc(peri.bme280.getSensorId(),
+      showUpdateMessage();
+      database.get_temperatures_desc(peri.bme280.getSensorDescriptor().id,
                                      graph_width / step, callback);
       rawid = database.rawid_temperature;
       grid();
+    } else {
+      showUpdateMessage();
     }
   }
 
@@ -610,33 +632,53 @@ public:
     }
   }
   //
-  void prepare() {
-    grid();
-    //
-    Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
-    Screen::lcd.setTextDatum(textdatum_t::top_left);
-    Screen::lcd.drawString("相対湿度 %RH", 3, 3);
-    //
+  void showUpdateMessage() {
     Screen::lcd.setTextDatum(textdatum_t::middle_center);
     int16_t cx, cy;
     getGraphCenter(&cx, &cy);
     Screen::lcd.drawString("更新中", cx, cy);
   }
   //
+  void hideUpdateMessage() {
+    Screen::lcd.setTextColor(background_color);
+    Screen::lcd.setTextDatum(textdatum_t::middle_center);
+    int16_t cx, cy;
+    getGraphCenter(&cx, &cy);
+    Screen::lcd.drawString("更新中", cx, cy);
+    Screen::lcd.setTextColor(message_text_color, background_color);
+  }
+  //
+  void prepare() {
+    grid();
+    //
+    Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
+    Screen::lcd.setTextDatum(textdatum_t::top_left);
+    Screen::lcd.drawString("相対湿度 %RH", 3, 3);
+  }
+  //
   void render(const struct tm &local) override {
+    if (!need_for_update()) {
+      return;
+    }
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
-    if (need_for_update() && 5 <= local.tm_sec && local.tm_sec <= 30) {
+    if (1 <= local.tm_sec && local.tm_sec <= 50) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
-      const int8_t step = 4;
+      const int8_t step = 2;
       int16_t rx;
       getGraphRight(&rx, nullptr);
       int16_t x = step;
+      uint16_t counter = 0;
+      (void)counter;
       // 最新のデータを得る
       auto callback = [&](size_t counter, time_t at, float rh) {
+        if (counter == 0) {
+          hideUpdateMessage();
+        }
+        counter = counter + 1;
         // 消去
         Screen::lcd.fillRect(rx - x, y_top, step, y_length, background_color);
         // 書き込む
@@ -647,12 +689,14 @@ public:
         return true;
       };
       //
-      prepare();
+      showUpdateMessage();
       Peripherals &peri = Peripherals::getInstance();
-      database.get_relative_humidities_desc(peri.bme280.getSensorId(),
-                                            graph_width / step, callback);
+      database.get_relative_humidities_desc(
+          peri.bme280.getSensorDescriptor().id, graph_width / step, callback);
       update_rawid();
       grid();
+    } else {
+      showUpdateMessage();
     }
   }
 
@@ -693,33 +737,53 @@ public:
     }
   }
   //
-  void prepare() {
-    grid();
-    //
-    Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
-    Screen::lcd.setTextDatum(textdatum_t::top_left);
-    Screen::lcd.drawString("気圧 hPa", 3, 3);
-    //
+  void showUpdateMessage() {
     Screen::lcd.setTextDatum(textdatum_t::middle_center);
     int16_t cx, cy;
     getGraphCenter(&cx, &cy);
     Screen::lcd.drawString("更新中", cx, cy);
   }
   //
+  void hideUpdateMessage() {
+    Screen::lcd.setTextColor(background_color);
+    Screen::lcd.setTextDatum(textdatum_t::middle_center);
+    int16_t cx, cy;
+    getGraphCenter(&cx, &cy);
+    Screen::lcd.drawString("更新中", cx, cy);
+    Screen::lcd.setTextColor(message_text_color, background_color);
+  }
+  //
+  void prepare() {
+    grid();
+    //
+    Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
+    Screen::lcd.setTextDatum(textdatum_t::top_left);
+    Screen::lcd.drawString("気圧 hPa", 3, 3);
+  }
+  //
   void render(const struct tm &local) override {
+    if (!need_for_update()) {
+      return;
+    }
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
-    if (need_for_update() && 5 <= local.tm_sec && local.tm_sec <= 30) {
+    if (1 <= local.tm_sec && local.tm_sec <= 50) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
-      const int8_t step = 4;
+      const int8_t step = 2;
       int16_t rx;
       getGraphRight(&rx, nullptr);
       int16_t x = step;
+      uint16_t counter = 0;
+      (void)counter;
       // 最新のデータを得る
       auto callback = [&](size_t counter, time_t at, float hpa) {
+        if (counter == 0) {
+          hideUpdateMessage();
+        }
+        counter = counter + 1;
         // 消去
         Screen::lcd.fillRect(rx - x, y_top, step, y_length, background_color);
         // 書き込む
@@ -730,12 +794,14 @@ public:
         return true;
       };
       //
-      prepare();
+      showUpdateMessage();
       Peripherals &peri = Peripherals::getInstance();
-      database.get_pressures_desc(peri.bme280.getSensorId(), graph_width / step,
-                                  callback);
+      database.get_pressures_desc(peri.bme280.getSensorDescriptor().id,
+                                  graph_width / step, callback);
       update_rawid();
       grid();
+    } else {
+      showUpdateMessage();
     }
   }
 
@@ -773,34 +839,54 @@ public:
     }
   }
   //
-  void prepare() {
-    grid();
-    //
-    Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
-    Screen::lcd.setTextDatum(textdatum_t::top_left);
-    Screen::lcd.drawString("総揮発性有機化合物(TVOC) ppb", 3, 3);
-    //
+  void showUpdateMessage() {
     Screen::lcd.setTextDatum(textdatum_t::middle_center);
     int16_t cx, cy;
     getGraphCenter(&cx, &cy);
     Screen::lcd.drawString("更新中", cx, cy);
   }
   //
+  void hideUpdateMessage() {
+    Screen::lcd.setTextColor(background_color);
+    Screen::lcd.setTextDatum(textdatum_t::middle_center);
+    int16_t cx, cy;
+    getGraphCenter(&cx, &cy);
+    Screen::lcd.drawString("更新中", cx, cy);
+    Screen::lcd.setTextColor(message_text_color, background_color);
+  }
+  //
+  void prepare() {
+    grid();
+    //
+    Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
+    Screen::lcd.setTextDatum(textdatum_t::top_left);
+    Screen::lcd.drawString("総揮発性有機化合物(TVOC) ppb", 3, 3);
+  }
+  //
   void render(const struct tm &local) override {
+    if (!need_for_update()) {
+      return;
+    }
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
-    if (need_for_update() && 5 <= local.tm_sec && local.tm_sec <= 30) {
+    if (1 <= local.tm_sec && local.tm_sec <= 50) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
-      const int8_t step = 4;
+      const int8_t step = 2;
       int16_t rx;
       getGraphRight(&rx, nullptr);
       int16_t x = step;
+      uint16_t counter = 0;
+      (void)counter;
       // 最新のデータを得る
       auto callback = [&](size_t counter, time_t at, uint16_t tvoc, uint16_t,
                           bool) {
+        if (counter == 0) {
+          hideUpdateMessage();
+        }
+        counter = counter + 1;
         // 消去
         Screen::lcd.fillRect(rx - x, y_top, step, y_length, background_color);
         // 書き込む
@@ -811,12 +897,14 @@ public:
         return true;
       };
       //
-      prepare();
+      showUpdateMessage();
       Peripherals &peri = Peripherals::getInstance();
-      database.get_total_vocs_desc(peri.sgp30.getSensorId(), graph_width / step,
-                                   callback);
+      database.get_total_vocs_desc(peri.sgp30.getSensorDescriptor().id,
+                                   graph_width / step, callback);
       update_rawid();
       grid();
+    } else {
+      showUpdateMessage();
     }
   }
 
@@ -856,34 +944,54 @@ public:
     }
   }
   //
-  void prepare() {
-    grid();
-    //
-    Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
-    Screen::lcd.setTextDatum(textdatum_t::top_left);
-    Screen::lcd.drawString("二酸化炭素相当量(eCo2) ppm", 3, 3);
-    //
+  void showUpdateMessage() {
     Screen::lcd.setTextDatum(textdatum_t::middle_center);
     int16_t cx, cy;
     getGraphCenter(&cx, &cy);
     Screen::lcd.drawString("更新中", cx, cy);
   }
   //
+  void hideUpdateMessage() {
+    Screen::lcd.setTextColor(background_color);
+    Screen::lcd.setTextDatum(textdatum_t::middle_center);
+    int16_t cx, cy;
+    getGraphCenter(&cx, &cy);
+    Screen::lcd.drawString("更新中", cx, cy);
+    Screen::lcd.setTextColor(message_text_color, background_color);
+  }
+  //
+  void prepare() {
+    grid();
+    //
+    Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
+    Screen::lcd.setTextDatum(textdatum_t::top_left);
+    Screen::lcd.drawString("二酸化炭素相当量(eCo2) ppm", 3, 3);
+  }
+  //
   void render(const struct tm &local) override {
+    if (!need_for_update()) {
+      return;
+    }
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
-    if (need_for_update() && 5 <= local.tm_sec && local.tm_sec <= 30) {
+    if (1 <= local.tm_sec && local.tm_sec <= 50) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
-      const int8_t step = 4;
+      const int8_t step = 2;
       int16_t rx;
       getGraphRight(&rx, nullptr);
       int16_t x = step;
+      uint16_t counter = 0;
+      (void)counter;
       // 最新のデータを得る
       auto callback = [&](size_t counter, time_t at, uint16_t co2, uint16_t,
                           bool) {
+        if (counter == 0) {
+          hideUpdateMessage();
+        }
+        counter = counter + 1;
         // 消去
         Screen::lcd.fillRect(rx - x, y_top, step, y_length, background_color);
         // 書き込む
@@ -894,12 +1002,14 @@ public:
         return true;
       };
       //
-      prepare();
+      showUpdateMessage();
       Peripherals &peri = Peripherals::getInstance();
-      database.get_carbon_deoxides_desc(peri.sgp30.getSensorId(),
+      database.get_carbon_deoxides_desc(peri.sgp30.getSensorDescriptor().id,
                                         graph_width / step, callback);
       update_rawid();
       grid();
+    } else {
+      showUpdateMessage();
     }
   }
 
@@ -941,34 +1051,54 @@ public:
     }
   }
   //
-  void prepare() {
-    grid();
-    //
-    Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
-    Screen::lcd.setTextDatum(textdatum_t::top_left);
-    Screen::lcd.drawString("二酸化炭素(CO2) ppm", 3, 3);
-    //
+  void showUpdateMessage() {
     Screen::lcd.setTextDatum(textdatum_t::middle_center);
     int16_t cx, cy;
     getGraphCenter(&cx, &cy);
     Screen::lcd.drawString("更新中", cx, cy);
   }
   //
+  void hideUpdateMessage() {
+    Screen::lcd.setTextColor(background_color);
+    Screen::lcd.setTextDatum(textdatum_t::middle_center);
+    int16_t cx, cy;
+    getGraphCenter(&cx, &cy);
+    Screen::lcd.drawString("更新中", cx, cy);
+    Screen::lcd.setTextColor(message_text_color, background_color);
+  }
+  //
+  void prepare() {
+    grid();
+    //
+    Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
+    Screen::lcd.setTextDatum(textdatum_t::top_left);
+    Screen::lcd.drawString("二酸化炭素(CO2) ppm", 3, 3);
+  }
+  //
   void render(const struct tm &local) override {
+    if (!need_for_update()) {
+      return;
+    }
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
-    if (need_for_update() && 5 <= local.tm_sec && local.tm_sec <= 30) {
+    if (1 <= local.tm_sec && local.tm_sec <= 50) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
-      const int8_t step = 4;
+      const int8_t step = 2;
       int16_t rx;
       getGraphRight(&rx, nullptr);
       int16_t x = step;
+      uint16_t counter = 0;
+      (void)counter;
       // 最新のデータを得る
       auto callback = [&](size_t counter, time_t at, uint16_t co2, uint16_t,
                           bool) {
+        if (counter == 0) {
+          hideUpdateMessage();
+        }
+        counter = counter + 1;
         // 消去
         Screen::lcd.fillRect(rx - x, y_top, step, y_length, background_color);
         // 書き込む
@@ -979,12 +1109,14 @@ public:
         return true;
       };
       //
-      prepare();
+      showUpdateMessage();
       Peripherals &peri = Peripherals::getInstance();
-      database.get_carbon_deoxides_desc(peri.scd30.getSensorId(),
+      database.get_carbon_deoxides_desc(peri.scd30.getSensorDescriptor().id,
                                         graph_width / step, callback);
       update_rawid();
       grid();
+    } else {
+      showUpdateMessage();
     }
   }
 

@@ -8,14 +8,20 @@
 #include "data_logging_file.hpp"
 #include "led_signal.hpp"
 #include "local_database.hpp"
-#include "power_status.hpp"
 #include "screen.hpp"
 #include "sensor.hpp"
+#include "system_power.hpp"
 #include "ticktack.hpp"
 #include "wifi_launcher.hpp"
 #include <cstdint>
 #include <string>
 
+static const SensorDescriptor SENSOR_DESCRIPTOR_BME280 =
+    SensorDescriptor('b', 'm', 'e', '2', '8', '0', '\0', '\0');
+static const SensorDescriptor SENSOR_DESCRIPTOR_SGP30 =
+    SensorDescriptor('s', 'g', 'p', '3', '0', '\0', '\0', '\0');
+static const SensorDescriptor SENSOR_DESCRIPTOR_SCD30 =
+    SensorDescriptor('s', 'c', 'd', '3', '0', '\0', '\0', '\0');
 //
 //
 //
@@ -26,13 +32,9 @@ public:
   constexpr static const char *header_log_file_name =
       "/header-data-logging.csv";
   constexpr static const char *sqlite3_file_name = "/sd/measurements.sqlite3";
-  constexpr static const char *sensor_id_bme280 =
-      "m5stack-bme280-device-bme280";
-  constexpr static const char *sensor_id_sgp30 = "m5stack-bme280-device-sgp30";
-  constexpr static const char *sensor_id_scd30 = "m5stack-bme280-device-scd30";
   //
   TickTack ticktack;
-  PowerStatus power_status;
+  SystemPower system_power;
   Sensor<Bme280> bme280;
   Sensor<Sgp30> sgp30;
   Sensor<Scd30> scd30;

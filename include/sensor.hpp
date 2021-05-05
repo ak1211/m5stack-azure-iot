@@ -13,6 +13,7 @@
 #include <Adafruit_Sensor.h>
 #include <cstdint>
 #include <ctime>
+#include <string>
 
 enum class HasSensor { Ok, NoSensorFound };
 
@@ -31,7 +32,7 @@ private:
 
 template <class T> class Sensor {
 public:
-  const char *getSensorId() = 0;
+  SensorDescriptor getSensorDescriptor() = 0;
   void printSensorDetails() = 0;
   HasSensor begin() = 0;
   bool active() = 0;
@@ -44,7 +45,7 @@ public:
 // Bosch BME280 Humidity and Pressure Sensor
 //
 struct TempHumiPres {
-  const char *sensor_id;
+  SensorDescriptor sensor_descriptor;
   std::time_t at;
   DegC temperature;
   PcRH relative_humidity;
@@ -56,9 +57,11 @@ public:
   constexpr static uint8_t INTERVAL = 10;                  // 10 seconds
   constexpr static uint8_t SMA_PERIOD = 1 + 60 / INTERVAL; // 60 minutes
   //
-  Sensor(const char *custom_sensor_id)
-      : sensor_id{custom_sensor_id}, initialized{false}, last_measured_at{0} {}
-  const char *getSensorId() { return sensor_id; }
+  Sensor(SensorDescriptor custom_sensor_descriptor)
+      : sensor_descriptor{custom_sensor_descriptor},
+        initialized{false},
+        last_measured_at{0} {}
+  SensorDescriptor getSensorDescriptor() { return sensor_descriptor; }
   void printSensorDetails();
   HasSensor begin(uint8_t i2c_address);
   bool active() { return initialized; }
@@ -67,7 +70,7 @@ public:
   Bme280 calculateSMA();
 
 private:
-  const char *sensor_id;
+  SensorDescriptor sensor_descriptor;
   bool initialized;
   std::time_t last_measured_at;
   Adafruit_BME280 bme280;
@@ -80,7 +83,7 @@ private:
 // Sensirion SGP30: Air Quality Sensor
 //
 struct TvocEco2 {
-  const char *sensor_id;
+  SensorDescriptor sensor_descriptor;
   std::time_t at;
   Ppm eCo2;
   Ppb tvoc;
@@ -93,13 +96,13 @@ public:
   constexpr static uint8_t INTERVAL = 1;                   // 1 seconds
   constexpr static uint8_t SMA_PERIOD = 1 + 60 / INTERVAL; // 60 minutes
   //
-  Sensor(const char *custom_sensor_id)
-      : sensor_id{custom_sensor_id},
+  Sensor(SensorDescriptor custom_sensor_descriptor)
+      : sensor_descriptor{custom_sensor_descriptor},
         initialized{false},
         last_measured_at{0},
         last_eCo2_baseline{0},
         last_tvoc_baseline{0} {}
-  const char *getSensorId() { return sensor_id; }
+  SensorDescriptor getSensorDescriptor() { return sensor_descriptor; }
   void printSensorDetails();
   HasSensor begin();
   bool active() { return initialized; }
@@ -111,7 +114,7 @@ public:
   bool setHumidity(MilligramPerCubicMetre absolute_humidity);
 
 private:
-  const char *sensor_id;
+  SensorDescriptor sensor_descriptor;
   bool initialized;
   std::time_t last_measured_at;
   BaselineECo2 last_eCo2_baseline;
@@ -127,7 +130,7 @@ extern MilligramPerCubicMetre calculateAbsoluteHumidity(DegC temperature,
 // Sensirion SCD30: NDIR CO2 and Humidity Sensor
 //
 struct Co2TempHumi {
-  const char *sensor_id;
+  SensorDescriptor sensor_descriptor;
   std::time_t at;
   Ppm co2;
   DegC temperature;
@@ -139,9 +142,11 @@ public:
   constexpr static uint8_t INTERVAL = 20;                  // 20 seconds
   constexpr static uint8_t SMA_PERIOD = 1 + 60 / INTERVAL; // 60 minutes
   //
-  Sensor(const char *custom_sensor_id)
-      : sensor_id{custom_sensor_id}, initialized{false}, last_measured_at{0} {}
-  const char *getSensorId() { return sensor_id; }
+  Sensor(SensorDescriptor custom_sensor_descriptor)
+      : sensor_descriptor{custom_sensor_descriptor},
+        initialized{false},
+        last_measured_at{0} {}
+  SensorDescriptor getSensorDescriptor() { return sensor_descriptor; }
   void printSensorDetails();
   HasSensor begin();
   bool active() { return initialized; }
@@ -150,7 +155,7 @@ public:
   Scd30 calculateSMA();
 
 private:
-  const char *sensor_id;
+  SensorDescriptor sensor_descriptor;
   bool initialized;
   std::time_t last_measured_at;
   Adafruit_SCD30 scd30;

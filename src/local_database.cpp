@@ -13,12 +13,12 @@ constexpr static const char *TAG = "DbModule";
 constexpr static const char schema_temperature[] =
     "CREATE TABLE IF NOT EXISTS temperature"
     "(id INTEGER PRIMARY KEY AUTOINCREMENT"
-    ",sensor_id TEXT NOT NULL"
+    ",sensor_id INTEGER NOT NULL"
     ",at INTEGER NOT NULL"
     ",degc REAL NOT NULL"
     ");";
 //
-int64_t LocalDatabase::insert_temperature(const char *sensor_id, std::time_t at,
+int64_t LocalDatabase::insert_temperature(uint64_t sensor_id, std::time_t at,
                                           DegC degc) {
   constexpr static const char query[] = "INSERT INTO"
                                         " temperature(sensor_id,at,degc)"
@@ -29,7 +29,7 @@ int64_t LocalDatabase::insert_temperature(const char *sensor_id, std::time_t at,
 }
 //
 size_t LocalDatabase::get_temperatures_desc(
-    const char *sensor_id, size_t limit,
+    uint64_t sensor_id, size_t limit,
     LocalDatabase::CallbackRowTimeAndFloat callback) {
   constexpr static const char query[] = "SELECT"
                                         " sensor_id,at,degc"
@@ -46,12 +46,12 @@ size_t LocalDatabase::get_temperatures_desc(
 constexpr static const char schema_relative_humidity[] =
     "CREATE TABLE IF NOT EXISTS relative_humidity"
     "(id INTEGER PRIMARY KEY AUTOINCREMENT"
-    ",sensor_id TEXT NOT NULL"
+    ",sensor_id INTEGER NOT NULL"
     ",at INTEGER NOT NULL"
     ",rh REAL NOT NULL"
     ");";
 //
-int64_t LocalDatabase::insert_relative_humidity(const char *sensor_id,
+int64_t LocalDatabase::insert_relative_humidity(uint64_t sensor_id,
                                                 std::time_t at, PcRH rh) {
   constexpr static const char query[] = "INSERT INTO"
                                         " relative_humidity(sensor_id,at,rh)"
@@ -62,7 +62,7 @@ int64_t LocalDatabase::insert_relative_humidity(const char *sensor_id,
 }
 //
 size_t LocalDatabase::get_relative_humidities_desc(
-    const char *sensor_id, size_t limit,
+    uint64_t sensor_id, size_t limit,
     LocalDatabase::CallbackRowTimeAndFloat callback) {
   constexpr static const char query[] = "SELECT"
                                         " sensor_id,at,rh"
@@ -79,12 +79,12 @@ size_t LocalDatabase::get_relative_humidities_desc(
 constexpr static const char schema_pressure[] =
     "CREATE TABLE IF NOT EXISTS pressure"
     "(id INTEGER PRIMARY KEY AUTOINCREMENT"
-    ",sensor_id TEXT NOT NULL"
+    ",sensor_id INTEGER NOT NULL"
     ",at INTEGER NOT NULL"
     ",hpa REAL NOT NULL"
     ");";
 //
-int64_t LocalDatabase::insert_pressure(const char *sensor_id, std::time_t at,
+int64_t LocalDatabase::insert_pressure(uint64_t sensor_id, std::time_t at,
                                        HPa hpa) {
   constexpr static const char query[] = "INSERT INTO"
                                         " pressure(sensor_id,at,hpa)"
@@ -94,7 +94,7 @@ int64_t LocalDatabase::insert_pressure(const char *sensor_id, std::time_t at,
 }
 //
 size_t LocalDatabase::get_pressures_desc(
-    const char *sensor_id, size_t limit,
+    uint64_t sensor_id, size_t limit,
     LocalDatabase::CallbackRowTimeAndFloat callback) {
   constexpr static const char query[] = "SELECT"
                                         " sensor_id,at,hpa"
@@ -111,14 +111,14 @@ size_t LocalDatabase::get_pressures_desc(
 constexpr static char schema_carbon_dioxide[] =
     "CREATE TABLE IF NOT EXISTS carbon_dioxide"
     "(id INTEGER PRIMARY KEY AUTOINCREMENT"
-    ",sensor_id TEXT NOT NULL"
+    ",sensor_id INTEGER NOT NULL"
     ",at INTEGER NOT NULL"
     ",ppm REAL NOT NULL"
     ",baseline INTEGER"
     ");";
 //
-int64_t LocalDatabase::insert_carbon_dioxide(const char *sensor_id,
-                                             std::time_t at, Ppm ppm,
+int64_t LocalDatabase::insert_carbon_dioxide(uint64_t sensor_id, std::time_t at,
+                                             Ppm ppm,
                                              const uint16_t *baseline) {
   constexpr static const char query[] =
       "INSERT INTO"
@@ -130,7 +130,7 @@ int64_t LocalDatabase::insert_carbon_dioxide(const char *sensor_id,
 }
 //
 size_t LocalDatabase::get_carbon_deoxides_desc(
-    const char *sensor_id, size_t limit,
+    uint64_t sensor_id, size_t limit,
     LocalDatabase::CallbackRowTimeAndUint16AndNullableUint16 callback) {
   constexpr static const char query[] = "SELECT"
                                         " sensor_id,at,ppm,baseline"
@@ -148,13 +148,13 @@ size_t LocalDatabase::get_carbon_deoxides_desc(
 constexpr static const char schema_total_voc[] =
     "CREATE TABLE IF NOT EXISTS total_voc"
     "(id INTEGER PRIMARY KEY AUTOINCREMENT"
-    ",sensor_id TEXT NOT NULL"
+    ",sensor_id INTEGER NOT NULL"
     ",at INTEGER NOT NULL"
     ",ppb REAL NOT NULL"
     ",baseline INTEGER"
     ");";
 //
-int64_t LocalDatabase::insert_total_voc(const char *sensor_id, std::time_t at,
+int64_t LocalDatabase::insert_total_voc(uint64_t sensor_id, std::time_t at,
                                         Ppb ppb, const uint16_t *baseline) {
   constexpr static const char query[] = "INSERT INTO"
                                         " total_voc(sensor_id,at,ppb,baseline)"
@@ -165,7 +165,7 @@ int64_t LocalDatabase::insert_total_voc(const char *sensor_id, std::time_t at,
 }
 //
 size_t LocalDatabase::get_total_vocs_desc(
-    const char *sensor_id, size_t limit,
+    uint64_t sensor_id, size_t limit,
     LocalDatabase::CallbackRowTimeAndUint16AndNullableUint16 callback) {
   constexpr static const char query[] = "SELECT"
                                         " sensor_id,at,ppb,baseline"
@@ -246,14 +246,18 @@ error:
 //
 //
 //
-bool LocalDatabase::insert(const TempHumiPres &bme) {
+bool LocalDatabase::insert(const TempHumiPres &temp_humi_pres) {
   if (!healthy()) {
     return false;
   }
-  int64_t t = insert_temperature(bme.sensor_id, bme.at, bme.temperature.value);
-  int64_t p = insert_pressure(bme.sensor_id, bme.at, bme.pressure.value);
-  int64_t h = insert_relative_humidity(bme.sensor_id, bme.at,
-                                       bme.relative_humidity.value);
+  int64_t t =
+      insert_temperature(temp_humi_pres.sensor_descriptor.id, temp_humi_pres.at,
+                         temp_humi_pres.temperature.value);
+  int64_t p = insert_pressure(temp_humi_pres.sensor_descriptor.id,
+                              temp_humi_pres.at, temp_humi_pres.pressure.value);
+  int64_t h = insert_relative_humidity(temp_humi_pres.sensor_descriptor.id,
+                                       temp_humi_pres.at,
+                                       temp_humi_pres.relative_humidity.value);
   if (t >= 0 && p >= 0 && h >= 0) {
     ESP_LOGD(TAG, "insert TempHumiPres is success.");
     return true;
@@ -265,14 +269,16 @@ bool LocalDatabase::insert(const TempHumiPres &bme) {
 //
 //
 //
-bool LocalDatabase::insert(const TvocEco2 &v) {
+bool LocalDatabase::insert(const TvocEco2 &tvoc_eco2) {
   if (!healthy()) {
     return false;
   }
   int64_t t =
-      insert_total_voc(v.sensor_id, v.at, v.tvoc.value, &v.tvoc_baseline.value);
-  int64_t c = insert_carbon_dioxide(v.sensor_id, v.at, v.eCo2.value,
-                                    &v.eCo2_baseline.value);
+      insert_total_voc(tvoc_eco2.sensor_descriptor.id, tvoc_eco2.at,
+                       tvoc_eco2.tvoc.value, &tvoc_eco2.tvoc_baseline.value);
+  int64_t c = insert_carbon_dioxide(tvoc_eco2.sensor_descriptor.id,
+                                    tvoc_eco2.at, tvoc_eco2.eCo2.value,
+                                    &tvoc_eco2.eCo2_baseline.value);
   if (t >= 0 && c >= 0) {
     ESP_LOGI(TAG, "insert TvocEco2 is success.");
     return true;
@@ -284,14 +290,19 @@ bool LocalDatabase::insert(const TvocEco2 &v) {
 //
 //
 //
-bool LocalDatabase::insert(const Co2TempHumi &v) {
+bool LocalDatabase::insert(const Co2TempHumi &co2_temp_humi) {
   if (!healthy()) {
     return false;
   }
-  int64_t t = insert_temperature(v.sensor_id, v.at, v.temperature.value);
-  int64_t p =
-      insert_relative_humidity(v.sensor_id, v.at, v.relative_humidity.value);
-  int64_t c = insert_carbon_dioxide(v.sensor_id, v.at, v.co2.value, nullptr);
+  int64_t t =
+      insert_temperature(co2_temp_humi.sensor_descriptor.id, co2_temp_humi.at,
+                         co2_temp_humi.temperature.value);
+  int64_t p = insert_relative_humidity(co2_temp_humi.sensor_descriptor.id,
+                                       co2_temp_humi.at,
+                                       co2_temp_humi.relative_humidity.value);
+  int64_t c =
+      insert_carbon_dioxide(co2_temp_humi.sensor_descriptor.id,
+                            co2_temp_humi.at, co2_temp_humi.co2.value, nullptr);
   if (t >= 0 && p >= 0 && c >= 0) {
     ESP_LOGI(TAG, "insert Co2TempHumi is success.");
     return true;
@@ -304,7 +315,7 @@ bool LocalDatabase::insert(const Co2TempHumi &v) {
 //
 //
 int64_t LocalDatabase::raw_insert_time_and_float(const char *query,
-                                                 const char *sensor_id,
+                                                 uint64_t sensor_id,
                                                  std::time_t time,
                                                  float float_value) {
   sqlite3_stmt *stmt = nullptr;
@@ -316,8 +327,7 @@ int64_t LocalDatabase::raw_insert_time_and_float(const char *query,
     goto error;
   }
   //
-  result = sqlite3_bind_text(stmt, 1, sensor_id, strlen(sensor_id),
-                             SQLITE_TRANSIENT);
+  result = sqlite3_bind_int64(stmt, 1, sensor_id);
   if (result != SQLITE_OK) {
     ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
     goto error;
@@ -351,7 +361,7 @@ error:
 //
 //
 int64_t LocalDatabase::raw_insert_time_and_uint16_and_nullable_uint16(
-    const char *query, const char *sensor_id, std::time_t time,
+    const char *query, uint64_t sensor_id, std::time_t time,
     uint16_t uint16_value, const uint16_t *nullable_uint16_value) {
   sqlite3_stmt *stmt = nullptr;
   int result;
@@ -362,8 +372,7 @@ int64_t LocalDatabase::raw_insert_time_and_uint16_and_nullable_uint16(
     goto error;
   }
   //
-  result = sqlite3_bind_text(stmt, 1, sensor_id, strlen(sensor_id),
-                             SQLITE_TRANSIENT);
+  result = sqlite3_bind_int64(stmt, 1, sensor_id);
   if (result != SQLITE_OK) {
     ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
     goto error;
@@ -411,7 +420,7 @@ error:
 //
 //
 size_t LocalDatabase::raw_get_n_desc_time_and_float(
-    const char *query, const char *sensor_id, size_t limit,
+    const char *query, uint64_t sensor_id, size_t limit,
     LocalDatabase::CallbackRowTimeAndFloat callback) {
   sqlite3_stmt *stmt = nullptr;
   int result;
@@ -422,8 +431,7 @@ size_t LocalDatabase::raw_get_n_desc_time_and_float(
     goto error;
   }
   //
-  result = sqlite3_bind_text(stmt, 1, sensor_id, strlen(sensor_id),
-                             SQLITE_TRANSIENT);
+  result = sqlite3_bind_int64(stmt, 1, sensor_id);
   if (result != SQLITE_OK) {
     ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
     goto error;
@@ -459,7 +467,7 @@ error:
 //
 //
 size_t LocalDatabase::raw_get_n_time_and_uint16_and_nullable_uint16(
-    const char *query, const char *sensor_id, size_t limit,
+    const char *query, uint64_t sensor_id, size_t limit,
     CallbackRowTimeAndUint16AndNullableUint16 callback) {
   sqlite3_stmt *stmt = nullptr;
   int result;
@@ -470,8 +478,7 @@ size_t LocalDatabase::raw_get_n_time_and_uint16_and_nullable_uint16(
     goto error;
   }
   //
-  result = sqlite3_bind_text(stmt, 1, sensor_id, strlen(sensor_id),
-                             SQLITE_TRANSIENT);
+  result = sqlite3_bind_int64(stmt, 1, sensor_id);
   if (result != SQLITE_OK) {
     ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
     goto error;

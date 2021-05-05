@@ -8,6 +8,7 @@
 #include "sensor.hpp"
 #include <Arduinojson.h>
 #include <Esp32MQTTClient.h>
+#include <string>
 
 // iso8601 format.
 // "2021-02-11T00:56:00.000+00:00"
@@ -34,7 +35,8 @@ takeStateFromJsonDocSets(JsonDocSets &doc_sets) {
   return doc_sets.state;
 }
 
-inline JsonDocSets &mapToJson(JsonDocSets &output, const TempHumiPres &input) {
+inline JsonDocSets &mapToJson(JsonDocSets &output, const std::string &sensor_id,
+                              const TempHumiPres &input) {
   struct Iso8601FormatField at_field = {};
   struct tm utc;
 
@@ -42,7 +44,7 @@ inline JsonDocSets &mapToJson(JsonDocSets &output, const TempHumiPres &input) {
   //
   strftime(at_field.at, sizeof(at_field), "%Y-%m-%dT%H:%M:%SZ", &utc);
   //
-  output.message["sensorId"] = input.sensor_id;
+  output.message["sensorId"] = sensor_id;
   output.message["measuredAt"] = at_field.at;
   output.message["temperature"] = input.temperature.value;
   output.message["humidity"] = input.relative_humidity.value;
@@ -53,7 +55,8 @@ inline JsonDocSets &mapToJson(JsonDocSets &output, const TempHumiPres &input) {
   return output;
 }
 
-inline JsonDocSets &mapToJson(JsonDocSets &output, const TvocEco2 &input) {
+inline JsonDocSets &mapToJson(JsonDocSets &output, const std::string &sensor_id,
+                              const TvocEco2 &input) {
   struct Iso8601FormatField at_field = {};
   struct tm utc;
 
@@ -61,7 +64,7 @@ inline JsonDocSets &mapToJson(JsonDocSets &output, const TvocEco2 &input) {
   //
   strftime(at_field.at, sizeof(at_field), "%Y-%m-%dT%H:%M:%SZ", &utc);
   //
-  output.message["sensorId"] = input.sensor_id;
+  output.message["sensorId"] = sensor_id;
   output.message["measuredAt"] = at_field.at;
   output.message["tvoc"] = input.tvoc.value;
   output.message["eCo2"] = input.eCo2.value;
@@ -75,7 +78,8 @@ inline JsonDocSets &mapToJson(JsonDocSets &output, const TvocEco2 &input) {
   return output;
 }
 
-inline JsonDocSets &mapToJson(JsonDocSets &output, const Co2TempHumi &input) {
+inline JsonDocSets &mapToJson(JsonDocSets &output, const std::string &sensor_id,
+                              const Co2TempHumi &input) {
   struct Iso8601FormatField at_field = {};
   struct tm utc;
 
@@ -83,7 +87,7 @@ inline JsonDocSets &mapToJson(JsonDocSets &output, const Co2TempHumi &input) {
   //
   strftime(at_field.at, sizeof(at_field), "%Y-%m-%dT%H:%M:%SZ", &utc);
   //
-  output.message["sensorId"] = input.sensor_id;
+  output.message["sensorId"] = sensor_id;
   output.message["measuredAt"] = at_field.at;
   output.message["co2"] = input.co2.value;
   output.message["temperature"] = input.temperature.value;
