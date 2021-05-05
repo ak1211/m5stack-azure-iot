@@ -28,7 +28,7 @@ void SystemPower::update() {
   float batPercentage = (batVoltage < 3.2) ? 0 : (batVoltage - 3.2) * 100;
   float batt_current = M5.Axp.GetBatCurrent(); // mA
   battery_voltage = Voltage(batVoltage);
-  battery_percentage = batPercentage;
+  battery_percentage = min(100.0f, batPercentage);
   battery_current = Ampere(batt_current / 1000.0f);
   update_at = clock();
 }
