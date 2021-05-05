@@ -5,6 +5,8 @@
 #include "data_logging_file.hpp"
 #include <SD.h>
 
+constexpr static const char *TAG = "LoggingModule";
+
 //
 //
 //
@@ -21,7 +23,7 @@ bool DataLoggingFile::begin() {
   }
   case CARD_NONE: /* fallthrough */
   case CARD_UNKNOWN:
-    ESP_LOGD("main", "No MEMORY CARD found.");
+    ESP_LOGD(TAG, "No MEMORY CARD found.");
     break;
   }
   return _ready;
@@ -30,26 +32,11 @@ bool DataLoggingFile::begin() {
 //
 //
 //
-void DataLoggingFile::write_data_to_log_file(const Bme280 &bme,
-                                             const Sgp30 &sgp,
-                                             const Scd30 &scd) {
-  if (bme.nothing()) {
-    ESP_LOGE("main", "BME280 sensor has problems.");
-    return;
-  }
-  if (sgp.nothing()) {
-    ESP_LOGE("main", "SGP30 sensor has problems.");
-    return;
-  }
-  if (scd.nothing()) {
-    ESP_LOGE("main", "SCD30 sensor has problems.");
-    return;
-  }
+void DataLoggingFile::write_data_to_log_file(time_t at, const TempHumiPres &bme,
+                                             const TvocEco2 &sgp,
+                                             const Co2TempHumi &scd) {
   struct tm utc;
-  {
-    time_t at = bme.get().at;
-    gmtime_r(&at, &utc);
-  }
+  gmtime_r(&at, &utc);
 
   const size_t LENGTH = 1024;
   char *p = (char *)calloc(LENGTH + 1, sizeof(char));
@@ -59,36 +46,34 @@ void DataLoggingFile::write_data_to_log_file(const Bme280 &bme,
     // first field is date and time
     i += strftime(&p[i], LENGTH - i, "%Y-%m-%dT%H:%M:%SZ", &utc);
     // 2nd field is temperature
-    i += snprintf(&p[i], LENGTH - i, ", %6.2f", bme.get().temperature.value);
+    i += snprintf(&p[i], LENGTH - i, ", %6.2f", bme.temperature.value);
     // 3nd field is relative_humidity
-    i += snprintf(&p[i], LENGTH - i, ", %6.2f",
-                  bme.get().relative_humidity.value);
+    i += snprintf(&p[i], LENGTH - i, ", %6.2f", bme.relative_humidity.value);
     // 4th field is pressure
-    i += snprintf(&p[i], LENGTH - i, ", %7.2f", bme.get().pressure.value);
+    i += snprintf(&p[i], LENGTH - i, ", %7.2f", bme.pressure.value);
     // 5th field is TVOC
-    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp.get().tvoc.value);
+    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp.tvoc.value);
     // 6th field is eCo2
-    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp.get().eCo2.value);
+    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp.eCo2.value);
     // 7th field is TVOC baseline
-    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp.get().tvoc_baseline.value);
+    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp.tvoc_baseline.value);
     // 8th field is eCo2 baseline
-    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp.get().eCo2_baseline.value);
+    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp.eCo2_baseline.value);
     // 9th field is co2
-    i += snprintf(&p[i], LENGTH - i, ", %5d", scd.get().co2.value);
+    i += snprintf(&p[i], LENGTH - i, ", %5d", scd.co2.value);
     // 10th field is temperature
-    i += snprintf(&p[i], LENGTH - i, ", %6.2f", scd.get().temperature.value);
+    i += snprintf(&p[i], LENGTH - i, ", %6.2f", scd.temperature.value);
     // 11th field is relative_humidity
-    i += snprintf(&p[i], LENGTH - i, ", %6.2f",
-                  scd.get().relative_humidity.value);
+    i += snprintf(&p[i], LENGTH - i, ", %6.2f", scd.relative_humidity.value);
 
-    ESP_LOGD("main", "%s", p);
+    ESP_LOGD(TAG, "%s", p);
 
     // write to file
     size_t size = data_logging_file.println(p);
     data_logging_file.flush();
-    ESP_LOGD("main", "wrote size:%u", size);
+    ESP_LOGD(TAG, "wrote size:%u", size);
   } else {
-    ESP_LOGE("main", "memory allocation error");
+    ESP_LOGE(TAG, "memory allocation error");
   }
 
   free(p);
@@ -127,12 +112,12 @@ void DataLoggingFile::write_header_to_log_file() {
   // 11th field is relative_humidity
   i += snprintf(&p[i], LENGTH - i, ", %s", "humidity[%RH]");
 
-  ESP_LOGD("main", "%s", p);
+  ESP_LOGD(TAG, "%s", p);
 
   // write to file
   size_t size = data_logging_file.println(p);
   data_logging_file.flush();
-  ESP_LOGD("main", "wrote size:%u", size);
+  ESP_LOGD(TAG, "wrote size:%u", size);
 
   free(p);
   //

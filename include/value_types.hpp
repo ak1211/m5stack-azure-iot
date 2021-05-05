@@ -6,6 +6,7 @@
 #define VALUE_TYPES_HPP
 
 #include <cstdint>
+#include <string>
 
 // [V] voltage
 struct Voltage final {
@@ -65,6 +66,38 @@ struct BaselineECo2 final {
 struct BaselineTotalVoc final {
   BaselineTotalVoc(uint16_t init = 0u) : value(init) {}
   uint16_t value;
+};
+
+//
+class SensorDescriptor {
+public:
+  uint64_t id;
+  //
+  SensorDescriptor(uint64_t inital = 0) : id{inital} {}
+  SensorDescriptor(char c0, char c1, char c2, char c3, char c4, char c5,
+                   char c6, char c7) {
+    id = static_cast<uint64_t>(c0) << 56 | // 1st byte
+         static_cast<uint64_t>(c1) << 48 | // 2nd byte
+         static_cast<uint64_t>(c2) << 40 | // 3rd byte
+         static_cast<uint64_t>(c3) << 32 | // 4th byte
+         static_cast<uint64_t>(c4) << 24 | // 5th byte
+         static_cast<uint64_t>(c5) << 16 | // 6th byte
+         static_cast<uint64_t>(c6) << 8 |  // 7th byte
+         static_cast<uint64_t>(c7) << 0;   // 8th byte
+  }
+  //
+  void toString(std::string &str) {
+    str.clear();
+    str.reserve(8);
+    str.push_back(static_cast<char>(id >> 56 & 0xff)); // 1st byte
+    str.push_back(static_cast<char>(id >> 48 & 0xff)); // 2nd byte
+    str.push_back(static_cast<char>(id >> 40 & 0xff)); // 3rd byte
+    str.push_back(static_cast<char>(id >> 32 & 0xff)); // 4th byte
+    str.push_back(static_cast<char>(id >> 24 & 0xff)); // 5th byte
+    str.push_back(static_cast<char>(id >> 16 & 0xff)); // 6th byte
+    str.push_back(static_cast<char>(id >> 8 & 0xff));  // 7th byte
+    str.push_back(static_cast<char>(id >> 0 & 0xff));  // 8th byte
+  }
 };
 
 #endif // VALUE_TYPES_HPP

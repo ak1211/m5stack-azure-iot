@@ -4,25 +4,32 @@
 //
 #include "peripherals.hpp"
 
+constexpr static const char *TAG = "PeripheralsModule";
+
 Peripherals Peripherals::_instance = Peripherals();
 
 //
 //
 //
 Peripherals::Peripherals()
-    : ticktack(TickTack()), power_status(PowerStatus()),
-      bme280(Sensor<Bme280>(sensor_id_bme280)),
-      sgp30(Sensor<Sgp30>(sensor_id_sgp30)),
-      scd30(Sensor<Scd30>(sensor_id_scd30)),
+    : ticktack(TickTack()),
+      system_power(SystemPower()),
+      bme280(Sensor<Bme280>(SENSOR_DESCRIPTOR_BME280)),
+      sgp30(Sensor<Sgp30>(SENSOR_DESCRIPTOR_SGP30)),
+      scd30(Sensor<Scd30>(SENSOR_DESCRIPTOR_SCD30)),
       local_database(LocalDatabase(sqlite3_file_name)),
       data_logging_file(
           DataLoggingFile(data_log_file_name, header_log_file_name)),
-      screen(Screen(local_database)), led_signal(LedSignal()), wifi_launcher() {
-  ESP_LOGD("peripherals", "Peripherals construct success.");
+      screen(Screen(local_database)),
+      led_signal(LedSignal()),
+      wifi_launcher() {
+  ESP_LOGD(TAG, "Peripherals construct success.");
 }
 //
 bool Peripherals::begin(const std::string &wifi_ssid,
                         const std::string &wifi_password) {
+  // initializing system status
+  _instance.system_power.begin();
   // initializing screen
   _instance.screen.begin();
   // initializing the neopixel leds
@@ -33,33 +40,39 @@ bool Peripherals::begin(const std::string &wifi_ssid,
   _instance.local_database.beginDb();
   // initializing sensor
   {
-    HasSensor bme = _instance.bme280.begin(BME280_I2C_ADDRESS);
-    HasSensor sgp = _instance.sgp30.begin();
-    HasSensor scd = _instance.scd30.begin();
-    do {
+    HasSensor bme = HasSensor::NoSensorFound;
+    HasSensor sgp = HasSensor::NoSensorFound;
+    HasSensor scd = HasSensor::NoSensorFound;
+    while (1) {
+      bme = _instance.bme280.begin(BME280_I2C_ADDRESS);
       if (bme == HasSensor::NoSensorFound) {
         Screen::lcd.print(F("BME280センサが見つかりません。\n"));
         delay(100);
-        bme = _instance.bme280.begin(BME280_I2C_ADDRESS);
       }
+      sgp = _instance.sgp30.begin();
       if (sgp == HasSensor::NoSensorFound) {
         Screen::lcd.print(F("SGP30センサが見つかりません。\n"));
         delay(100);
-        sgp = _instance.sgp30.begin();
       }
+      scd = _instance.scd30.begin();
       if (scd == HasSensor::NoSensorFound) {
         Screen::lcd.print(F("SCD30センサが見つかりません。\n"));
         delay(100);
-        scd = _instance.scd30.begin();
       }
-    } while (!(bme == HasSensor::Ok && sgp == HasSensor::Ok &&
-               scd == HasSensor::Ok));
-    Screen::lcd.clear();
+      if (bme == HasSensor::Ok && sgp == HasSensor::Ok &&
+          scd == HasSensor::Ok) {
+        break;
+      }
+
+      delay(1000);
+      Screen::lcd.clear();
+    }
     /*
     system_properties.scd30.printSensorDetails();
     system_properties.sgp30.printSensorDetails();
     system_properties.bme280.printSensorDetails();
     */
+    Screen::lcd.clear();
   }
   // connect to Wifi network
   _instance.wifi_launcher.begin(wifi_ssid, wifi_password);
