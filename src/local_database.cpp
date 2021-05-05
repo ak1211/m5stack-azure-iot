@@ -176,11 +176,75 @@ size_t LocalDatabase::get_total_vocs_desc(
   return raw_get_n_time_and_uint16_and_nullable_uint16(query, sensor_id, limit,
                                                        callback);
 }
+//
+size_t LocalDatabase::get_latest_eco2_tvoc_baseline(
+    uint64_t sensor_id,                      //
+    std::time_t &eco2_base_measured_at,      //
+    MeasuredValues<BaselineECo2> &eco2_base, //
+    std::time_t &tvoc_base_measured_at,      //
+    MeasuredValues<BaselineTotalVoc> &tvoc_base) {
+  constexpr static const char query[] =
+      "SELECT"
+      " carbon_dioxide.sensor_id" // 0
+      ",carbon_dioxide.at"        // 1
+      ",carbon_dioxide.baseline"  // 2
+      ",total_voc.at"             // 3
+      ",total_voc.baseline"       // 4
+      " FROM carbon_dioxide"
+      " INNER JOIN total_voc"
+      " ON carbon_dioxide.sensor_id=total_voc.sensor_id"
+      " WHERE carbon_dioxide.baseline NOTNULL"
+      " AND total_voc.baseline NOTNULL"
+      " AND carbon_dioxide.sensor_id=?"
+      " ORDER BY carbon_dioxide.at DESC"
+      " LIMIT 1;";
+  sqlite3_stmt *stmt = nullptr;
+  int result;
+
+  // clear the outputs
+  eco2_base = MeasuredValues<BaselineECo2>();
+  tvoc_base = MeasuredValues<BaselineTotalVoc>();
+
+  result = sqlite3_prepare_v2(database, query, -1, &stmt, nullptr);
+  if (result != SQLITE_OK) {
+    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+    goto error;
+  }
+  //
+  result = sqlite3_bind_int64(stmt, 1, sensor_id);
+  if (result != SQLITE_OK) {
+    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+    goto error;
+  }
+  //
+  {
+    size_t counter = 0;
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+      // number 0 is carbon_dioxide.sensor_id
+      int64_t carbon_dioxide_at = sqlite3_column_int64(stmt, 1);
+      uint16_t carbon_dioxide_baseline = sqlite3_column_int(stmt, 2);
+      int64_t total_voc_at = sqlite3_column_int64(stmt, 3);
+      uint16_t total_voc_baseline = sqlite3_column_int(stmt, 4);
+      eco2_base_measured_at = static_cast<std::time_t>(carbon_dioxide_at);
+      eco2_base = MeasuredValues<BaselineECo2>(carbon_dioxide_baseline);
+      tvoc_base_measured_at = static_cast<std::time_t>(total_voc_at);
+      tvoc_base = MeasuredValues<BaselineTotalVoc>(total_voc_baseline);
+      counter++;
+    }
+    sqlite3_finalize(stmt);
+
+    return counter;
+  }
+
+error:
+  sqlite3_finalize(stmt);
+  return 0;
+}
 
 //
 //
 //
-bool LocalDatabase::beginDb() {
+bool LocalDatabase::begin() {
   int result;
   result = sqlite3_initialize();
   if (result != SQLITE_OK) {
@@ -236,7 +300,7 @@ bool LocalDatabase::beginDb() {
     }
   }
 
-  ESP_LOGD(TAG, "beginDb() is success.");
+  ESP_LOGD(TAG, "begin() is success.");
   return true;
 //
 error:
@@ -273,12 +337,26 @@ bool LocalDatabase::insert(const TvocEco2 &tvoc_eco2) {
   if (!healthy()) {
     return false;
   }
-  int64_t t =
-      insert_total_voc(tvoc_eco2.sensor_descriptor.id, tvoc_eco2.at,
-                       tvoc_eco2.tvoc.value, &tvoc_eco2.tvoc_baseline.value);
-  int64_t c = insert_carbon_dioxide(tvoc_eco2.sensor_descriptor.id,
-                                    tvoc_eco2.at, tvoc_eco2.eCo2.value,
-                                    &tvoc_eco2.eCo2_baseline.value);
+  int64_t t;
+  if (tvoc_eco2.tvoc_baseline.nothing()) {
+    t = insert_total_voc(tvoc_eco2.sensor_descriptor.id, tvoc_eco2.at,
+                         tvoc_eco2.tvoc.value, nullptr);
+  } else {
+    BaselineTotalVoc tvoc_base = tvoc_eco2.tvoc_baseline.get();
+    t = insert_total_voc(tvoc_eco2.sensor_descriptor.id, tvoc_eco2.at,
+                         tvoc_eco2.tvoc.value, &tvoc_base.value);
+  }
+
+  int64_t c;
+  if (tvoc_eco2.eCo2_baseline.nothing()) {
+    c = insert_carbon_dioxide(tvoc_eco2.sensor_descriptor.id, tvoc_eco2.at,
+                              tvoc_eco2.eCo2.value, nullptr);
+
+  } else {
+    BaselineECo2 eco2_base = tvoc_eco2.eCo2_baseline.get();
+    c = insert_carbon_dioxide(tvoc_eco2.sensor_descriptor.id, tvoc_eco2.at,
+                              tvoc_eco2.eCo2.value, &eco2_base.value);
+  }
   if (t >= 0 && c >= 0) {
     ESP_LOGI(TAG, "insert TvocEco2 is success.");
     return true;

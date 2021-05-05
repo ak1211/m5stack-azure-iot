@@ -68,6 +68,20 @@ struct BaselineTotalVoc final {
   uint16_t value;
 };
 
+// value with good or nothing
+template <class T> class MeasuredValues {
+public:
+  MeasuredValues(T v) : _good{true}, private_value{v} {}
+  MeasuredValues() : _good{false}, private_value{} {}
+  bool good() const { return _good; }
+  bool nothing() const { return !_good; }
+  T get() const { return private_value; }
+
+private:
+  bool _good;
+  T private_value;
+};
+
 //
 class SensorDescriptor {
 public:

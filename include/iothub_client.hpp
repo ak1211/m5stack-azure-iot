@@ -20,23 +20,11 @@ static_assert(sizeof(Iso8601FormatField) == 30, "something went Wrong");
 
 constexpr static size_t MESSAGE_MAX_LEN = JSON_STRING_SIZE(1024);
 
-struct JsonDocSets {
-  StaticJsonDocument<MESSAGE_MAX_LEN> message;
-  StaticJsonDocument<MESSAGE_MAX_LEN> state;
-};
+using IoTHubMessageJson = StaticJsonDocument<MESSAGE_MAX_LEN>;
 
-inline StaticJsonDocument<MESSAGE_MAX_LEN> &
-takeMessageFromJsonDocSets(JsonDocSets &doc_sets) {
-  return doc_sets.message;
-}
-
-inline StaticJsonDocument<MESSAGE_MAX_LEN> &
-takeStateFromJsonDocSets(JsonDocSets &doc_sets) {
-  return doc_sets.state;
-}
-
-inline JsonDocSets &mapToJson(JsonDocSets &output, const std::string &sensor_id,
-                              const TempHumiPres &input) {
+inline IoTHubMessageJson &mapToJson(IoTHubMessageJson &output,
+                                    const std::string &sensor_id,
+                                    const TempHumiPres &input) {
   struct Iso8601FormatField at_field = {};
   struct tm utc;
 
@@ -44,19 +32,18 @@ inline JsonDocSets &mapToJson(JsonDocSets &output, const std::string &sensor_id,
   //
   strftime(at_field.at, sizeof(at_field), "%Y-%m-%dT%H:%M:%SZ", &utc);
   //
-  output.message["sensorId"] = sensor_id;
-  output.message["measuredAt"] = at_field.at;
-  output.message["temperature"] = input.temperature.value;
-  output.message["humidity"] = input.relative_humidity.value;
-  output.message["pressure"] = input.pressure.value;
-  //
-  output.state.clear();
+  output["sensorId"] = sensor_id;
+  output["measuredAt"] = at_field.at;
+  output["temperature"] = input.temperature.value;
+  output["humidity"] = input.relative_humidity.value;
+  output["pressure"] = input.pressure.value;
   //
   return output;
 }
 
-inline JsonDocSets &mapToJson(JsonDocSets &output, const std::string &sensor_id,
-                              const TvocEco2 &input) {
+inline IoTHubMessageJson &mapToJson(IoTHubMessageJson &output,
+                                    const std::string &sensor_id,
+                                    const TvocEco2 &input) {
   struct Iso8601FormatField at_field = {};
   struct tm utc;
 
@@ -64,22 +51,23 @@ inline JsonDocSets &mapToJson(JsonDocSets &output, const std::string &sensor_id,
   //
   strftime(at_field.at, sizeof(at_field), "%Y-%m-%dT%H:%M:%SZ", &utc);
   //
-  output.message["sensorId"] = sensor_id;
-  output.message["measuredAt"] = at_field.at;
-  output.message["tvoc"] = input.tvoc.value;
-  output.message["eCo2"] = input.eCo2.value;
-  output.message["tvoc_baseline"] = input.tvoc_baseline.value;
-  output.message["eCo2_baseline"] = input.eCo2_baseline.value;
-  //
-  output.state["sgp30_baseline"]["updatedAt"] = at_field.at;
-  output.state["sgp30_baseline"]["tvoc"] = input.tvoc_baseline.value;
-  output.state["sgp30_baseline"]["eCo2"] = input.eCo2_baseline.value;
+  output["sensorId"] = sensor_id;
+  output["measuredAt"] = at_field.at;
+  output["tvoc"] = input.tvoc.value;
+  output["eCo2"] = input.eCo2.value;
+  if (input.tvoc_baseline.good()) {
+    output["tvoc_baseline"] = input.tvoc_baseline.get().value;
+  }
+  if (input.eCo2_baseline.good()) {
+    output["eCo2_baseline"] = input.eCo2_baseline.get().value;
+  }
   //
   return output;
 }
 
-inline JsonDocSets &mapToJson(JsonDocSets &output, const std::string &sensor_id,
-                              const Co2TempHumi &input) {
+inline IoTHubMessageJson &mapToJson(IoTHubMessageJson &output,
+                                    const std::string &sensor_id,
+                                    const Co2TempHumi &input) {
   struct Iso8601FormatField at_field = {};
   struct tm utc;
 
@@ -87,13 +75,11 @@ inline JsonDocSets &mapToJson(JsonDocSets &output, const std::string &sensor_id,
   //
   strftime(at_field.at, sizeof(at_field), "%Y-%m-%dT%H:%M:%SZ", &utc);
   //
-  output.message["sensorId"] = sensor_id;
-  output.message["measuredAt"] = at_field.at;
-  output.message["co2"] = input.co2.value;
-  output.message["temperature"] = input.temperature.value;
-  output.message["humidity"] = input.relative_humidity.value;
-  //
-  output.state.clear();
+  output["sensorId"] = sensor_id;
+  output["measuredAt"] = at_field.at;
+  output["co2"] = input.co2.value;
+  output["temperature"] = input.temperature.value;
+  output["humidity"] = input.relative_humidity.value;
   //
   return output;
 }

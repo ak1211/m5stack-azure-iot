@@ -24,7 +24,8 @@ void Sensor<Bme280>::printSensorDetails() {
   }
 }
 //
-HasSensor Sensor<Bme280>::begin(uint8_t i2c_address) {
+HasSensor Sensor<Bme280>::begin(std::time_t now, uint8_t i2c_address) {
+  startup_time = now;
   if (!bme280.begin(i2c_address)) {
     return HasSensor::NoSensorFound;
   }
@@ -38,6 +39,10 @@ HasSensor Sensor<Bme280>::begin(uint8_t i2c_address) {
                      Adafruit_BME280::FILTER_OFF);
   initialized = true;
   return HasSensor::Ok;
+}
+//
+double Sensor<Bme280>::uptime(std::time_t now) {
+  return difftime(now, startup_time);
 }
 //
 bool Sensor<Bme280>::readyToRead(std::time_t now) {
@@ -108,16 +113,40 @@ void Sensor<Sgp30>::printSensorDetails() {
                 sgp30.serialnumber[2]);
 }
 //
-HasSensor Sensor<Sgp30>::begin() {
+HasSensor Sensor<Sgp30>::begin(std::time_t now,
+                               std::time_t eco2_base_measured_at,      //
+                               MeasuredValues<BaselineECo2> eco2_base, //
+                               std::time_t tvoc_base_measured_at,      //
+                               MeasuredValues<BaselineTotalVoc> tvoc_base) {
+  startup_time = now;
   if (!sgp30.begin()) {
     return HasSensor::NoSensorFound;
+  }
+  if (eco2_base.good() && tvoc_base.good()) {
+    std::time_t at = min(eco2_base_measured_at, tvoc_base_measured_at);
+    double elapsed_time = difftime(now, at);
+    // 7日間有効
+    if (elapsed_time < 7.0f * 24.0f * 60.0f * 60.0f) {
+      // baseline set to SGP30
+      bool result =
+          setIAQBaseline(eco2_base.get().value, tvoc_base.get().value);
+      ESP_LOGD(TAG, "SGP30 setIAQBaseline result is %d.", result);
+    } else {
+      ESP_LOGD(TAG, "SGP30 built-in Automatic Baseline Correction algorithm.");
+    }
+  } else {
+    ESP_LOGD(TAG, "SGP30 built-in Automatic Baseline Correction algorithm.");
   }
   initialized = true;
   return HasSensor::Ok;
 }
 //
+double Sensor<Sgp30>::uptime(std::time_t now) {
+  return difftime(now, startup_time);
+}
+//
 bool Sensor<Sgp30>::readyToRead(std::time_t now) {
-  return active() && (difftime(now, last_measured_at) >= INTERVAL);
+  return active() && (difftime(now, last_tvoc_eco2.at) >= INTERVAL);
 }
 //
 Sgp30 Sensor<Sgp30>::read(std::time_t measured_at) {
@@ -129,37 +158,43 @@ Sgp30 Sensor<Sgp30>::read(std::time_t measured_at) {
     ESP_LOGE(TAG, "SGP30 sensing failed.");
     return Sgp30();
   }
-  uint16_t tvoc_base;
-  uint16_t eco2_base;
-  if (!sgp30.getIAQBaseline(&eco2_base, &tvoc_base)) {
-    ESP_LOGE(TAG, "SGP30 sensing failed.");
-    return Sgp30();
+  // 稼働時間が 12h　を超えた場合のみベースラインを取得する
+  auto eco2_base = MeasuredValues<BaselineECo2>();
+  auto tvoc_base = MeasuredValues<BaselineTotalVoc>();
+  if (uptime(measured_at) >= 12.0f * 60.0f * 60.0f) {
+    uint16_t eco2;
+    uint16_t tvoc;
+    if (!sgp30.getIAQBaseline(&eco2, &tvoc)) {
+      ESP_LOGE(TAG, "SGP30 sensing failed.");
+      return Sgp30();
+    }
+    eco2_base = MeasuredValues<BaselineECo2>(eco2);
+    tvoc_base = MeasuredValues<BaselineTotalVoc>(tvoc);
   }
+
   // successfully
-  last_measured_at = measured_at;
-  last_eCo2_baseline = eco2_base;
-  last_tvoc_baseline = tvoc_base;
   sma_eCo2.push_back(sgp30.eCO2);
   sma_tvoc.push_back(sgp30.TVOC);
-  return Sgp30({
+  last_tvoc_eco2 = {
       .sensor_descriptor = getSensorDescriptor(),
       .at = measured_at,
       .eCo2 = Ppm(sgp30.eCO2),
       .tvoc = Ppb(sgp30.TVOC),
-      .eCo2_baseline = BaselineECo2(eco2_base),
-      .tvoc_baseline = BaselineTotalVoc(tvoc_base),
-  });
+      .eCo2_baseline = eco2_base,
+      .tvoc_baseline = tvoc_base,
+  };
+  return Sgp30(last_tvoc_eco2);
 }
 //
 Sgp30 Sensor<Sgp30>::calculateSMA() {
   if (sma_eCo2.ready() && sma_tvoc.ready()) {
     return Sgp30({
-        .sensor_descriptor = getSensorDescriptor(),
-        .at = last_measured_at,
+        .sensor_descriptor = last_tvoc_eco2.sensor_descriptor,
+        .at = last_tvoc_eco2.at,
         .eCo2 = Ppm(sma_eCo2.calculate()),
         .tvoc = Ppb(sma_tvoc.calculate()),
-        .eCo2_baseline = BaselineECo2(this->last_eCo2_baseline),
-        .tvoc_baseline = BaselineTotalVoc(this->last_tvoc_baseline),
+        .eCo2_baseline = last_tvoc_eco2.eCo2_baseline,
+        .tvoc_baseline = last_tvoc_eco2.tvoc_baseline,
     });
   } else {
     return Sgp30();
@@ -200,7 +235,8 @@ void Sensor<Scd30>::printSensorDetails() {
   }
 }
 //
-HasSensor Sensor<Scd30>::begin() {
+HasSensor Sensor<Scd30>::begin(std::time_t now) {
+  startup_time = now;
   if (!scd30.begin()) {
     return HasSensor::NoSensorFound;
   }
@@ -208,6 +244,9 @@ HasSensor Sensor<Scd30>::begin() {
   return HasSensor::Ok;
 }
 //
+double Sensor<Scd30>::uptime(std::time_t now) {
+  return difftime(now, startup_time);
+} //
 bool Sensor<Scd30>::readyToRead(std::time_t now) {
   return active() && (difftime(now, last_measured_at) >= INTERVAL) &&
          scd30.dataReady();
