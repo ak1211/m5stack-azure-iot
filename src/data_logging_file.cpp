@@ -56,9 +56,17 @@ void DataLoggingFile::write_data_to_log_file(time_t at, const TempHumiPres &bme,
     // 6th field is eCo2
     i += snprintf(&p[i], LENGTH - i, ", %5d", sgp.eCo2.value);
     // 7th field is TVOC baseline
-    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp.tvoc_baseline.value);
+    if (sgp.tvoc_baseline.good()) {
+      i += snprintf(&p[i], LENGTH - i, ", %5d", sgp.tvoc_baseline.get().value);
+    } else {
+      i += snprintf(&p[i], LENGTH - i, ",      ");
+    }
     // 8th field is eCo2 baseline
-    i += snprintf(&p[i], LENGTH - i, ", %5d", sgp.eCo2_baseline.value);
+    if (sgp.eCo2_baseline.good()) {
+      i += snprintf(&p[i], LENGTH - i, ", %5d", sgp.eCo2_baseline.get().value);
+    } else {
+      i += snprintf(&p[i], LENGTH - i, ",      ");
+    }
     // 9th field is co2
     i += snprintf(&p[i], LENGTH - i, ", %5d", scd.co2.value);
     // 10th field is temperature

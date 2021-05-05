@@ -345,7 +345,7 @@ absolute_sensor_id_from_SensorDescriptor(std::string &output,
 //
 //
 static void periodical_push_message(const MeasurementSets &m) {
-  JsonDocSets doc_sets = {};
+  IoTHubMessageJson doc_sets = {};
 
   // BME280 sensor values.
   // Temperature, Relative Humidity, Pressure
@@ -364,11 +364,9 @@ static void periodical_push_message(const MeasurementSets &m) {
     std::string sensor_id;
     absolute_sensor_id_from_SensorDescriptor(sensor_id,
                                              temp_humi_pres.sensor_descriptor);
-    IotHubClient::pushMessage(takeMessageFromJsonDocSets(
-        mapToJson(doc_sets, sensor_id, temp_humi_pres)));
+    IotHubClient::pushMessage(mapToJson(doc_sets, sensor_id, temp_humi_pres));
   }
-  doc_sets.message.clear();
-  doc_sets.state.clear();
+  doc_sets.clear();
   // SGP30 sensor values.
   // eCo2, TVOC
   if (m.sgp30.good()) {
@@ -376,11 +374,9 @@ static void periodical_push_message(const MeasurementSets &m) {
     std::string sensor_id;
     absolute_sensor_id_from_SensorDescriptor(sensor_id,
                                              tvoc_eco2.sensor_descriptor);
-    IotHubClient::pushMessage(
-        takeMessageFromJsonDocSets(mapToJson(doc_sets, sensor_id, tvoc_eco2)));
+    IotHubClient::pushMessage(mapToJson(doc_sets, sensor_id, tvoc_eco2));
   }
-  doc_sets.message.clear();
-  doc_sets.state.clear();
+  doc_sets.clear();
   // SCD30 sensor values.
   // co2, Temperature, Relative Humidity
   if (m.scd30.good()) {
@@ -388,8 +384,7 @@ static void periodical_push_message(const MeasurementSets &m) {
     std::string sensor_id;
     absolute_sensor_id_from_SensorDescriptor(sensor_id,
                                              co2_temp_humi.sensor_descriptor);
-    IotHubClient::pushMessage(takeMessageFromJsonDocSets(
-        mapToJson(doc_sets, sensor_id, co2_temp_humi)));
+    IotHubClient::pushMessage(mapToJson(doc_sets, sensor_id, co2_temp_humi));
   }
 }
 
