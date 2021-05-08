@@ -51,7 +51,7 @@ public:
     }
   }
   //
-  void begin(int32_t text_color = TFT_WHITE, int32_t bg_color = TFT_BLACK);
+  bool begin(int32_t text_color = TFT_WHITE, int32_t bg_color = TFT_BLACK);
   //
   void update(time_t time);
   void repaint(time_t time);

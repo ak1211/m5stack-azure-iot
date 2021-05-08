@@ -518,7 +518,7 @@ public:
               Screen::lcd.height() - (graph_height + graph_margin * 2) - 1);
     //
     init_rawid();
-    if (!database.healthy()) {
+    if (!database.available()) {
       return false;
     }
     if (Screen::View::focusIn()) {
@@ -560,7 +560,7 @@ public:
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
-    if (1 <= local.tm_sec && local.tm_sec <= 50) {
+    if (1 <= local.tm_sec && local.tm_sec <= 55) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
@@ -621,7 +621,7 @@ public:
               Screen::lcd.height() - (graph_height + graph_margin * 2) - 1);
     //
     init_rawid();
-    if (!database.healthy()) {
+    if (!database.available()) {
       return false;
     }
     if (Screen::View::focusIn()) {
@@ -663,7 +663,7 @@ public:
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
-    if (1 <= local.tm_sec && local.tm_sec <= 50) {
+    if (1 <= local.tm_sec && local.tm_sec <= 55) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
@@ -726,7 +726,7 @@ public:
               Screen::lcd.height() - (graph_height + graph_margin * 2) - 1);
     //
     init_rawid();
-    if (!database.healthy()) {
+    if (!database.available()) {
       return false;
     }
     if (Screen::View::focusIn()) {
@@ -768,7 +768,7 @@ public:
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
-    if (1 <= local.tm_sec && local.tm_sec <= 50) {
+    if (1 <= local.tm_sec && local.tm_sec <= 55) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
@@ -828,7 +828,7 @@ public:
               Screen::lcd.height() - (graph_height + graph_margin * 2) - 1);
     //
     init_rawid();
-    if (!database.healthy()) {
+    if (!database.available()) {
       return false;
     }
     if (Screen::View::focusIn()) {
@@ -870,7 +870,7 @@ public:
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
-    if (1 <= local.tm_sec && local.tm_sec <= 50) {
+    if (1 <= local.tm_sec && local.tm_sec <= 55) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
@@ -933,7 +933,7 @@ public:
               Screen::lcd.height() - (graph_height + graph_margin * 2) - 1);
     //
     init_rawid();
-    if (!database.healthy()) {
+    if (!database.available()) {
       return false;
     }
     if (Screen::View::focusIn()) {
@@ -975,7 +975,7 @@ public:
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
-    if (1 <= local.tm_sec && local.tm_sec <= 50) {
+    if (1 <= local.tm_sec && local.tm_sec <= 55) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
@@ -1040,7 +1040,7 @@ public:
               Screen::lcd.height() - (graph_height + graph_margin * 2) - 1);
     //
     init_rawid();
-    if (!database.healthy()) {
+    if (!database.available()) {
       return false;
     }
     if (Screen::View::focusIn()) {
@@ -1082,7 +1082,7 @@ public:
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
-    if (1 <= local.tm_sec && local.tm_sec <= 50) {
+    if (1 <= local.tm_sec && local.tm_sec <= 55) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
@@ -1148,15 +1148,13 @@ Screen::Screen(LocalDatabase &local_database)
       now_view(0) {}
 
 //
-void Screen::begin(int32_t text_color, int32_t bg_color) {
+bool Screen::begin(int32_t text_color, int32_t bg_color) {
   Screen::lcd.init();
   Screen::lcd.setBaseColor(TFT_BLACK);
   Screen::lcd.setTextColor(text_color, bg_color);
   Screen::lcd.setCursor(0, 0);
   Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
-  //
-  now_view = 0;
-  views[now_view]->focusIn();
+  return true;
 }
 
 //
@@ -1209,7 +1207,7 @@ void Screen::update(time_t time) {
 }
 
 //
-void Screen::repaint(time_t time) {
+void Screen::repaint(std::time_t time) {
   views[now_view]->focusIn();
   update(time);
 }

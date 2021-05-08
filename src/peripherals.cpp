@@ -3,6 +3,7 @@
 // See LICENSE file in the project root for full license information.
 //
 #include "peripherals.hpp"
+#include <lwip/apps/sntp.h>
 
 constexpr static const char *TAG = "PeripheralsModule";
 
@@ -12,50 +13,82 @@ Peripherals Peripherals::_instance = Peripherals();
 //
 //
 Peripherals::Peripherals()
-    : ticktack(TickTack()),
-      system_power(SystemPower()),
-      bme280(Sensor<Bme280>(SENSOR_DESCRIPTOR_BME280)),
-      sgp30(Sensor<Sgp30>(SENSOR_DESCRIPTOR_SGP30)),
-      scd30(Sensor<Scd30>(SENSOR_DESCRIPTOR_SCD30)),
-      local_database(LocalDatabase(sqlite3_file_name)),
-      data_logging_file(
-          DataLoggingFile(data_log_file_name, header_log_file_name)),
-      screen(Screen(local_database)),
-      led_signal(LedSignal()),
-      wifi_launcher() {
-  ESP_LOGD(TAG, "Peripherals construct success.");
-}
+    : ticktack{TickTack()},
+      system_power{SystemPower()},
+      bme280{Sensor<Bme280>(SENSOR_DESCRIPTOR_BME280)},
+      sgp30{Sensor<Sgp30>(SENSOR_DESCRIPTOR_SGP30)},
+      scd30{Sensor<Scd30>(SENSOR_DESCRIPTOR_SCD30)},
+      local_database{LocalDatabase(sqlite3_file_name)},
+      data_logging_file{
+          DataLoggingFile(data_log_file_name, header_log_file_name)},
+      screen{Screen(local_database)},
+      led_signal{LedSignal()},
+      wifi_launcher{WifiLauncher()},
+      iothub_client{IotHubClient()} {}
 //
 bool Peripherals::begin(const std::string &wifi_ssid,
-                        const std::string &wifi_password) {
-  // initializing system status
-  _instance.system_power.begin();
-  // initializing screen
-  _instance.screen.begin();
-  // initializing the neopixel leds
-  _instance.led_signal.begin();
-  // initializing the data logging file
-  _instance.data_logging_file.begin();
+                        const std::string &wifi_password,
+                        const std::string &iothub_connectionstring) {
+  // initialize module: SystemPower
+  if (_instance.system_power.begin()) {
+    ESP_LOGD(TAG, "initialize module: SystemPower Ok.");
+  }
+  // initialize module: Screen
+  if (_instance.screen.begin()) {
+    ESP_LOGD(TAG, "initialize module: Screen Ok.");
+  }
+  // initialize module: LedSignal
+  if (_instance.led_signal.begin()) {
+    ESP_LOGD(TAG, "initialize module: LedSignal Ok.");
+  }
+  // initialize module: WifiLauncher
+  bool available_wifi = _instance.wifi_launcher.begin(wifi_ssid, wifi_password);
+  if (available_wifi) {
+    ESP_LOGD(TAG, "initialize module: Wifilauncher Ok.");
+  }
+  // initialize module: IotHubClient
+  if (_instance.iothub_client.begin(iothub_connectionstring)) {
+    ESP_LOGD(TAG, "initialize module: IotHubClient Ok.");
+  }
+  // initialize module: DataLoggingFile
+  if (_instance.data_logging_file.begin()) {
+    ESP_LOGD(TAG, "initialize module: DataLoggingFile Ok.");
+  }
   // initializing the local database
-  _instance.local_database.begin();
+  bool available_database = _instance.local_database.begin();
+  if (available_database) {
+    ESP_LOGD(TAG, "initialize module: LocalDatabase Ok.");
+  }
   // initializing sensor
   {
     // get baseline for "Sensirion SGP30: Air Quality Sensor" from database
+    size_t count;
     std::time_t baseline_eco2_measured_at;
-    std::time_t baseline_tvoc_measured_at;
     MeasuredValues<BaselineECo2> baseline_eco2;
-    MeasuredValues<BaselineTotalVoc> baseline_tvoc;
-    size_t count = _instance.local_database.get_latest_eco2_tvoc_baseline(
+    count = _instance.local_database.get_latest_baseline_eco2(
         _instance.sgp30.getSensorDescriptor().id, baseline_eco2_measured_at,
-        baseline_eco2, baseline_tvoc_measured_at, baseline_tvoc);
-    if (baseline_eco2.good() && baseline_tvoc.good()) {
-      ESP_LOGD(TAG,
-               "SGP30 baseline from DB: count(%d), eco2_at(%d), eco2(%d), "
-               "tvoc_at(%d), tvoc(%d).",
-               count, baseline_eco2_measured_at, baseline_eco2.get().value,
-               baseline_tvoc_measured_at, baseline_tvoc.get().value);
+        baseline_eco2);
+    if (baseline_eco2.good()) {
+      ESP_LOGD(
+          TAG,
+          "get_latest_baseline_eco2: count(%d), eco2_at(%d), baseline_eco2(%d)",
+          count, baseline_eco2_measured_at, baseline_eco2.get().value);
     } else {
-      ESP_LOGD(TAG, "SGP30 baseline from DB: count(%d).", count);
+      ESP_LOGD(TAG, "get_latest_baseline_eco2: count(%d).", count);
+    }
+    //
+    std::time_t baseline_tvoc_measured_at;
+    MeasuredValues<BaselineTotalVoc> baseline_tvoc;
+    count = _instance.local_database.get_latest_baseline_total_voc(
+        _instance.sgp30.getSensorDescriptor().id, baseline_tvoc_measured_at,
+        baseline_tvoc);
+    if (baseline_tvoc.good()) {
+      ESP_LOGD(TAG,
+               "get_latest_baseline_total_voc: count(%d), tvoc_at(%d), "
+               "baseline_tvoc(%d)",
+               count, baseline_tvoc_measured_at, baseline_tvoc.get().value);
+    } else {
+      ESP_LOGD(TAG, "get_latest_baseline_total_voc: count(%d).", count);
     }
     //
     HasSensor bme = HasSensor::NoSensorFound;
@@ -92,8 +125,6 @@ bool Peripherals::begin(const std::string &wifi_ssid,
     */
     Screen::lcd.clear();
   }
-  // connect to Wifi network
-  _instance.wifi_launcher.begin(wifi_ssid, wifi_password);
   //
   return true;
 }

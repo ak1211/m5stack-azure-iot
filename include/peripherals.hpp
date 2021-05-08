@@ -6,6 +6,7 @@
 #define PERIPHERALS_HPP
 
 #include "data_logging_file.hpp"
+#include "iothub_client.hpp"
 #include "led_signal.hpp"
 #include "local_database.hpp"
 #include "screen.hpp"
@@ -43,9 +44,11 @@ public:
   Screen screen;
   LedSignal led_signal;
   WifiLauncher wifi_launcher;
+  IotHubClient iothub_client;
   //
   static bool begin(const std::string &wifi_ssid,
-                    const std::string &wifi_password);
+                    const std::string &wifi_password,
+                    const std::string &iothub_connectionstring);
   static Peripherals &getInstance();
 
 private:

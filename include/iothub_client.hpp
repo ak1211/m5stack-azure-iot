@@ -89,22 +89,17 @@ inline IoTHubMessageJson &mapToJson(IoTHubMessageJson &output,
 //
 class IotHubClient {
 public:
-  static void init(SEND_CONFIRMATION_CALLBACK send_confirmation_callback,
-                   MESSAGE_CALLBACK message_callback,
-                   DEVICE_METHOD_CALLBACK device_method_callback,
-                   DEVICE_TWIN_CALLBACK device_twin_callback,
-                   CONNECTION_STATUS_CALLBACK connection_status_callback);
-  static void terminate();
-  static JsonDocument *pushMessage(JsonDocument &v);
-  static JsonDocument *pushState(JsonDocument &v);
-  static inline void update(bool hasDelay) { Esp32MQTTClient_Check(hasDelay); }
+  IotHubClient();
+  ~IotHubClient();
   //
-  ~IotHubClient() { Esp32MQTTClient_Close(); }
-  //
-  static bool messageSending;
+  bool begin(const std::string &connstr);
+  JsonDocument *pushMessage(JsonDocument &v);
+  JsonDocument *pushState(JsonDocument &v);
+  inline void update(bool hasDelay) { Esp32MQTTClient_Check(hasDelay); }
 
 private:
   static uint32_t message_id;
+  std::string connection_string;
 };
 
 #undef AT_FIELD_MAX_LENGTH

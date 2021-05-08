@@ -22,16 +22,9 @@ public:
   int64_t rawid_carbon_dioxide;
   int64_t rawid_total_voc;
   //
-  LocalDatabase(const std::string &filename)
-      : rawid_temperature{-1},
-        rawid_relative_humidity{-1},
-        rawid_pressure{-1},
-        rawid_carbon_dioxide{-1},
-        rawid_total_voc{-1},
-        sqlite3_filename(filename),
-        database(nullptr) {}
+  LocalDatabase(const std::string &filename);
   //
-  bool healthy() { return (database != nullptr); }
+  bool available() { return _available; }
   //
   bool begin();
   //
@@ -71,12 +64,11 @@ public:
   get_total_vocs_desc(uint64_t sensor_id, size_t limit,
                       CallbackRowTimeAndUint16AndNullableUint16 callback);
   //
-  size_t
-  get_latest_eco2_tvoc_baseline(uint64_t sgp30_sensor_id,
-                                std::time_t &eco2_base_measured_at,
-                                MeasuredValues<BaselineECo2> &eco2_base,
-                                std::time_t &tvoc_base_measured_at,
-                                MeasuredValues<BaselineTotalVoc> &tvoc_base);
+  size_t get_latest_baseline_eco2(uint64_t sensor_id, std::time_t &measured_at,
+                                  MeasuredValues<BaselineECo2> &baseline_eco2);
+  size_t get_latest_baseline_total_voc(
+      uint64_t sensor_id, std::time_t &measured_at,
+      MeasuredValues<BaselineTotalVoc> &baseline_tvoc);
 
   /*
  //
@@ -145,6 +137,7 @@ public:
  */
 
 private:
+  bool _available;
   const std::string sqlite3_filename;
   sqlite3 *database;
   //

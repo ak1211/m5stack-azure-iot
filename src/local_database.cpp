@@ -8,9 +8,20 @@
 constexpr static const char *TAG = "DbModule";
 
 //
+LocalDatabase::LocalDatabase(const std::string &filename)
+    : rawid_temperature{-1},
+      rawid_relative_humidity{-1},
+      rawid_pressure{-1},
+      rawid_carbon_dioxide{-1},
+      rawid_total_voc{-1},
+      _available{false},
+      sqlite3_filename{filename},
+      database{nullptr} {}
+
 //
 //
-constexpr static const char schema_temperature[] =
+//
+static const char schema_temperature[] =
     "CREATE TABLE IF NOT EXISTS temperature"
     "(id INTEGER PRIMARY KEY AUTOINCREMENT"
     ",sensor_id INTEGER NOT NULL"
@@ -20,9 +31,9 @@ constexpr static const char schema_temperature[] =
 //
 int64_t LocalDatabase::insert_temperature(uint64_t sensor_id, std::time_t at,
                                           DegC degc) {
-  constexpr static const char query[] = "INSERT INTO"
-                                        " temperature(sensor_id,at,degc)"
-                                        " VALUES(?,?,?);";
+  static const char query[] = "INSERT INTO"
+                              " temperature(sensor_id,at,degc)"
+                              " VALUES(?,?,?);";
   rawid_temperature =
       raw_insert_time_and_float(query, sensor_id, at, degc.value);
   return rawid_temperature;
@@ -31,19 +42,19 @@ int64_t LocalDatabase::insert_temperature(uint64_t sensor_id, std::time_t at,
 size_t LocalDatabase::get_temperatures_desc(
     uint64_t sensor_id, size_t limit,
     LocalDatabase::CallbackRowTimeAndFloat callback) {
-  constexpr static const char query[] = "SELECT"
-                                        " sensor_id,at,degc"
-                                        " FROM temperature"
-                                        " WHERE sensor_id=?"
-                                        " ORDER BY at DESC"
-                                        " LIMIT ?;";
+  static const char query[] = "SELECT"
+                              " sensor_id,at,degc"
+                              " FROM temperature"
+                              " WHERE sensor_id=?"
+                              " ORDER BY at DESC"
+                              " LIMIT ?;";
   return raw_get_n_desc_time_and_float(query, sensor_id, limit, callback);
 }
 
 //
 //
 //
-constexpr static const char schema_relative_humidity[] =
+static const char schema_relative_humidity[] =
     "CREATE TABLE IF NOT EXISTS relative_humidity"
     "(id INTEGER PRIMARY KEY AUTOINCREMENT"
     ",sensor_id INTEGER NOT NULL"
@@ -76,19 +87,18 @@ size_t LocalDatabase::get_relative_humidities_desc(
 //
 //
 //
-constexpr static const char schema_pressure[] =
-    "CREATE TABLE IF NOT EXISTS pressure"
-    "(id INTEGER PRIMARY KEY AUTOINCREMENT"
-    ",sensor_id INTEGER NOT NULL"
-    ",at INTEGER NOT NULL"
-    ",hpa REAL NOT NULL"
-    ");";
+static const char schema_pressure[] = "CREATE TABLE IF NOT EXISTS pressure"
+                                      "(id INTEGER PRIMARY KEY AUTOINCREMENT"
+                                      ",sensor_id INTEGER NOT NULL"
+                                      ",at INTEGER NOT NULL"
+                                      ",hpa REAL NOT NULL"
+                                      ");";
 //
 int64_t LocalDatabase::insert_pressure(uint64_t sensor_id, std::time_t at,
                                        HPa hpa) {
-  constexpr static const char query[] = "INSERT INTO"
-                                        " pressure(sensor_id,at,hpa)"
-                                        " VALUES(?,?,?);";
+  static const char query[] = "INSERT INTO"
+                              " pressure(sensor_id,at,hpa)"
+                              " VALUES(?,?,?);";
   rawid_pressure = raw_insert_time_and_float(query, sensor_id, at, hpa.value);
   return rawid_pressure;
 }
@@ -96,19 +106,19 @@ int64_t LocalDatabase::insert_pressure(uint64_t sensor_id, std::time_t at,
 size_t LocalDatabase::get_pressures_desc(
     uint64_t sensor_id, size_t limit,
     LocalDatabase::CallbackRowTimeAndFloat callback) {
-  constexpr static const char query[] = "SELECT"
-                                        " sensor_id,at,hpa"
-                                        " FROM pressure"
-                                        " WHERE sensor_id=?"
-                                        " ORDER BY at DESC"
-                                        " LIMIT ?;";
+  static const char query[] = "SELECT"
+                              " sensor_id,at,hpa"
+                              " FROM pressure"
+                              " WHERE sensor_id=?"
+                              " ORDER BY at DESC"
+                              " LIMIT ?;";
   return raw_get_n_desc_time_and_float(query, sensor_id, limit, callback);
 }
 
 //
 //
 //
-constexpr static char schema_carbon_dioxide[] =
+static char schema_carbon_dioxide[] =
     "CREATE TABLE IF NOT EXISTS carbon_dioxide"
     "(id INTEGER PRIMARY KEY AUTOINCREMENT"
     ",sensor_id INTEGER NOT NULL"
@@ -120,10 +130,9 @@ constexpr static char schema_carbon_dioxide[] =
 int64_t LocalDatabase::insert_carbon_dioxide(uint64_t sensor_id, std::time_t at,
                                              Ppm ppm,
                                              const uint16_t *baseline) {
-  constexpr static const char query[] =
-      "INSERT INTO"
-      " carbon_dioxide(sensor_id,at,ppm,baseline)"
-      " VALUES(?,?,?,?);";
+  static const char query[] = "INSERT INTO"
+                              " carbon_dioxide(sensor_id,at,ppm,baseline)"
+                              " VALUES(?,?,?,?);";
   rawid_carbon_dioxide = raw_insert_time_and_uint16_and_nullable_uint16(
       query, sensor_id, at, ppm.value, baseline);
   return rawid_carbon_dioxide;
@@ -132,12 +141,12 @@ int64_t LocalDatabase::insert_carbon_dioxide(uint64_t sensor_id, std::time_t at,
 size_t LocalDatabase::get_carbon_deoxides_desc(
     uint64_t sensor_id, size_t limit,
     LocalDatabase::CallbackRowTimeAndUint16AndNullableUint16 callback) {
-  constexpr static const char query[] = "SELECT"
-                                        " sensor_id,at,ppm,baseline"
-                                        " FROM carbon_dioxide"
-                                        " WHERE sensor_id=?"
-                                        " ORDER BY at DESC"
-                                        " LIMIT ?;";
+  static const char query[] = "SELECT"
+                              " sensor_id,at,ppm,baseline"
+                              " FROM carbon_dioxide"
+                              " WHERE sensor_id=?"
+                              " ORDER BY at DESC"
+                              " LIMIT ?;";
   return raw_get_n_time_and_uint16_and_nullable_uint16(query, sensor_id, limit,
                                                        callback);
 }
@@ -145,20 +154,19 @@ size_t LocalDatabase::get_carbon_deoxides_desc(
 //
 //
 //
-constexpr static const char schema_total_voc[] =
-    "CREATE TABLE IF NOT EXISTS total_voc"
-    "(id INTEGER PRIMARY KEY AUTOINCREMENT"
-    ",sensor_id INTEGER NOT NULL"
-    ",at INTEGER NOT NULL"
-    ",ppb REAL NOT NULL"
-    ",baseline INTEGER"
-    ");";
+static const char schema_total_voc[] = "CREATE TABLE IF NOT EXISTS total_voc"
+                                       "(id INTEGER PRIMARY KEY AUTOINCREMENT"
+                                       ",sensor_id INTEGER NOT NULL"
+                                       ",at INTEGER NOT NULL"
+                                       ",ppb REAL NOT NULL"
+                                       ",baseline INTEGER"
+                                       ");";
 //
 int64_t LocalDatabase::insert_total_voc(uint64_t sensor_id, std::time_t at,
                                         Ppb ppb, const uint16_t *baseline) {
-  constexpr static const char query[] = "INSERT INTO"
-                                        " total_voc(sensor_id,at,ppb,baseline)"
-                                        " VALUES(?,?,?,?);";
+  static const char query[] = "INSERT INTO"
+                              " total_voc(sensor_id,at,ppb,baseline)"
+                              " VALUES(?,?,?,?);";
   rawid_total_voc = raw_insert_time_and_uint16_and_nullable_uint16(
       query, sensor_id, at, ppb.value, baseline);
   return rawid_total_voc;
@@ -167,43 +175,33 @@ int64_t LocalDatabase::insert_total_voc(uint64_t sensor_id, std::time_t at,
 size_t LocalDatabase::get_total_vocs_desc(
     uint64_t sensor_id, size_t limit,
     LocalDatabase::CallbackRowTimeAndUint16AndNullableUint16 callback) {
-  constexpr static const char query[] = "SELECT"
-                                        " sensor_id,at,ppb,baseline"
-                                        " FROM total_voc"
-                                        " WHERE sensor_id=?"
-                                        " ORDER BY at DESC"
-                                        " LIMIT ?;";
+  static const char query[] = "SELECT"
+                              " sensor_id,at,ppb,baseline"
+                              " FROM total_voc"
+                              " WHERE sensor_id=?"
+                              " ORDER BY at DESC"
+                              " LIMIT ?;";
   return raw_get_n_time_and_uint16_and_nullable_uint16(query, sensor_id, limit,
                                                        callback);
 }
 //
-size_t LocalDatabase::get_latest_eco2_tvoc_baseline(
-    uint64_t sensor_id,                      //
-    std::time_t &eco2_base_measured_at,      //
-    MeasuredValues<BaselineECo2> &eco2_base, //
-    std::time_t &tvoc_base_measured_at,      //
-    MeasuredValues<BaselineTotalVoc> &tvoc_base) {
-  constexpr static const char query[] =
-      "SELECT"
-      " carbon_dioxide.sensor_id" // 0
-      ",carbon_dioxide.at"        // 1
-      ",carbon_dioxide.baseline"  // 2
-      ",total_voc.at"             // 3
-      ",total_voc.baseline"       // 4
-      " FROM carbon_dioxide"
-      " INNER JOIN total_voc"
-      " ON carbon_dioxide.sensor_id=total_voc.sensor_id"
-      " WHERE carbon_dioxide.baseline NOTNULL"
-      " AND total_voc.baseline NOTNULL"
-      " AND carbon_dioxide.sensor_id=?"
-      " ORDER BY carbon_dioxide.at DESC"
-      " LIMIT 1;";
+size_t LocalDatabase::get_latest_baseline_eco2(
+    uint64_t sensor_id, std::time_t &measured_at,
+    MeasuredValues<BaselineECo2> &baseline_eco2) {
+  static const char query[] = "SELECT"
+                              " sensor_id" // 0
+                              ",at"        // 1
+                              ",baseline"  // 2
+                              " FROM carbon_dioxide"
+                              " WHERE sensor_id=?"
+                              " AND baseline NOTNULL"
+                              " ORDER BY at DESC"
+                              " LIMIT 1;";
   sqlite3_stmt *stmt = nullptr;
   int result;
 
   // clear the outputs
-  eco2_base = MeasuredValues<BaselineECo2>();
-  tvoc_base = MeasuredValues<BaselineTotalVoc>();
+  baseline_eco2 = MeasuredValues<BaselineECo2>();
 
   result = sqlite3_prepare_v2(database, query, -1, &stmt, nullptr);
   if (result != SQLITE_OK) {
@@ -220,18 +218,78 @@ size_t LocalDatabase::get_latest_eco2_tvoc_baseline(
   {
     size_t counter = 0;
     while (sqlite3_step(stmt) == SQLITE_ROW) {
-      // number 0 is carbon_dioxide.sensor_id
-      int64_t carbon_dioxide_at = sqlite3_column_int64(stmt, 1);
-      uint16_t carbon_dioxide_baseline = sqlite3_column_int(stmt, 2);
-      int64_t total_voc_at = sqlite3_column_int64(stmt, 3);
-      uint16_t total_voc_baseline = sqlite3_column_int(stmt, 4);
-      eco2_base_measured_at = static_cast<std::time_t>(carbon_dioxide_at);
-      eco2_base = MeasuredValues<BaselineECo2>(carbon_dioxide_baseline);
-      tvoc_base_measured_at = static_cast<std::time_t>(total_voc_at);
-      tvoc_base = MeasuredValues<BaselineTotalVoc>(total_voc_baseline);
+      // number 0 is sensor_id
+      int64_t at = sqlite3_column_int64(stmt, 1);
+      measured_at = static_cast<std::time_t>(at);
+      if (sqlite3_column_type(stmt, 2) != SQLITE_NULL) {
+        uint16_t baseline = sqlite3_column_int(stmt, 2);
+        baseline_eco2 = MeasuredValues<BaselineECo2>(baseline);
+      }
       counter++;
     }
-    sqlite3_finalize(stmt);
+    result = sqlite3_finalize(stmt);
+    if (result != SQLITE_OK) {
+      ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+      stmt = nullptr; // omit double finalize
+      goto error;
+    }
+
+    return counter;
+  }
+
+error:
+  sqlite3_finalize(stmt);
+  return 0;
+}
+//
+size_t LocalDatabase::get_latest_baseline_total_voc(
+    uint64_t sensor_id, std::time_t &measured_at,
+    MeasuredValues<BaselineTotalVoc> &baseline_total_voc) {
+  static const char query[] = "SELECT"
+                              " sensor_id" // 0
+                              ",at"        // 1
+                              ",baseline"  // 2
+                              " FROM total_voc"
+                              " WHERE sensor_id=?"
+                              " AND baseline NOTNULL"
+                              " ORDER BY at DESC"
+                              " LIMIT 1;";
+  sqlite3_stmt *stmt = nullptr;
+  int result;
+
+  // clear the outputs
+  baseline_total_voc = MeasuredValues<BaselineTotalVoc>();
+
+  result = sqlite3_prepare_v2(database, query, -1, &stmt, nullptr);
+  if (result != SQLITE_OK) {
+    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+    goto error;
+  }
+  //
+  result = sqlite3_bind_int64(stmt, 1, sensor_id);
+  if (result != SQLITE_OK) {
+    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+    goto error;
+  }
+  //
+  {
+    size_t counter = 0;
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+      // number 0 is sensor_id
+      int64_t at = sqlite3_column_int64(stmt, 1);
+      measured_at = static_cast<std::time_t>(at);
+      if (sqlite3_column_type(stmt, 2) != SQLITE_NULL) {
+        uint16_t baseline = sqlite3_column_int(stmt, 2);
+        baseline_total_voc = MeasuredValues<BaselineTotalVoc>(baseline);
+      }
+      counter++;
+    }
+    result = sqlite3_finalize(stmt);
+    if (result != SQLITE_OK) {
+      ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+      stmt = nullptr; // omit double finalize
+      goto error;
+    }
 
     return counter;
   }
@@ -245,73 +303,71 @@ error:
 //
 //
 bool LocalDatabase::begin() {
+  char *error_msg = nullptr;
   int result;
+
   result = sqlite3_initialize();
   if (result != SQLITE_OK) {
-    ESP_LOGE(TAG, "sqlite3_initialize() failed. reason:\"%s\"",
-             sqlite3_errmsg(database));
+    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
     goto error;
   }
   //
   result = sqlite3_open_v2(sqlite3_filename.c_str(), &database,
                            SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE, nullptr);
   if (result != SQLITE_OK) {
-    ESP_LOGE(TAG, "sqlite3_open() failed. reason:\"%s\"",
-             sqlite3_errmsg(database));
+    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
     goto error;
   }
-  //
-  {
-    char *error_msg = nullptr;
-    // temperature
-    result = sqlite3_exec(database, schema_temperature, nullptr, nullptr,
-                          &error_msg);
-    if (result != SQLITE_OK) {
-      ESP_LOGE(TAG, "%s", error_msg);
-      goto error;
-    }
-    // relative humidity
-    result = sqlite3_exec(database, schema_relative_humidity, nullptr, nullptr,
-                          &error_msg);
-    if (result != SQLITE_OK) {
-      ESP_LOGE(TAG, "%s", error_msg);
-      goto error;
-    }
-    // pressure
-    result =
-        sqlite3_exec(database, schema_pressure, nullptr, nullptr, &error_msg);
-    if (result != SQLITE_OK) {
-      ESP_LOGE(TAG, "%s", error_msg);
-      goto error;
-    }
-    // carbon dioxide
-    result = sqlite3_exec(database, schema_carbon_dioxide, nullptr, nullptr,
-                          &error_msg);
-    if (result != SQLITE_OK) {
-      ESP_LOGE(TAG, "%s", error_msg);
-      goto error;
-    }
-    // total voc
-    result =
-        sqlite3_exec(database, schema_total_voc, nullptr, nullptr, &error_msg);
-    if (result != SQLITE_OK) {
-      ESP_LOGE(TAG, "%s", error_msg);
-      goto error;
-    }
+  // temperature
+  result =
+      sqlite3_exec(database, schema_temperature, nullptr, nullptr, &error_msg);
+  if (result != SQLITE_OK) {
+    ESP_LOGE(TAG, "%s", error_msg);
+    goto error;
+  }
+  // relative humidity
+  result = sqlite3_exec(database, schema_relative_humidity, nullptr, nullptr,
+                        &error_msg);
+  if (result != SQLITE_OK) {
+    ESP_LOGE(TAG, "%s", error_msg);
+    goto error;
+  }
+  // pressure
+  result =
+      sqlite3_exec(database, schema_pressure, nullptr, nullptr, &error_msg);
+  if (result != SQLITE_OK) {
+    ESP_LOGE(TAG, "%s", error_msg);
+    goto error;
+  }
+  // carbon dioxide
+  result = sqlite3_exec(database, schema_carbon_dioxide, nullptr, nullptr,
+                        &error_msg);
+  if (result != SQLITE_OK) {
+    ESP_LOGE(TAG, "%s", error_msg);
+    goto error;
+  }
+  // total voc
+  result =
+      sqlite3_exec(database, schema_total_voc, nullptr, nullptr, &error_msg);
+  if (result != SQLITE_OK) {
+    ESP_LOGE(TAG, "%s", error_msg);
+    goto error;
   }
 
-  ESP_LOGD(TAG, "begin() is success.");
-  return true;
-//
+  // succsessfully exit
+  _available = true;
+  return _available;
+
 error:
-  return false;
+  _available = false;
+  return _available;
 }
 
 //
 //
 //
 bool LocalDatabase::insert(const TempHumiPres &temp_humi_pres) {
-  if (!healthy()) {
+  if (!available()) {
     return false;
   }
   int64_t t =
@@ -334,7 +390,7 @@ bool LocalDatabase::insert(const TempHumiPres &temp_humi_pres) {
 //
 //
 bool LocalDatabase::insert(const TvocEco2 &tvoc_eco2) {
-  if (!healthy()) {
+  if (!available()) {
     return false;
   }
   int64_t t;
@@ -369,7 +425,7 @@ bool LocalDatabase::insert(const TvocEco2 &tvoc_eco2) {
 //
 //
 bool LocalDatabase::insert(const Co2TempHumi &co2_temp_humi) {
-  if (!healthy()) {
+  if (!available()) {
     return false;
   }
   int64_t t =
@@ -427,7 +483,10 @@ int64_t LocalDatabase::raw_insert_time_and_float(const char *query,
   result = sqlite3_finalize(stmt);
   if (result != SQLITE_OK) {
     ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+    stmt = nullptr; // omit double finalize
+    goto error;
   }
+
   return sqlite3_last_insert_rowid(database);
 
 error:
@@ -484,7 +543,9 @@ int64_t LocalDatabase::raw_insert_time_and_uint16_and_nullable_uint16(
 
   result = sqlite3_finalize(stmt);
   if (result != SQLITE_OK) {
-    ESP_LOGE(TAG, "sqlite3_finalize() failed. reason: %d.", result);
+    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+    stmt = nullptr; // omit double finalize
+    goto error;
   }
 
   return sqlite3_last_insert_rowid(database);
@@ -531,7 +592,13 @@ size_t LocalDatabase::raw_get_n_desc_time_and_float(
       }
       counter++;
     }
-    sqlite3_finalize(stmt);
+
+    result = sqlite3_finalize(stmt);
+    if (result != SQLITE_OK) {
+      ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+      stmt = nullptr; // omit double finalize
+      goto error;
+    }
 
     return counter;
   }
@@ -580,7 +647,13 @@ size_t LocalDatabase::raw_get_n_time_and_uint16_and_nullable_uint16(
       }
       counter++;
     }
-    sqlite3_finalize(stmt);
+
+    result = sqlite3_finalize(stmt);
+    if (result != SQLITE_OK) {
+      ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+      stmt = nullptr; // omit double finalize
+      goto error;
+    }
 
     return counter;
   }
