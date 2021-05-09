@@ -60,14 +60,6 @@ bool Peripherals::begin(const std::string &wifi_ssid,
   if (available_database) {
     ESP_LOGD(TAG, "initialize module: LocalDatabase Ok.");
   }
-  // waiting for Synchronize NTP server
-  while (!sntp_enabled()) {
-    delay(100);
-  }
-  // initialize module: TickTack
-  if (_instance.ticktack.begin()) {
-    ESP_LOGD(TAG, "initialize module: TickTack Ok.");
-  }
   // initializing sensor
   {
     // get baseline for "Sensirion SGP30: Air Quality Sensor" from database
@@ -125,6 +117,14 @@ bool Peripherals::begin(const std::string &wifi_ssid,
     system_properties.bme280.printSensorDetails();
     */
     Screen::lcd.clear();
+  }
+  // waiting for Synchronize NTP server
+  while (!sntp_enabled()) {
+    delay(100);
+  }
+  // initialize module: TickTack
+  if (_instance.ticktack.begin()) {
+    ESP_LOGD(TAG, "initialize module: TickTack Ok.");
   }
   //
   return true;

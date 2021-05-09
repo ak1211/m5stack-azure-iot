@@ -55,18 +55,13 @@ public:
   //
   virtual ~View() {}
   //
-  virtual bool focusIn() {
-    Screen::lcd.setBaseColor(background_color);
-    Screen::lcd.setTextColor(message_text_color, background_color);
-    Screen::lcd.clear();
-    return true;
-  }
+  virtual bool focusIn() = 0;
   //
-  virtual void focusOut() {}
+  virtual void focusOut() = 0;
   //
-  virtual void releaseEvent(Screen *screen, Event &e) {}
+  virtual void releaseEvent(Screen *screen, Event &e) = 0;
   //
-  virtual void render(const struct tm &local) {}
+  virtual void render(const struct tm &local) = 0;
 };
 
 //
@@ -86,6 +81,14 @@ enum RegisteredViewId : uint32_t {
 class SystemHealthView : public Screen::View {
 public:
   SystemHealthView() : View(IdSystemHealthView, TFT_WHITE, TFT_BLACK) {}
+  bool focusIn() override {
+    Screen::lcd.setBaseColor(background_color);
+    Screen::lcd.setTextColor(message_text_color, background_color);
+    Screen::lcd.clear();
+    return true;
+  }
+  void focusOut() override {}
+  void releaseEvent(Screen *screen, Event &e) override {}
   //
   void render(const struct tm &local) override {
     Peripherals &peri = Peripherals::getInstance();
@@ -168,6 +171,14 @@ public:
 class ClockView : public Screen::View {
 public:
   ClockView() : View(IdClockView, TFT_WHITE, TFT_BLACK) {}
+  bool focusIn() override {
+    Screen::lcd.setBaseColor(background_color);
+    Screen::lcd.setTextColor(message_text_color, background_color);
+    Screen::lcd.clear();
+    return true;
+  }
+  void focusOut() override {}
+  void releaseEvent(Screen *screen, Event &e) override {}
   //
   void render(const struct tm &local) override {
     const auto half_width = Screen::lcd.width() / 2;
@@ -333,22 +344,23 @@ public:
     const int16_t w = Screen::lcd.width() / 3;
     const int16_t h = Screen::lcd.height() / 2;
     //
-    if (Screen::View::focusIn()) {
-      for (int16_t i = 0; i < tiles.size(); ++i) {
-        int16_t col = i % 3;
-        int16_t row = i / 3;
-        Rectangle r;
-        r.x = w * col;
-        r.y = h * row;
-        r.w = w;
-        r.h = h;
-        tiles[i].setRectangle(r).prepare();
-      }
-      return true;
-    } else {
-      return false;
+    Screen::lcd.setBaseColor(background_color);
+    Screen::lcd.setTextColor(message_text_color, background_color);
+    Screen::lcd.clear();
+    //
+    for (int16_t i = 0; i < tiles.size(); ++i) {
+      int16_t col = i % 3;
+      int16_t row = i / 3;
+      Rectangle r;
+      r.x = w * col;
+      r.y = h * row;
+      r.w = w;
+      r.h = h;
+      tiles[i].setRectangle(r).prepare();
     }
+    return true;
   }
+  void focusOut() override {}
   //
   void releaseEvent(Screen *screen, Event &e) override {
     Coord c = {
@@ -552,13 +564,11 @@ public:
     if (!database.available()) {
       return false;
     }
-    if (Screen::View::focusIn()) {
-      prepare();
-      return true;
-    } else {
-      return false;
-    }
+    prepare();
+    return true;
   }
+  void focusOut() override {}
+  void releaseEvent(Screen *screen, Event &e) override {}
   //
   void showUpdateMessage() {
     Screen::lcd.setTextDatum(textdatum_t::middle_center);
@@ -577,6 +587,10 @@ public:
   }
   //
   void prepare() {
+    Screen::lcd.setBaseColor(background_color);
+    Screen::lcd.setTextColor(message_text_color, background_color);
+    Screen::lcd.clear();
+    //
     grid();
     //
     Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
@@ -655,13 +669,11 @@ public:
     if (!database.available()) {
       return false;
     }
-    if (Screen::View::focusIn()) {
-      prepare();
-      return true;
-    } else {
-      return false;
-    }
+    prepare();
+    return true;
   }
+  void focusOut() override {}
+  void releaseEvent(Screen *screen, Event &e) override {}
   //
   void showUpdateMessage() {
     Screen::lcd.setTextDatum(textdatum_t::middle_center);
@@ -680,6 +692,10 @@ public:
   }
   //
   void prepare() {
+    Screen::lcd.setBaseColor(background_color);
+    Screen::lcd.setTextColor(message_text_color, background_color);
+    Screen::lcd.clear();
+    //
     grid();
     //
     Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
@@ -760,13 +776,11 @@ public:
     if (!database.available()) {
       return false;
     }
-    if (Screen::View::focusIn()) {
-      prepare();
-      return true;
-    } else {
-      return false;
-    }
+    prepare();
+    return true;
   }
+  void focusOut() override {}
+  void releaseEvent(Screen *screen, Event &e) override {}
   //
   void showUpdateMessage() {
     Screen::lcd.setTextDatum(textdatum_t::middle_center);
@@ -785,6 +799,10 @@ public:
   }
   //
   void prepare() {
+    Screen::lcd.setBaseColor(background_color);
+    Screen::lcd.setTextColor(message_text_color, background_color);
+    Screen::lcd.clear();
+    //
     grid();
     //
     Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
@@ -862,13 +880,11 @@ public:
     if (!database.available()) {
       return false;
     }
-    if (Screen::View::focusIn()) {
-      prepare();
-      return true;
-    } else {
-      return false;
-    }
+    prepare();
+    return true;
   }
+  void focusOut() override {}
+  void releaseEvent(Screen *screen, Event &e) override {}
   //
   void showUpdateMessage() {
     Screen::lcd.setTextDatum(textdatum_t::middle_center);
@@ -887,6 +903,10 @@ public:
   }
   //
   void prepare() {
+    Screen::lcd.setBaseColor(background_color);
+    Screen::lcd.setTextColor(message_text_color, background_color);
+    Screen::lcd.clear();
+    //
     grid();
     //
     Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
@@ -967,13 +987,11 @@ public:
     if (!database.available()) {
       return false;
     }
-    if (Screen::View::focusIn()) {
-      prepare();
-      return true;
-    } else {
-      return false;
-    }
+    prepare();
+    return true;
   }
+  void focusOut() override {}
+  void releaseEvent(Screen *screen, Event &e) override {}
   //
   void showUpdateMessage() {
     Screen::lcd.setTextDatum(textdatum_t::middle_center);
@@ -992,6 +1010,10 @@ public:
   }
   //
   void prepare() {
+    Screen::lcd.setBaseColor(background_color);
+    Screen::lcd.setTextColor(message_text_color, background_color);
+    Screen::lcd.clear();
+    //
     grid();
     //
     Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
@@ -1074,13 +1096,11 @@ public:
     if (!database.available()) {
       return false;
     }
-    if (Screen::View::focusIn()) {
-      prepare();
-      return true;
-    } else {
-      return false;
-    }
+    prepare();
+    return true;
   }
+  void focusOut() override {}
+  void releaseEvent(Screen *screen, Event &e) override {}
   //
   void showUpdateMessage() {
     Screen::lcd.setTextDatum(textdatum_t::middle_center);
@@ -1099,6 +1119,10 @@ public:
   }
   //
   void prepare() {
+    Screen::lcd.setBaseColor(background_color);
+    Screen::lcd.setTextColor(message_text_color, background_color);
+    Screen::lcd.clear();
+    //
     grid();
     //
     Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
