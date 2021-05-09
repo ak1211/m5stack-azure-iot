@@ -13,36 +13,43 @@
 //
 class TickTack {
 public:
-  TickTack() { startup_epoch = clock(); }
+  TickTack() : _available{false}, startup_time{} {}
   //
-  uint32_t uptime_seconds() {
-    clock_t time_epoch = clock() - startup_epoch;
-    uint32_t seconds = static_cast<uint32_t>(time_epoch / CLOCKS_PER_SEC);
-    return seconds;
+  bool available() { return _available; }
+  //
+  bool begin() {
+    startup_time = std::time(nullptr);
+    _available = true;
+    return _available;
+  }
+  //
+  uint64_t uptime_seconds() {
+    std::time_t now = std::time(nullptr);
+    return static_cast<uint64_t>(difftime(now, startup_time));
   }
   //
   struct Uptime {
-    uint16_t days;
+    uint32_t days;
     uint8_t hours;
     uint8_t minutes;
     uint8_t seconds;
   };
   Uptime uptime() {
-    clock_t time_epoch = clock() - startup_epoch;
-    uint32_t seconds = static_cast<uint32_t>(time_epoch / CLOCKS_PER_SEC);
-    uint32_t minutes = seconds / 60;
+    uint64_t elapsed_time_of_seconds = uptime_seconds();
+    uint32_t minutes = elapsed_time_of_seconds / 60;
     uint32_t hours = minutes / 60;
     uint32_t days = hours / 24;
     return {
-        .days = static_cast<uint16_t>(days),
+        .days = days,
         .hours = static_cast<uint8_t>(hours % 24),
         .minutes = static_cast<uint8_t>(minutes % 60),
-        .seconds = static_cast<uint8_t>(seconds % 60),
+        .seconds = static_cast<uint8_t>(elapsed_time_of_seconds % 60),
     };
   }
 
 private:
-  clock_t startup_epoch;
+  bool _available;
+  std::time_t startup_time;
 };
 
 #endif // TICKTACK_HPP

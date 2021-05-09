@@ -110,46 +110,6 @@ void setup() {
   ArduinoOTA.begin();
 
   //
-  // set to Real Time Clock
-  //
-  if (sntp_enabled()) {
-    ESP_LOGD(TAG, "sntp enabled.");
-    //
-    time_t tm_now;
-    struct tm utc;
-    time(&tm_now);
-    ESP_LOGD(TAG, "tm_now: %d", tm_now);
-    gmtime_r(&tm_now, &utc);
-    //
-    RTC_TimeTypeDef rtcTime = {
-        .Hours = static_cast<uint8_t>(utc.tm_hour),
-        .Minutes = static_cast<uint8_t>(utc.tm_min),
-        .Seconds = static_cast<uint8_t>(utc.tm_sec),
-    };
-    M5.Rtc.SetTime(&rtcTime);
-    //
-    RTC_DateTypeDef rtcDate = {
-        .WeekDay = static_cast<uint8_t>(utc.tm_wday),
-        .Month = static_cast<uint8_t>(utc.tm_mon + 1),
-        .Date = static_cast<uint8_t>(utc.tm_mday),
-        .Year = static_cast<uint16_t>(utc.tm_year + 1900),
-    };
-    M5.Rtc.SetDate(&rtcDate);
-  } else {
-    ESP_LOGD(TAG, "sntp disabled.");
-    //
-    // get time and date from RTC
-    //
-    RTC_DateTypeDef rtcDate;
-    RTC_TimeTypeDef rtcTime;
-    M5.Rtc.GetDate(&rtcDate);
-    M5.Rtc.GetTime(&rtcTime);
-    ESP_LOGD(TAG, "RTC \"%04d-%02d-%02dT%02d:%02d:%02dZ\"", rtcDate.Year,
-             rtcDate.Month, rtcDate.Date, rtcTime.Hours, rtcTime.Minutes,
-             rtcTime.Seconds);
-  }
-
-  //
   // start up
   //
   peri.screen.repaint(std::time(nullptr));

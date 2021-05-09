@@ -55,10 +55,18 @@ bool Peripherals::begin(const std::string &wifi_ssid,
   if (_instance.data_logging_file.begin()) {
     ESP_LOGD(TAG, "initialize module: DataLoggingFile Ok.");
   }
-  // initializing the local database
+  // initialize module: LocalDatabase
   bool available_database = _instance.local_database.begin();
   if (available_database) {
     ESP_LOGD(TAG, "initialize module: LocalDatabase Ok.");
+  }
+  // waiting for Synchronize NTP server
+  while (!sntp_enabled()) {
+    delay(100);
+  }
+  // initialize module: TickTack
+  if (_instance.ticktack.begin()) {
+    ESP_LOGD(TAG, "initialize module: TickTack Ok.");
   }
   // initializing sensor
   {
@@ -85,27 +93,26 @@ bool Peripherals::begin(const std::string &wifi_ssid,
       ESP_LOGD(TAG, "get_latest_baseline_total_voc: failed.");
     }
     //
-    HasSensor bme = HasSensor::NoSensorFound;
-    HasSensor sgp = HasSensor::NoSensorFound;
-    HasSensor scd = HasSensor::NoSensorFound;
+    bool bme{false};
+    bool sgp{false};
+    bool scd{false};
     while (1) {
       bme = _instance.bme280.begin(BME280_I2C_ADDRESS);
-      if (bme == HasSensor::NoSensorFound) {
+      if (!bme) {
         Screen::lcd.print(F("BME280センサが見つかりません。\n"));
         delay(100);
       }
       sgp = _instance.sgp30.begin(baseline_eco2, baseline_tvoc);
-      if (sgp == HasSensor::NoSensorFound) {
+      if (!sgp) {
         Screen::lcd.print(F("SGP30センサが見つかりません。\n"));
         delay(100);
       }
       scd = _instance.scd30.begin();
-      if (scd == HasSensor::NoSensorFound) {
+      if (!scd) {
         Screen::lcd.print(F("SCD30センサが見つかりません。\n"));
         delay(100);
       }
-      if (bme == HasSensor::Ok && sgp == HasSensor::Ok &&
-          scd == HasSensor::Ok) {
+      if (bme && sgp && scd) {
         break;
       }
 

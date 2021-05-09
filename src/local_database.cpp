@@ -589,7 +589,7 @@ std::tuple<bool, std::time_t, BaselineSGP30T>
 LocalDatabase::raw_get_latest_baseline(const char *query, uint64_t sensor_id) {
   sqlite3_stmt *stmt = nullptr;
   int result;
-  auto retval = std::make_tuple(false, 0, 0);
+  auto retval{std::make_tuple(false, 0, 0)};
 
   result = sqlite3_prepare_v2(database, query, -1, &stmt, nullptr);
   if (result != SQLITE_OK) {
