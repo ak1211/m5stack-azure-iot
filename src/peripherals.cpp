@@ -22,7 +22,7 @@ Peripherals::Peripherals()
       local_database{LocalDatabase(sqlite3_file_name)},
       data_logging_file{
           DataLoggingFile(data_log_file_name, header_log_file_name)},
-      screen{Screen(local_database)},
+      screen{Screen()},
       led_signal{LedSignal()},
       wifi_launcher{WifiLauncher()},
       iothub_client{IotHubClient()} {}

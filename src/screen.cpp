@@ -448,12 +448,9 @@ public:
   constexpr static int16_t graph_width = 240;
   constexpr static int16_t graph_height = 180;
   //
-  GraphView(uint32_t id, int32_t text_color, int32_t bg_color,
-            LocalDatabase &local_database, double vmin, double vmax)
-      : View(id, text_color, bg_color),
-        database(local_database),
-        value_min(vmin),
-        value_max(vmax) {
+  GraphView(uint32_t id, int32_t text_color, int32_t bg_color, double vmin,
+            double vmax)
+      : View(id, text_color, bg_color), value_min(vmin), value_max(vmax) {
     //
     setOffset(0, 0);
     locators.push_back(value_min);
@@ -537,7 +534,6 @@ public:
   }
 
 protected:
-  LocalDatabase &database;
   int16_t graph_offset_x;
   int16_t graph_offset_y;
   const double value_min;
@@ -548,9 +544,8 @@ protected:
 //
 class TemperatureGraphView : public GraphView {
 public:
-  TemperatureGraphView(LocalDatabase &local_database)
-      : GraphView(IdTemperatureGraphView, TFT_WHITE, TFT_BLACK, local_database,
-                  -10.0, 60.0) {
+  TemperatureGraphView()
+      : GraphView(IdTemperatureGraphView, TFT_WHITE, TFT_BLACK, -10.0, 60.0) {
     locators.push_back(0.0);
     locators.push_back(20.0);
     locators.push_back(40.0);
@@ -561,9 +556,6 @@ public:
               Screen::lcd.height() - (graph_height + graph_margin * 2) - 1);
     //
     init_rawid();
-    if (!database.available()) {
-      return false;
-    }
     prepare();
     return true;
   }
@@ -633,9 +625,9 @@ public:
       //
       Peripherals &peri = Peripherals::getInstance();
       showUpdateMessage();
-      database.get_temperatures_desc(peri.bme280.getSensorDescriptor().id,
-                                     graph_width / step, callback);
-      rawid = database.rawid_temperature;
+      peri.local_database.get_temperatures_desc(
+          peri.bme280.getSensorDescriptor().id, graph_width / step, callback);
+      rawid = peri.local_database.rawid_temperature;
       grid();
     } else {
       showUpdateMessage();
@@ -646,16 +638,20 @@ private:
   int64_t rawid;
   //
   inline void init_rawid() { rawid = INT64_MIN; }
-  inline void update_rawid() { rawid = database.rawid_temperature; }
-  inline bool need_for_update() { return rawid != database.rawid_temperature; }
+  inline void update_rawid() {
+    rawid = Peripherals::getInstance().local_database.rawid_temperature;
+  }
+  inline bool need_for_update() {
+    return rawid != Peripherals::getInstance().local_database.rawid_temperature;
+  }
 };
 
 //
 class RelativeHumidityGraphView : public GraphView {
 public:
-  RelativeHumidityGraphView(LocalDatabase &local_database)
-      : GraphView(IdRelativeHumidityGraphView, TFT_WHITE, TFT_BLACK,
-                  local_database, 0.0, 100.0) {
+  RelativeHumidityGraphView()
+      : GraphView(IdRelativeHumidityGraphView, TFT_WHITE, TFT_BLACK, 0.0,
+                  100.0) {
     locators.push_back(25.0);
     locators.push_back(50.0);
     locators.push_back(75.0);
@@ -666,9 +662,6 @@ public:
               Screen::lcd.height() - (graph_height + graph_margin * 2) - 1);
     //
     init_rawid();
-    if (!database.available()) {
-      return false;
-    }
     prepare();
     return true;
   }
@@ -738,7 +731,7 @@ public:
       //
       showUpdateMessage();
       Peripherals &peri = Peripherals::getInstance();
-      database.get_relative_humidities_desc(
+      peri.local_database.get_relative_humidities_desc(
           peri.bme280.getSensorDescriptor().id, graph_width / step, callback);
       update_rawid();
       grid();
@@ -751,18 +744,20 @@ private:
   int64_t rawid;
   //
   inline void init_rawid() { rawid = INT64_MIN; }
-  inline void update_rawid() { rawid = database.rawid_relative_humidity; }
+  inline void update_rawid() {
+    rawid = Peripherals::getInstance().local_database.rawid_relative_humidity;
+  }
   inline bool need_for_update() {
-    return rawid != database.rawid_relative_humidity;
+    return rawid !=
+           Peripherals::getInstance().local_database.rawid_relative_humidity;
   }
 };
 
 //
 class PressureGraphView : public GraphView {
 public:
-  PressureGraphView(LocalDatabase &local_database)
-      : GraphView(IdPressureGraphView, TFT_WHITE, TFT_BLACK, local_database,
-                  940.0, 1060.0) {
+  PressureGraphView()
+      : GraphView(IdPressureGraphView, TFT_WHITE, TFT_BLACK, 940.0, 1060.0) {
     locators.push_back(970.0);
     locators.push_back(1000.0);
     locators.push_back(1030.0);
@@ -773,9 +768,6 @@ public:
               Screen::lcd.height() - (graph_height + graph_margin * 2) - 1);
     //
     init_rawid();
-    if (!database.available()) {
-      return false;
-    }
     prepare();
     return true;
   }
@@ -845,8 +837,8 @@ public:
       //
       showUpdateMessage();
       Peripherals &peri = Peripherals::getInstance();
-      database.get_pressures_desc(peri.bme280.getSensorDescriptor().id,
-                                  graph_width / step, callback);
+      peri.local_database.get_pressures_desc(
+          peri.bme280.getSensorDescriptor().id, graph_width / step, callback);
       update_rawid();
       grid();
     } else {
@@ -858,16 +850,19 @@ private:
   int64_t rawid;
   //
   inline void init_rawid() { rawid = INT64_MIN; }
-  inline void update_rawid() { rawid = database.rawid_pressure; }
-  inline bool need_for_update() { return rawid != database.rawid_pressure; }
+  inline void update_rawid() {
+    rawid = Peripherals::getInstance().local_database.rawid_pressure;
+  }
+  inline bool need_for_update() {
+    return rawid != Peripherals::getInstance().local_database.rawid_pressure;
+  }
 };
 
 //
 class TotalVocGraphView : public GraphView {
 public:
-  TotalVocGraphView(LocalDatabase &local_database)
-      : GraphView(IdTotalVocGraphView, TFT_WHITE, TFT_BLACK, local_database,
-                  0.0, 6000.0) {
+  TotalVocGraphView()
+      : GraphView(IdTotalVocGraphView, TFT_WHITE, TFT_BLACK, 0.0, 6000.0) {
     locators.push_back(2000.0);
     locators.push_back(4000.0);
   }
@@ -877,9 +872,6 @@ public:
               Screen::lcd.height() - (graph_height + graph_margin * 2) - 1);
     //
     init_rawid();
-    if (!database.available()) {
-      return false;
-    }
     prepare();
     return true;
   }
@@ -950,8 +942,8 @@ public:
       //
       showUpdateMessage();
       Peripherals &peri = Peripherals::getInstance();
-      database.get_total_vocs_desc(peri.sgp30.getSensorDescriptor().id,
-                                   graph_width / step, callback);
+      peri.local_database.get_total_vocs_desc(
+          peri.sgp30.getSensorDescriptor().id, graph_width / step, callback);
       update_rawid();
       grid();
     } else {
@@ -963,16 +955,19 @@ private:
   int64_t rawid;
   //
   inline void init_rawid() { rawid = INT64_MIN; }
-  inline void update_rawid() { rawid = database.rawid_total_voc; }
-  inline bool need_for_update() { return rawid != database.rawid_total_voc; }
+  inline void update_rawid() {
+    rawid = Peripherals::getInstance().local_database.rawid_total_voc;
+  }
+  inline bool need_for_update() {
+    return rawid != Peripherals::getInstance().local_database.rawid_total_voc;
+  }
 };
 
 //
 class EquivalentCo2GraphView : public GraphView {
 public:
-  EquivalentCo2GraphView(LocalDatabase &local_database)
-      : GraphView(IdEquivalentCo2GraphView, TFT_WHITE, TFT_BLACK,
-                  local_database, 0.0, 4000.0) {
+  EquivalentCo2GraphView()
+      : GraphView(IdEquivalentCo2GraphView, TFT_WHITE, TFT_BLACK, 0.0, 4000.0) {
     locators.push_back(400.0);
     locators.push_back(1000.0);
     locators.push_back(2000.0);
@@ -984,9 +979,6 @@ public:
               Screen::lcd.height() - (graph_height + graph_margin * 2) - 1);
     //
     init_rawid();
-    if (!database.available()) {
-      return false;
-    }
     prepare();
     return true;
   }
@@ -1057,8 +1049,8 @@ public:
       //
       showUpdateMessage();
       Peripherals &peri = Peripherals::getInstance();
-      database.get_carbon_deoxides_desc(peri.sgp30.getSensorDescriptor().id,
-                                        graph_width / step, callback);
+      peri.local_database.get_carbon_deoxides_desc(
+          peri.sgp30.getSensorDescriptor().id, graph_width / step, callback);
       update_rawid();
       grid();
     } else {
@@ -1070,18 +1062,20 @@ private:
   int64_t rawid;
   //
   inline void init_rawid() { rawid = INT64_MIN; }
-  inline void update_rawid() { rawid = database.rawid_carbon_dioxide; }
+  inline void update_rawid() {
+    rawid = Peripherals::getInstance().local_database.rawid_carbon_dioxide;
+  }
   inline bool need_for_update() {
-    return rawid != database.rawid_carbon_dioxide;
+    return rawid !=
+           Peripherals::getInstance().local_database.rawid_carbon_dioxide;
   }
 };
 
 //
 class Co2GraphView : public GraphView {
 public:
-  Co2GraphView(LocalDatabase &local_database)
-      : GraphView(IdCo2GraphView, TFT_WHITE, TFT_BLACK, local_database, 0.0,
-                  4000.0) {
+  Co2GraphView()
+      : GraphView(IdCo2GraphView, TFT_WHITE, TFT_BLACK, 0.0, 4000.0) {
     locators.push_back(400.0);
     locators.push_back(1000.0);
     locators.push_back(2000.0);
@@ -1093,9 +1087,6 @@ public:
               Screen::lcd.height() - (graph_height + graph_margin * 2) - 1);
     //
     init_rawid();
-    if (!database.available()) {
-      return false;
-    }
     prepare();
     return true;
   }
@@ -1166,8 +1157,8 @@ public:
       //
       showUpdateMessage();
       Peripherals &peri = Peripherals::getInstance();
-      database.get_carbon_deoxides_desc(peri.scd30.getSensorDescriptor().id,
-                                        graph_width / step, callback);
+      peri.local_database.get_carbon_deoxides_desc(
+          peri.scd30.getSensorDescriptor().id, graph_width / step, callback);
       update_rawid();
       grid();
     } else {
@@ -1179,9 +1170,12 @@ private:
   int64_t rawid;
   //
   inline void init_rawid() { rawid = INT64_MIN; }
-  inline void update_rawid() { rawid = database.rawid_carbon_dioxide; }
+  inline void update_rawid() {
+    rawid = Peripherals::getInstance().local_database.rawid_carbon_dioxide;
+  }
   inline bool need_for_update() {
-    return rawid != database.rawid_carbon_dioxide;
+    return rawid !=
+           Peripherals::getInstance().local_database.rawid_carbon_dioxide;
   }
 };
 
@@ -1189,18 +1183,18 @@ private:
 LGFX Screen::lcd;
 
 //
-Screen::Screen(LocalDatabase &local_database)
+Screen::Screen()
     : views{new ClockView(),
             new SummaryView(),
-            new TemperatureGraphView(local_database),
-            new RelativeHumidityGraphView(local_database),
-            new PressureGraphView(local_database),
-            new TotalVocGraphView(local_database),
-            new EquivalentCo2GraphView(local_database),
-            new Co2GraphView(local_database),
+            new TemperatureGraphView(),
+            new RelativeHumidityGraphView(),
+            new PressureGraphView(),
+            new TotalVocGraphView(),
+            new EquivalentCo2GraphView(),
+            new Co2GraphView(),
             new SystemHealthView(),
             },
-      now_view(0) {}
+      now_view{0} {}
 
 //
 Screen::~Screen() {

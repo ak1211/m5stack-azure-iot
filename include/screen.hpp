@@ -17,7 +17,7 @@ public:
   class View;
   static LGFX lcd;
   //
-  Screen(LocalDatabase &local_database);
+  Screen();
   ~Screen();
   //
   bool begin(int32_t text_color = TFT_WHITE, int32_t bg_color = TFT_BLACK);
