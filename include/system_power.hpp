@@ -10,11 +10,12 @@
 
 class SystemPower {
 public:
-  constexpr static clock_t UPDATE_INTERVAL = 10 * CLOCKS_PER_SEC; // 10 seconds
+  constexpr static std::clock_t UPDATE_INTERVAL =
+      10 * CLOCKS_PER_SEC; // 10 seconds
   SystemPower() : update_at{0} {}
-  void begin();
+  bool begin();
   inline bool needToUpdate() {
-    return (clock() - update_at >= UPDATE_INTERVAL);
+    return (std::clock() - update_at >= UPDATE_INTERVAL);
   }
   enum class PowerNow { External, Internal };
   PowerNow power_now();
@@ -27,7 +28,7 @@ public:
   void update();
 
 private:
-  clock_t update_at;
+  std::clock_t update_at;
   Voltage battery_voltage;
   float battery_percentage;
   Ampere battery_current;

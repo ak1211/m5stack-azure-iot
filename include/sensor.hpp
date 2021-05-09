@@ -15,13 +15,11 @@
 #include <ctime>
 #include <string>
 
-enum class HasSensor { Ok, NoSensorFound };
-
 template <class T> class Sensor {
 public:
   SensorDescriptor getSensorDescriptor() = 0;
   void printSensorDetails() = 0;
-  HasSensor begin() = 0;
+  bool begin() = 0;
   bool active() = 0;
   bool readyToRead(std::time_t now) = 0;
   T read(std::time_t measured_at) = 0;
@@ -41,8 +39,8 @@ struct TempHumiPres {
 using Bme280 = MeasuredValues<TempHumiPres>;
 template <> class Sensor<Bme280> {
 public:
-  constexpr static uint8_t INTERVAL = 10;                  // 10 seconds
-  constexpr static uint8_t SMA_PERIOD = 1 + 60 / INTERVAL; // 60 minutes
+  constexpr static uint8_t INTERVAL = 5;                    // 5 seconds
+  constexpr static uint8_t SMA_PERIOD = 1 + 120 / INTERVAL; // 120 seconds
   //
   Sensor(SensorDescriptor custom_sensor_descriptor)
       : sensor_descriptor{custom_sensor_descriptor},
@@ -50,7 +48,7 @@ public:
         last_measured_at{0} {}
   SensorDescriptor getSensorDescriptor() { return sensor_descriptor; }
   void printSensorDetails();
-  HasSensor begin(uint8_t i2c_address);
+  bool begin(uint8_t i2c_address);
   bool active() { return initialized; }
   bool readyToRead(std::time_t now);
   Bme280 read(std::time_t measured_at);
@@ -80,8 +78,8 @@ struct TvocEco2 {
 using Sgp30 = MeasuredValues<TvocEco2>;
 template <> class Sensor<Sgp30> {
 public:
-  constexpr static uint8_t INTERVAL = 1;                   // 1 seconds
-  constexpr static uint8_t SMA_PERIOD = 1 + 60 / INTERVAL; // 60 minutes
+  constexpr static uint8_t INTERVAL = 1;                    // 1 seconds
+  constexpr static uint8_t SMA_PERIOD = 1 + 120 / INTERVAL; // 120 seconds
   //
   Sensor(SensorDescriptor custom_sensor_descriptor)
       : sensor_descriptor{custom_sensor_descriptor},
@@ -89,8 +87,8 @@ public:
         last_tvoc_eco2{} {}
   SensorDescriptor getSensorDescriptor() { return sensor_descriptor; }
   void printSensorDetails();
-  HasSensor begin(MeasuredValues<BaselineECo2> eco2_base,
-                  MeasuredValues<BaselineTotalVoc> tvoc_base);
+  bool begin(MeasuredValues<BaselineECo2> eco2_base,
+             MeasuredValues<BaselineTotalVoc> tvoc_base);
   bool active() { return initialized; }
   bool readyToRead(std::time_t now);
   Sgp30 read(std::time_t measured_at);
@@ -123,8 +121,8 @@ struct Co2TempHumi {
 using Scd30 = MeasuredValues<Co2TempHumi>;
 template <> class Sensor<Scd30> {
 public:
-  constexpr static uint8_t INTERVAL = 20;                  // 20 seconds
-  constexpr static uint8_t SMA_PERIOD = 1 + 60 / INTERVAL; // 60 minutes
+  constexpr static uint8_t INTERVAL = 20;                   // 20 seconds
+  constexpr static uint8_t SMA_PERIOD = 1 + 120 / INTERVAL; // 120 seconds
   //
   Sensor(SensorDescriptor custom_sensor_descriptor)
       : sensor_descriptor{custom_sensor_descriptor},
@@ -132,7 +130,7 @@ public:
         last_measured_at{0} {}
   SensorDescriptor getSensorDescriptor() { return sensor_descriptor; }
   void printSensorDetails();
-  HasSensor begin();
+  bool begin();
   double uptime(std::time_t now);
   bool active() { return initialized; }
   bool readyToRead(std::time_t now);

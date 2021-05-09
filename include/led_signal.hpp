@@ -22,10 +22,11 @@ public:
         Adafruit_NeoPixel(NUMPIXELS, GPIO_PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
   }
   //
-  void begin() {
+  bool begin() {
     pixels.begin();
     pixels.setBrightness(64);
     offSignal();
+    return true;
   }
   //
   void offSignal() {

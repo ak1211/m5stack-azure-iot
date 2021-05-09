@@ -10,10 +10,11 @@
 #undef max
 #undef min
 
-void SystemPower::begin() {
+bool SystemPower::begin() {
   M5.Axp.SetCHGCurrent(AXP192::kCHG_100mA);
   M5.Axp.SetLcdVoltage(3300);
   M5.Axp.SetLDOVoltage(3, 3300);
+  return true;
 }
 SystemPower::PowerNow SystemPower::power_now() {
   return (M5.Axp.isACIN()) ? PowerNow::External : PowerNow::Internal;

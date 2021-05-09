@@ -22,16 +22,9 @@ public:
   int64_t rawid_carbon_dioxide;
   int64_t rawid_total_voc;
   //
-  LocalDatabase(const std::string &filename)
-      : rawid_temperature{-1},
-        rawid_relative_humidity{-1},
-        rawid_pressure{-1},
-        rawid_carbon_dioxide{-1},
-        rawid_total_voc{-1},
-        sqlite3_filename(filename),
-        database(nullptr) {}
+  LocalDatabase(const std::string &filename);
   //
-  bool healthy() { return (database != nullptr); }
+  bool available() { return _available; }
   //
   bool begin();
   //
@@ -71,80 +64,14 @@ public:
   get_total_vocs_desc(uint64_t sensor_id, size_t limit,
                       CallbackRowTimeAndUint16AndNullableUint16 callback);
   //
-  size_t
-  get_latest_eco2_tvoc_baseline(uint64_t sgp30_sensor_id,
-                                std::time_t &eco2_base_measured_at,
-                                MeasuredValues<BaselineECo2> &eco2_base,
-                                std::time_t &tvoc_base_measured_at,
-                                MeasuredValues<BaselineTotalVoc> &tvoc_base);
-
-  /*
- //
- void printToSerial(Temp t) {
- // time zone offset UTC+9 = asia/tokyo
- std::time_t local_time = t.at + 9 * 60 * 60;
- struct tm local;
- gmtime_r(&local_time, &local);
- char buffer[50];
- strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S+09:00", &local);
- Serial.printf("%s, %f[C]", buffer, t.degc);
- Serial.println("");
- }
- //
- void printToSerial(Humi h) {
- // time zone offset UTC+9 = asia/tokyo
- std::time_t local_time = h.at + 9 * 60 * 60;
- struct tm local;
- gmtime_r(&local_time, &local);
- char buffer[50];
- strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S+09:00", &local);
- Serial.printf("%s, %f[%%]", buffer, h.rh);
- Serial.println("");
- }
- //
- void printToSerial(Pres p) {
- // time zone offset UTC+9 = asia/tokyo
- std::time_t local_time = p.at + 9 * 60 * 60;
- struct tm local;
- gmtime_r(&local_time, &local);
- char buffer[50];
- strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S+09:00", &local);
- Serial.printf("%s, %f[hpa]", buffer, p.hpa);
- Serial.println("");
- }
- //
- void printToSerial(Co2 c) {
- // time zone offset UTC+9 = asia/tokyo
- std::time_t local_time = c.at + 9 * 60 * 60;
- struct tm local;
- gmtime_r(&local_time, &local);
- char buffer[50] = "";
- strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S+09:00", &local);
- if (c.has_baseline) {
- Serial.printf("%s, %d[ppm], %d[baseline]", buffer, c.ppm, c.baseline);
- } else {
- Serial.printf("%s, %d[ppm]", buffer, c.ppm);
- }
- Serial.println("");
- }
- //
- void printToSerial(TVOC t) {
- // time zone offset UTC+9 = asia/tokyo
- std::time_t local_time = t.at + 9 * 60 * 60;
- struct tm local;
- gmtime_r(&local_time, &local);
- char buffer[50] = "";
- strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S+09:00", &local);
- if (t.has_baseline) {
- Serial.printf("%s, %d[ppb], %d[baseline]", buffer, t.ppb, t.baseline);
- } else {
- Serial.printf("%s, %d[ppb]", buffer, t.ppb);
- }
- Serial.println("");
- }
- */
+  std::tuple<bool, std::time_t, BaselineECo2>
+  get_latest_baseline_eco2(uint64_t sensor_id);
+  //
+  std::tuple<bool, std::time_t, BaselineTotalVoc>
+  get_latest_baseline_total_voc(uint64_t sensor_id);
 
 private:
+  bool _available;
   const std::string sqlite3_filename;
   sqlite3 *database;
   //
@@ -162,6 +89,9 @@ private:
   size_t raw_get_n_time_and_uint16_and_nullable_uint16(
       const char *query, uint64_t sensor_id, size_t limit,
       CallbackRowTimeAndUint16AndNullableUint16 callback);
+  //
+  std::tuple<bool, std::time_t, BaselineSGP30T>
+  raw_get_latest_baseline(const char *query, uint64_t sensor_id);
 };
 
 #endif // LOCAL_DATABASE_HPP

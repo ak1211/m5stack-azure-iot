@@ -39,6 +39,32 @@ struct Rectangle {
 };
 
 //
+//
+//
+class Screen::View {
+public:
+  //
+  const uint32_t view_id;
+  int32_t message_text_color;
+  int32_t background_color;
+  //
+  View(uint32_t id, int32_t text_color, int32_t bg_color)
+      : view_id(id),
+        message_text_color(text_color),
+        background_color(bg_color) {}
+  //
+  virtual ~View() {}
+  //
+  virtual bool focusIn() = 0;
+  //
+  virtual void focusOut() = 0;
+  //
+  virtual void releaseEvent(Screen *screen, Event &e) = 0;
+  //
+  virtual void render(const struct tm &local) = 0;
+};
+
+//
 enum RegisteredViewId : uint32_t {
   IdSystemHealthView,
   IdClockView,
@@ -55,6 +81,14 @@ enum RegisteredViewId : uint32_t {
 class SystemHealthView : public Screen::View {
 public:
   SystemHealthView() : View(IdSystemHealthView, TFT_WHITE, TFT_BLACK) {}
+  bool focusIn() override {
+    Screen::lcd.setBaseColor(background_color);
+    Screen::lcd.setTextColor(message_text_color, background_color);
+    Screen::lcd.clear();
+    return true;
+  }
+  void focusOut() override {}
+  void releaseEvent(Screen *screen, Event &e) override {}
   //
   void render(const struct tm &local) override {
     Peripherals &peri = Peripherals::getInstance();
@@ -103,6 +137,8 @@ public:
     //
     Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
     Bme280 bme = peri.bme280.calculateSMA();
+    Sgp30 sgp = peri.sgp30.calculateSMA();
+    Scd30 scd = peri.scd30.calculateSMA();
     if (bme.good()) {
       Screen::lcd.printf("温度 %6.1f ℃\n", bme.get().temperature.value);
       Screen::lcd.printf("湿度 %6.1f ％\n", bme.get().relative_humidity.value);
@@ -112,7 +148,6 @@ public:
       Screen::lcd.printf("湿度 ------ ％\n");
       Screen::lcd.printf("気圧 ------ hPa\n");
     }
-    Sgp30 sgp = peri.sgp30.calculateSMA();
     if (sgp.good()) {
       Screen::lcd.printf("eCO2 %6d ppm\n", sgp.get().eCo2.value);
       Screen::lcd.printf("TVOC %6d ppb\n", sgp.get().tvoc.value);
@@ -120,7 +155,6 @@ public:
       Screen::lcd.printf("eCO2 ------ ppm\n");
       Screen::lcd.printf("TVOC ------ ppb\n");
     }
-    Scd30 scd = peri.scd30.calculateSMA();
     if (scd.good()) {
       Screen::lcd.printf("CO2  %6d ppm\n", scd.get().co2.value);
       Screen::lcd.printf("温度 %6.1f ℃\n", scd.get().temperature.value);
@@ -137,6 +171,14 @@ public:
 class ClockView : public Screen::View {
 public:
   ClockView() : View(IdClockView, TFT_WHITE, TFT_BLACK) {}
+  bool focusIn() override {
+    Screen::lcd.setBaseColor(background_color);
+    Screen::lcd.setTextColor(message_text_color, background_color);
+    Screen::lcd.clear();
+    return true;
+  }
+  void focusOut() override {}
+  void releaseEvent(Screen *screen, Event &e) override {}
   //
   void render(const struct tm &local) override {
     const auto half_width = Screen::lcd.width() / 2;
@@ -208,8 +250,8 @@ public:
   Rectangle rect;
   Tile(uint32_t tapToMoveViewId, const CaptionT &caption_, int32_t text_col,
        int32_t bg_col)
-      : tap_to_move_view_id(tapToMoveViewId),
-        caption(caption_),
+      : tap_to_move_view_id{tapToMoveViewId},
+        caption{caption_},
         before{},
         now{} {
     text_color = text_col;
@@ -302,22 +344,23 @@ public:
     const int16_t w = Screen::lcd.width() / 3;
     const int16_t h = Screen::lcd.height() / 2;
     //
-    if (Screen::View::focusIn()) {
-      for (int16_t i = 0; i < tiles.size(); ++i) {
-        int16_t col = i % 3;
-        int16_t row = i / 3;
-        Rectangle r;
-        r.x = w * col;
-        r.y = h * row;
-        r.w = w;
-        r.h = h;
-        tiles[i].setRectangle(r).prepare();
-      }
-      return true;
-    } else {
-      return false;
+    Screen::lcd.setBaseColor(background_color);
+    Screen::lcd.setTextColor(message_text_color, background_color);
+    Screen::lcd.clear();
+    //
+    for (int16_t i = 0; i < tiles.size(); ++i) {
+      int16_t col = i % 3;
+      int16_t row = i / 3;
+      Rectangle r;
+      r.x = w * col;
+      r.y = h * row;
+      r.w = w;
+      r.h = h;
+      tiles[i].setRectangle(r).prepare();
     }
+    return true;
   }
+  void focusOut() override {}
   //
   void releaseEvent(Screen *screen, Event &e) override {
     Coord c = {
@@ -405,12 +448,9 @@ public:
   constexpr static int16_t graph_width = 240;
   constexpr static int16_t graph_height = 180;
   //
-  GraphView(uint32_t id, int32_t text_color, int32_t bg_color,
-            LocalDatabase &local_database, double vmin, double vmax)
-      : View(id, text_color, bg_color),
-        database(local_database),
-        value_min(vmin),
-        value_max(vmax) {
+  GraphView(uint32_t id, int32_t text_color, int32_t bg_color, double vmin,
+            double vmax)
+      : View(id, text_color, bg_color), value_min(vmin), value_max(vmax) {
     //
     setOffset(0, 0);
     locators.push_back(value_min);
@@ -494,7 +534,6 @@ public:
   }
 
 protected:
-  LocalDatabase &database;
   int16_t graph_offset_x;
   int16_t graph_offset_y;
   const double value_min;
@@ -505,9 +544,8 @@ protected:
 //
 class TemperatureGraphView : public GraphView {
 public:
-  TemperatureGraphView(LocalDatabase &local_database)
-      : GraphView(IdTemperatureGraphView, TFT_WHITE, TFT_BLACK, local_database,
-                  -10.0, 60.0) {
+  TemperatureGraphView()
+      : GraphView(IdTemperatureGraphView, TFT_WHITE, TFT_BLACK, -10.0, 60.0) {
     locators.push_back(0.0);
     locators.push_back(20.0);
     locators.push_back(40.0);
@@ -518,16 +556,11 @@ public:
               Screen::lcd.height() - (graph_height + graph_margin * 2) - 1);
     //
     init_rawid();
-    if (!database.healthy()) {
-      return false;
-    }
-    if (Screen::View::focusIn()) {
-      prepare();
-      return true;
-    } else {
-      return false;
-    }
+    prepare();
+    return true;
   }
+  void focusOut() override {}
+  void releaseEvent(Screen *screen, Event &e) override {}
   //
   void showUpdateMessage() {
     Screen::lcd.setTextDatum(textdatum_t::middle_center);
@@ -546,6 +579,10 @@ public:
   }
   //
   void prepare() {
+    Screen::lcd.setBaseColor(background_color);
+    Screen::lcd.setTextColor(message_text_color, background_color);
+    Screen::lcd.clear();
+    //
     grid();
     //
     Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
@@ -560,7 +597,7 @@ public:
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
-    if (1 <= local.tm_sec && local.tm_sec <= 50) {
+    if (1 <= local.tm_sec && local.tm_sec <= 55) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
@@ -588,9 +625,9 @@ public:
       //
       Peripherals &peri = Peripherals::getInstance();
       showUpdateMessage();
-      database.get_temperatures_desc(peri.bme280.getSensorDescriptor().id,
-                                     graph_width / step, callback);
-      rawid = database.rawid_temperature;
+      peri.local_database.get_temperatures_desc(
+          peri.bme280.getSensorDescriptor().id, graph_width / step, callback);
+      rawid = peri.local_database.rawid_temperature;
       grid();
     } else {
       showUpdateMessage();
@@ -601,16 +638,20 @@ private:
   int64_t rawid;
   //
   inline void init_rawid() { rawid = INT64_MIN; }
-  inline void update_rawid() { rawid = database.rawid_temperature; }
-  inline bool need_for_update() { return rawid != database.rawid_temperature; }
+  inline void update_rawid() {
+    rawid = Peripherals::getInstance().local_database.rawid_temperature;
+  }
+  inline bool need_for_update() {
+    return rawid != Peripherals::getInstance().local_database.rawid_temperature;
+  }
 };
 
 //
 class RelativeHumidityGraphView : public GraphView {
 public:
-  RelativeHumidityGraphView(LocalDatabase &local_database)
-      : GraphView(IdRelativeHumidityGraphView, TFT_WHITE, TFT_BLACK,
-                  local_database, 0.0, 100.0) {
+  RelativeHumidityGraphView()
+      : GraphView(IdRelativeHumidityGraphView, TFT_WHITE, TFT_BLACK, 0.0,
+                  100.0) {
     locators.push_back(25.0);
     locators.push_back(50.0);
     locators.push_back(75.0);
@@ -621,16 +662,11 @@ public:
               Screen::lcd.height() - (graph_height + graph_margin * 2) - 1);
     //
     init_rawid();
-    if (!database.healthy()) {
-      return false;
-    }
-    if (Screen::View::focusIn()) {
-      prepare();
-      return true;
-    } else {
-      return false;
-    }
+    prepare();
+    return true;
   }
+  void focusOut() override {}
+  void releaseEvent(Screen *screen, Event &e) override {}
   //
   void showUpdateMessage() {
     Screen::lcd.setTextDatum(textdatum_t::middle_center);
@@ -649,6 +685,10 @@ public:
   }
   //
   void prepare() {
+    Screen::lcd.setBaseColor(background_color);
+    Screen::lcd.setTextColor(message_text_color, background_color);
+    Screen::lcd.clear();
+    //
     grid();
     //
     Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
@@ -663,7 +703,7 @@ public:
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
-    if (1 <= local.tm_sec && local.tm_sec <= 50) {
+    if (1 <= local.tm_sec && local.tm_sec <= 55) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
@@ -691,7 +731,7 @@ public:
       //
       showUpdateMessage();
       Peripherals &peri = Peripherals::getInstance();
-      database.get_relative_humidities_desc(
+      peri.local_database.get_relative_humidities_desc(
           peri.bme280.getSensorDescriptor().id, graph_width / step, callback);
       update_rawid();
       grid();
@@ -704,18 +744,20 @@ private:
   int64_t rawid;
   //
   inline void init_rawid() { rawid = INT64_MIN; }
-  inline void update_rawid() { rawid = database.rawid_relative_humidity; }
+  inline void update_rawid() {
+    rawid = Peripherals::getInstance().local_database.rawid_relative_humidity;
+  }
   inline bool need_for_update() {
-    return rawid != database.rawid_relative_humidity;
+    return rawid !=
+           Peripherals::getInstance().local_database.rawid_relative_humidity;
   }
 };
 
 //
 class PressureGraphView : public GraphView {
 public:
-  PressureGraphView(LocalDatabase &local_database)
-      : GraphView(IdPressureGraphView, TFT_WHITE, TFT_BLACK, local_database,
-                  940.0, 1060.0) {
+  PressureGraphView()
+      : GraphView(IdPressureGraphView, TFT_WHITE, TFT_BLACK, 940.0, 1060.0) {
     locators.push_back(970.0);
     locators.push_back(1000.0);
     locators.push_back(1030.0);
@@ -726,16 +768,11 @@ public:
               Screen::lcd.height() - (graph_height + graph_margin * 2) - 1);
     //
     init_rawid();
-    if (!database.healthy()) {
-      return false;
-    }
-    if (Screen::View::focusIn()) {
-      prepare();
-      return true;
-    } else {
-      return false;
-    }
+    prepare();
+    return true;
   }
+  void focusOut() override {}
+  void releaseEvent(Screen *screen, Event &e) override {}
   //
   void showUpdateMessage() {
     Screen::lcd.setTextDatum(textdatum_t::middle_center);
@@ -754,6 +791,10 @@ public:
   }
   //
   void prepare() {
+    Screen::lcd.setBaseColor(background_color);
+    Screen::lcd.setTextColor(message_text_color, background_color);
+    Screen::lcd.clear();
+    //
     grid();
     //
     Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
@@ -768,7 +809,7 @@ public:
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
-    if (1 <= local.tm_sec && local.tm_sec <= 50) {
+    if (1 <= local.tm_sec && local.tm_sec <= 55) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
@@ -796,8 +837,8 @@ public:
       //
       showUpdateMessage();
       Peripherals &peri = Peripherals::getInstance();
-      database.get_pressures_desc(peri.bme280.getSensorDescriptor().id,
-                                  graph_width / step, callback);
+      peri.local_database.get_pressures_desc(
+          peri.bme280.getSensorDescriptor().id, graph_width / step, callback);
       update_rawid();
       grid();
     } else {
@@ -809,16 +850,19 @@ private:
   int64_t rawid;
   //
   inline void init_rawid() { rawid = INT64_MIN; }
-  inline void update_rawid() { rawid = database.rawid_pressure; }
-  inline bool need_for_update() { return rawid != database.rawid_pressure; }
+  inline void update_rawid() {
+    rawid = Peripherals::getInstance().local_database.rawid_pressure;
+  }
+  inline bool need_for_update() {
+    return rawid != Peripherals::getInstance().local_database.rawid_pressure;
+  }
 };
 
 //
 class TotalVocGraphView : public GraphView {
 public:
-  TotalVocGraphView(LocalDatabase &local_database)
-      : GraphView(IdTotalVocGraphView, TFT_WHITE, TFT_BLACK, local_database,
-                  0.0, 6000.0) {
+  TotalVocGraphView()
+      : GraphView(IdTotalVocGraphView, TFT_WHITE, TFT_BLACK, 0.0, 6000.0) {
     locators.push_back(2000.0);
     locators.push_back(4000.0);
   }
@@ -828,16 +872,11 @@ public:
               Screen::lcd.height() - (graph_height + graph_margin * 2) - 1);
     //
     init_rawid();
-    if (!database.healthy()) {
-      return false;
-    }
-    if (Screen::View::focusIn()) {
-      prepare();
-      return true;
-    } else {
-      return false;
-    }
+    prepare();
+    return true;
   }
+  void focusOut() override {}
+  void releaseEvent(Screen *screen, Event &e) override {}
   //
   void showUpdateMessage() {
     Screen::lcd.setTextDatum(textdatum_t::middle_center);
@@ -856,6 +895,10 @@ public:
   }
   //
   void prepare() {
+    Screen::lcd.setBaseColor(background_color);
+    Screen::lcd.setTextColor(message_text_color, background_color);
+    Screen::lcd.clear();
+    //
     grid();
     //
     Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
@@ -870,7 +913,7 @@ public:
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
-    if (1 <= local.tm_sec && local.tm_sec <= 50) {
+    if (1 <= local.tm_sec && local.tm_sec <= 55) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
@@ -899,8 +942,8 @@ public:
       //
       showUpdateMessage();
       Peripherals &peri = Peripherals::getInstance();
-      database.get_total_vocs_desc(peri.sgp30.getSensorDescriptor().id,
-                                   graph_width / step, callback);
+      peri.local_database.get_total_vocs_desc(
+          peri.sgp30.getSensorDescriptor().id, graph_width / step, callback);
       update_rawid();
       grid();
     } else {
@@ -912,16 +955,19 @@ private:
   int64_t rawid;
   //
   inline void init_rawid() { rawid = INT64_MIN; }
-  inline void update_rawid() { rawid = database.rawid_total_voc; }
-  inline bool need_for_update() { return rawid != database.rawid_total_voc; }
+  inline void update_rawid() {
+    rawid = Peripherals::getInstance().local_database.rawid_total_voc;
+  }
+  inline bool need_for_update() {
+    return rawid != Peripherals::getInstance().local_database.rawid_total_voc;
+  }
 };
 
 //
 class EquivalentCo2GraphView : public GraphView {
 public:
-  EquivalentCo2GraphView(LocalDatabase &local_database)
-      : GraphView(IdEquivalentCo2GraphView, TFT_WHITE, TFT_BLACK,
-                  local_database, 0.0, 4000.0) {
+  EquivalentCo2GraphView()
+      : GraphView(IdEquivalentCo2GraphView, TFT_WHITE, TFT_BLACK, 0.0, 4000.0) {
     locators.push_back(400.0);
     locators.push_back(1000.0);
     locators.push_back(2000.0);
@@ -933,16 +979,11 @@ public:
               Screen::lcd.height() - (graph_height + graph_margin * 2) - 1);
     //
     init_rawid();
-    if (!database.healthy()) {
-      return false;
-    }
-    if (Screen::View::focusIn()) {
-      prepare();
-      return true;
-    } else {
-      return false;
-    }
+    prepare();
+    return true;
   }
+  void focusOut() override {}
+  void releaseEvent(Screen *screen, Event &e) override {}
   //
   void showUpdateMessage() {
     Screen::lcd.setTextDatum(textdatum_t::middle_center);
@@ -961,6 +1002,10 @@ public:
   }
   //
   void prepare() {
+    Screen::lcd.setBaseColor(background_color);
+    Screen::lcd.setTextColor(message_text_color, background_color);
+    Screen::lcd.clear();
+    //
     grid();
     //
     Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
@@ -975,7 +1020,7 @@ public:
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
-    if (1 <= local.tm_sec && local.tm_sec <= 50) {
+    if (1 <= local.tm_sec && local.tm_sec <= 55) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
@@ -1004,8 +1049,8 @@ public:
       //
       showUpdateMessage();
       Peripherals &peri = Peripherals::getInstance();
-      database.get_carbon_deoxides_desc(peri.sgp30.getSensorDescriptor().id,
-                                        graph_width / step, callback);
+      peri.local_database.get_carbon_deoxides_desc(
+          peri.sgp30.getSensorDescriptor().id, graph_width / step, callback);
       update_rawid();
       grid();
     } else {
@@ -1017,18 +1062,20 @@ private:
   int64_t rawid;
   //
   inline void init_rawid() { rawid = INT64_MIN; }
-  inline void update_rawid() { rawid = database.rawid_carbon_dioxide; }
+  inline void update_rawid() {
+    rawid = Peripherals::getInstance().local_database.rawid_carbon_dioxide;
+  }
   inline bool need_for_update() {
-    return rawid != database.rawid_carbon_dioxide;
+    return rawid !=
+           Peripherals::getInstance().local_database.rawid_carbon_dioxide;
   }
 };
 
 //
 class Co2GraphView : public GraphView {
 public:
-  Co2GraphView(LocalDatabase &local_database)
-      : GraphView(IdCo2GraphView, TFT_WHITE, TFT_BLACK, local_database, 0.0,
-                  4000.0) {
+  Co2GraphView()
+      : GraphView(IdCo2GraphView, TFT_WHITE, TFT_BLACK, 0.0, 4000.0) {
     locators.push_back(400.0);
     locators.push_back(1000.0);
     locators.push_back(2000.0);
@@ -1040,16 +1087,11 @@ public:
               Screen::lcd.height() - (graph_height + graph_margin * 2) - 1);
     //
     init_rawid();
-    if (!database.healthy()) {
-      return false;
-    }
-    if (Screen::View::focusIn()) {
-      prepare();
-      return true;
-    } else {
-      return false;
-    }
+    prepare();
+    return true;
   }
+  void focusOut() override {}
+  void releaseEvent(Screen *screen, Event &e) override {}
   //
   void showUpdateMessage() {
     Screen::lcd.setTextDatum(textdatum_t::middle_center);
@@ -1068,6 +1110,10 @@ public:
   }
   //
   void prepare() {
+    Screen::lcd.setBaseColor(background_color);
+    Screen::lcd.setTextColor(message_text_color, background_color);
+    Screen::lcd.clear();
+    //
     grid();
     //
     Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
@@ -1082,7 +1128,7 @@ public:
     //
     // 次回の測定(毎分0秒)を邪魔しない時間を選んで作業を開始する。
     //
-    if (1 <= local.tm_sec && local.tm_sec <= 50) {
+    if (1 <= local.tm_sec && local.tm_sec <= 55) {
       const int16_t y_top = coord_y(value_max);
       const int16_t y_bottom = coord_y(value_min);
       const int16_t y_length = abs(y_bottom - y_top);
@@ -1111,8 +1157,8 @@ public:
       //
       showUpdateMessage();
       Peripherals &peri = Peripherals::getInstance();
-      database.get_carbon_deoxides_desc(peri.scd30.getSensorDescriptor().id,
-                                        graph_width / step, callback);
+      peri.local_database.get_carbon_deoxides_desc(
+          peri.scd30.getSensorDescriptor().id, graph_width / step, callback);
       update_rawid();
       grid();
     } else {
@@ -1124,9 +1170,12 @@ private:
   int64_t rawid;
   //
   inline void init_rawid() { rawid = INT64_MIN; }
-  inline void update_rawid() { rawid = database.rawid_carbon_dioxide; }
+  inline void update_rawid() {
+    rawid = Peripherals::getInstance().local_database.rawid_carbon_dioxide;
+  }
   inline bool need_for_update() {
-    return rawid != database.rawid_carbon_dioxide;
+    return rawid !=
+           Peripherals::getInstance().local_database.rawid_carbon_dioxide;
   }
 };
 
@@ -1134,29 +1183,34 @@ private:
 LGFX Screen::lcd;
 
 //
-Screen::Screen(LocalDatabase &local_database)
+Screen::Screen()
     : views{new ClockView(),
             new SummaryView(),
-            new TemperatureGraphView(local_database),
-            new RelativeHumidityGraphView(local_database),
-            new PressureGraphView(local_database),
-            new TotalVocGraphView(local_database),
-            new EquivalentCo2GraphView(local_database),
-            new Co2GraphView(local_database),
+            new TemperatureGraphView(),
+            new RelativeHumidityGraphView(),
+            new PressureGraphView(),
+            new TotalVocGraphView(),
+            new EquivalentCo2GraphView(),
+            new Co2GraphView(),
             new SystemHealthView(),
             },
-      now_view(0) {}
+      now_view{0} {}
 
 //
-void Screen::begin(int32_t text_color, int32_t bg_color) {
+Screen::~Screen() {
+  for (std::size_t i = 0; i < views.size(); ++i) {
+    delete views[i];
+  }
+}
+
+//
+bool Screen::begin(int32_t text_color, int32_t bg_color) {
   Screen::lcd.init();
   Screen::lcd.setBaseColor(TFT_BLACK);
   Screen::lcd.setTextColor(text_color, bg_color);
   Screen::lcd.setCursor(0, 0);
   Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
-  //
-  now_view = 0;
-  views[now_view]->focusIn();
+  return true;
 }
 
 //
@@ -1178,19 +1232,19 @@ void Screen::home() { moveToView(0); }
 
 //
 void Screen::prev() {
-  int8_t go = (now_view + total_views - 1) % total_views;
+  auto go = (now_view + views.size() - 1) % views.size();
   moveToView(go);
 }
 
 //
 void Screen::next() {
-  int8_t go = (now_view + 1) % total_views;
+  auto go = (now_view + 1) % views.size();
   moveToView(go);
 }
 
 //
 bool Screen::moveByViewId(uint32_t view_id) {
-  for (int16_t i = 0; i < sizeof(views); ++i) {
+  for (std::size_t i = 0; i < views.size(); ++i) {
     if (views[i]->view_id == view_id) {
       return moveToView(i);
     }
@@ -1199,7 +1253,7 @@ bool Screen::moveByViewId(uint32_t view_id) {
 }
 
 //
-void Screen::update(time_t time) {
+void Screen::update(std::time_t time) {
   // time zone offset UTC+9 = asia/tokyo
   time_t local_time = time + 9 * 60 * 60;
   struct tm local;
@@ -1209,7 +1263,7 @@ void Screen::update(time_t time) {
 }
 
 //
-void Screen::repaint(time_t time) {
+void Screen::repaint(std::time_t time) {
   views[now_view]->focusIn();
   update(time);
 }

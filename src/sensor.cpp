@@ -25,20 +25,20 @@ void Sensor<Bme280>::printSensorDetails() {
   }
 }
 //
-HasSensor Sensor<Bme280>::begin(uint8_t i2c_address) {
+bool Sensor<Bme280>::begin(uint8_t i2c_address) {
+  initialized = false;
   if (!bme280.begin(i2c_address)) {
-    return HasSensor::NoSensorFound;
+    return initialized;
   }
-  // weather monitoring
-  // forced mode, 1x temperature / 1x humidity / 1x pressure oversampling,
-  // filter off
-  bme280.setSampling(Adafruit_BME280::MODE_FORCED,
-                     Adafruit_BME280::SAMPLING_X1, // temperature
-                     Adafruit_BME280::SAMPLING_X1, // pressure
-                     Adafruit_BME280::SAMPLING_X1, // humidity
-                     Adafruit_BME280::FILTER_OFF);
+  // indoor navigation
+  bme280.setSampling(Adafruit_BME280::MODE_NORMAL,
+                     Adafruit_BME280::SAMPLING_X16, // temperature
+                     Adafruit_BME280::SAMPLING_X16, // pressure
+                     Adafruit_BME280::SAMPLING_X16, // humidity
+                     Adafruit_BME280::FILTER_X16,
+                     Adafruit_BME280::STANDBY_MS_125);
   initialized = true;
-  return HasSensor::Ok;
+  return initialized;
 }
 //
 bool Sensor<Bme280>::readyToRead(std::time_t now) {
@@ -109,10 +109,11 @@ void Sensor<Sgp30>::printSensorDetails() {
                 sgp30.serialnumber[2]);
 }
 //
-HasSensor Sensor<Sgp30>::begin(MeasuredValues<BaselineECo2> eco2_base,
-                               MeasuredValues<BaselineTotalVoc> tvoc_base) {
+bool Sensor<Sgp30>::begin(MeasuredValues<BaselineECo2> eco2_base,
+                          MeasuredValues<BaselineTotalVoc> tvoc_base) {
+  initialized = false;
   if (!sgp30.begin()) {
-    return HasSensor::NoSensorFound;
+    return initialized;
   }
   if (eco2_base.good() && tvoc_base.good()) {
     // baseline set to SGP30
@@ -126,7 +127,7 @@ HasSensor Sensor<Sgp30>::begin(MeasuredValues<BaselineECo2> eco2_base,
     ESP_LOGI(TAG, "SGP30 built-in Automatic Baseline Correction algorithm.");
   }
   initialized = true;
-  return HasSensor::Ok;
+  return initialized;
 }
 //
 bool Sensor<Sgp30>::readyToRead(std::time_t now) {
@@ -223,12 +224,13 @@ void Sensor<Scd30>::printSensorDetails() {
   }
 }
 //
-HasSensor Sensor<Scd30>::begin() {
+bool Sensor<Scd30>::begin() {
+  initialized = false;
   if (!scd30.begin()) {
-    return HasSensor::NoSensorFound;
+    return initialized;
   }
   initialized = true;
-  return HasSensor::Ok;
+  return initialized;
 }
 //
 bool Sensor<Scd30>::readyToRead(std::time_t now) {
