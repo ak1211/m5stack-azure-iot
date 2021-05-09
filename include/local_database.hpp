@@ -64,11 +64,11 @@ public:
   get_total_vocs_desc(uint64_t sensor_id, size_t limit,
                       CallbackRowTimeAndUint16AndNullableUint16 callback);
   //
-  size_t get_latest_baseline_eco2(uint64_t sensor_id, std::time_t &measured_at,
-                                  MeasuredValues<BaselineECo2> &baseline_eco2);
-  size_t get_latest_baseline_total_voc(
-      uint64_t sensor_id, std::time_t &measured_at,
-      MeasuredValues<BaselineTotalVoc> &baseline_tvoc);
+  std::tuple<bool, std::time_t, BaselineECo2>
+  get_latest_baseline_eco2(uint64_t sensor_id);
+  //
+  std::tuple<bool, std::time_t, BaselineTotalVoc>
+  get_latest_baseline_total_voc(uint64_t sensor_id);
 
   /*
  //
@@ -155,6 +155,9 @@ private:
   size_t raw_get_n_time_and_uint16_and_nullable_uint16(
       const char *query, uint64_t sensor_id, size_t limit,
       CallbackRowTimeAndUint16AndNullableUint16 callback);
+  //
+  std::tuple<bool, std::time_t, BaselineSGP30T>
+  raw_get_latest_baseline(const char *query, uint64_t sensor_id);
 };
 
 #endif // LOCAL_DATABASE_HPP

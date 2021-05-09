@@ -4,6 +4,7 @@
 //
 #include "local_database.hpp"
 #include <Arduino.h>
+#include <tuple>
 
 constexpr static const char *TAG = "DbModule";
 
@@ -185,9 +186,8 @@ size_t LocalDatabase::get_total_vocs_desc(
                                                        callback);
 }
 //
-size_t LocalDatabase::get_latest_baseline_eco2(
-    uint64_t sensor_id, std::time_t &measured_at,
-    MeasuredValues<BaselineECo2> &baseline_eco2) {
+std::tuple<bool, std::time_t, BaselineECo2>
+LocalDatabase::get_latest_baseline_eco2(uint64_t sensor_id) {
   static const char query[] = "SELECT"
                               " sensor_id" // 0
                               ",at"        // 1
@@ -197,54 +197,13 @@ size_t LocalDatabase::get_latest_baseline_eco2(
                               " AND baseline NOTNULL"
                               " ORDER BY at DESC"
                               " LIMIT 1;";
-  sqlite3_stmt *stmt = nullptr;
-  int result;
-
-  // clear the outputs
-  baseline_eco2 = MeasuredValues<BaselineECo2>();
-
-  result = sqlite3_prepare_v2(database, query, -1, &stmt, nullptr);
-  if (result != SQLITE_OK) {
-    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
-    goto error;
-  }
-  //
-  result = sqlite3_bind_int64(stmt, 1, sensor_id);
-  if (result != SQLITE_OK) {
-    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
-    goto error;
-  }
-  //
-  {
-    size_t counter = 0;
-    while (sqlite3_step(stmt) == SQLITE_ROW) {
-      // number 0 is sensor_id
-      int64_t at = sqlite3_column_int64(stmt, 1);
-      measured_at = static_cast<std::time_t>(at);
-      if (sqlite3_column_type(stmt, 2) != SQLITE_NULL) {
-        uint16_t baseline = sqlite3_column_int(stmt, 2);
-        baseline_eco2 = MeasuredValues<BaselineECo2>(baseline);
-      }
-      counter++;
-    }
-    result = sqlite3_finalize(stmt);
-    if (result != SQLITE_OK) {
-      ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
-      stmt = nullptr; // omit double finalize
-      goto error;
-    }
-
-    return counter;
-  }
-
-error:
-  sqlite3_finalize(stmt);
-  return 0;
+  auto result = raw_get_latest_baseline(query, sensor_id);
+  return std::make_tuple(std::get<0>(result), std::get<1>(result),
+                         BaselineECo2(std::get<2>(result)));
 }
 //
-size_t LocalDatabase::get_latest_baseline_total_voc(
-    uint64_t sensor_id, std::time_t &measured_at,
-    MeasuredValues<BaselineTotalVoc> &baseline_total_voc) {
+std::tuple<bool, std::time_t, BaselineTotalVoc>
+LocalDatabase::get_latest_baseline_total_voc(uint64_t sensor_id) {
   static const char query[] = "SELECT"
                               " sensor_id" // 0
                               ",at"        // 1
@@ -254,49 +213,9 @@ size_t LocalDatabase::get_latest_baseline_total_voc(
                               " AND baseline NOTNULL"
                               " ORDER BY at DESC"
                               " LIMIT 1;";
-  sqlite3_stmt *stmt = nullptr;
-  int result;
-
-  // clear the outputs
-  baseline_total_voc = MeasuredValues<BaselineTotalVoc>();
-
-  result = sqlite3_prepare_v2(database, query, -1, &stmt, nullptr);
-  if (result != SQLITE_OK) {
-    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
-    goto error;
-  }
-  //
-  result = sqlite3_bind_int64(stmt, 1, sensor_id);
-  if (result != SQLITE_OK) {
-    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
-    goto error;
-  }
-  //
-  {
-    size_t counter = 0;
-    while (sqlite3_step(stmt) == SQLITE_ROW) {
-      // number 0 is sensor_id
-      int64_t at = sqlite3_column_int64(stmt, 1);
-      measured_at = static_cast<std::time_t>(at);
-      if (sqlite3_column_type(stmt, 2) != SQLITE_NULL) {
-        uint16_t baseline = sqlite3_column_int(stmt, 2);
-        baseline_total_voc = MeasuredValues<BaselineTotalVoc>(baseline);
-      }
-      counter++;
-    }
-    result = sqlite3_finalize(stmt);
-    if (result != SQLITE_OK) {
-      ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
-      stmt = nullptr; // omit double finalize
-      goto error;
-    }
-
-    return counter;
-  }
-
-error:
-  sqlite3_finalize(stmt);
-  return 0;
+  auto result = raw_get_latest_baseline(query, sensor_id);
+  return std::make_tuple(std::get<0>(result), std::get<1>(result),
+                         BaselineTotalVoc(std::get<2>(result)));
 }
 
 //
@@ -661,4 +580,52 @@ size_t LocalDatabase::raw_get_n_time_and_uint16_and_nullable_uint16(
 error:
   sqlite3_finalize(stmt);
   return 0;
+}
+
+//
+//
+//
+std::tuple<bool, std::time_t, BaselineSGP30T>
+LocalDatabase::raw_get_latest_baseline(const char *query, uint64_t sensor_id) {
+  sqlite3_stmt *stmt = nullptr;
+  int result;
+  auto retval = std::make_tuple(false, 0, 0);
+
+  result = sqlite3_prepare_v2(database, query, -1, &stmt, nullptr);
+  if (result != SQLITE_OK) {
+    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+    goto error;
+  }
+  //
+  result = sqlite3_bind_int64(stmt, 1, sensor_id);
+  if (result != SQLITE_OK) {
+    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+    goto error;
+  }
+  //
+  {
+    size_t counter = 0;
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+      // number 0 is sensor_id
+      int64_t at = sqlite3_column_int64(stmt, 1);
+      if (sqlite3_column_type(stmt, 2) != SQLITE_NULL) {
+        uint16_t baseline = sqlite3_column_int(stmt, 2);
+        retval = std::make_tuple(true, static_cast<std::time_t>(at),
+                                 static_cast<BaselineSGP30T>(baseline));
+      }
+      counter++;
+    }
+    result = sqlite3_finalize(stmt);
+    if (result != SQLITE_OK) {
+      ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+      stmt = nullptr; // omit double finalize
+      goto error;
+    }
+
+    return retval;
+  }
+
+error:
+  sqlite3_finalize(stmt);
+  return retval;
 }

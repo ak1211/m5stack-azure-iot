@@ -39,6 +39,37 @@ struct Rectangle {
 };
 
 //
+//
+//
+class Screen::View {
+public:
+  //
+  const uint32_t view_id;
+  int32_t message_text_color;
+  int32_t background_color;
+  //
+  View(uint32_t id, int32_t text_color, int32_t bg_color)
+      : view_id(id),
+        message_text_color(text_color),
+        background_color(bg_color) {}
+  //
+  virtual ~View() {}
+  //
+  virtual bool focusIn() {
+    Screen::lcd.setBaseColor(background_color);
+    Screen::lcd.setTextColor(message_text_color, background_color);
+    Screen::lcd.clear();
+    return true;
+  }
+  //
+  virtual void focusOut() {}
+  //
+  virtual void releaseEvent(Screen *screen, Event &e) {}
+  //
+  virtual void render(const struct tm &local) {}
+};
+
+//
 enum RegisteredViewId : uint32_t {
   IdSystemHealthView,
   IdClockView,
@@ -1148,6 +1179,13 @@ Screen::Screen(LocalDatabase &local_database)
       now_view(0) {}
 
 //
+Screen::~Screen() {
+  for (std::size_t i = 0; i < views.size(); ++i) {
+    delete views[i];
+  }
+}
+
+//
 bool Screen::begin(int32_t text_color, int32_t bg_color) {
   Screen::lcd.init();
   Screen::lcd.setBaseColor(TFT_BLACK);
@@ -1176,19 +1214,19 @@ void Screen::home() { moveToView(0); }
 
 //
 void Screen::prev() {
-  int8_t go = (now_view + total_views - 1) % total_views;
+  auto go = (now_view + views.size() - 1) % views.size();
   moveToView(go);
 }
 
 //
 void Screen::next() {
-  int8_t go = (now_view + 1) % total_views;
+  auto go = (now_view + 1) % views.size();
   moveToView(go);
 }
 
 //
 bool Screen::moveByViewId(uint32_t view_id) {
-  for (int16_t i = 0; i < sizeof(views); ++i) {
+  for (std::size_t i = 0; i < views.size(); ++i) {
     if (views[i]->view_id == view_id) {
       return moveToView(i);
     }
@@ -1197,7 +1235,7 @@ bool Screen::moveByViewId(uint32_t view_id) {
 }
 
 //
-void Screen::update(time_t time) {
+void Screen::update(std::time_t time) {
   // time zone offset UTC+9 = asia/tokyo
   time_t local_time = time + 9 * 60 * 60;
   struct tm local;

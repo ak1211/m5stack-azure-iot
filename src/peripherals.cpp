@@ -4,6 +4,7 @@
 //
 #include "peripherals.hpp"
 #include <lwip/apps/sntp.h>
+#include <tuple>
 
 constexpr static const char *TAG = "PeripheralsModule";
 
@@ -44,7 +45,7 @@ bool Peripherals::begin(const std::string &wifi_ssid,
   // initialize module: WifiLauncher
   bool available_wifi = _instance.wifi_launcher.begin(wifi_ssid, wifi_password);
   if (available_wifi) {
-    ESP_LOGD(TAG, "initialize module: Wifilauncher Ok.");
+    ESP_LOGD(TAG, "initialize module: WifiLauncher Ok.");
   }
   // initialize module: IotHubClient
   if (_instance.iothub_client.begin(iothub_connectionstring)) {
@@ -62,33 +63,26 @@ bool Peripherals::begin(const std::string &wifi_ssid,
   // initializing sensor
   {
     // get baseline for "Sensirion SGP30: Air Quality Sensor" from database
-    size_t count;
-    std::time_t baseline_eco2_measured_at;
     MeasuredValues<BaselineECo2> baseline_eco2;
-    count = _instance.local_database.get_latest_baseline_eco2(
-        _instance.sgp30.getSensorDescriptor().id, baseline_eco2_measured_at,
-        baseline_eco2);
-    if (baseline_eco2.good()) {
-      ESP_LOGD(
-          TAG,
-          "get_latest_baseline_eco2: count(%d), eco2_at(%d), baseline_eco2(%d)",
-          count, baseline_eco2_measured_at, baseline_eco2.get().value);
+    auto eco2 = _instance.local_database.get_latest_baseline_eco2(
+        _instance.sgp30.getSensorDescriptor().id);
+    if (std::get<0>(eco2)) {
+      baseline_eco2 = MeasuredValues<BaselineECo2>(std::get<2>(eco2));
+      ESP_LOGD(TAG, "get_latest_baseline_eco2: at(%d), baseline(%d)",
+               std::get<1>(eco2), std::get<2>(eco2));
     } else {
-      ESP_LOGD(TAG, "get_latest_baseline_eco2: count(%d).", count);
+      ESP_LOGD(TAG, "get_latest_baseline_eco2: failed.");
     }
     //
-    std::time_t baseline_tvoc_measured_at;
     MeasuredValues<BaselineTotalVoc> baseline_tvoc;
-    count = _instance.local_database.get_latest_baseline_total_voc(
-        _instance.sgp30.getSensorDescriptor().id, baseline_tvoc_measured_at,
-        baseline_tvoc);
-    if (baseline_tvoc.good()) {
-      ESP_LOGD(TAG,
-               "get_latest_baseline_total_voc: count(%d), tvoc_at(%d), "
-               "baseline_tvoc(%d)",
-               count, baseline_tvoc_measured_at, baseline_tvoc.get().value);
+    auto tvoc = _instance.local_database.get_latest_baseline_total_voc(
+        _instance.sgp30.getSensorDescriptor().id);
+    if (std::get<0>(tvoc)) {
+      baseline_tvoc = MeasuredValues<BaselineTotalVoc>(std::get<2>(tvoc));
+      ESP_LOGD(TAG, "get_latest_baseline_total_voc: at(%d), baseline(%d)",
+               std::get<1>(tvoc), std::get<2>(tvoc));
     } else {
-      ESP_LOGD(TAG, "get_latest_baseline_total_voc: count(%d).", count);
+      ESP_LOGD(TAG, "get_latest_baseline_total_voc: failed.");
     }
     //
     HasSensor bme = HasSensor::NoSensorFound;

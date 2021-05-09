@@ -56,16 +56,19 @@ struct Ppb final {
   uint16_t value;
 };
 
+// SGP30 baseline type
+using BaselineSGP30T = uint16_t;
+
 // SGP30 baseline(equivalent CO2)
 struct BaselineECo2 final {
-  BaselineECo2(uint16_t init = 0u) : value(init) {}
-  uint16_t value;
+  BaselineECo2(BaselineSGP30T init = 0u) : value(init) {}
+  BaselineSGP30T value;
 };
 
 // SGP30 baseline(Total VOC)
 struct BaselineTotalVoc final {
-  BaselineTotalVoc(uint16_t init = 0u) : value(init) {}
-  uint16_t value;
+  BaselineTotalVoc(BaselineSGP30T init = 0u) : value(init) {}
+  BaselineSGP30T value;
 };
 
 // value with good or nothing
