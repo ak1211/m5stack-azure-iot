@@ -30,13 +30,12 @@ bool Sensor<Bme280>::begin(uint8_t i2c_address) {
   if (!bme280.begin(i2c_address)) {
     return initialized;
   }
-  // indoor navigation
-  bme280.setSampling(Adafruit_BME280::MODE_NORMAL,
+  //
+  bme280.setSampling(Adafruit_BME280::MODE_FORCED,
                      Adafruit_BME280::SAMPLING_X16, // temperature
                      Adafruit_BME280::SAMPLING_X16, // pressure
                      Adafruit_BME280::SAMPLING_X16, // humidity
-                     Adafruit_BME280::FILTER_X16,
-                     Adafruit_BME280::STANDBY_MS_125);
+                     Adafruit_BME280::FILTER_OFF);
   initialized = true;
   return initialized;
 }

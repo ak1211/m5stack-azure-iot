@@ -39,7 +39,7 @@ struct TempHumiPres {
 using Bme280 = MeasuredValues<TempHumiPres>;
 template <> class Sensor<Bme280> {
 public:
-  constexpr static uint8_t INTERVAL = 5;                    // 5 seconds
+  constexpr static uint8_t INTERVAL = 5;
   constexpr static uint8_t SMA_PERIOD = 1 + 120 / INTERVAL; // 120 seconds
   //
   Sensor(SensorDescriptor custom_sensor_descriptor)
@@ -78,7 +78,7 @@ struct TvocEco2 {
 using Sgp30 = MeasuredValues<TvocEco2>;
 template <> class Sensor<Sgp30> {
 public:
-  constexpr static uint8_t INTERVAL = 1;                    // 1 seconds
+  constexpr static uint8_t INTERVAL = 3;
   constexpr static uint8_t SMA_PERIOD = 1 + 120 / INTERVAL; // 120 seconds
   //
   Sensor(SensorDescriptor custom_sensor_descriptor)
@@ -121,7 +121,7 @@ struct Co2TempHumi {
 using Scd30 = MeasuredValues<Co2TempHumi>;
 template <> class Sensor<Scd30> {
 public:
-  constexpr static uint8_t INTERVAL = 20;                   // 20 seconds
+  constexpr static uint8_t INTERVAL = 7;
   constexpr static uint8_t SMA_PERIOD = 1 + 120 / INTERVAL; // 120 seconds
   //
   Sensor(SensorDescriptor custom_sensor_descriptor)
