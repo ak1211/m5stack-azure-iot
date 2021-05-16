@@ -25,18 +25,27 @@ struct Rectangle {
   int16_t w;
   int16_t h;
   //
-  inline Coord center() {
+  inline Coord center() const {
     return {
         .x = static_cast<int16_t>(x + w / 2),
         .y = static_cast<int16_t>(y + h / 2),
     };
   }
   //
-  inline bool contains(Coord c) {
+  inline bool contains(Coord c) const {
     bool xx = (x <= c.x) && (c.x < x + w);
     bool yy = (y <= c.y) && (c.y < y + h);
     return xx && yy;
   }
+};
+
+struct Range {
+  double min;
+  double max;
+  //
+  inline double range() const { return max - min; }
+  //
+  inline bool contains(double x) const { return min <= x && x <= max; }
 };
 
 //
@@ -472,8 +481,7 @@ public:
     uint32_t grid_color;
     uint32_t line_color;
     Coord graph_offset;
-    double value_min;
-    double value_max;
+    Range range;
     std::vector<double> locators;
   };
   //
@@ -513,17 +521,18 @@ public:
     };
   }
   //
-  static double normalize_value(const State &st, double value) {
-    double n = (value - st.value_min) / (st.value_max - st.value_min);
+  static double normalize_value(const Range &range, double value) {
+    double n = (value - range.min) / range.range();
     return n;
   }
   //
-  static double clipping_value(const State &st, double value) {
-    return max(min(value, st.value_max), st.value_min);
+  static double clipping_value(const Range &range, double value) {
+    return max(min(value, range.max), range.min);
   }
   //
   static int16_t coord_y(const State &st, double value) {
-    int16_t y = graph_height * normalize_value(st, clipping_value(st, value));
+    int16_t y = graph_height *
+                normalize_value(st.range, clipping_value(st.range, value));
     return (st.graph_offset.y + graph_margin + graph_height - y);
   }
   //
@@ -535,9 +544,11 @@ public:
     Screen::lcd.setTextDatum(textdatum_t::middle_right);
     //
     for (auto value : st.locators) {
-      int16_t y = coord_y(st, value);
-      Screen::lcd.drawFastHLine(left.x, y, graph_width, st.grid_color);
-      Screen::lcd.drawFloat(value, 1, st.graph_offset.x, y);
+      if (st.range.contains(value)) {
+        int16_t y = coord_y(st, value);
+        Screen::lcd.drawFastHLine(left.x, y, graph_width, st.grid_color);
+        Screen::lcd.drawFloat(value, 1, st.graph_offset.x, y);
+      }
     }
   }
   //
@@ -570,8 +581,8 @@ public:
   //
   template <class T, std::size_t N>
   static void plot(const State &st, const std::array<T, N> &data_reversed) {
-    const int16_t y_top = coord_y(st, st.value_max);
-    const int16_t y_bottom = coord_y(st, st.value_min);
+    const int16_t y_top = coord_y(st, st.range.max);
+    const int16_t y_bottom = coord_y(st, st.range.min);
     const int16_t y_length = abs(y_bottom - y_top);
     const int16_t y0 = coord_y(st, 0.0);
     const int16_t step = graph_width / data_reversed.size();
@@ -622,8 +633,11 @@ public:
         .line_color = Screen::lcd.color888(232, 120, 120),
         .graph_offset = GraphPlotter::calculateGraphOffset(
             Screen::lcd.width(), Screen::lcd.height()),
-        .value_min = -10.0,
-        .value_max = 60.0,
+        .range =
+            Range{
+                .min = -10.0,
+                .max = 60.0,
+            },
         .locators = {-10.0, 0.0, 20.0, 40.0, 60.0},
     };
     init_rawid();
@@ -698,8 +712,11 @@ public:
         .line_color = Screen::lcd.color888(232, 120, 120),
         .graph_offset = GraphPlotter::calculateGraphOffset(
             Screen::lcd.width(), Screen::lcd.height()),
-        .value_min = 0.0,
-        .value_max = 100.0,
+        .range =
+            Range{
+                .min = 0.0,
+                .max = 100.0,
+            },
         .locators = {0.0, 25.0, 50.0, 75.0, 100.0},
     };
     init_rawid();
@@ -775,8 +792,11 @@ public:
         .line_color = Screen::lcd.color888(232, 120, 120),
         .graph_offset = GraphPlotter::calculateGraphOffset(
             Screen::lcd.width(), Screen::lcd.height()),
-        .value_min = 940.0,
-        .value_max = 1060.0,
+        .range =
+            Range{
+                .min = 940.0,
+                .max = 1060.0,
+            },
         .locators = {940.0, 970.0, 1000.0, 1030.0, 1060.0},
     };
     init_rawid();
@@ -851,9 +871,12 @@ public:
         .line_color = Screen::lcd.color888(232, 120, 120),
         .graph_offset = GraphPlotter::calculateGraphOffset(
             Screen::lcd.width(), Screen::lcd.height()),
-        .value_min = 0.0,
-        .value_max = 6000.0,
-        .locators = {0.0, 2000.0, 4000.0, 6000.0},
+        .range =
+            Range{
+                .min = 0.0,
+                .max = 6000.0,
+            },
+        .locators = {0.0, 1000.0, 2000.0, 3000.0, 4000.0, 5000.0, 6000.0},
     };
     init_rawid();
     GraphPlotter::prepare(state, "総揮発性有機化合物(TVOC) ppb");
@@ -927,9 +950,12 @@ public:
         .line_color = Screen::lcd.color888(232, 120, 120),
         .graph_offset = GraphPlotter::calculateGraphOffset(
             Screen::lcd.width(), Screen::lcd.height()),
-        .value_min = 0.0,
-        .value_max = 4000.0,
-        .locators = {400.0, 1000.0, 2000.0, 3000.0, 4000.0},
+        .range =
+            Range{
+                .min = 0.0,
+                .max = 4000.0,
+            },
+        .locators = {400.0, 1000.0, 2000.0, 3000.0, 4000.0, 5000.0, 6000.0},
     };
     init_rawid();
     GraphPlotter::prepare(state, "二酸化炭素相当量(eCo2) ppm");
@@ -1004,9 +1030,12 @@ public:
         .line_color = Screen::lcd.color888(232, 120, 120),
         .graph_offset = GraphPlotter::calculateGraphOffset(
             Screen::lcd.width(), Screen::lcd.height()),
-        .value_min = 0.0,
-        .value_max = 4000.0,
-        .locators = {400.0, 1000.0, 2000.0, 3000.0, 4000.0},
+        .range =
+            Range{
+                .min = 0.0,
+                .max = 4000.0,
+            },
+        .locators = {400.0, 1000.0, 2000.0, 3000.0, 4000.0, 5000.0, 6000.0},
     };
     init_rawid();
     GraphPlotter::prepare(state, "二酸化炭素(CO2) ppm");
