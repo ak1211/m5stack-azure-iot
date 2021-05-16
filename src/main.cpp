@@ -34,19 +34,19 @@ static_assert(IOTHUB_PUSH_STATE_EVERY_MINUTES < 60,
 void btnAEvent(Event &e) {
   Peripherals &peri = Peripherals::getInstance();
   peri.screen.prev();
-  peri.screen.update(time(nullptr));
+  peri.screen.update(peri.ticktack.time());
 }
 //
 void btnBEvent(Event &e) {
   Peripherals &peri = Peripherals::getInstance();
   peri.screen.home();
-  peri.screen.update(time(nullptr));
+  peri.screen.update(peri.ticktack.time());
 }
 //
 void btnCEvent(Event &e) {
   Peripherals &peri = Peripherals::getInstance();
   peri.screen.next();
-  peri.screen.update(time(nullptr));
+  peri.screen.update(peri.ticktack.time());
 }
 //
 void releaseEvent(Event &e) {
@@ -77,7 +77,7 @@ void setup() {
   //
   // start up
   //
-  peri.screen.repaint(std::time(nullptr));
+  peri.screen.repaint(peri.ticktack.time());
 }
 
 //
@@ -185,7 +185,7 @@ static void periodical_push_state() {
   snprintf(buf, 10, "%d%%",
            static_cast<int>(peri.system_power.getBatteryPercentage()));
   json["batteryLevel"] = buf;
-  uint32_t upseconds = peri.ticktack.uptime_seconds();
+  uint32_t upseconds = peri.ticktack.uptimeSeconds();
   json["uptime"] = upseconds;
   peri.iothub_client.pushState(json);
 }
@@ -250,8 +250,9 @@ void loop() {
   clock_t now_clock = clock();
 
   if ((now_clock - before_clock) >= CLOCKS_PER_SEC) {
-    MeasurementSets m = periodical_measurement_sets(std::time(nullptr));
     Peripherals &peri = Peripherals::getInstance();
+    peri.ticktack.update();
+    MeasurementSets m = periodical_measurement_sets(peri.ticktack.time());
     peri.screen.update(m.measured_at);
     if (m.scd30.good()) {
       Ppm co2 = m.scd30.get().co2;
