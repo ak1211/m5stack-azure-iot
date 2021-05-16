@@ -30,13 +30,12 @@ bool Sensor<Bme280>::begin(uint8_t i2c_address) {
   if (!bme280.begin(i2c_address)) {
     return initialized;
   }
-  // indoor navigation
-  bme280.setSampling(Adafruit_BME280::MODE_NORMAL,
+  //
+  bme280.setSampling(Adafruit_BME280::MODE_FORCED,
                      Adafruit_BME280::SAMPLING_X16, // temperature
                      Adafruit_BME280::SAMPLING_X16, // pressure
                      Adafruit_BME280::SAMPLING_X16, // humidity
-                     Adafruit_BME280::FILTER_X16,
-                     Adafruit_BME280::STANDBY_MS_125);
+                     Adafruit_BME280::FILTER_OFF);
   initialized = true;
   return initialized;
 }
@@ -147,18 +146,20 @@ Sgp30 Sensor<Sgp30>::read(std::time_t measured_at) {
   MeasuredValues<BaselineECo2> eco2_base{};
   MeasuredValues<BaselineTotalVoc> tvoc_base{};
   Peripherals &peri = Peripherals::getInstance();
-  uint32_t uptime_seconds = peri.ticktack.uptime_seconds();
-  constexpr uint32_t half_day = 12 * 60 * 60; // 43200 seconds
-  if (uptime_seconds > half_day) {
-    uint16_t eco2;
-    uint16_t tvoc;
-    ESP_LOGE(TAG, "SGP30 baseline sensing.");
-    if (!sgp30.getIAQBaseline(&eco2, &tvoc)) {
-      ESP_LOGE(TAG, "SGP30 sensing failed.");
-      return Sgp30();
+  if (peri.ticktack.available()) {
+    uint32_t uptime_seconds = peri.ticktack.uptimeSeconds();
+    constexpr uint32_t half_day = 12 * 60 * 60; // 43200 seconds
+    if (uptime_seconds > half_day) {
+      uint16_t eco2;
+      uint16_t tvoc;
+      ESP_LOGE(TAG, "SGP30 baseline sensing.");
+      if (!sgp30.getIAQBaseline(&eco2, &tvoc)) {
+        ESP_LOGE(TAG, "SGP30 sensing failed.");
+        return Sgp30();
+      }
+      eco2_base = MeasuredValues<BaselineECo2>(eco2);
+      tvoc_base = MeasuredValues<BaselineTotalVoc>(tvoc);
     }
-    eco2_base = MeasuredValues<BaselineECo2>(eco2);
-    tvoc_base = MeasuredValues<BaselineTotalVoc>(tvoc);
   }
 
   // successfully

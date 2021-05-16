@@ -4,7 +4,6 @@
 //
 #include "peripherals.hpp"
 #include <ArduinoOTA.h>
-#include <lwip/apps/sntp.h>
 #include <tuple>
 
 constexpr static const char *TAG = "PeripheralsModule";
@@ -33,20 +32,20 @@ bool Peripherals::begin(const std::string &wifi_ssid,
                         const std::string &iothub_connectionstring) {
   // initialize module: SystemPower
   if (_instance.system_power.begin()) {
-    ESP_LOGD(TAG, "initialize module: SystemPower Ok.");
+    ESP_LOGI(TAG, "initialize module: SystemPower Ok.");
   }
   // initialize module: Screen
   if (_instance.screen.begin()) {
-    ESP_LOGD(TAG, "initialize module: Screen Ok.");
+    ESP_LOGI(TAG, "initialize module: Screen Ok.");
   }
   // initialize module: LedSignal
   if (_instance.led_signal.begin()) {
-    ESP_LOGD(TAG, "initialize module: LedSignal Ok.");
+    ESP_LOGI(TAG, "initialize module: LedSignal Ok.");
   }
   // initialize module: WifiLauncher
   bool available_wifi = _instance.wifi_launcher.begin(wifi_ssid, wifi_password);
   if (available_wifi) {
-    ESP_LOGD(TAG, "initialize module: WifiLauncher Ok.");
+    ESP_LOGI(TAG, "initialize module: WifiLauncher Ok.");
   }
 
   //
@@ -83,19 +82,20 @@ bool Peripherals::begin(const std::string &wifi_ssid,
       });
 
   ArduinoOTA.begin();
+  ESP_LOGI(TAG, "initialize module: ArduinoOTA Ok.");
 
   // initialize module: IotHubClient
   if (_instance.iothub_client.begin(iothub_connectionstring)) {
-    ESP_LOGD(TAG, "initialize module: IotHubClient Ok.");
+    ESP_LOGI(TAG, "initialize module: IotHubClient Ok.");
   }
   // initialize module: DataLoggingFile
   if (_instance.data_logging_file.begin()) {
-    ESP_LOGD(TAG, "initialize module: DataLoggingFile Ok.");
+    ESP_LOGI(TAG, "initialize module: DataLoggingFile Ok.");
   }
   // initialize module: LocalDatabase
   bool available_database = _instance.local_database.begin();
   if (available_database) {
-    ESP_LOGD(TAG, "initialize module: LocalDatabase Ok.");
+    ESP_LOGI(TAG, "initialize module: LocalDatabase Ok.");
   }
   // initializing sensor
   {
@@ -108,7 +108,7 @@ bool Peripherals::begin(const std::string &wifi_ssid,
       ESP_LOGD(TAG, "get_latest_baseline_eco2: at(%d), baseline(%d)",
                std::get<1>(eco2), std::get<2>(eco2));
     } else {
-      ESP_LOGD(TAG, "get_latest_baseline_eco2: failed.");
+      ESP_LOGE(TAG, "get_latest_baseline_eco2: failed.");
     }
     //
     MeasuredValues<BaselineTotalVoc> baseline_tvoc;
@@ -119,7 +119,7 @@ bool Peripherals::begin(const std::string &wifi_ssid,
       ESP_LOGD(TAG, "get_latest_baseline_total_voc: at(%d), baseline(%d)",
                std::get<1>(tvoc), std::get<2>(tvoc));
     } else {
-      ESP_LOGD(TAG, "get_latest_baseline_total_voc: failed.");
+      ESP_LOGE(TAG, "get_latest_baseline_total_voc: failed.");
     }
     //
     bool bme{false};
@@ -155,13 +155,9 @@ bool Peripherals::begin(const std::string &wifi_ssid,
     */
     Screen::lcd.clear();
   }
-  // waiting for Synchronize NTP server
-  while (!sntp_enabled()) {
-    delay(100);
-  }
   // initialize module: TickTack
   if (_instance.ticktack.begin()) {
-    ESP_LOGD(TAG, "initialize module: TickTack Ok.");
+    ESP_LOGI(TAG, "initialize module: TickTack Ok.");
   }
   //
   return true;

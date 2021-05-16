@@ -30,8 +30,9 @@ static const char schema_temperature[] =
     ",degc REAL NOT NULL"
     ");";
 //
-int64_t LocalDatabase::insert_temperature(uint64_t sensor_id, std::time_t at,
-                                          DegC degc) {
+LocalDatabase::RawId LocalDatabase::insert_temperature(uint64_t sensor_id,
+                                                       std::time_t at,
+                                                       DegC degc) {
   static const char query[] = "INSERT INTO"
                               " temperature(sensor_id,at,degc)"
                               " VALUES(?,?,?);";
@@ -63,7 +64,7 @@ static const char schema_relative_humidity[] =
     ",rh REAL NOT NULL"
     ");";
 //
-int64_t LocalDatabase::insert_relative_humidity(uint64_t sensor_id,
+LocalDatabase::RawId LocalDatabase::insert_relative_humidity(uint64_t sensor_id,
                                                 std::time_t at, PcRH rh) {
   constexpr static const char query[] = "INSERT INTO"
                                         " relative_humidity(sensor_id,at,rh)"
@@ -95,7 +96,7 @@ static const char schema_pressure[] = "CREATE TABLE IF NOT EXISTS pressure"
                                       ",hpa REAL NOT NULL"
                                       ");";
 //
-int64_t LocalDatabase::insert_pressure(uint64_t sensor_id, std::time_t at,
+LocalDatabase::RawId LocalDatabase::insert_pressure(uint64_t sensor_id, std::time_t at,
                                        HPa hpa) {
   static const char query[] = "INSERT INTO"
                               " pressure(sensor_id,at,hpa)"
@@ -128,7 +129,7 @@ static char schema_carbon_dioxide[] =
     ",baseline INTEGER"
     ");";
 //
-int64_t LocalDatabase::insert_carbon_dioxide(uint64_t sensor_id, std::time_t at,
+LocalDatabase::RawId LocalDatabase::insert_carbon_dioxide(uint64_t sensor_id, std::time_t at,
                                              Ppm ppm,
                                              const uint16_t *baseline) {
   static const char query[] = "INSERT INTO"
@@ -163,7 +164,7 @@ static const char schema_total_voc[] = "CREATE TABLE IF NOT EXISTS total_voc"
                                        ",baseline INTEGER"
                                        ");";
 //
-int64_t LocalDatabase::insert_total_voc(uint64_t sensor_id, std::time_t at,
+LocalDatabase::RawId LocalDatabase::insert_total_voc(uint64_t sensor_id, std::time_t at,
                                         Ppb ppb, const uint16_t *baseline) {
   static const char query[] = "INSERT INTO"
                               " total_voc(sensor_id,at,ppb,baseline)"

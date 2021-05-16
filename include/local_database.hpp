@@ -16,11 +16,12 @@
 //
 class LocalDatabase {
 public:
-  int64_t rawid_temperature;
-  int64_t rawid_relative_humidity;
-  int64_t rawid_pressure;
-  int64_t rawid_carbon_dioxide;
-  int64_t rawid_total_voc;
+  using RawId = int64_t;
+  RawId rawid_temperature;
+  RawId rawid_relative_humidity;
+  RawId rawid_pressure;
+  RawId rawid_carbon_dioxide;
+  RawId rawid_total_voc;
   //
   LocalDatabase(const std::string &filename);
   //
@@ -32,16 +33,16 @@ public:
   bool insert(const TvocEco2 &);
   bool insert(const Co2TempHumi &);
   //
-  int64_t insert_temperature(uint64_t sensor_id, std::time_t at, DegC degc);
-  int64_t insert_relative_humidity(uint64_t sensor_id, std::time_t at, PcRH rh);
-  int64_t insert_pressure(uint64_t sensor_id, std::time_t at, HPa hpa);
-  int64_t insert_carbon_dioxide(uint64_t sensor_id, std::time_t at, Ppm ppm,
-                                const uint16_t *baseline);
-  int64_t insert_total_voc(uint64_t sensor_id, std::time_t at, Ppb ppb,
-                           const uint16_t *baseline);
+  RawId insert_temperature(uint64_t sensor_id, std::time_t at, DegC degc);
+  RawId insert_relative_humidity(uint64_t sensor_id, std::time_t at, PcRH rh);
+  RawId insert_pressure(uint64_t sensor_id, std::time_t at, HPa hpa);
+  RawId insert_carbon_dioxide(uint64_t sensor_id, std::time_t at, Ppm ppm,
+                              const uint16_t *baseline);
+  RawId insert_total_voc(uint64_t sensor_id, std::time_t at, Ppb ppb,
+                         const uint16_t *baseline);
   //
-  typedef std::function<bool(size_t counter, std::time_t at, float v)>
-      CallbackRowTimeAndFloat;
+  using CallbackRowTimeAndFloat =
+      std::function<bool(size_t counter, std::time_t at, float v)>;
   //
   size_t get_temperatures_desc(uint64_t sensor_id, size_t limit,
                                CallbackRowTimeAndFloat callback);
@@ -52,9 +53,8 @@ public:
   size_t get_pressures_desc(uint64_t sensor_id, size_t limit,
                             CallbackRowTimeAndFloat callback);
   //
-  typedef std::function<bool(size_t counter, std::time_t at, uint16_t v1,
-                             uint16_t v2, bool has_v2)>
-      CallbackRowTimeAndUint16AndNullableUint16;
+  using CallbackRowTimeAndUint16AndNullableUint16 = std::function<bool(
+      size_t counter, std::time_t at, uint16_t v1, uint16_t v2, bool has_v2)>;
   //
   size_t
   get_carbon_deoxides_desc(uint64_t sensor_id, size_t limit,

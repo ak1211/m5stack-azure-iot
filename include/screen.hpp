@@ -14,6 +14,19 @@
 
 class Screen {
 public:
+  //
+  enum RegisteredViewId : uint32_t {
+    IdSystemHealthView,
+    IdClockView,
+    IdSummaryView,
+    IdTemperatureGraphView,
+    IdRelativeHumidityGraphView,
+    IdPressureGraphView,
+    IdTotalVocGraphView,
+    IdEquivalentCo2GraphView,
+    IdCo2GraphView,
+  };
+  //
   class View;
   static LGFX lcd;
   //
@@ -31,7 +44,7 @@ public:
   void prev();
   void next();
   //
-  bool moveByViewId(uint32_t view_id);
+  bool moveByViewId(RegisteredViewId view_id);
 
 private:
   std::array<View *, 9> views;
