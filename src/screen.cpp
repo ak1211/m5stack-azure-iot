@@ -54,11 +54,11 @@ struct Range {
 class Screen::View {
 public:
   //
-  View(uint32_t id) : view_id{id} {}
+  View(RegisteredViewId id) : view_id{id} {}
   //
-  uint32_t getId() { return view_id; }
+  RegisteredViewId getId() { return view_id; }
   //
-  bool isThisId(uint32_t id) { return id == view_id; }
+  bool isThisId(RegisteredViewId id) { return id == view_id; }
   //
   virtual ~View() {}
   //
@@ -66,25 +66,12 @@ public:
   //
   virtual void focusOut() = 0;
   //
-  virtual void releaseEvent(Screen *screen, Event &e) = 0;
+  virtual RegisteredViewId releaseEvent(Event &e) = 0;
   //
   virtual void render(const struct tm &local) = 0;
 
 protected:
-  const uint32_t view_id;
-};
-
-//
-enum RegisteredViewId : uint32_t {
-  IdSystemHealthView,
-  IdClockView,
-  IdSummaryView,
-  IdTemperatureGraphView,
-  IdRelativeHumidityGraphView,
-  IdPressureGraphView,
-  IdTotalVocGraphView,
-  IdEquivalentCo2GraphView,
-  IdCo2GraphView,
+  const RegisteredViewId view_id;
 };
 
 //
@@ -94,7 +81,7 @@ public:
   int32_t background_color;
   //
   SystemHealthView()
-      : View(IdSystemHealthView),
+      : View(Screen::IdSystemHealthView),
         message_text_color{TFT_WHITE},
         background_color{TFT_BLACK} {}
   //
@@ -107,7 +94,7 @@ public:
   //
   void focusOut() override {}
   //
-  void releaseEvent(Screen *screen, Event &e) override {}
+  Screen::RegisteredViewId releaseEvent(Event &e) override { return getId(); }
   //
   void render(const struct tm &local) override {
     Peripherals &peri = Peripherals::getInstance();
@@ -193,7 +180,7 @@ public:
   int32_t background_color;
   //
   ClockView()
-      : View(IdClockView),
+      : View(Screen::IdClockView),
         message_text_color{TFT_WHITE},
         background_color{TFT_BLACK} {}
   //
@@ -206,7 +193,7 @@ public:
   //
   void focusOut() override {}
   //
-  void releaseEvent(Screen *screen, Event &e) override {}
+  Screen::RegisteredViewId releaseEvent(Event &e) override { return getId(); }
   //
   void render(const struct tm &local) override {
     const auto half_width = Screen::lcd.width() / 2;
@@ -269,15 +256,15 @@ class Tile {
 public:
   typedef std::pair<const char *, const char *> CaptionT;
   //
-  uint32_t tap_to_move_view_id;
+  Screen::RegisteredViewId tap_to_move_view_id;
   const CaptionT &caption;
   char before[7];
   char now[7];
   int32_t text_color;
   int32_t background_color;
   Rectangle rect;
-  Tile(uint32_t tapToMoveViewId, const CaptionT &caption_, int32_t text_col,
-       int32_t bg_col)
+  Tile(Screen::RegisteredViewId tapToMoveViewId, const CaptionT &caption_,
+       int32_t text_col, int32_t bg_col)
       : tap_to_move_view_id{tapToMoveViewId},
         caption{caption_},
         before{},
@@ -349,7 +336,7 @@ public:
   int32_t background_color;
   //
   SummaryView()
-      : View(IdSummaryView),
+      : View(Screen::IdSummaryView),
         message_text_color{TFT_WHITE},
         background_color{TFT_BLACK},
         t_temperature(std::make_pair("温度", "℃")),
@@ -359,17 +346,18 @@ public:
         t_eCo2(std::make_pair("eCO2", "ppm")),
         t_co2(std::make_pair("CO2", "ppm")),
         tiles{
-            Tile(IdTemperatureGraphView, t_temperature, message_text_color,
-                 background_color),
-            Tile(IdRelativeHumidityGraphView, t_relative_humidity,
+            Tile(Screen::IdTemperatureGraphView, t_temperature,
                  message_text_color, background_color),
-            Tile(IdPressureGraphView, t_pressure, message_text_color,
+            Tile(Screen::IdRelativeHumidityGraphView, t_relative_humidity,
+                 message_text_color, background_color),
+            Tile(Screen::IdPressureGraphView, t_pressure, message_text_color,
                  background_color),
-            Tile(IdTotalVocGraphView, t_tvoc, message_text_color,
+            Tile(Screen::IdTotalVocGraphView, t_tvoc, message_text_color,
                  background_color),
-            Tile(IdEquivalentCo2GraphView, t_eCo2, message_text_color,
+            Tile(Screen::IdEquivalentCo2GraphView, t_eCo2, message_text_color,
                  background_color),
-            Tile(IdCo2GraphView, t_co2, message_text_color, background_color),
+            Tile(Screen::IdCo2GraphView, t_co2, message_text_color,
+                 background_color),
         } {}
   //
   bool focusIn() override {
@@ -395,17 +383,17 @@ public:
   //
   void focusOut() override {}
   //
-  void releaseEvent(Screen *screen, Event &e) override {
+  Screen::RegisteredViewId releaseEvent(Event &e) override {
     Coord c = {
         .x = e.to.x,
         .y = e.to.y,
     };
     for (auto t : tiles) {
       if (t.rect.contains(c)) {
-        screen->moveByViewId(t.tap_to_move_view_id);
-        break;
+        return t.tap_to_move_view_id;
       }
     }
+    return getId();
   }
   //
   void render(const struct tm &local) override {
@@ -623,7 +611,7 @@ public:
 class TemperatureGraphView : public Screen::View {
 public:
   //
-  TemperatureGraphView() : View(IdTemperatureGraphView), state{} {}
+  TemperatureGraphView() : View(Screen::IdTemperatureGraphView), state{} {}
   //
   bool focusIn() override {
     state = GraphPlotter::State{
@@ -647,7 +635,7 @@ public:
   //
   void focusOut() override {}
   //
-  void releaseEvent(Screen *screen, Event &e) override {}
+  Screen::RegisteredViewId releaseEvent(Event &e) override { return getId(); }
   //
   void render(const struct tm &local) override {
     if (!need_for_update()) {
@@ -702,7 +690,8 @@ private:
 //
 class RelativeHumidityGraphView : public Screen::View {
 public:
-  RelativeHumidityGraphView() : View(IdRelativeHumidityGraphView), state{} {}
+  RelativeHumidityGraphView()
+      : View(Screen::IdRelativeHumidityGraphView), state{} {}
   //
   bool focusIn() override {
     state = GraphPlotter::State{
@@ -726,7 +715,7 @@ public:
   //
   void focusOut() override {}
   //
-  void releaseEvent(Screen *screen, Event &e) override {}
+  Screen::RegisteredViewId releaseEvent(Event &e) override { return getId(); }
   //
   void render(const struct tm &local) override {
     if (!need_for_update()) {
@@ -782,7 +771,7 @@ private:
 //
 class PressureGraphView : public Screen::View {
 public:
-  PressureGraphView() : View(IdPressureGraphView) {}
+  PressureGraphView() : View(Screen::IdPressureGraphView) {}
   //
   bool focusIn() override {
     state = GraphPlotter::State{
@@ -806,7 +795,7 @@ public:
   //
   void focusOut() override {}
   //
-  void releaseEvent(Screen *screen, Event &e) override {}
+  Screen::RegisteredViewId releaseEvent(Event &e) override { return getId(); }
   //
   void render(const struct tm &local) override {
     if (!need_for_update()) {
@@ -861,7 +850,7 @@ private:
 //
 class TotalVocGraphView : public Screen::View {
 public:
-  TotalVocGraphView() : View(IdTotalVocGraphView) {}
+  TotalVocGraphView() : View(Screen::IdTotalVocGraphView) {}
   //
   bool focusIn() override {
     state = GraphPlotter::State{
@@ -885,7 +874,7 @@ public:
   //
   void focusOut() override {}
   //
-  void releaseEvent(Screen *screen, Event &e) override {}
+  Screen::RegisteredViewId releaseEvent(Event &e) override { return getId(); }
   //
   void render(const struct tm &local) override {
     if (!need_for_update()) {
@@ -940,7 +929,7 @@ private:
 //
 class EquivalentCo2GraphView : public Screen::View {
 public:
-  EquivalentCo2GraphView() : View(IdEquivalentCo2GraphView) {}
+  EquivalentCo2GraphView() : View(Screen::IdEquivalentCo2GraphView) {}
   //
   bool focusIn() override {
     state = GraphPlotter::State{
@@ -964,7 +953,7 @@ public:
   //
   void focusOut() override {}
   //
-  void releaseEvent(Screen *screen, Event &e) override {}
+  Screen::RegisteredViewId releaseEvent(Event &e) override { return getId(); }
   //
   void render(const struct tm &local) override {
     if (!need_for_update()) {
@@ -1020,7 +1009,7 @@ private:
 //
 class Co2GraphView : public Screen::View {
 public:
-  Co2GraphView() : View(IdCo2GraphView) {}
+  Co2GraphView() : View(Screen::IdCo2GraphView) {}
   //
   bool focusIn() override {
     state = GraphPlotter::State{
@@ -1044,7 +1033,7 @@ public:
   //
   void focusOut() override {}
   //
-  void releaseEvent(Screen *screen, Event &e) override {}
+  Screen::RegisteredViewId releaseEvent(Event &e) override { return getId(); }
   //
   void render(const struct tm &local) override {
     if (!need_for_update()) {
@@ -1161,7 +1150,7 @@ void Screen::next() {
 }
 
 //
-bool Screen::moveByViewId(uint32_t view_id) {
+bool Screen::moveByViewId(RegisteredViewId view_id) {
   for (std::size_t i = 0; i < views.size(); ++i) {
     if (views[i]->isThisId(view_id)) {
       return moveToView(i);
@@ -1187,4 +1176,10 @@ void Screen::repaint(std::time_t time) {
 }
 
 //
-void Screen::releaseEvent(Event &e) { views[now_view]->releaseEvent(this, e); }
+void Screen::releaseEvent(Event &e) {
+  RegisteredViewId nextId;
+  nextId = views[now_view]->releaseEvent(e);
+  if (!views[now_view]->isThisId(nextId)) {
+    moveByViewId(nextId);
+  }
+}
