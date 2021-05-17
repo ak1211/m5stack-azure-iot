@@ -1162,7 +1162,7 @@ bool Screen::moveByViewId(RegisteredViewId view_id) {
 //
 void Screen::update(std::time_t time) {
   // time zone offset UTC+9 = asia/tokyo
-  time_t local_time = time + 9 * 60 * 60;
+  std::time_t local_time = time + 9 * 60 * 60;
   struct tm local;
   gmtime_r(&local_time, &local);
 
