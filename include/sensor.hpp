@@ -53,6 +53,15 @@ public:
   bool readyToRead(std::time_t now);
   Bme280 read(std::time_t measured_at);
   Bme280 calculateSMA();
+  //
+  inline void setSampling() {
+    bme280.setSampling(Adafruit_BME280::MODE_NORMAL,
+                       Adafruit_BME280::SAMPLING_X1, // temperature
+                       Adafruit_BME280::SAMPLING_X1, // pressure
+                       Adafruit_BME280::SAMPLING_X1, // humidity
+                       Adafruit_BME280::FILTER_OFF,
+                       Adafruit_BME280::STANDBY_MS_1000);
+  }
 
 private:
   SensorDescriptor sensor_descriptor;

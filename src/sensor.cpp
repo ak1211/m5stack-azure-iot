@@ -30,13 +30,7 @@ bool Sensor<Bme280>::begin(uint8_t i2c_address) {
   if (!bme280.begin(i2c_address)) {
     return initialized;
   }
-  //
-  bme280.setSampling(Adafruit_BME280::MODE_NORMAL,
-                     Adafruit_BME280::SAMPLING_X1, // temperature
-                     Adafruit_BME280::SAMPLING_X1, // pressure
-                     Adafruit_BME280::SAMPLING_X1, // humidity
-                     Adafruit_BME280::FILTER_OFF,
-                     Adafruit_BME280::STANDBY_MS_1000);
+  setSampling();
   initialized = true;
   return initialized;
 }
@@ -53,36 +47,45 @@ Bme280 Sensor<Bme280>::read(std::time_t measured_at) {
   bme280.takeForcedMeasurement();
 
   float temperature = bme280.readTemperature();
+  float pressure = bme280.readPressure();
+  float humidity = bme280.readHumidity();
   if (!std::isfinite(temperature)) {
     ESP_LOGE(TAG, "BME280 sensor: temperature is not finite.");
-    return Bme280();
+    goto error;
   }
-  float pressure = bme280.readPressure();
   if (!std::isfinite(pressure)) {
     ESP_LOGE(TAG, "BME280 sensor: pressure is not finite.");
-    return Bme280();
+    goto error;
   }
-  float humidity = bme280.readHumidity();
   if (!std::isfinite(humidity)) {
     ESP_LOGE(TAG, "BME280 sensor: humidity is not finite.");
-    return Bme280();
+    goto error;
   }
   //
-  DegC temp = DegC(temperature);
-  HPa pres = HPa(pressure / 100.0f); // pascal to hecto-pascal
-  PcRH humi = PcRH(humidity);
-  //
-  last_measured_at = measured_at;
-  sma_temperature.push_back(temp.value);
-  sma_relative_humidity.push_back(humi.value);
-  sma_pressure.push_back(pres.value);
-  return Bme280({
-      .sensor_descriptor = getSensorDescriptor(),
-      .at = measured_at,
-      .temperature = temp,
-      .relative_humidity = humi,
-      .pressure = pres,
-  });
+  {
+    DegC temp = DegC(temperature);
+    HPa pres = HPa(pressure / 100.0f); // pascal to hecto-pascal
+    PcRH humi = PcRH(humidity);
+    //
+    last_measured_at = measured_at;
+    sma_temperature.push_back(temp.value);
+    sma_relative_humidity.push_back(humi.value);
+    sma_pressure.push_back(pres.value);
+    return Bme280({
+        .sensor_descriptor = getSensorDescriptor(),
+        .at = measured_at,
+        .temperature = temp,
+        .relative_humidity = humi,
+        .pressure = pres,
+    });
+  }
+
+error:
+  if (bme280.init()) {
+    setSampling();
+    ESP_LOGD(TAG, "BME280 sensor: succeessfully re-initialized.");
+  }
+  return Bme280();
 }
 //
 Bme280 Sensor<Bme280>::calculateSMA() {
