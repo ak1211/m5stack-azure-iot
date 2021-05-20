@@ -153,13 +153,14 @@ Sgp30 Sensor<Sgp30>::read(std::time_t measured_at) {
     if (uptime_seconds > half_day) {
       uint16_t eco2;
       uint16_t tvoc;
-      ESP_LOGE(TAG, "SGP30 baseline sensing.");
-      if (!sgp30.getIAQBaseline(&eco2, &tvoc)) {
+      if (sgp30.getIAQBaseline(&eco2, &tvoc)) {
+        ESP_LOGD(TAG, "SGP30 baseline sensing.");
+        eco2_base = MeasuredValues<BaselineECo2>(eco2);
+        tvoc_base = MeasuredValues<BaselineTotalVoc>(tvoc);
+      } else {
         ESP_LOGE(TAG, "SGP30 sensing failed.");
         return Sgp30();
       }
-      eco2_base = MeasuredValues<BaselineECo2>(eco2);
-      tvoc_base = MeasuredValues<BaselineTotalVoc>(tvoc);
     }
   }
 
