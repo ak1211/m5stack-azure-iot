@@ -128,7 +128,6 @@ absolute_sensor_id_from_SensorDescriptor(std::string &output,
 //
 static void periodical_push_message(const MeasurementSets &m) {
   Peripherals &peri = Peripherals::getInstance();
-  IoTHubMessageJson doc_sets = {};
 
   // BME280 sensor values.
   // Temperature, Relative Humidity, Pressure
@@ -146,10 +145,8 @@ static void periodical_push_message(const MeasurementSets &m) {
     std::string sensor_id;
     absolute_sensor_id_from_SensorDescriptor(sensor_id,
                                              temp_humi_pres.sensor_descriptor);
-    peri.iothub_client.pushMessage(
-        mapToJson(doc_sets, sensor_id, temp_humi_pres));
+    peri.iothub_client.pushTempHumiPres(sensor_id, temp_humi_pres);
   }
-  doc_sets.clear();
   // SGP30 sensor values.
   // eCo2, TVOC
   if (m.sgp30.good()) {
@@ -157,9 +154,8 @@ static void periodical_push_message(const MeasurementSets &m) {
     std::string sensor_id;
     absolute_sensor_id_from_SensorDescriptor(sensor_id,
                                              tvoc_eco2.sensor_descriptor);
-    peri.iothub_client.pushMessage(mapToJson(doc_sets, sensor_id, tvoc_eco2));
+    peri.iothub_client.pushTvocEco2(sensor_id, tvoc_eco2);
   }
-  doc_sets.clear();
   // SCD30 sensor values.
   // co2, Temperature, Relative Humidity
   if (m.scd30.good()) {
@@ -167,8 +163,7 @@ static void periodical_push_message(const MeasurementSets &m) {
     std::string sensor_id;
     absolute_sensor_id_from_SensorDescriptor(sensor_id,
                                              co2_temp_humi.sensor_descriptor);
-    peri.iothub_client.pushMessage(
-        mapToJson(doc_sets, sensor_id, co2_temp_humi));
+    peri.iothub_client.pushCo2TempHumi(sensor_id, co2_temp_humi);
   }
 }
 
@@ -180,7 +175,11 @@ static void periodical_push_state() {
   if (peri.system_power.needToUpdate()) {
     peri.system_power.update();
   }
-  StaticJsonDocument<1024> json;
+  DynamicJsonDocument json(IotHubClient::MESSAGE_MAX_LEN);
+  if (json.capacity() == 0) {
+    ESP_LOGE(TAG, "memory allocation error.");
+    return;
+  }
   char buf[10] = {'\0'};
   snprintf(buf, 10, "%d%%",
            static_cast<int>(peri.system_power.getBatteryPercentage()));

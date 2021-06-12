@@ -125,7 +125,11 @@ static void deviceTwinCallback(DEVICE_TWIN_UPDATE_STATE updateState,
   strncpy(buff, (const char *)payLoad, size);
   ESP_LOGI(TAG, "%s", buff);
 
-  StaticJsonDocument<MESSAGE_MAX_LEN> json;
+  DynamicJsonDocument json(IotHubClient::MESSAGE_MAX_LEN);
+  if (json.capacity() == 0) {
+    ESP_LOGE(TAG, "memory allocation error");
+    return;
+  }
   DeserializationError error = deserializeJson(json, buff);
   if (error) {
     ESP_LOGE(TAG, "%s", error.f_str());
@@ -180,15 +184,37 @@ bool IotHubClient::begin(const std::string &conn_str) {
 //
 //
 //
-JsonDocument *IotHubClient::pushMessage(JsonDocument &doc) {
+bool IotHubClient::pushState(JsonDocument &doc) {
   if (doc.isNull()) {
-    return &doc;
+    return true;
+  }
+  //
+  char *statePayload = (char *)calloc(MESSAGE_MAX_LEN + 1, sizeof(char));
+  if (!statePayload) {
+    ESP_LOGE(TAG, "memory allocation error.");
+    return false;
+  }
+  serializeJson(doc, statePayload, MESSAGE_MAX_LEN);
+  ESP_LOGD(TAG, "statePayload:%s", statePayload);
+  EVENT_INSTANCE *state = Esp32MQTTClient_Event_Generate(statePayload, STATE);
+  Esp32MQTTClient_SendEventInstance(state);
+  //
+  free(statePayload);
+  return true;
+}
+
+//
+//
+//
+bool IotHubClient::pushMessage(JsonDocument &doc) {
+  if (doc.isNull()) {
+    return true;
   }
   //
   char *messagePayload = (char *)calloc(MESSAGE_MAX_LEN + 1, sizeof(char));
   if (!messagePayload) {
     ESP_LOGE(TAG, "memory allocation error.");
-    return nullptr;
+    return false;
   }
   doc["messageId"] = message_id;
   serializeJson(doc, messagePayload, MESSAGE_MAX_LEN);
@@ -201,27 +227,73 @@ JsonDocument *IotHubClient::pushMessage(JsonDocument &doc) {
   Esp32MQTTClient_SendEventInstance(message);
   //
   free(messagePayload);
-  return &doc;
+  return true;
 }
 
 //
 //
 //
-JsonDocument *IotHubClient::pushState(JsonDocument &doc) {
-  if (doc.isNull()) {
-    return &doc;
-  }
-  //
-  char *statePayload = (char *)calloc(MESSAGE_MAX_LEN + 1, sizeof(char));
-  if (!statePayload) {
+bool IotHubClient::pushTempHumiPres(const std::string &sensor_id,
+                                    const TempHumiPres &input) {
+  DynamicJsonDocument doc(MESSAGE_MAX_LEN);
+  if (doc.capacity() == 0) {
     ESP_LOGE(TAG, "memory allocation error.");
-    return nullptr;
+    return false;
   }
-  serializeJson(doc, statePayload, MESSAGE_MAX_LEN);
-  ESP_LOGD(TAG, "statePayload:%s", statePayload);
-  EVENT_INSTANCE *state = Esp32MQTTClient_Event_Generate(statePayload, STATE);
-  Esp32MQTTClient_SendEventInstance(state);
+  std::string buf;
   //
-  free(statePayload);
-  return &doc;
+  doc["sensorId"] = sensor_id;
+  doc["measuredAt"] = TickTack::isoformatUTC(buf, input.at);
+  doc["temperature"] = input.temperature.value;
+  doc["humidity"] = input.relative_humidity.value;
+  doc["pressure"] = input.pressure.value;
+  //
+  return pushMessage(doc);
+}
+
+//
+//
+//
+bool IotHubClient::pushTvocEco2(const std::string &sensor_id,
+                                const TvocEco2 &input) {
+  DynamicJsonDocument doc(MESSAGE_MAX_LEN);
+  if (doc.capacity() == 0) {
+    ESP_LOGE(TAG, "memory allocation error.");
+    return false;
+  }
+  std::string buf;
+  //
+  doc["sensorId"] = sensor_id;
+  doc["measuredAt"] = TickTack::isoformatUTC(buf, input.at);
+  doc["tvoc"] = input.tvoc.value;
+  doc["eCo2"] = input.eCo2.value;
+  if (input.tvoc_baseline.good()) {
+    doc["tvoc_baseline"] = input.tvoc_baseline.get().value;
+  }
+  if (input.eCo2_baseline.good()) {
+    doc["eCo2_baseline"] = input.eCo2_baseline.get().value;
+  }
+  //
+  return pushMessage(doc);
+}
+
+//
+//
+//
+bool IotHubClient::pushCo2TempHumi(const std::string &sensor_id,
+                                   const Co2TempHumi &input) {
+  DynamicJsonDocument doc(MESSAGE_MAX_LEN);
+  if (doc.capacity() == 0) {
+    ESP_LOGE(TAG, "memory allocation error.");
+    return false;
+  }
+  std::string buf;
+  //
+  doc["sensorId"] = sensor_id;
+  doc["measuredAt"] = TickTack::isoformatUTC(buf, input.at);
+  doc["co2"] = input.co2.value;
+  doc["temperature"] = input.temperature.value;
+  doc["humidity"] = input.relative_humidity.value;
+  //
+  return pushMessage(doc);
 }
