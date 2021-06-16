@@ -120,7 +120,9 @@ bool Sensor<Sgp30>::begin(MeasuredValues<BaselineECo2> eco2_base,
   }
   if (eco2_base.good() && tvoc_base.good()) {
     // baseline set to SGP30
-    bool result = setIAQBaseline(eco2_base.get().value, tvoc_base.get().value);
+    bool result =
+        setIAQBaseline(static_cast<BaselineECo2>(eco2_base.get().value),
+                       static_cast<BaselineTotalVoc>(tvoc_base.get().value));
     if (result) {
       ESP_LOGI(TAG, "SGP30 setIAQBaseline success");
     } else {
@@ -158,8 +160,10 @@ Sgp30 Sensor<Sgp30>::read(std::time_t measured_at) {
       uint16_t tvoc;
       if (sgp30.getIAQBaseline(&eco2, &tvoc)) {
         ESP_LOGD(TAG, "SGP30 baseline sensing.");
-        eco2_base = MeasuredValues<BaselineECo2>(eco2);
-        tvoc_base = MeasuredValues<BaselineTotalVoc>(tvoc);
+        eco2_base =
+            MeasuredValues<BaselineECo2>(static_cast<BaselineECo2>(eco2));
+        tvoc_base = MeasuredValues<BaselineTotalVoc>(
+            static_cast<BaselineTotalVoc>(tvoc));
       } else {
         ESP_LOGE(TAG, "SGP30 sensing failed.");
         return Sgp30();
@@ -277,18 +281,19 @@ Scd30 Sensor<Scd30>::read(std::time_t measured_at) {
 
   // successfully
   last_measured_at = measured_at;
-  sma_co2.push_back(co2);
+  sma_co2.push_back(static_cast<uint16_t>(co2));
   sma_temperature.push_back(temperature);
   sma_relative_humidity.push_back(relative_humidity);
   return Scd30({
       .sensor_descriptor = getSensorDescriptor(),
       .at = measured_at,
-      .co2 = Ppm(scd30.CO2),
+      .co2 = Ppm(static_cast<uint16_t>(co2)),
       .temperature = DegC(temperature),
       .relative_humidity = PcRH(relative_humidity),
   });
 
 error:
+  ESP_LOGD(TAG, "reset SCD30 sensor.");
   scd30.reset();
   return Scd30();
 }

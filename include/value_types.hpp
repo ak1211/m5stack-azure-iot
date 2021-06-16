@@ -10,49 +10,49 @@
 
 // [V] voltage
 struct Voltage final {
-  Voltage(float init = 0.0f) : value(init) {}
+  explicit Voltage(float init = 0.0f) : value(init) {}
   float value;
 };
 
 // [A] ampere
 struct Ampere final {
-  Ampere(float init = 0.0f) : value(init) {}
+  explicit Ampere(float init = 0.0f) : value(init) {}
   float value;
 };
 
 // degree celsius
 struct DegC final {
-  DegC(float init = 0.0f) : value(init) {}
+  explicit DegC(float init = 0.0f) : value(init) {}
   float value;
 };
 
 // [hPa] hecto-pascal
 struct HPa final {
-  HPa(float init = 0.0f) : value(init) {}
+  explicit HPa(float init = 0.0f) : value(init) {}
   float value;
 };
 
 // [%] relative humidity
 struct PcRH final {
-  PcRH(float init = 0.0f) : value(init) {}
+  explicit PcRH(float init = 0.0f) : value(init) {}
   float value;
 };
 
 // [mg / m^3] absolute humidity
 struct MilligramPerCubicMetre final {
-  MilligramPerCubicMetre(uint32_t init = 0u) : value(init) {}
+  explicit MilligramPerCubicMetre(uint32_t init = 0u) : value(init) {}
   uint32_t value;
 };
 
 // [ppm] parts per million
 struct Ppm final {
-  Ppm(uint16_t init = 0u) : value(init) {}
+  explicit Ppm(uint16_t init = 0u) : value(init) {}
   uint16_t value;
 };
 
 // [ppb] parts per billion
 struct Ppb final {
-  Ppb(uint16_t init = 0u) : value(init) {}
+  explicit Ppb(uint16_t init = 0u) : value(init) {}
   uint16_t value;
 };
 
@@ -61,21 +61,21 @@ using BaselineSGP30T = uint16_t;
 
 // SGP30 baseline(equivalent CO2)
 struct BaselineECo2 final {
-  BaselineECo2(BaselineSGP30T init = 0u) : value(init) {}
+  explicit BaselineECo2(BaselineSGP30T init = 0u) : value(init) {}
   BaselineSGP30T value;
 };
 
 // SGP30 baseline(Total VOC)
 struct BaselineTotalVoc final {
-  BaselineTotalVoc(BaselineSGP30T init = 0u) : value(init) {}
+  explicit BaselineTotalVoc(BaselineSGP30T init = 0u) : value(init) {}
   BaselineSGP30T value;
 };
 
 // value with good or nothing
 template <class T> class MeasuredValues {
 public:
-  MeasuredValues(T v) : _good{true}, private_value{v} {}
-  MeasuredValues() : _good{false}, private_value{} {}
+  explicit MeasuredValues(T v) : _good{true}, private_value{v} {}
+  explicit MeasuredValues() : _good{false}, private_value{} {}
   bool good() const { return _good; }
   bool nothing() const { return !_good; }
   T get() const { return private_value; }
@@ -90,9 +90,9 @@ class SensorDescriptor {
 public:
   uint64_t id;
   //
-  SensorDescriptor(uint64_t inital = 0) : id{inital} {}
-  SensorDescriptor(char c0, char c1, char c2, char c3, char c4, char c5,
-                   char c6, char c7) {
+  explicit SensorDescriptor(uint64_t inital = 0) : id{inital} {}
+  explicit SensorDescriptor(char c0, char c1, char c2, char c3, char c4,
+                            char c5, char c6, char c7) {
     id = static_cast<uint64_t>(c0) << 56 | // 1st byte
          static_cast<uint64_t>(c1) << 48 | // 2nd byte
          static_cast<uint64_t>(c2) << 40 | // 3rd byte
