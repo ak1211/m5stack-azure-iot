@@ -257,18 +257,40 @@ Scd30 Sensor<Scd30>::read(std::time_t measured_at) {
     ESP_LOGE(TAG, "SCD30 sensing failed.");
     return Scd30();
   }
+
+  float co2 = scd30.CO2;
+  float temperature = scd30.temperature;
+  float relative_humidity = scd30.relative_humidity;
+
+  if (!std::isfinite(co2)) {
+    ESP_LOGE(TAG, "SCD30 sensor: co2 is not finite.");
+    goto error;
+  }
+  if (!std::isfinite(temperature)) {
+    ESP_LOGE(TAG, "SCD30 sensor: temperature is not finite.");
+    goto error;
+  }
+  if (!std::isfinite(relative_humidity)) {
+    ESP_LOGE(TAG, "SCD30 sensor: relative humidity is not finite.");
+    goto error;
+  }
+
   // successfully
   last_measured_at = measured_at;
-  sma_co2.push_back(scd30.CO2);
-  sma_temperature.push_back(scd30.temperature);
-  sma_relative_humidity.push_back(scd30.relative_humidity);
+  sma_co2.push_back(co2);
+  sma_temperature.push_back(temperature);
+  sma_relative_humidity.push_back(relative_humidity);
   return Scd30({
       .sensor_descriptor = getSensorDescriptor(),
       .at = measured_at,
       .co2 = Ppm(scd30.CO2),
-      .temperature = DegC(scd30.temperature),
-      .relative_humidity = PcRH(scd30.relative_humidity),
+      .temperature = DegC(temperature),
+      .relative_humidity = PcRH(relative_humidity),
   });
+
+error:
+  scd30.reset();
+  return Scd30();
 }
 //
 Scd30 Sensor<Scd30>::calculateSMA() {
