@@ -65,7 +65,8 @@ static const char schema_relative_humidity[] =
     ");";
 //
 LocalDatabase::RawId LocalDatabase::insert_relative_humidity(uint64_t sensor_id,
-                                                std::time_t at, PcRH rh) {
+                                                             std::time_t at,
+                                                             PcRH rh) {
   constexpr static const char query[] = "INSERT INTO"
                                         " relative_humidity(sensor_id,at,rh)"
                                         " VALUES(?,?,?);";
@@ -96,8 +97,8 @@ static const char schema_pressure[] = "CREATE TABLE IF NOT EXISTS pressure"
                                       ",hpa REAL NOT NULL"
                                       ");";
 //
-LocalDatabase::RawId LocalDatabase::insert_pressure(uint64_t sensor_id, std::time_t at,
-                                       HPa hpa) {
+LocalDatabase::RawId LocalDatabase::insert_pressure(uint64_t sensor_id,
+                                                    std::time_t at, HPa hpa) {
   static const char query[] = "INSERT INTO"
                               " pressure(sensor_id,at,hpa)"
                               " VALUES(?,?,?);";
@@ -129,9 +130,9 @@ static char schema_carbon_dioxide[] =
     ",baseline INTEGER"
     ");";
 //
-LocalDatabase::RawId LocalDatabase::insert_carbon_dioxide(uint64_t sensor_id, std::time_t at,
-                                             Ppm ppm,
-                                             const uint16_t *baseline) {
+LocalDatabase::RawId
+LocalDatabase::insert_carbon_dioxide(uint64_t sensor_id, std::time_t at,
+                                     Ppm ppm, const uint16_t *baseline) {
   static const char query[] = "INSERT INTO"
                               " carbon_dioxide(sensor_id,at,ppm,baseline)"
                               " VALUES(?,?,?,?);";
@@ -164,8 +165,9 @@ static const char schema_total_voc[] = "CREATE TABLE IF NOT EXISTS total_voc"
                                        ",baseline INTEGER"
                                        ");";
 //
-LocalDatabase::RawId LocalDatabase::insert_total_voc(uint64_t sensor_id, std::time_t at,
-                                        Ppb ppb, const uint16_t *baseline) {
+LocalDatabase::RawId LocalDatabase::insert_total_voc(uint64_t sensor_id,
+                                                     std::time_t at, Ppb ppb,
+                                                     const uint16_t *baseline) {
   static const char query[] = "INSERT INTO"
                               " total_voc(sensor_id,at,ppb,baseline)"
                               " VALUES(?,?,?,?);";
@@ -292,12 +294,13 @@ bool LocalDatabase::insert(const TempHumiPres &temp_humi_pres) {
   }
   int64_t t =
       insert_temperature(temp_humi_pres.sensor_descriptor.id, temp_humi_pres.at,
-                         temp_humi_pres.temperature.value);
-  int64_t p = insert_pressure(temp_humi_pres.sensor_descriptor.id,
-                              temp_humi_pres.at, temp_humi_pres.pressure.value);
-  int64_t h = insert_relative_humidity(temp_humi_pres.sensor_descriptor.id,
-                                       temp_humi_pres.at,
-                                       temp_humi_pres.relative_humidity.value);
+                         static_cast<DegC>(temp_humi_pres.temperature.value));
+  int64_t p =
+      insert_pressure(temp_humi_pres.sensor_descriptor.id, temp_humi_pres.at,
+                      static_cast<HPa>(temp_humi_pres.pressure.value));
+  int64_t h = insert_relative_humidity(
+      temp_humi_pres.sensor_descriptor.id, temp_humi_pres.at,
+      static_cast<PcRH>(temp_humi_pres.relative_humidity.value));
   if (t >= 0 && p >= 0 && h >= 0) {
     ESP_LOGD(TAG, "insert TempHumiPres is success.");
     return true;
@@ -316,22 +319,24 @@ bool LocalDatabase::insert(const TvocEco2 &tvoc_eco2) {
   int64_t t;
   if (tvoc_eco2.tvoc_baseline.nothing()) {
     t = insert_total_voc(tvoc_eco2.sensor_descriptor.id, tvoc_eco2.at,
-                         tvoc_eco2.tvoc.value, nullptr);
+                         static_cast<Ppb>(tvoc_eco2.tvoc.value), nullptr);
   } else {
     BaselineTotalVoc tvoc_base = tvoc_eco2.tvoc_baseline.get();
     t = insert_total_voc(tvoc_eco2.sensor_descriptor.id, tvoc_eco2.at,
-                         tvoc_eco2.tvoc.value, &tvoc_base.value);
+                         static_cast<Ppb>(tvoc_eco2.tvoc.value),
+                         &tvoc_base.value);
   }
 
   int64_t c;
   if (tvoc_eco2.eCo2_baseline.nothing()) {
     c = insert_carbon_dioxide(tvoc_eco2.sensor_descriptor.id, tvoc_eco2.at,
-                              tvoc_eco2.eCo2.value, nullptr);
+                              static_cast<Ppm>(tvoc_eco2.eCo2.value), nullptr);
 
   } else {
     BaselineECo2 eco2_base = tvoc_eco2.eCo2_baseline.get();
     c = insert_carbon_dioxide(tvoc_eco2.sensor_descriptor.id, tvoc_eco2.at,
-                              tvoc_eco2.eCo2.value, &eco2_base.value);
+                              static_cast<Ppm>(tvoc_eco2.eCo2.value),
+                              &eco2_base.value);
   }
   if (t >= 0 && c >= 0) {
     ESP_LOGI(TAG, "insert TvocEco2 is success.");
@@ -350,13 +355,13 @@ bool LocalDatabase::insert(const Co2TempHumi &co2_temp_humi) {
   }
   int64_t t =
       insert_temperature(co2_temp_humi.sensor_descriptor.id, co2_temp_humi.at,
-                         co2_temp_humi.temperature.value);
-  int64_t p = insert_relative_humidity(co2_temp_humi.sensor_descriptor.id,
-                                       co2_temp_humi.at,
-                                       co2_temp_humi.relative_humidity.value);
-  int64_t c =
-      insert_carbon_dioxide(co2_temp_humi.sensor_descriptor.id,
-                            co2_temp_humi.at, co2_temp_humi.co2.value, nullptr);
+                         static_cast<DegC>(co2_temp_humi.temperature.value));
+  int64_t p = insert_relative_humidity(
+      co2_temp_humi.sensor_descriptor.id, co2_temp_humi.at,
+      static_cast<PcRH>(co2_temp_humi.relative_humidity.value));
+  int64_t c = insert_carbon_dioxide(
+      co2_temp_humi.sensor_descriptor.id, co2_temp_humi.at,
+      static_cast<Ppm>(co2_temp_humi.co2.value), nullptr);
   if (t >= 0 && p >= 0 && c >= 0) {
     ESP_LOGI(TAG, "insert Co2TempHumi is success.");
     return true;
