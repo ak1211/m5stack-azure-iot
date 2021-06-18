@@ -58,9 +58,7 @@ public:
       // red
       c = Adafruit_NeoPixel::Color(204, 0, 0);
     }
-    for (int i = 0; i < pixels.numPixels(); ++i) {
-      pixels.setPixelColor(i, c);
-    }
+    pixels.fill(c, 0, pixels.numPixels());
     pixels.show();
   }
 

@@ -88,12 +88,12 @@ error:
   return Bme280();
 }
 //
-Bme280 Sensor<Bme280>::calculateSMA() {
+Bme280 Sensor<Bme280>::calculateSMA(std::time_t measured_at) {
   if (sma_temperature.ready() && sma_relative_humidity.ready() &&
       sma_pressure.ready()) {
     return Bme280({
         .sensor_descriptor = getSensorDescriptor(),
-        .at = last_measured_at,
+        .at = measured_at,
         .temperature = DegC(sma_temperature.calculate()),
         .relative_humidity = PcRH(sma_relative_humidity.calculate()),
         .pressure = HPa(sma_pressure.calculate()),
@@ -185,11 +185,11 @@ Sgp30 Sensor<Sgp30>::read(std::time_t measured_at) {
   return Sgp30(last_tvoc_eco2);
 }
 //
-Sgp30 Sensor<Sgp30>::calculateSMA() {
+Sgp30 Sensor<Sgp30>::calculateSMA(std::time_t measured_at) {
   if (sma_eCo2.ready() && sma_tvoc.ready()) {
     return Sgp30({
         .sensor_descriptor = last_tvoc_eco2.sensor_descriptor,
-        .at = last_tvoc_eco2.at,
+        .at = measured_at,
         .eCo2 = Ppm(sma_eCo2.calculate()),
         .tvoc = Ppb(sma_tvoc.calculate()),
         .eCo2_baseline = last_tvoc_eco2.eCo2_baseline,
@@ -298,12 +298,12 @@ error:
   return Scd30();
 }
 //
-Scd30 Sensor<Scd30>::calculateSMA() {
+Scd30 Sensor<Scd30>::calculateSMA(std::time_t measured_at) {
   if (sma_co2.ready() && sma_temperature.ready() &&
       sma_relative_humidity.ready()) {
     return Scd30({
         .sensor_descriptor = getSensorDescriptor(),
-        .at = last_measured_at,
+        .at = measured_at,
         .co2 = Ppm(sma_co2.calculate()),
         .temperature = DegC(sma_temperature.calculate()),
         .relative_humidity = PcRH(sma_relative_humidity.calculate()),

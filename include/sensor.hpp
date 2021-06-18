@@ -23,7 +23,7 @@ public:
   bool active() = 0;
   bool readyToRead(std::time_t now) = 0;
   T read(std::time_t measured_at) = 0;
-  T calculateSMA();
+  T calculateSMA(std::time_t measured_at);
 };
 
 //
@@ -52,7 +52,7 @@ public:
   bool active() { return initialized; }
   bool readyToRead(std::time_t now);
   Bme280 read(std::time_t measured_at);
-  Bme280 calculateSMA();
+  Bme280 calculateSMA(std::time_t measured_at);
   //
   inline void setSampling() {
     bme280.setSampling(Adafruit_BME280::MODE_NORMAL,
@@ -101,7 +101,7 @@ public:
   bool active() { return initialized; }
   bool readyToRead(std::time_t now);
   Sgp30 read(std::time_t measured_at);
-  Sgp30 calculateSMA();
+  Sgp30 calculateSMA(std::time_t measured_at);
   //
   bool setIAQBaseline(BaselineECo2 eco2_base, BaselineTotalVoc tvoc_base);
   bool setHumidity(MilligramPerCubicMetre absolute_humidity);
@@ -144,7 +144,7 @@ public:
   bool active() { return initialized; }
   bool readyToRead(std::time_t now);
   Scd30 read(std::time_t measured_at);
-  Scd30 calculateSMA();
+  Scd30 calculateSMA(std::time_t measured_at);
 
 private:
   SensorDescriptor sensor_descriptor;
