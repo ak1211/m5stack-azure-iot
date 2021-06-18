@@ -246,11 +246,15 @@ void loop() {
   ArduinoOTA.handle();
   delay(1);
 
+  Peripherals &peri = Peripherals::getInstance();
+  if (peri.wifi_launcher.hasWifiConnection()) {
+    peri.iothub_client.update(true);
+  }
+
   static clock_t before_clock = 0;
   clock_t now_clock = clock();
 
   if ((now_clock - before_clock) >= CLOCKS_PER_SEC) {
-    Peripherals &peri = Peripherals::getInstance();
     peri.ticktack.update();
     MeasurementSets m = periodical_measurement_sets(peri.ticktack.time());
     peri.screen.update(m.measured_at);
@@ -260,8 +264,7 @@ void loop() {
     }
     periodical_send_to_iothub(m);
     before_clock = now_clock;
-  } else {
-    Peripherals::getInstance().iothub_client.update(true);
   }
+
   M5.update();
 }
