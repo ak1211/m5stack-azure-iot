@@ -6,9 +6,10 @@
 #include "credentials.h"
 #include <Arduinojson.h>
 #include <Esp32MQTTClient.h>
-#include <M5Core2.h>
 #include <ctime>
 #include <lwip/apps/sntp.h>
+#include <sstream>
+#include <string>
 
 constexpr static const char *TAG = "IoTHubModule";
 
@@ -116,14 +117,16 @@ static void deviceTwinCallback(DEVICE_TWIN_UPDATE_STATE updateState,
   }
 
   // Display Twin message.
-  char *buff = (char *)calloc(size + 1, sizeof(char));
-  if (!buff) {
+  const char *begin = reinterpret_cast<const char *>(payLoad);
+  const char *end = begin + size;
+
+  std::string buff(begin, end);
+
+  if (buff.empty()) {
     ESP_LOGE(TAG, "memory allocation error");
     return;
   }
-
-  strncpy(buff, (const char *)payLoad, size);
-  ESP_LOGI(TAG, "%s", buff);
+  ESP_LOGI(TAG, "%s", buff.c_str());
 
   DynamicJsonDocument json(IotHubClient::MESSAGE_MAX_LEN);
   if (json.capacity() == 0) {
@@ -135,7 +138,6 @@ static void deviceTwinCallback(DEVICE_TWIN_UPDATE_STATE updateState,
     ESP_LOGE(TAG, "%s", error.f_str());
     return;
   }
-  free(buff);
   //
   /*
   const char *updatedAt = json["reported"]["sgp30_baseline"]["updatedAt"];
@@ -188,19 +190,22 @@ bool IotHubClient::pushState(JsonDocument &doc) {
   if (doc.isNull()) {
     return true;
   }
+  std::ostringstream stream;
   //
-  char *statePayload = (char *)calloc(MESSAGE_MAX_LEN + 1, sizeof(char));
-  if (!statePayload) {
-    ESP_LOGE(TAG, "memory allocation error.");
-    return false;
+  serializeJson(doc, stream);
+  std::string statePayload = stream.str();
+  ESP_LOGD(TAG, "statePayload:%s", statePayload.c_str());
+  //
+  EVENT_INSTANCE *state =
+      Esp32MQTTClient_Event_Generate(statePayload.c_str(), STATE);
+  bool result = Esp32MQTTClient_SendEventInstance(state);
+  if (result) {
+    ESP_LOGD(TAG, "Esp32MQTTClient_SendEventInstance: success");
+  } else {
+    ESP_LOGD(TAG, "Esp32MQTTClient_SendEventInstance: failure");
   }
-  serializeJson(doc, statePayload, MESSAGE_MAX_LEN);
-  ESP_LOGD(TAG, "statePayload:%s", statePayload);
-  EVENT_INSTANCE *state = Esp32MQTTClient_Event_Generate(statePayload, STATE);
-  Esp32MQTTClient_SendEventInstance(state);
-  //
-  free(statePayload);
-  return true;
+
+  return result;
 }
 
 //
@@ -210,24 +215,26 @@ bool IotHubClient::pushMessage(JsonDocument &doc) {
   if (doc.isNull()) {
     return true;
   }
+  std::ostringstream stream;
   //
-  char *messagePayload = (char *)calloc(MESSAGE_MAX_LEN + 1, sizeof(char));
-  if (!messagePayload) {
-    ESP_LOGE(TAG, "memory allocation error.");
-    return false;
-  }
   doc["messageId"] = message_id;
-  serializeJson(doc, messagePayload, MESSAGE_MAX_LEN);
-  ESP_LOGD(TAG, "messagePayload:%s", messagePayload);
+  serializeJson(doc, stream);
+  std::string messagePayload = stream.str();
+  ESP_LOGD(TAG, "messagePayload:%s", messagePayload.c_str());
+  // Count up message_id
   message_id = message_id + 1;
   //
   EVENT_INSTANCE *message =
-      Esp32MQTTClient_Event_Generate(messagePayload, MESSAGE);
+      Esp32MQTTClient_Event_Generate(messagePayload.c_str(), MESSAGE);
   //    Esp32MQTTClient_Event_AddProp(message, "temperatureAlert", "true");
-  Esp32MQTTClient_SendEventInstance(message);
-  //
-  free(messagePayload);
-  return true;
+  bool result = Esp32MQTTClient_SendEventInstance(message);
+  if (result) {
+    ESP_LOGD(TAG, "Esp32MQTTClient_SendEventInstance: success");
+  } else {
+    ESP_LOGD(TAG, "Esp32MQTTClient_SendEventInstance: failure");
+  }
+
+  return result;
 }
 
 //
