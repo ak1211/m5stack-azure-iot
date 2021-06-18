@@ -90,22 +90,23 @@ struct MeasurementSets {
   Scd30 scd30;
 };
 
-static struct MeasurementSets periodical_measurement_sets(std::time_t now) {
+static struct MeasurementSets
+periodical_measurement_sets(std::time_t measured_at) {
   Peripherals &peri = Peripherals::getInstance();
 
-  if (peri.bme280.readyToRead(now)) {
-    peri.bme280.read(now);
+  if (peri.bme280.readyToRead(measured_at)) {
+    peri.bme280.read(measured_at);
   }
-  if (peri.sgp30.readyToRead(now)) {
-    peri.sgp30.read(now);
+  if (peri.sgp30.readyToRead(measured_at)) {
+    peri.sgp30.read(measured_at);
   }
-  if (peri.scd30.readyToRead(now)) {
-    peri.scd30.read(now);
+  if (peri.scd30.readyToRead(measured_at)) {
+    peri.scd30.read(measured_at);
   }
-  return {.measured_at = now,
-          .bme280 = peri.bme280.calculateSMA(),
-          .sgp30 = peri.sgp30.calculateSMA(),
-          .scd30 = peri.scd30.calculateSMA()};
+  return {.measured_at = measured_at,
+          .bme280 = peri.bme280.calculateSMA(measured_at),
+          .sgp30 = peri.sgp30.calculateSMA(measured_at),
+          .scd30 = peri.scd30.calculateSMA(measured_at)};
 }
 
 //
@@ -202,6 +203,19 @@ static void periodical_send_to_iothub(const MeasurementSets &m) {
       utc.tm_sec == 0 && utc.tm_min % IOTHUB_PUSH_STATE_EVERY_MINUTES == 0;
 
   Peripherals &peri = Peripherals::getInstance();
+  //
+  if (peri.wifi_launcher.hasWifiConnection()) {
+    //
+    // send to IoT Hub
+    //
+    if (allowToPushMessage) {
+      periodical_push_message(m);
+    }
+    if (allowToPushState) {
+      periodical_push_state();
+    }
+  }
+  //
   if (allowToPushMessage) {
     //
     // insert to local logging file
@@ -223,18 +237,6 @@ static void periodical_send_to_iothub(const MeasurementSets &m) {
       peri.local_database.insert(m.scd30.get());
     }
   }
-  //
-  if (peri.wifi_launcher.hasWifiConnection()) {
-    //
-    // send to IoT Hub
-    //
-    if (allowToPushMessage) {
-      periodical_push_message(m);
-    }
-    if (allowToPushState) {
-      periodical_push_state();
-    }
-  }
 }
 
 //
@@ -247,8 +249,8 @@ void loop() {
   static clock_t before_clock = 0;
   clock_t now_clock = clock();
 
-  Peripherals &peri = Peripherals::getInstance();
   if ((now_clock - before_clock) >= CLOCKS_PER_SEC) {
+    Peripherals &peri = Peripherals::getInstance();
     peri.ticktack.update();
     MeasurementSets m = periodical_measurement_sets(peri.ticktack.time());
     peri.screen.update(m.measured_at);
@@ -259,7 +261,7 @@ void loop() {
     periodical_send_to_iothub(m);
     before_clock = now_clock;
   } else {
-    peri.iothub_client.update(true);
+    Peripherals::getInstance().iothub_client.update(true);
   }
   M5.update();
 }

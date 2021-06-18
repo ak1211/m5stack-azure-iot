@@ -142,9 +142,10 @@ public:
     }
     //
     Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
-    Bme280 bme = peri.bme280.calculateSMA();
-    Sgp30 sgp = peri.sgp30.calculateSMA();
-    Scd30 scd = peri.scd30.calculateSMA();
+    std::time_t now = std::time(nullptr);
+    Bme280 bme = peri.bme280.calculateSMA(now);
+    Sgp30 sgp = peri.sgp30.calculateSMA(now);
+    Scd30 scd = peri.scd30.calculateSMA(now);
     if (bme.good()) {
       Screen::lcd.printf("温度 %6.1f ℃\n", bme.get().temperature.value);
       Screen::lcd.printf("湿度 %6.1f ％\n", bme.get().relative_humidity.value);
@@ -398,9 +399,10 @@ public:
   //
   void render(const struct tm &local) override {
     Peripherals &peri = Peripherals::getInstance();
-    Bme280 bme = peri.bme280.calculateSMA();
-    Sgp30 sgp = peri.sgp30.calculateSMA();
-    Scd30 scd = peri.scd30.calculateSMA();
+    std::time_t now = std::time(nullptr);
+    Bme280 bme = peri.bme280.calculateSMA(now);
+    Sgp30 sgp = peri.sgp30.calculateSMA(now);
+    Scd30 scd = peri.scd30.calculateSMA(now);
 #define BME(_X_)                                                               \
   do {                                                                         \
     if (bme.good()) {                                                          \
