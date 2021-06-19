@@ -18,6 +18,15 @@ LocalDatabase::LocalDatabase(const std::string &filename)
       _available{false},
       sqlite3_filename{filename},
       database{nullptr} {}
+//
+LocalDatabase::~LocalDatabase() {
+  if (available()) {
+    int result = sqlite3_close(database);
+    if (result != SQLITE_OK) {
+      ESP_LOGE(TAG, "sqlite3_close() failure: %d", result);
+    }
+  }
+}
 
 //
 //
@@ -37,7 +46,7 @@ LocalDatabase::RawId LocalDatabase::insert_temperature(uint64_t sensor_id,
                               " temperature(sensor_id,at,degc)"
                               " VALUES(?,?,?);";
   rawid_temperature =
-      raw_insert_time_and_float(query, sensor_id, at, degc.value);
+      raw_insert_time_and_float(database, query, sensor_id, at, degc.value);
   return rawid_temperature;
 }
 //
@@ -50,7 +59,8 @@ size_t LocalDatabase::get_temperatures_desc(
                               " WHERE sensor_id=?"
                               " ORDER BY at DESC"
                               " LIMIT ?;";
-  return raw_get_n_desc_time_and_float(query, sensor_id, limit, callback);
+  return raw_get_n_desc_time_and_float(database, query, sensor_id, limit,
+                                       callback);
 }
 
 //
@@ -71,7 +81,7 @@ LocalDatabase::RawId LocalDatabase::insert_relative_humidity(uint64_t sensor_id,
                                         " relative_humidity(sensor_id,at,rh)"
                                         " VALUES(?,?,?);";
   rawid_relative_humidity =
-      raw_insert_time_and_float(query, sensor_id, at, rh.value);
+      raw_insert_time_and_float(database, query, sensor_id, at, rh.value);
   return rawid_relative_humidity;
 }
 //
@@ -84,7 +94,8 @@ size_t LocalDatabase::get_relative_humidities_desc(
                                         " WHERE sensor_id=?"
                                         " ORDER BY at DESC"
                                         " LIMIT ?;";
-  return raw_get_n_desc_time_and_float(query, sensor_id, limit, callback);
+  return raw_get_n_desc_time_and_float(database, query, sensor_id, limit,
+                                       callback);
 }
 
 //
@@ -102,7 +113,8 @@ LocalDatabase::RawId LocalDatabase::insert_pressure(uint64_t sensor_id,
   static const char query[] = "INSERT INTO"
                               " pressure(sensor_id,at,hpa)"
                               " VALUES(?,?,?);";
-  rawid_pressure = raw_insert_time_and_float(query, sensor_id, at, hpa.value);
+  rawid_pressure =
+      raw_insert_time_and_float(database, query, sensor_id, at, hpa.value);
   return rawid_pressure;
 }
 //
@@ -115,7 +127,8 @@ size_t LocalDatabase::get_pressures_desc(
                               " WHERE sensor_id=?"
                               " ORDER BY at DESC"
                               " LIMIT ?;";
-  return raw_get_n_desc_time_and_float(query, sensor_id, limit, callback);
+  return raw_get_n_desc_time_and_float(database, query, sensor_id, limit,
+                                       callback);
 }
 
 //
@@ -137,7 +150,7 @@ LocalDatabase::insert_carbon_dioxide(uint64_t sensor_id, std::time_t at,
                               " carbon_dioxide(sensor_id,at,ppm,baseline)"
                               " VALUES(?,?,?,?);";
   rawid_carbon_dioxide = raw_insert_time_and_uint16_and_nullable_uint16(
-      query, sensor_id, at, ppm.value, baseline);
+      database, query, sensor_id, at, ppm.value, baseline);
   return rawid_carbon_dioxide;
 }
 //
@@ -150,8 +163,8 @@ size_t LocalDatabase::get_carbon_deoxides_desc(
                               " WHERE sensor_id=?"
                               " ORDER BY at DESC"
                               " LIMIT ?;";
-  return raw_get_n_time_and_uint16_and_nullable_uint16(query, sensor_id, limit,
-                                                       callback);
+  return raw_get_n_time_and_uint16_and_nullable_uint16(
+      database, query, sensor_id, limit, callback);
 }
 
 //
@@ -172,7 +185,7 @@ LocalDatabase::RawId LocalDatabase::insert_total_voc(uint64_t sensor_id,
                               " total_voc(sensor_id,at,ppb,baseline)"
                               " VALUES(?,?,?,?);";
   rawid_total_voc = raw_insert_time_and_uint16_and_nullable_uint16(
-      query, sensor_id, at, ppb.value, baseline);
+      database, query, sensor_id, at, ppb.value, baseline);
   return rawid_total_voc;
 }
 //
@@ -185,8 +198,8 @@ size_t LocalDatabase::get_total_vocs_desc(
                               " WHERE sensor_id=?"
                               " ORDER BY at DESC"
                               " LIMIT ?;";
-  return raw_get_n_time_and_uint16_and_nullable_uint16(query, sensor_id, limit,
-                                                       callback);
+  return raw_get_n_time_and_uint16_and_nullable_uint16(
+      database, query, sensor_id, limit, callback);
 }
 //
 std::tuple<bool, std::time_t, BaselineECo2>
@@ -200,7 +213,7 @@ LocalDatabase::get_latest_baseline_eco2(uint64_t sensor_id) {
                               " AND baseline NOTNULL"
                               " ORDER BY at DESC"
                               " LIMIT 1;";
-  auto result = raw_get_latest_baseline(query, sensor_id);
+  auto result = raw_get_latest_baseline(database, query, sensor_id);
   return std::make_tuple(std::get<0>(result), std::get<1>(result),
                          BaselineECo2(std::get<2>(result)));
 }
@@ -216,7 +229,7 @@ LocalDatabase::get_latest_baseline_total_voc(uint64_t sensor_id) {
                               " AND baseline NOTNULL"
                               " ORDER BY at DESC"
                               " LIMIT 1;";
-  auto result = raw_get_latest_baseline(query, sensor_id);
+  auto result = raw_get_latest_baseline(database, query, sensor_id);
   return std::make_tuple(std::get<0>(result), std::get<1>(result),
                          BaselineTotalVoc(std::get<2>(result)));
 }
@@ -230,14 +243,14 @@ bool LocalDatabase::begin() {
 
   result = sqlite3_initialize();
   if (result != SQLITE_OK) {
-    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+    ESP_LOGE(TAG, "sqlite3_initialize() failure: %d", result);
     goto error;
   }
   //
   result = sqlite3_open_v2(sqlite3_filename.c_str(), &database,
                            SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE, nullptr);
   if (result != SQLITE_OK) {
-    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+    ESP_LOGE(TAG, "sqlite3_open_v2() failure: %d", result);
     goto error;
   }
   // temperature
@@ -245,6 +258,7 @@ bool LocalDatabase::begin() {
       sqlite3_exec(database, schema_temperature, nullptr, nullptr, &error_msg);
   if (result != SQLITE_OK) {
     ESP_LOGE(TAG, "%s", error_msg);
+    sqlite3_free(error_msg);
     goto error;
   }
   // relative humidity
@@ -252,6 +266,7 @@ bool LocalDatabase::begin() {
                         &error_msg);
   if (result != SQLITE_OK) {
     ESP_LOGE(TAG, "%s", error_msg);
+    sqlite3_free(error_msg);
     goto error;
   }
   // pressure
@@ -259,6 +274,7 @@ bool LocalDatabase::begin() {
       sqlite3_exec(database, schema_pressure, nullptr, nullptr, &error_msg);
   if (result != SQLITE_OK) {
     ESP_LOGE(TAG, "%s", error_msg);
+    sqlite3_free(error_msg);
     goto error;
   }
   // carbon dioxide
@@ -266,6 +282,7 @@ bool LocalDatabase::begin() {
                         &error_msg);
   if (result != SQLITE_OK) {
     ESP_LOGE(TAG, "%s", error_msg);
+    sqlite3_free(error_msg);
     goto error;
   }
   // total voc
@@ -273,6 +290,7 @@ bool LocalDatabase::begin() {
       sqlite3_exec(database, schema_total_voc, nullptr, nullptr, &error_msg);
   if (result != SQLITE_OK) {
     ESP_LOGE(TAG, "%s", error_msg);
+    sqlite3_free(error_msg);
     goto error;
   }
 
@@ -292,21 +310,34 @@ bool LocalDatabase::insert(const TempHumiPres &temp_humi_pres) {
   if (!available()) {
     return false;
   }
-  int64_t t =
+  int64_t rawid;
+
+  rawid =
       insert_temperature(temp_humi_pres.sensor_descriptor.id, temp_humi_pres.at,
                          static_cast<DegC>(temp_humi_pres.temperature.value));
-  int64_t p =
-      insert_pressure(temp_humi_pres.sensor_descriptor.id, temp_humi_pres.at,
-                      static_cast<HPa>(temp_humi_pres.pressure.value));
-  int64_t h = insert_relative_humidity(
-      temp_humi_pres.sensor_descriptor.id, temp_humi_pres.at,
-      static_cast<PcRH>(temp_humi_pres.relative_humidity.value));
-  if (t >= 0 && p >= 0 && h >= 0) {
-    ESP_LOGD(TAG, "insert TempHumiPres is success.");
-    return true;
-  } else {
+  if (rawid < 0) {
+    ESP_LOGE(TAG, "insert_temperature() failure.");
     return false;
   }
+
+  rawid =
+      insert_pressure(temp_humi_pres.sensor_descriptor.id, temp_humi_pres.at,
+                      static_cast<HPa>(temp_humi_pres.pressure.value));
+  if (rawid < 0) {
+    ESP_LOGE(TAG, "insert_pressure() failure.");
+    return false;
+  }
+
+  rawid = insert_relative_humidity(
+      temp_humi_pres.sensor_descriptor.id, temp_humi_pres.at,
+      static_cast<PcRH>(temp_humi_pres.relative_humidity.value));
+  if (rawid < 0) {
+    ESP_LOGE(TAG, "insert_relative_humidity() failure.");
+    return false;
+  }
+
+  ESP_LOGD(TAG, "insert TempHumiPres is success.");
+  return true;
 }
 
 //
@@ -316,34 +347,47 @@ bool LocalDatabase::insert(const TvocEco2 &tvoc_eco2) {
   if (!available()) {
     return false;
   }
-  int64_t t;
+  int64_t rawid;
+
   if (tvoc_eco2.tvoc_baseline.nothing()) {
-    t = insert_total_voc(tvoc_eco2.sensor_descriptor.id, tvoc_eco2.at,
-                         static_cast<Ppb>(tvoc_eco2.tvoc.value), nullptr);
+    rawid = insert_total_voc(tvoc_eco2.sensor_descriptor.id, tvoc_eco2.at,
+                             static_cast<Ppb>(tvoc_eco2.tvoc.value), nullptr);
+    if (rawid < 0) {
+      ESP_LOGE(TAG, "insert_total_voc() failure.");
+      return false;
+    }
   } else {
     BaselineTotalVoc tvoc_base = tvoc_eco2.tvoc_baseline.get();
-    t = insert_total_voc(tvoc_eco2.sensor_descriptor.id, tvoc_eco2.at,
-                         static_cast<Ppb>(tvoc_eco2.tvoc.value),
-                         &tvoc_base.value);
+    rawid = insert_total_voc(tvoc_eco2.sensor_descriptor.id, tvoc_eco2.at,
+                             static_cast<Ppb>(tvoc_eco2.tvoc.value),
+                             &tvoc_base.value);
+    if (rawid < 0) {
+      ESP_LOGE(TAG, "insert_total_voc() failure.");
+      return false;
+    }
   }
 
-  int64_t c;
   if (tvoc_eco2.eCo2_baseline.nothing()) {
-    c = insert_carbon_dioxide(tvoc_eco2.sensor_descriptor.id, tvoc_eco2.at,
+    rawid =
+        insert_carbon_dioxide(tvoc_eco2.sensor_descriptor.id, tvoc_eco2.at,
                               static_cast<Ppm>(tvoc_eco2.eCo2.value), nullptr);
-
+    if (rawid < 0) {
+      ESP_LOGE(TAG, "insert_carbon_dioxide() failure.");
+      return false;
+    }
   } else {
     BaselineECo2 eco2_base = tvoc_eco2.eCo2_baseline.get();
-    c = insert_carbon_dioxide(tvoc_eco2.sensor_descriptor.id, tvoc_eco2.at,
-                              static_cast<Ppm>(tvoc_eco2.eCo2.value),
-                              &eco2_base.value);
+    rawid = insert_carbon_dioxide(tvoc_eco2.sensor_descriptor.id, tvoc_eco2.at,
+                                  static_cast<Ppm>(tvoc_eco2.eCo2.value),
+                                  &eco2_base.value);
+    if (rawid < 0) {
+      ESP_LOGE(TAG, "insert_carbon_dioxide() failure.");
+      return false;
+    }
   }
-  if (t >= 0 && c >= 0) {
-    ESP_LOGI(TAG, "insert TvocEco2 is success.");
-    return true;
-  } else {
-    return false;
-  }
+
+  ESP_LOGI(TAG, "insert TvocEco2 is success.");
+  return true;
 }
 
 //
@@ -353,52 +397,75 @@ bool LocalDatabase::insert(const Co2TempHumi &co2_temp_humi) {
   if (!available()) {
     return false;
   }
-  int64_t t =
+  int64_t rawid;
+
+  rawid =
       insert_temperature(co2_temp_humi.sensor_descriptor.id, co2_temp_humi.at,
                          static_cast<DegC>(co2_temp_humi.temperature.value));
-  int64_t p = insert_relative_humidity(
-      co2_temp_humi.sensor_descriptor.id, co2_temp_humi.at,
-      static_cast<PcRH>(co2_temp_humi.relative_humidity.value));
-  int64_t c = insert_carbon_dioxide(
-      co2_temp_humi.sensor_descriptor.id, co2_temp_humi.at,
-      static_cast<Ppm>(co2_temp_humi.co2.value), nullptr);
-  if (t >= 0 && p >= 0 && c >= 0) {
-    ESP_LOGI(TAG, "insert Co2TempHumi is success.");
-    return true;
-  } else {
+  if (rawid < 0) {
+    ESP_LOGE(TAG, "insert_temperature() failure.");
     return false;
   }
+
+  rawid = insert_relative_humidity(
+      co2_temp_humi.sensor_descriptor.id, co2_temp_humi.at,
+      static_cast<PcRH>(co2_temp_humi.relative_humidity.value));
+  if (rawid < 0) {
+    ESP_LOGE(TAG, "insert_relative_humidity() failure.");
+    return false;
+  }
+
+  rawid = insert_carbon_dioxide(
+      co2_temp_humi.sensor_descriptor.id, co2_temp_humi.at,
+      static_cast<Ppm>(co2_temp_humi.co2.value), nullptr);
+  if (rawid < 0) {
+    ESP_LOGE(TAG, "insert_carbon_dioxide() failure.");
+    return false;
+  }
+
+  ESP_LOGI(TAG, "insert Co2TempHumi is success.");
+  return true;
 }
 
 //
 //
 //
-int64_t LocalDatabase::raw_insert_time_and_float(const char *query,
+int64_t LocalDatabase::raw_insert_time_and_float(sqlite3 *db, const char *query,
                                                  uint64_t sensor_id,
                                                  std::time_t time,
                                                  float float_value) {
   sqlite3_stmt *stmt = nullptr;
   int result;
 
-  result = sqlite3_prepare_v2(database, query, -1, &stmt, nullptr);
+  if (db == nullptr) {
+    ESP_LOGE(TAG, "sqlite3 database is null");
+    goto error;
+  }
+
+  if (query == nullptr) {
+    ESP_LOGE(TAG, "invalid query");
+    goto error;
+  }
+
+  result = sqlite3_prepare_v2(db, query, -1, &stmt, nullptr);
   if (result != SQLITE_OK) {
-    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+    ESP_LOGE(TAG, "%s", sqlite3_errmsg(db));
     goto error;
   }
   //
   result = sqlite3_bind_int64(stmt, 1, sensor_id);
   if (result != SQLITE_OK) {
-    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+    ESP_LOGE(TAG, "%s", sqlite3_errmsg(db));
     goto error;
   }
   result = sqlite3_bind_int64(stmt, 2, static_cast<int64_t>(time));
   if (result != SQLITE_OK) {
-    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+    ESP_LOGE(TAG, "%s", sqlite3_errmsg(db));
     goto error;
   }
   result = sqlite3_bind_double(stmt, 3, static_cast<double>(float_value));
   if (result != SQLITE_OK) {
-    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+    ESP_LOGE(TAG, "%s", sqlite3_errmsg(db));
     goto error;
   }
   //
@@ -407,12 +474,12 @@ int64_t LocalDatabase::raw_insert_time_and_float(const char *query,
 
   result = sqlite3_finalize(stmt);
   if (result != SQLITE_OK) {
-    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+    ESP_LOGE(TAG, "%s", sqlite3_errmsg(db));
     stmt = nullptr; // omit double finalize
     goto error;
   }
 
-  return sqlite3_last_insert_rowid(database);
+  return sqlite3_last_insert_rowid(db);
 
 error:
   sqlite3_finalize(stmt);
@@ -423,42 +490,52 @@ error:
 //
 //
 int64_t LocalDatabase::raw_insert_time_and_uint16_and_nullable_uint16(
-    const char *query, uint64_t sensor_id, std::time_t time,
+    sqlite3 *db, const char *query, uint64_t sensor_id, std::time_t time,
     uint16_t uint16_value, const uint16_t *nullable_uint16_value) {
   sqlite3_stmt *stmt = nullptr;
   int result;
 
-  result = sqlite3_prepare_v2(database, query, -1, &stmt, nullptr);
+  if (db == nullptr) {
+    ESP_LOGE(TAG, "sqlite3 database is null");
+    goto error;
+  }
+
+  if (query == nullptr) {
+    ESP_LOGE(TAG, "invalid query");
+    goto error;
+  }
+
+  result = sqlite3_prepare_v2(db, query, -1, &stmt, nullptr);
   if (result != SQLITE_OK) {
-    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+    ESP_LOGE(TAG, "%s", sqlite3_errmsg(db));
     goto error;
   }
   //
   result = sqlite3_bind_int64(stmt, 1, sensor_id);
   if (result != SQLITE_OK) {
-    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+    ESP_LOGE(TAG, "%s", sqlite3_errmsg(db));
     goto error;
   }
   result = sqlite3_bind_int64(stmt, 2, static_cast<int64_t>(time));
   if (result != SQLITE_OK) {
-    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+    ESP_LOGE(TAG, "%s", sqlite3_errmsg(db));
     goto error;
   }
   result = sqlite3_bind_int(stmt, 3, uint16_value);
   if (result != SQLITE_OK) {
-    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+    ESP_LOGE(TAG, "%s", sqlite3_errmsg(db));
     goto error;
   }
   if (nullable_uint16_value) {
     result = sqlite3_bind_int(stmt, 4, *nullable_uint16_value);
     if (result != SQLITE_OK) {
-      ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+      ESP_LOGE(TAG, "%s", sqlite3_errmsg(db));
       goto error;
     }
   } else {
     result = sqlite3_bind_null(stmt, 4);
     if (result != SQLITE_OK) {
-      ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+      ESP_LOGE(TAG, "%s", sqlite3_errmsg(db));
       goto error;
     }
   }
@@ -468,12 +545,12 @@ int64_t LocalDatabase::raw_insert_time_and_uint16_and_nullable_uint16(
 
   result = sqlite3_finalize(stmt);
   if (result != SQLITE_OK) {
-    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+    ESP_LOGE(TAG, "%s", sqlite3_errmsg(db));
     stmt = nullptr; // omit double finalize
     goto error;
   }
 
-  return sqlite3_last_insert_rowid(database);
+  return sqlite3_last_insert_rowid(db);
 
 error:
   sqlite3_finalize(stmt);
@@ -484,25 +561,35 @@ error:
 //
 //
 size_t LocalDatabase::raw_get_n_desc_time_and_float(
-    const char *query, uint64_t sensor_id, size_t limit,
+    sqlite3 *db, const char *query, uint64_t sensor_id, size_t limit,
     LocalDatabase::CallbackRowTimeAndFloat callback) {
   sqlite3_stmt *stmt = nullptr;
   int result;
 
-  result = sqlite3_prepare_v2(database, query, -1, &stmt, nullptr);
+  if (db == nullptr) {
+    ESP_LOGE(TAG, "sqlite3 database is null");
+    goto error;
+  }
+
+  if (query == nullptr) {
+    ESP_LOGE(TAG, "invalid query");
+    goto error;
+  }
+
+  result = sqlite3_prepare_v2(db, query, -1, &stmt, nullptr);
   if (result != SQLITE_OK) {
-    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+    ESP_LOGE(TAG, "%s", sqlite3_errmsg(db));
     goto error;
   }
   //
   result = sqlite3_bind_int64(stmt, 1, sensor_id);
   if (result != SQLITE_OK) {
-    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+    ESP_LOGE(TAG, "%s", sqlite3_errmsg(db));
     goto error;
   }
   result = sqlite3_bind_int(stmt, 2, static_cast<int32_t>(limit));
   if (result != SQLITE_OK) {
-    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+    ESP_LOGE(TAG, "%s", sqlite3_errmsg(db));
     goto error;
   }
   //
@@ -520,7 +607,7 @@ size_t LocalDatabase::raw_get_n_desc_time_and_float(
 
     result = sqlite3_finalize(stmt);
     if (result != SQLITE_OK) {
-      ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+      ESP_LOGE(TAG, "%s", sqlite3_errmsg(db));
       stmt = nullptr; // omit double finalize
       goto error;
     }
@@ -537,25 +624,35 @@ error:
 //
 //
 size_t LocalDatabase::raw_get_n_time_and_uint16_and_nullable_uint16(
-    const char *query, uint64_t sensor_id, size_t limit,
+    sqlite3 *db, const char *query, uint64_t sensor_id, size_t limit,
     CallbackRowTimeAndUint16AndNullableUint16 callback) {
   sqlite3_stmt *stmt = nullptr;
   int result;
 
-  result = sqlite3_prepare_v2(database, query, -1, &stmt, nullptr);
+  if (db == nullptr) {
+    ESP_LOGE(TAG, "sqlite3 database is null");
+    goto error;
+  }
+
+  if (query == nullptr) {
+    ESP_LOGE(TAG, "invalid query");
+    goto error;
+  }
+
+  result = sqlite3_prepare_v2(db, query, -1, &stmt, nullptr);
   if (result != SQLITE_OK) {
-    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+    ESP_LOGE(TAG, "%s", sqlite3_errmsg(db));
     goto error;
   }
   //
   result = sqlite3_bind_int64(stmt, 1, sensor_id);
   if (result != SQLITE_OK) {
-    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+    ESP_LOGE(TAG, "%s", sqlite3_errmsg(db));
     goto error;
   }
   result = sqlite3_bind_int(stmt, 2, static_cast<int32_t>(limit));
   if (result != SQLITE_OK) {
-    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+    ESP_LOGE(TAG, "%s", sqlite3_errmsg(db));
     goto error;
   }
   //
@@ -575,7 +672,7 @@ size_t LocalDatabase::raw_get_n_time_and_uint16_and_nullable_uint16(
 
     result = sqlite3_finalize(stmt);
     if (result != SQLITE_OK) {
-      ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+      ESP_LOGE(TAG, "%s", sqlite3_errmsg(db));
       stmt = nullptr; // omit double finalize
       goto error;
     }
@@ -592,20 +689,31 @@ error:
 //
 //
 std::tuple<bool, std::time_t, BaselineSGP30T>
-LocalDatabase::raw_get_latest_baseline(const char *query, uint64_t sensor_id) {
+LocalDatabase::raw_get_latest_baseline(sqlite3 *db, const char *query,
+                                       uint64_t sensor_id) {
   sqlite3_stmt *stmt = nullptr;
   int result;
   auto retval{std::make_tuple(false, 0, 0)};
 
-  result = sqlite3_prepare_v2(database, query, -1, &stmt, nullptr);
+  if (db == nullptr) {
+    ESP_LOGE(TAG, "sqlite3 database is null");
+    goto error;
+  }
+
+  if (query == nullptr) {
+    ESP_LOGE(TAG, "invalid query");
+    goto error;
+  }
+
+  result = sqlite3_prepare_v2(db, query, -1, &stmt, nullptr);
   if (result != SQLITE_OK) {
-    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+    ESP_LOGE(TAG, "%s", sqlite3_errmsg(db));
     goto error;
   }
   //
   result = sqlite3_bind_int64(stmt, 1, sensor_id);
   if (result != SQLITE_OK) {
-    ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+    ESP_LOGE(TAG, "%s", sqlite3_errmsg(db));
     goto error;
   }
   //
@@ -623,7 +731,7 @@ LocalDatabase::raw_get_latest_baseline(const char *query, uint64_t sensor_id) {
     }
     result = sqlite3_finalize(stmt);
     if (result != SQLITE_OK) {
-      ESP_LOGE(TAG, "%s", sqlite3_errmsg(database));
+      ESP_LOGE(TAG, "%s", sqlite3_errmsg(db));
       stmt = nullptr; // omit double finalize
       goto error;
     }
