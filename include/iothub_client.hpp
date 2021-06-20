@@ -21,7 +21,7 @@ public:
   ~IotHubClient();
   //
   bool begin(const std::string &connstr);
-  inline void update(bool hasDelay) { Esp32MQTTClient_Check(hasDelay); }
+  inline void check(bool hasDelay) { Esp32MQTTClient_Check(hasDelay); }
   bool pushState(JsonDocument &v);
   bool pushMessage(JsonDocument &v);
   //
