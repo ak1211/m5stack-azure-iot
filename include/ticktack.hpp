@@ -42,7 +42,7 @@ public:
   static char *isoformatUTC(char *str, std::size_t size, std::time_t utctime) {
     struct tm tm;
     gmtime_r(&utctime, &tm);
-    strftime(str, size, "%Y-%m-%dT%H:%M:%SZ", &tm);
+    std::strftime(str, size, "%Y-%m-%dT%H:%M:%SZ", &tm);
     return str;
   }
   //
@@ -57,7 +57,7 @@ public:
   //
   uint64_t uptimeSeconds() {
     std::time_t now = std::time(nullptr);
-    return static_cast<uint64_t>(difftime(now, startup_time));
+    return static_cast<uint64_t>(std::difftime(now, startup_time));
   }
   //
   struct Uptime {

@@ -146,7 +146,12 @@ static void periodical_push_message(const MeasurementSets &m) {
     std::string sensor_id;
     absolute_sensor_id_from_SensorDescriptor(sensor_id,
                                              temp_humi_pres.sensor_descriptor);
-    peri.iothub_client.pushTempHumiPres(sensor_id, temp_humi_pres);
+    if (peri.iothub_client.pushTempHumiPres(sensor_id, temp_humi_pres)) {
+      ESP_LOGD(TAG, "pushTempHumiPres() success.");
+    } else {
+      ESP_LOGE(TAG, "pushTempHumiPres() failure.");
+      peri.iothub_client.check(false);
+    }
   }
   // SGP30 sensor values.
   // eCo2, TVOC
@@ -155,7 +160,12 @@ static void periodical_push_message(const MeasurementSets &m) {
     std::string sensor_id;
     absolute_sensor_id_from_SensorDescriptor(sensor_id,
                                              tvoc_eco2.sensor_descriptor);
-    peri.iothub_client.pushTvocEco2(sensor_id, tvoc_eco2);
+    if (peri.iothub_client.pushTvocEco2(sensor_id, tvoc_eco2)) {
+      ESP_LOGD(TAG, "pushTvocEco2() success.");
+    } else {
+      ESP_LOGE(TAG, "pushTvocEco2() failure.");
+      peri.iothub_client.check(false);
+    }
   }
   // SCD30 sensor values.
   // co2, Temperature, Relative Humidity
@@ -164,7 +174,12 @@ static void periodical_push_message(const MeasurementSets &m) {
     std::string sensor_id;
     absolute_sensor_id_from_SensorDescriptor(sensor_id,
                                              co2_temp_humi.sensor_descriptor);
-    peri.iothub_client.pushCo2TempHumi(sensor_id, co2_temp_humi);
+    if (peri.iothub_client.pushCo2TempHumi(sensor_id, co2_temp_humi)) {
+      ESP_LOGD(TAG, "pushCo2TempHumi() success.");
+    } else {
+      ESP_LOGE(TAG, "pushCo2TempHumi() failure.");
+      peri.iothub_client.check(false);
+    }
   }
 }
 
@@ -187,7 +202,12 @@ static void periodical_push_state() {
   json["batteryLevel"] = buf;
   uint32_t upseconds = peri.ticktack.uptimeSeconds();
   json["uptime"] = upseconds;
-  peri.iothub_client.pushState(json);
+  if (peri.iothub_client.pushState(json)) {
+    ESP_LOGD(TAG, "pushState() success.");
+  } else {
+    ESP_LOGE(TAG, "pushState() failure.");
+    peri.iothub_client.check(false);
+  }
 }
 
 //
@@ -248,7 +268,7 @@ void loop() {
 
   Peripherals &peri = Peripherals::getInstance();
   if (peri.wifi_launcher.hasWifiConnection()) {
-    peri.iothub_client.update(true);
+    peri.iothub_client.check(true);
   }
 
   static clock_t before_clock = 0;

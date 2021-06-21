@@ -25,9 +25,13 @@ public:
   //
   LocalDatabase(const std::string &filename);
   //
+  ~LocalDatabase();
+  //
   bool available() { return _available; }
   //
   bool begin();
+  //
+  void terminate();
   //
   bool insert(const TempHumiPres &);
   bool insert(const TvocEco2 &);
@@ -75,23 +79,27 @@ private:
   const std::string sqlite3_filename;
   sqlite3 *database;
   //
-  int64_t raw_insert_time_and_float(const char *query, uint64_t sensor_id,
-                                    std::time_t time, float float_value);
+  static int64_t raw_insert_time_and_float(sqlite3 *database, const char *query,
+                                           uint64_t sensor_id, std::time_t time,
+                                           float float_value);
   //
-  int64_t raw_insert_time_and_uint16_and_nullable_uint16(
-      const char *query, uint64_t sensor_id, std::time_t time,
-      uint16_t uint16_value, const uint16_t *nullable_uint16_value);
+  static int64_t raw_insert_time_and_uint16_and_nullable_uint16(
+      sqlite3 *database, const char *query, uint64_t sensor_id,
+      std::time_t time, uint16_t uint16_value,
+      const uint16_t *nullable_uint16_value);
   //
-  size_t raw_get_n_desc_time_and_float(const char *query, uint64_t sensor_id,
-                                       size_t limit,
-                                       CallbackRowTimeAndFloat callback);
+  static size_t raw_get_n_desc_time_and_float(sqlite3 *database,
+                                              const char *query,
+                                              uint64_t sensor_id, size_t limit,
+                                              CallbackRowTimeAndFloat callback);
   //
-  size_t raw_get_n_time_and_uint16_and_nullable_uint16(
-      const char *query, uint64_t sensor_id, size_t limit,
+  static size_t raw_get_n_time_and_uint16_and_nullable_uint16(
+      sqlite3 *database, const char *query, uint64_t sensor_id, size_t limit,
       CallbackRowTimeAndUint16AndNullableUint16 callback);
   //
-  std::tuple<bool, std::time_t, BaselineSGP30T>
-  raw_get_latest_baseline(const char *query, uint64_t sensor_id);
+  static std::tuple<bool, std::time_t, BaselineSGP30T>
+  raw_get_latest_baseline(sqlite3 *database, const char *query,
+                          uint64_t sensor_id);
 };
 
 #endif // LOCAL_DATABASE_HPP
