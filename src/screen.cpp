@@ -666,7 +666,7 @@ private:
   void init_rawid() { rawid = INT64_MIN; }
   //
   void update_rawid() {
-    rawid = Peripherals::getInstance().local_database.rawid_temperature;
+    rawid = Peripherals::getInstance().local_database.rowid_temperature;
   }
   //
   template <class T, std::size_t N>
@@ -685,7 +685,7 @@ private:
   }
   //
   bool need_for_update() {
-    return rawid != Peripherals::getInstance().local_database.rawid_temperature;
+    return rawid != Peripherals::getInstance().local_database.rowid_temperature;
   }
 };
 
@@ -746,7 +746,7 @@ private:
   void init_rawid() { rawid = INT64_MIN; }
   //
   void update_rawid() {
-    rawid = Peripherals::getInstance().local_database.rawid_relative_humidity;
+    rawid = Peripherals::getInstance().local_database.rowid_relative_humidity;
   }
   //
   template <class T, std::size_t N>
@@ -766,7 +766,7 @@ private:
   //
   bool need_for_update() {
     return rawid !=
-           Peripherals::getInstance().local_database.rawid_relative_humidity;
+           Peripherals::getInstance().local_database.rowid_relative_humidity;
   }
 };
 
@@ -826,7 +826,7 @@ private:
   void init_rawid() { rawid = INT64_MIN; }
   //
   void update_rawid() {
-    rawid = Peripherals::getInstance().local_database.rawid_pressure;
+    rawid = Peripherals::getInstance().local_database.rowid_pressure;
   }
   //
   template <class T, std::size_t N>
@@ -845,7 +845,7 @@ private:
   }
   //
   bool need_for_update() {
-    return rawid != Peripherals::getInstance().local_database.rawid_pressure;
+    return rawid != Peripherals::getInstance().local_database.rowid_pressure;
   }
 };
 
@@ -905,7 +905,7 @@ private:
   void init_rawid() { rawid = INT64_MIN; }
   //
   void update_rawid() {
-    rawid = Peripherals::getInstance().local_database.rawid_total_voc;
+    rawid = Peripherals::getInstance().local_database.rowid_total_voc;
   }
   //
   template <class T, std::size_t N>
@@ -924,7 +924,7 @@ private:
   }
   //
   bool need_for_update() {
-    return rawid != Peripherals::getInstance().local_database.rawid_total_voc;
+    return rawid != Peripherals::getInstance().local_database.rowid_total_voc;
   }
 };
 
@@ -984,7 +984,7 @@ private:
   void init_rawid() { rawid = INT64_MIN; }
   //
   void update_rawid() {
-    rawid = Peripherals::getInstance().local_database.rawid_carbon_dioxide;
+    rawid = Peripherals::getInstance().local_database.rowid_carbon_dioxide;
   }
   //
   template <class T, std::size_t N>
@@ -1004,7 +1004,7 @@ private:
   //
   bool need_for_update() {
     return rawid !=
-           Peripherals::getInstance().local_database.rawid_carbon_dioxide;
+           Peripherals::getInstance().local_database.rowid_carbon_dioxide;
   }
 };
 
@@ -1064,7 +1064,7 @@ private:
   void init_rawid() { rawid = INT64_MIN; }
   //
   void update_rawid() {
-    rawid = Peripherals::getInstance().local_database.rawid_carbon_dioxide;
+    rawid = Peripherals::getInstance().local_database.rowid_carbon_dioxide;
   }
   //
   template <class T, std::size_t N>
@@ -1084,7 +1084,7 @@ private:
   //
   bool need_for_update() {
     return rawid !=
-           Peripherals::getInstance().local_database.rawid_carbon_dioxide;
+           Peripherals::getInstance().local_database.rowid_carbon_dioxide;
   }
 };
 
