@@ -85,12 +85,13 @@ private:
   T private_value;
 };
 
+using SensorId = uint64_t;
 //
 class SensorDescriptor {
 public:
-  uint64_t id;
+  SensorId id;
   //
-  explicit SensorDescriptor(uint64_t inital = 0) : id{inital} {}
+  explicit SensorDescriptor(SensorId inital = 0) : id{inital} {}
   explicit SensorDescriptor(char c0, char c1, char c2, char c3, char c4,
                             char c5, char c6, char c7) {
     id = static_cast<uint64_t>(c0) << 56 | // 1st byte

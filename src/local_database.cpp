@@ -10,11 +10,11 @@ constexpr static const char *TAG = "DbModule";
 
 //
 LocalDatabase::LocalDatabase(const std::string &filename)
-    : rawid_temperature{-1},
-      rawid_relative_humidity{-1},
-      rawid_pressure{-1},
-      rawid_carbon_dioxide{-1},
-      rawid_total_voc{-1},
+    : rowid_temperature{-1},
+      rowid_relative_humidity{-1},
+      rowid_pressure{-1},
+      rowid_carbon_dioxide{-1},
+      rowid_total_voc{-1},
       _available{false},
       sqlite3_filename{filename},
       database{nullptr} {}
@@ -39,19 +39,19 @@ static const char schema_temperature[] =
     ",degc REAL NOT NULL"
     ");";
 //
-LocalDatabase::RawId LocalDatabase::insert_temperature(uint64_t sensor_id,
+LocalDatabase::RowId LocalDatabase::insert_temperature(SensorId sensor_id,
                                                        std::time_t at,
                                                        DegC degc) {
   static const char query[] = "INSERT INTO"
                               " temperature(sensor_id,at,degc)"
                               " VALUES(?,?,?);";
-  rawid_temperature =
+  rowid_temperature =
       raw_insert_time_and_float(database, query, sensor_id, at, degc.value);
-  return rawid_temperature;
+  return rowid_temperature;
 }
 //
 size_t LocalDatabase::get_temperatures_desc(
-    uint64_t sensor_id, size_t limit,
+    SensorId sensor_id, size_t limit,
     LocalDatabase::CallbackRowTimeAndFloat callback) {
   static const char query[] = "SELECT"
                               " sensor_id,at,degc"
@@ -74,19 +74,19 @@ static const char schema_relative_humidity[] =
     ",rh REAL NOT NULL"
     ");";
 //
-LocalDatabase::RawId LocalDatabase::insert_relative_humidity(uint64_t sensor_id,
+LocalDatabase::RowId LocalDatabase::insert_relative_humidity(SensorId sensor_id,
                                                              std::time_t at,
                                                              PcRH rh) {
   constexpr static const char query[] = "INSERT INTO"
                                         " relative_humidity(sensor_id,at,rh)"
                                         " VALUES(?,?,?);";
-  rawid_relative_humidity =
+  rowid_relative_humidity =
       raw_insert_time_and_float(database, query, sensor_id, at, rh.value);
-  return rawid_relative_humidity;
+  return rowid_relative_humidity;
 }
 //
 size_t LocalDatabase::get_relative_humidities_desc(
-    uint64_t sensor_id, size_t limit,
+    SensorId sensor_id, size_t limit,
     LocalDatabase::CallbackRowTimeAndFloat callback) {
   constexpr static const char query[] = "SELECT"
                                         " sensor_id,at,rh"
@@ -108,18 +108,18 @@ static const char schema_pressure[] = "CREATE TABLE IF NOT EXISTS pressure"
                                       ",hpa REAL NOT NULL"
                                       ");";
 //
-LocalDatabase::RawId LocalDatabase::insert_pressure(uint64_t sensor_id,
+LocalDatabase::RowId LocalDatabase::insert_pressure(SensorId sensor_id,
                                                     std::time_t at, HPa hpa) {
   static const char query[] = "INSERT INTO"
                               " pressure(sensor_id,at,hpa)"
                               " VALUES(?,?,?);";
-  rawid_pressure =
+  rowid_pressure =
       raw_insert_time_and_float(database, query, sensor_id, at, hpa.value);
-  return rawid_pressure;
+  return rowid_pressure;
 }
 //
 size_t LocalDatabase::get_pressures_desc(
-    uint64_t sensor_id, size_t limit,
+    SensorId sensor_id, size_t limit,
     LocalDatabase::CallbackRowTimeAndFloat callback) {
   static const char query[] = "SELECT"
                               " sensor_id,at,hpa"
@@ -143,19 +143,19 @@ static char schema_carbon_dioxide[] =
     ",baseline INTEGER"
     ");";
 //
-LocalDatabase::RawId
-LocalDatabase::insert_carbon_dioxide(uint64_t sensor_id, std::time_t at,
+LocalDatabase::RowId
+LocalDatabase::insert_carbon_dioxide(SensorId sensor_id, std::time_t at,
                                      Ppm ppm, const uint16_t *baseline) {
   static const char query[] = "INSERT INTO"
                               " carbon_dioxide(sensor_id,at,ppm,baseline)"
                               " VALUES(?,?,?,?);";
-  rawid_carbon_dioxide = raw_insert_time_and_uint16_and_nullable_uint16(
+  rowid_carbon_dioxide = raw_insert_time_and_uint16_and_nullable_uint16(
       database, query, sensor_id, at, ppm.value, baseline);
-  return rawid_carbon_dioxide;
+  return rowid_carbon_dioxide;
 }
 //
 size_t LocalDatabase::get_carbon_deoxides_desc(
-    uint64_t sensor_id, size_t limit,
+    SensorId sensor_id, size_t limit,
     LocalDatabase::CallbackRowTimeAndUint16AndNullableUint16 callback) {
   static const char query[] = "SELECT"
                               " sensor_id,at,ppm,baseline"
@@ -178,19 +178,19 @@ static const char schema_total_voc[] = "CREATE TABLE IF NOT EXISTS total_voc"
                                        ",baseline INTEGER"
                                        ");";
 //
-LocalDatabase::RawId LocalDatabase::insert_total_voc(uint64_t sensor_id,
+LocalDatabase::RowId LocalDatabase::insert_total_voc(SensorId sensor_id,
                                                      std::time_t at, Ppb ppb,
                                                      const uint16_t *baseline) {
   static const char query[] = "INSERT INTO"
                               " total_voc(sensor_id,at,ppb,baseline)"
                               " VALUES(?,?,?,?);";
-  rawid_total_voc = raw_insert_time_and_uint16_and_nullable_uint16(
+  rowid_total_voc = raw_insert_time_and_uint16_and_nullable_uint16(
       database, query, sensor_id, at, ppb.value, baseline);
-  return rawid_total_voc;
+  return rowid_total_voc;
 }
 //
 size_t LocalDatabase::get_total_vocs_desc(
-    uint64_t sensor_id, size_t limit,
+    SensorId sensor_id, size_t limit,
     LocalDatabase::CallbackRowTimeAndUint16AndNullableUint16 callback) {
   static const char query[] = "SELECT"
                               " sensor_id,at,ppb,baseline"
@@ -203,7 +203,7 @@ size_t LocalDatabase::get_total_vocs_desc(
 }
 //
 std::tuple<bool, std::time_t, BaselineECo2>
-LocalDatabase::get_latest_baseline_eco2(uint64_t sensor_id) {
+LocalDatabase::get_latest_baseline_eco2(SensorId sensor_id) {
   static const char query[] = "SELECT"
                               " sensor_id" // 0
                               ",at"        // 1
@@ -219,7 +219,7 @@ LocalDatabase::get_latest_baseline_eco2(uint64_t sensor_id) {
 }
 //
 std::tuple<bool, std::time_t, BaselineTotalVoc>
-LocalDatabase::get_latest_baseline_total_voc(uint64_t sensor_id) {
+LocalDatabase::get_latest_baseline_total_voc(SensorId sensor_id) {
   static const char query[] = "SELECT"
                               " sensor_id" // 0
                               ",at"        // 1
@@ -431,7 +431,7 @@ bool LocalDatabase::insert(const Co2TempHumi &co2_temp_humi) {
 //
 //
 int64_t LocalDatabase::raw_insert_time_and_float(sqlite3 *db, const char *query,
-                                                 uint64_t sensor_id,
+                                                 SensorId sensor_id,
                                                  std::time_t time,
                                                  float float_value) {
   sqlite3_stmt *stmt = nullptr;
@@ -470,6 +470,7 @@ int64_t LocalDatabase::raw_insert_time_and_float(sqlite3 *db, const char *query,
   }
   //
   while (sqlite3_step(stmt) != SQLITE_DONE) {
+      ESP_LOGV(TAG, "sqlite3_step()");
   }
 
   result = sqlite3_finalize(stmt);
@@ -490,7 +491,7 @@ error:
 //
 //
 int64_t LocalDatabase::raw_insert_time_and_uint16_and_nullable_uint16(
-    sqlite3 *db, const char *query, uint64_t sensor_id, std::time_t time,
+    sqlite3 *db, const char *query, SensorId sensor_id, std::time_t time,
     uint16_t uint16_value, const uint16_t *nullable_uint16_value) {
   sqlite3_stmt *stmt = nullptr;
   int result;
@@ -541,6 +542,7 @@ int64_t LocalDatabase::raw_insert_time_and_uint16_and_nullable_uint16(
   }
   //
   while (sqlite3_step(stmt) != SQLITE_DONE) {
+      ESP_LOGV(TAG, "sqlite3_step()");
   }
 
   result = sqlite3_finalize(stmt);
@@ -561,7 +563,7 @@ error:
 //
 //
 size_t LocalDatabase::raw_get_n_desc_time_and_float(
-    sqlite3 *db, const char *query, uint64_t sensor_id, size_t limit,
+    sqlite3 *db, const char *query, SensorId sensor_id, size_t limit,
     LocalDatabase::CallbackRowTimeAndFloat callback) {
   sqlite3_stmt *stmt = nullptr;
   int result;
@@ -596,6 +598,7 @@ size_t LocalDatabase::raw_get_n_desc_time_and_float(
   {
     size_t counter = 0;
     while (sqlite3_step(stmt) == SQLITE_ROW) {
+      ESP_LOGV(TAG, "sqlite3_step()");
       // number 0 is sensor_id
       int64_t at = sqlite3_column_int64(stmt, 1);
       double degc = sqlite3_column_double(stmt, 2);
@@ -624,7 +627,7 @@ error:
 //
 //
 size_t LocalDatabase::raw_get_n_time_and_uint16_and_nullable_uint16(
-    sqlite3 *db, const char *query, uint64_t sensor_id, size_t limit,
+    sqlite3 *db, const char *query, SensorId sensor_id, size_t limit,
     CallbackRowTimeAndUint16AndNullableUint16 callback) {
   sqlite3_stmt *stmt = nullptr;
   int result;
@@ -659,6 +662,7 @@ size_t LocalDatabase::raw_get_n_time_and_uint16_and_nullable_uint16(
   {
     size_t counter = 0;
     while (sqlite3_step(stmt) == SQLITE_ROW) {
+      ESP_LOGV(TAG, "sqlite3_step()");
       // number 0 is sensor_id
       int64_t at = sqlite3_column_int64(stmt, 1);
       int v1 = sqlite3_column_int(stmt, 2);
@@ -690,7 +694,7 @@ error:
 //
 std::tuple<bool, std::time_t, BaselineSGP30T>
 LocalDatabase::raw_get_latest_baseline(sqlite3 *db, const char *query,
-                                       uint64_t sensor_id) {
+                                       SensorId sensor_id) {
   sqlite3_stmt *stmt = nullptr;
   int result;
   auto retval{std::make_tuple(false, 0, 0)};
@@ -720,6 +724,7 @@ LocalDatabase::raw_get_latest_baseline(sqlite3 *db, const char *query,
   {
     size_t counter = 0;
     while (sqlite3_step(stmt) == SQLITE_ROW) {
+      ESP_LOGV(TAG, "sqlite3_step()");
       // number 0 is sensor_id
       int64_t at = sqlite3_column_int64(stmt, 1);
       if (sqlite3_column_type(stmt, 2) != SQLITE_NULL) {

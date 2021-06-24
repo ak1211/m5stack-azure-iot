@@ -39,19 +39,19 @@ public:
   //
   void showSignal(Ppm co2) {
     uint32_t c = Adafruit_NeoPixel::Color(0, 0, 0);
-    if (0 <= co2.value && co2.value < 499) {
+    if (0 <= co2.value && co2.value < 500) {
       // blue
       c = Adafruit_NeoPixel::Color(21, 21, 88);
-    } else if (500 <= co2.value && co2.value < 899) {
+    } else if (500 <= co2.value && co2.value < 900) {
       // bluegreen
       c = Adafruit_NeoPixel::Color(21, 88, 88);
-    } else if (900 <= co2.value && co2.value < 1199) {
+    } else if (900 <= co2.value && co2.value < 1200) {
       // green
       c = Adafruit_NeoPixel::Color(0, 204, 0);
-    } else if (1200 <= co2.value && co2.value < 1699) {
+    } else if (1200 <= co2.value && co2.value < 1700) {
       // yellow
       c = Adafruit_NeoPixel::Color(204, 204, 0);
-    } else if (1700 <= co2.value && co2.value < 2499) {
+    } else if (1700 <= co2.value && co2.value < 2500) {
       // pink
       c = Adafruit_NeoPixel::Color(204, 0, 102);
     } else {
