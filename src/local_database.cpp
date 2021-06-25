@@ -469,8 +469,14 @@ int64_t LocalDatabase::raw_insert_time_and_float(sqlite3 *db, const char *query,
     goto error;
   }
   //
-  while (sqlite3_step(stmt) != SQLITE_DONE) {
-      ESP_LOGV(TAG, "sqlite3_step()");
+  for (int16_t retry = 0; sqlite3_step(stmt) != SQLITE_DONE; ++retry) {
+    ESP_LOGV(TAG, "sqlite3_step()");
+    if (retry >= 100) {
+      ESP_LOGE(TAG, "sqlite3_step() over");
+      ESP_LOGE(TAG, "query is \"%s\"", query);
+      ESP_LOGE(TAG, "%s", sqlite3_errmsg(db));
+      goto error;
+    }
   }
 
   result = sqlite3_finalize(stmt);
@@ -541,8 +547,14 @@ int64_t LocalDatabase::raw_insert_time_and_uint16_and_nullable_uint16(
     }
   }
   //
-  while (sqlite3_step(stmt) != SQLITE_DONE) {
-      ESP_LOGV(TAG, "sqlite3_step()");
+  for (int16_t retry = 0; sqlite3_step(stmt) != SQLITE_DONE; ++retry) {
+    ESP_LOGV(TAG, "sqlite3_step()");
+    if (retry >= 100) {
+      ESP_LOGE(TAG, "sqlite3_step() over");
+      ESP_LOGE(TAG, "query is \"%s\"", query);
+      ESP_LOGE(TAG, "%s", sqlite3_errmsg(db));
+      goto error;
+    }
   }
 
   result = sqlite3_finalize(stmt);
