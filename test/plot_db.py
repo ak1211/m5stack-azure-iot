@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 #
-# $ pip3 install azure-cosmos
+# $ pip3 install numpy pandas matplotlib azure-cosmos
+# $ ./plot_db.py azure-cosmos-db-uri azure-cosmos-db-key
 #
 # Copyright (c) 2021 Akihiro Yamamoto.
 # Licensed under the MIT License <https://spdx.org/licenses/MIT.html>
