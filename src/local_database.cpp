@@ -391,15 +391,8 @@ bool LocalDatabase::insert(const TvocEco2 &tvoc_eco2) {
   }
   int64_t rawid;
 
-  if (tvoc_eco2.tvoc_baseline.nothing()) {
-    rawid = insert_total_voc(tvoc_eco2.sensor_descriptor.id, tvoc_eco2.at,
-                             static_cast<Ppb>(tvoc_eco2.tvoc.value), nullptr);
-    if (rawid < 0) {
-      ESP_LOGE(TAG, "insert_total_voc() failure.");
-      return false;
-    }
-  } else {
-    BaselineTotalVoc tvoc_base = tvoc_eco2.tvoc_baseline.get();
+  if (tvoc_eco2.tvoc_baseline.has_value()) {
+    BaselineTotalVoc tvoc_base = tvoc_eco2.tvoc_baseline.value();
     rawid = insert_total_voc(tvoc_eco2.sensor_descriptor.id, tvoc_eco2.at,
                              static_cast<Ppb>(tvoc_eco2.tvoc.value),
                              &tvoc_base.value);
@@ -407,21 +400,28 @@ bool LocalDatabase::insert(const TvocEco2 &tvoc_eco2) {
       ESP_LOGE(TAG, "insert_total_voc() failure.");
       return false;
     }
+  } else {
+    rawid = insert_total_voc(tvoc_eco2.sensor_descriptor.id, tvoc_eco2.at,
+                             static_cast<Ppb>(tvoc_eco2.tvoc.value), nullptr);
+    if (rawid < 0) {
+      ESP_LOGE(TAG, "insert_total_voc() failure.");
+      return false;
+    }
   }
 
-  if (tvoc_eco2.eCo2_baseline.nothing()) {
-    rawid =
-        insert_carbon_dioxide(tvoc_eco2.sensor_descriptor.id, tvoc_eco2.at,
-                              static_cast<Ppm>(tvoc_eco2.eCo2.value), nullptr);
+  if (tvoc_eco2.eCo2_baseline.has_value()) {
+    BaselineECo2 eco2_base = tvoc_eco2.eCo2_baseline.value();
+    rawid = insert_carbon_dioxide(tvoc_eco2.sensor_descriptor.id, tvoc_eco2.at,
+                                  static_cast<Ppm>(tvoc_eco2.eCo2.value),
+                                  &eco2_base.value);
     if (rawid < 0) {
       ESP_LOGE(TAG, "insert_carbon_dioxide() failure.");
       return false;
     }
   } else {
-    BaselineECo2 eco2_base = tvoc_eco2.eCo2_baseline.get();
-    rawid = insert_carbon_dioxide(tvoc_eco2.sensor_descriptor.id, tvoc_eco2.at,
-                                  static_cast<Ppm>(tvoc_eco2.eCo2.value),
-                                  &eco2_base.value);
+    rawid =
+        insert_carbon_dioxide(tvoc_eco2.sensor_descriptor.id, tvoc_eco2.at,
+                              static_cast<Ppm>(tvoc_eco2.eCo2.value), nullptr);
     if (rawid < 0) {
       ESP_LOGE(TAG, "insert_carbon_dioxide() failure.");
       return false;

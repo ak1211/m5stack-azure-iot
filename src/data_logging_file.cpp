@@ -56,14 +56,16 @@ void DataLoggingFile::write_data_to_log_file(time_t at, const TempHumiPres &bme,
     // 6th field is eCo2
     i += snprintf(&p[i], LENGTH - i, ", %5d", sgp.eCo2.value);
     // 7th field is TVOC baseline
-    if (sgp.tvoc_baseline.good()) {
-      i += snprintf(&p[i], LENGTH - i, ", %5d", sgp.tvoc_baseline.get().value);
+    if (sgp.tvoc_baseline.has_value()) {
+      i +=
+          snprintf(&p[i], LENGTH - i, ", %5d", sgp.tvoc_baseline.value().value);
     } else {
       i += snprintf(&p[i], LENGTH - i, ",      ");
     }
     // 8th field is eCo2 baseline
-    if (sgp.eCo2_baseline.good()) {
-      i += snprintf(&p[i], LENGTH - i, ", %5d", sgp.eCo2_baseline.get().value);
+    if (sgp.eCo2_baseline.has_value()) {
+      i +=
+          snprintf(&p[i], LENGTH - i, ", %5d", sgp.eCo2_baseline.value().value);
     } else {
       i += snprintf(&p[i], LENGTH - i, ",      ");
     }

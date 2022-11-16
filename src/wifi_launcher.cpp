@@ -5,8 +5,7 @@
 #include "wifi_launcher.hpp"
 #include "peripherals.hpp"
 
-#include <Wifi.h>
-
+#include <WiFi.h>
 
 //
 //

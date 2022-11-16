@@ -6,6 +6,7 @@
 #define VALUE_TYPES_HPP
 
 #include <cstdint>
+#include <optional>
 #include <string>
 
 // [V] voltage
@@ -61,28 +62,14 @@ using BaselineSGP30T = uint16_t;
 
 // SGP30 baseline(equivalent CO2)
 struct BaselineECo2 final {
-  explicit BaselineECo2(BaselineSGP30T init = 0u) : value(init) {}
+  BaselineECo2(BaselineSGP30T init = 0u) : value(init) {}
   BaselineSGP30T value;
 };
 
 // SGP30 baseline(Total VOC)
 struct BaselineTotalVoc final {
-  explicit BaselineTotalVoc(BaselineSGP30T init = 0u) : value(init) {}
+  BaselineTotalVoc(BaselineSGP30T init = 0u) : value(init) {}
   BaselineSGP30T value;
-};
-
-// value with good or nothing
-template <class T> class MeasuredValues {
-public:
-  explicit MeasuredValues(T v) : _good{true}, private_value{v} {}
-  explicit MeasuredValues() : _good{false}, private_value{} {}
-  bool good() const { return _good; }
-  bool nothing() const { return !_good; }
-  T get() const { return private_value; }
-
-private:
-  bool _good;
-  T private_value;
 };
 
 using SensorId = uint64_t;

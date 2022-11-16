@@ -112,17 +112,17 @@ void Sensor<Sgp30>::printSensorDetails() {
                 sgp30.serialnumber[2]);
 }
 //
-bool Sensor<Sgp30>::begin(MeasuredValues<BaselineECo2> eco2_base,
-                          MeasuredValues<BaselineTotalVoc> tvoc_base) {
+bool Sensor<Sgp30>::begin(std::optional<BaselineECo2> eco2_base,
+                          std::optional<BaselineTotalVoc> tvoc_base) {
   initialized = false;
   if (!sgp30.begin()) {
     return initialized;
   }
-  if (eco2_base.good() && tvoc_base.good()) {
+  if (eco2_base.has_value() && tvoc_base.has_value()) {
     // baseline set to SGP30
     bool result =
-        setIAQBaseline(static_cast<BaselineECo2>(eco2_base.get().value),
-                       static_cast<BaselineTotalVoc>(tvoc_base.get().value));
+        setIAQBaseline(static_cast<BaselineECo2>(eco2_base.value().value),
+                       static_cast<BaselineTotalVoc>(tvoc_base.value().value));
     if (result) {
       ESP_LOGI(TAG, "SGP30 setIAQBaseline success");
     } else {
@@ -149,8 +149,8 @@ Sgp30 Sensor<Sgp30>::read(std::time_t measured_at) {
     return Sgp30();
   }
   // 稼働時間が 12h　を超えている状態のときにベースラインを取得する
-  MeasuredValues<BaselineECo2> eco2_base{};
-  MeasuredValues<BaselineTotalVoc> tvoc_base{};
+  std::optional<BaselineECo2> eco2_base{std::nullopt};
+  std::optional<BaselineTotalVoc> tvoc_base{std::nullopt};
   Peripherals &peri = Peripherals::getInstance();
   if (peri.ticktack.available()) {
     uint32_t uptime_seconds = peri.ticktack.uptimeSeconds();
@@ -160,10 +160,8 @@ Sgp30 Sensor<Sgp30>::read(std::time_t measured_at) {
       uint16_t tvoc;
       if (sgp30.getIAQBaseline(&eco2, &tvoc)) {
         ESP_LOGD(TAG, "SGP30 baseline sensing.");
-        eco2_base =
-            MeasuredValues<BaselineECo2>(static_cast<BaselineECo2>(eco2));
-        tvoc_base = MeasuredValues<BaselineTotalVoc>(
-            static_cast<BaselineTotalVoc>(tvoc));
+        eco2_base = BaselineECo2{eco2};
+        tvoc_base = BaselineTotalVoc{tvoc};
       } else {
         ESP_LOGE(TAG, "SGP30 sensing failed.");
         return Sgp30();

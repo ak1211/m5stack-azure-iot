@@ -29,7 +29,9 @@ Peripherals::Peripherals()
 //
 bool Peripherals::begin(const std::string &wifi_ssid,
                         const std::string &wifi_password,
-                        const std::string &iothub_connectionstring) {
+                        std::string_view iothub_fqdn,
+                        std::string_view device_id,
+                        std::string_view device_key) {
   // initialize module: SystemPower
   if (_instance.system_power.begin()) {
     ESP_LOGI(TAG, "initialize module: SystemPower Ok.");
@@ -84,8 +86,12 @@ bool Peripherals::begin(const std::string &wifi_ssid,
   ArduinoOTA.begin();
   ESP_LOGI(TAG, "initialize module: ArduinoOTA Ok.");
 
+  // initialize module: TickTack
+  if (_instance.ticktack.begin()) {
+    ESP_LOGI(TAG, "initialize module: TickTack Ok.");
+  }
   // initialize module: IotHubClient
-  if (_instance.iothub_client.begin(iothub_connectionstring)) {
+  if (_instance.iothub_client.begin(iothub_fqdn, device_id, device_key)) {
     ESP_LOGI(TAG, "initialize module: IotHubClient Ok.");
   }
   // initialize module: DataLoggingFile
@@ -100,22 +106,22 @@ bool Peripherals::begin(const std::string &wifi_ssid,
   // initializing sensor
   {
     // get baseline for "Sensirion SGP30: Air Quality Sensor" from database
-    MeasuredValues<BaselineECo2> baseline_eco2;
+    std::optional<BaselineECo2> baseline_eco2{std::nullopt};
     auto eco2 = _instance.local_database.get_latest_baseline_eco2(
         _instance.sgp30.getSensorDescriptor().id);
     if (std::get<0>(eco2)) {
-      baseline_eco2 = MeasuredValues<BaselineECo2>(std::get<2>(eco2));
+      baseline_eco2 = std::get<2>(eco2);
       ESP_LOGD(TAG, "get_latest_baseline_eco2: at(%d), baseline(%d)",
                std::get<1>(eco2), std::get<2>(eco2));
     } else {
       ESP_LOGE(TAG, "get_latest_baseline_eco2: failed.");
     }
     //
-    MeasuredValues<BaselineTotalVoc> baseline_tvoc;
+    std::optional<BaselineTotalVoc> baseline_tvoc{std::nullopt};
     auto tvoc = _instance.local_database.get_latest_baseline_total_voc(
         _instance.sgp30.getSensorDescriptor().id);
     if (std::get<0>(tvoc)) {
-      baseline_tvoc = MeasuredValues<BaselineTotalVoc>(std::get<2>(tvoc));
+      baseline_tvoc = std::get<2>(tvoc);
       ESP_LOGD(TAG, "get_latest_baseline_total_voc: at(%d), baseline(%d)",
                std::get<1>(tvoc), std::get<2>(tvoc));
     } else {
@@ -126,17 +132,17 @@ bool Peripherals::begin(const std::string &wifi_ssid,
     bool sgp{false};
     bool scd{false};
     while (1) {
-      bme = _instance.bme280.begin(BME280_I2C_ADDRESS);
+      bme = !bme ? _instance.bme280.begin(BME280_I2C_ADDRESS) : bme;
       if (!bme) {
         Screen::lcd.print(F("BME280センサが見つかりません。\n"));
         delay(100);
       }
-      sgp = _instance.sgp30.begin(baseline_eco2, baseline_tvoc);
+      sgp = !sgp ? _instance.sgp30.begin(baseline_eco2, baseline_tvoc) : sgp;
       if (!sgp) {
         Screen::lcd.print(F("SGP30センサが見つかりません。\n"));
         delay(100);
       }
-      scd = _instance.scd30.begin();
+      scd = !scd ? _instance.scd30.begin() : scd;
       if (!scd) {
         Screen::lcd.print(F("SCD30センサが見つかりません。\n"));
         delay(100);
@@ -154,10 +160,6 @@ bool Peripherals::begin(const std::string &wifi_ssid,
     system_properties.bme280.printSensorDetails();
     */
     Screen::lcd.clear();
-  }
-  // initialize module: TickTack
-  if (_instance.ticktack.begin()) {
-    ESP_LOGI(TAG, "initialize module: TickTack Ok.");
   }
   //
   return true;
