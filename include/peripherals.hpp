@@ -48,7 +48,8 @@ public:
   //
   static bool begin(const std::string &wifi_ssid,
                     const std::string &wifi_password,
-                    const std::string &iothub_connectionstring);
+                    std::string_view iothub_fqdn, std::string_view device_id,
+                    std::string_view device_key);
   static Peripherals &getInstance();
 
 private:

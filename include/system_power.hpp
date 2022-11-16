@@ -6,16 +6,19 @@
 #define SYSTEM_POWER_HPP
 
 #include "value_types.hpp"
+#include <chrono>
 #include <ctime>
 
 class SystemPower {
 public:
-  constexpr static std::clock_t UPDATE_INTERVAL =
-      10 * CLOCKS_PER_SEC; // 10 seconds
-  SystemPower() : update_at{0} {}
+  constexpr static std::chrono::seconds UPDATE_INTERVAL{10};
+  //  = constexpr static std::clock_t UPDATE_INTERVAL = 10 * CLOCKS_PER_SEC; //
+  //  10 seconds
+  SystemPower() : update_at{std::chrono::system_clock::now()} {}
   bool begin();
   inline bool needToUpdate() {
-    return (std::clock() - update_at >= UPDATE_INTERVAL);
+    auto elapsed = std::chrono::system_clock::now() - update_at;
+    return (elapsed >= UPDATE_INTERVAL);
   }
   enum class PowerNow { External, Internal };
   PowerNow power_now();
@@ -28,7 +31,7 @@ public:
   void update();
 
 private:
-  std::clock_t update_at;
+  std::chrono::time_point<std::chrono::system_clock> update_at;
   Voltage battery_voltage;
   float battery_percentage;
   Ampere battery_current;

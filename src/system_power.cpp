@@ -6,6 +6,7 @@
 
 #include <M5Core2.h>
 #include <algorithm>
+#include <chrono>
 
 #undef max
 #undef min
@@ -31,5 +32,5 @@ void SystemPower::update() {
   battery_voltage = Voltage(batVoltage);
   battery_percentage = min(100.0f, batPercentage);
   battery_current = Ampere(batt_current / 1000.0f);
-  update_at = clock();
+  update_at = std::chrono::system_clock::now();
 }

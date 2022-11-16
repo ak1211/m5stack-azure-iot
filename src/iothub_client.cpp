@@ -5,207 +5,215 @@
 #include "iothub_client.hpp"
 #include "credentials.h"
 #include <Arduinojson.h>
-#include <Esp32MQTTClient.h>
 #include <ctime>
-#include <lwip/apps/sntp.h>
+#include <esp_sntp.h>
+#include <mqtt_client.h>
 #include <sstream>
 #include <string>
 
-constexpr static const char *TAG = "IoTHubModule";
+// Azure IoT SDK for C includes
+extern "C" {
+#include <az_core.h>
+#include <az_iot.h>
+#include <azure_ca.h>
+}
 
+// ログ出し用
+constexpr static const char TELEMETRY[] = "TELEMETRY";
+
+// When developing for your own Arduino-based platform,
+// please follow the format '(ard;<platform>)'.
+#define AZURE_SDK_CLIENT_USER_AGENT "c%2F" AZ_SDK_VERSION_STRING "(ard;esp32)"
+
+//
 uint32_t IotHubClient::message_id = 0;
+std::array<uint8_t, 200> IotHubClient::mqtt_password;
+std::array<char, 128> IotHubClient::incoming_data;
+//
+az_iot_hub_client IotHubClient::client;
+az_iot_hub_client_options IotHubClient::client_options{
+    az_iot_hub_client_options_default()};
+//
+esp_mqtt_client_handle_t IotHubClient::mqtt_client{};
 
 //
-static void sendConfirmationCallback(IOTHUB_CLIENT_CONFIRMATION_RESULT result) {
-  if (result == IOTHUB_CLIENT_CONFIRMATION_OK) {
-    ESP_LOGD(TAG, "Send Confirmation Callback finished.");
-  }
-}
 //
-static void messageCallback(const char *payLoad, int size) {
-  ESP_LOGI(TAG, "Message callback:%s", payLoad);
-}
 //
-static int deviceMethodCallback(const char *methodName,
-                                const unsigned char *payload, int size,
-                                unsigned char **response, int *response_size) {
-  ESP_LOGI(TAG, "Try to invoke method %s", methodName);
-  const char *responseMessage = "\"Successfully invoke device method\"";
-  int result = 200;
+esp_err_t IotHubClient::mqtt_event_handler(esp_mqtt_event_handle_t event) {
+  switch (event->event_id) {
+    int i, r;
 
-  if (strcmp(methodName, "calibration") == 0) {
-    /*
-    ESP_LOGI(TAG, "Start calibrate the sensor");
-    if (!system_properties.sgp30.begin()) {
-      responseMessage = "\"calibration failed\"";
-      result = 503;
+  case MQTT_EVENT_ERROR:
+    ESP_LOGI(TELEMETRY, "MQTT event MQTT_EVENT_ERROR");
+    break;
+  case MQTT_EVENT_CONNECTED:
+    ESP_LOGI(TELEMETRY, "MQTT event MQTT_EVENT_CONNECTED");
+    r = esp_mqtt_client_subscribe(mqtt_client,
+                                  AZ_IOT_HUB_CLIENT_C2D_SUBSCRIBE_TOPIC, 1);
+    if (r == -1) {
+      ESP_LOGE(TELEMETRY, "Could not subscribe for cloud-to-device messages.");
+    } else {
+      ESP_LOGI(TELEMETRY,
+               "Subscribed for cloud-to-device messages; message id:%d", r);
     }
-    */
-  } else if (strcmp(methodName, "start") == 0) {
-    ESP_LOGI(TAG, "Start sending temperature and humidity data");
-    //    messageSending = true;
-  } else if (strcmp(methodName, "stop") == 0) {
-    ESP_LOGI(TAG, "Stop sending temperature and humidity data");
-    //    messageSending = false;
+    break;
+  case MQTT_EVENT_DISCONNECTED:
+    ESP_LOGI(TELEMETRY, "MQTT event MQTT_EVENT_DISCONNECTED");
+    break;
+  case MQTT_EVENT_SUBSCRIBED:
+    ESP_LOGI(TELEMETRY, "MQTT event MQTT_EVENT_SUBSCRIBED");
+    break;
+  case MQTT_EVENT_UNSUBSCRIBED:
+    ESP_LOGI(TELEMETRY, "MQTT event MQTT_EVENT_UNSUBSCRIBED");
+    break;
+  case MQTT_EVENT_PUBLISHED:
+    ESP_LOGI(TELEMETRY, "MQTT event MQTT_EVENT_PUBLISHED");
+    break;
+  case MQTT_EVENT_DATA:
+    ESP_LOGI(TELEMETRY, "MQTT event MQTT_EVENT_DATA");
+    incoming_data.fill('\0');
+    std::copy_n(event->topic, event->topic_len, incoming_data.begin());
+    ESP_LOGI(TELEMETRY, "Topic: %s", incoming_data.data());
+    incoming_data.fill('\0');
+    std::copy_n(event->data, event->data_len, incoming_data.begin());
+    ESP_LOGI(TELEMETRY, "Data: %s", incoming_data.data());
+    break;
+  case MQTT_EVENT_BEFORE_CONNECT:
+    ESP_LOGI(TELEMETRY, "MQTT event MQTT_EVENT_BEFORE_CONNECT");
+    break;
+  default:
+    ESP_LOGE(TELEMETRY, "MQTT event UNKNOWN");
+    break;
+  }
+
+  return ESP_OK;
+}
+
+//
+//
+//
+bool IotHubClient::begin(std::string_view iothub_fqdn,
+                         std::string_view device_id,
+                         std::string_view device_key) {
+  //
+  client_options = az_iot_hub_client_options_default();
+  client_options.user_agent = AZ_SPAN_FROM_STR(AZURE_SDK_CLIENT_USER_AGENT);
+  //
+  config_iothub_fqdn = std::string(iothub_fqdn);
+  config_device_id = std::string(device_id);
+  config_device_key = std::string(device_key);
+  mqtt_broker_uri = std::string("mqtts://" + config_iothub_fqdn);
+  //
+  if (initializeIoTHubClient() && initializeMqttClient()) {
+    return true;
   } else {
-    ESP_LOGI(TAG, "No method %s found", methodName);
-    responseMessage = "\"No method found\"";
-    result = 404;
+    return true;
+  }
+}
+
+//
+//
+//
+bool IotHubClient::initializeIoTHubClient() {
+  if (az_result_failed(az_iot_hub_client_init(
+          &client,
+          az_span_create((uint8_t *)config_iothub_fqdn.c_str(),
+                         config_iothub_fqdn.length()),
+          az_span_create((uint8_t *)config_device_id.c_str(),
+                         config_device_id.length()),
+          &client_options))) {
+    ESP_LOGE(TELEMETRY, "Failed initializing Azure IoT Hub client");
+    return false;
   }
 
-  *response_size = strlen(responseMessage) + 1;
-  *response = (unsigned char *)strdup(responseMessage);
-
-  return result;
-}
-//
-static void
-connectionStatusCallback(IOTHUB_CLIENT_CONNECTION_STATUS result,
-                         IOTHUB_CLIENT_CONNECTION_STATUS_REASON reason) {
-  switch (reason) {
-  case IOTHUB_CLIENT_CONNECTION_EXPIRED_SAS_TOKEN:
-    // SASトークンの有効期限切れ。
-    ESP_LOGD(TAG, "SAS token expired.");
-    if (result == IOTHUB_CLIENT_CONNECTION_UNAUTHENTICATED) {
-      //
-      // Info: >>>Connection status: timeout
-      // Info: >>>Re-connect.
-      // Info: Initializing SNTP
-      // assertion "Operating mode must not be set while SNTP client is running"
-      // failed: file
-      // "/home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/esp-idf/components/lwip/lwip/src/apps/sntp/sntp.c",
-      // line 600, function: sntp_setoperatingmode abort() was called at PC
-      // 0x401215bf on core 1
-      //
-      // Esp32MQTTClient 側で再接続時に以上のログが出てabortするので,
-      // この時点で SNTPを停止しておくことで abort を回避する。
-      ESP_LOGD(TAG, "SAS token expired, stop the SNTP.");
-      sntp_stop();
+  {
+    std::array<char, 128> buffer{};
+    if (az_result_failed(az_iot_hub_client_get_client_id(
+            &client, buffer.data(), buffer.size() - 1, nullptr))) {
+      ESP_LOGE(TELEMETRY, "Failed getting client id");
+      return false;
     }
-    break;
-  case IOTHUB_CLIENT_CONNECTION_DEVICE_DISABLED:
-    ESP_LOGE(TAG, "IOTHUB_CLIENT_CONNECTION_DEVICE_DISABLED");
-    break;
-  case IOTHUB_CLIENT_CONNECTION_BAD_CREDENTIAL:
-    ESP_LOGE(TAG, "IOTHUB_CLIENT_CONNECTION_BAD_CREDENTIAL");
-    break;
-  case IOTHUB_CLIENT_CONNECTION_RETRY_EXPIRED:
-    ESP_LOGE(TAG, "IOTHUB_CLIENT_CONNECTION_RETRY_EXPIRED");
-    break;
-  case IOTHUB_CLIENT_CONNECTION_NO_NETWORK:
-    ESP_LOGE(TAG, "IOTHUB_CLIENT_CONNECTION_NO_NETWORK");
-    break;
-  case IOTHUB_CLIENT_CONNECTION_COMMUNICATION_ERROR:
-    ESP_LOGE(TAG, "IOTHUB_CLIENT_CONNECTION_COMMUNICATION_ERROR");
-    break;
-  case IOTHUB_CLIENT_CONNECTION_OK:
-    ESP_LOGD(TAG, "IOTHUB_CLIENT_CONNECTION_OK");
-    break;
-  }
-}
-//
-static void deviceTwinCallback(DEVICE_TWIN_UPDATE_STATE updateState,
-                               const unsigned char *payLoad, int size) {
-  switch (updateState) {
-  case DEVICE_TWIN_UPDATE_COMPLETE:
-    ESP_LOGD(TAG, "device_twin_update_complete");
-    break;
-
-  case DEVICE_TWIN_UPDATE_PARTIAL:
-    ESP_LOGD(TAG, "device_twin_update_partial");
-    break;
+    mqtt_client_id = std::string{buffer.data()};
   }
 
-  // Display Twin message.
-  const char *begin = reinterpret_cast<const char *>(payLoad);
-  const char *end = begin + size;
-
-  std::string buff(begin, end);
-
-  if (buff.empty()) {
-    ESP_LOGE(TAG, "memory allocation error");
-    return;
+  {
+    std::array<char, 128> buffer{};
+    if (az_result_failed(az_iot_hub_client_get_user_name(
+            &client, buffer.data(), buffer.size() - 1, NULL))) {
+      ESP_LOGE(TELEMETRY, "Failed to get MQTT clientId, return code");
+      return false;
+    }
+    mqtt_username = std::string{buffer.data()};
   }
-  ESP_LOGI(TAG, "%s", buff.c_str());
 
-  DynamicJsonDocument json(IotHubClient::MESSAGE_MAX_LEN);
-  if (json.capacity() == 0) {
-    ESP_LOGE(TAG, "memory allocation error");
-    return;
-  }
-  DeserializationError error = deserializeJson(json, buff);
-  if (error) {
-    ESP_LOGE(TAG, "%s", error.f_str());
-    return;
-  }
-  //
-  /*
-  const char *updatedAt = json["reported"]["sgp30_baseline"]["updatedAt"];
-  if (updatedAt) {
-    ESP_LOGI(TAG, "%s", updatedAt);
-    // set baseline
-    uint16_t tvoc_baseline =
-        json["reported"]["sgp30_baseline"]["tvoc"].as<uint16_t>();
-    uint16_t eCo2_baseline =
-        json["reported"]["sgp30_baseline"]["eCo2"].as<uint16_t>();
-    ESP_LOGD(TAG, "eCo2:%d, TVOC:%d", eCo2_baseline, tvoc_baseline);
-    int ret =
-        system_properties.sgp30.setIAQBaseline(eCo2_baseline, tvoc_baseline);
-    ESP_LOGD(TAG, "setIAQBaseline():%d", ret);
-  }
-  */
-}
-
-//
-//
-//
-IotHubClient::IotHubClient() {}
-//
-//
-//
-IotHubClient::~IotHubClient() { Esp32MQTTClient_Close(); }
-
-//
-//
-//
-bool IotHubClient::begin(const std::string &conn_str) {
-  // copy
-  connection_string = conn_str;
-  //
-  Esp32MQTTClient_SetOption(OPTION_MINI_SOLUTION_NAME, "GetStarted");
-  Esp32MQTTClient_Init((const uint8_t *)connection_string.c_str(), true);
-
-  Esp32MQTTClient_SetSendConfirmationCallback(sendConfirmationCallback);
-  Esp32MQTTClient_SetMessageCallback(messageCallback);
-  Esp32MQTTClient_SetDeviceTwinCallback(deviceTwinCallback);
-  Esp32MQTTClient_SetDeviceMethodCallback(deviceMethodCallback);
-  Esp32MQTTClient_SetConnectionStatusCallback(connectionStatusCallback);
+  ESP_LOGI(TELEMETRY, "Client ID: %s", mqtt_client_id.c_str());
+  ESP_LOGI(TELEMETRY, "Username: %s", mqtt_username.c_str());
   return true;
 }
 
 //
 //
 //
-bool IotHubClient::pushState(JsonDocument &doc) {
-  if (doc.isNull()) {
-    return true;
+bool IotHubClient::initializeMqttClient() {
+  // Using SAS
+  AzIoTSasToken azIoTSasToken = AzIoTSasToken(
+      &client,
+      az_span_create((uint8_t *)(config_device_key.c_str()),
+                     config_device_key.length()),
+      az_span_create(sas_signature_buffer.data(), sas_signature_buffer.size()),
+      az_span_create(mqtt_password.data(), mqtt_password.size()));
+  if (azIoTSasToken.Generate(SAS_TOKEN_DURATION_IN_MINUTES) != 0) {
+    ESP_LOGE(TELEMETRY, "Failed generating SAS token");
+    return false;
   }
-  std::ostringstream stream;
-  //
-  serializeJson(doc, stream);
-  std::string statePayload = stream.str();
-  ESP_LOGD(TAG, "statePayload:%s", statePayload.c_str());
-  //
-  EVENT_INSTANCE *state =
-      Esp32MQTTClient_Event_Generate(statePayload.c_str(), STATE);
-  bool result = Esp32MQTTClient_SendEventInstance(state);
-  if (result) {
-    ESP_LOGD(TAG, "Esp32MQTTClient_SendEventInstance: success");
-  } else {
-    ESP_LOGD(TAG, "Esp32MQTTClient_SendEventInstance: failure");
+  optSasToken = azIoTSasToken;
+
+  esp_mqtt_client_config_t mqtt_config{0};
+
+  mqtt_config.uri = mqtt_broker_uri.c_str();
+  mqtt_config.port = mqtt_port;
+  mqtt_config.client_id = mqtt_client_id.c_str();
+  mqtt_config.username = mqtt_username.c_str();
+
+  // Using SAS key
+  mqtt_config.password =
+      reinterpret_cast<char *>(az_span_ptr(azIoTSasToken.Get()));
+
+  mqtt_config.keepalive = 30;
+  mqtt_config.disable_clean_session = 0;
+  mqtt_config.disable_auto_reconnect = false;
+  mqtt_config.event_handle = mqtt_event_handler;
+  mqtt_config.user_context = nullptr;
+  mqtt_config.cert_pem = reinterpret_cast<const char *>(ca_pem);
+
+  mqtt_client = esp_mqtt_client_init(&mqtt_config);
+
+  if (mqtt_client == nullptr) {
+    ESP_LOGE(TELEMETRY, "Failed creating mqtt client");
+    return false;
   }
 
-  return result;
+  esp_err_t start_result = esp_mqtt_client_start(mqtt_client);
+
+  if (start_result != ESP_OK) {
+    ESP_LOGE(TELEMETRY, "Could not start mqtt client; error code:%d",
+             start_result);
+    return false;
+  } else {
+    ESP_LOGI(TELEMETRY, "MQTT client started");
+    return true;
+  }
+}
+
+//
+//
+//
+void IotHubClient::check() {
+  if (optSasToken.has_value() && optSasToken.value().IsExpired()) {
+    ESP_LOGI(TELEMETRY, "SAS token expired; reconnecting with a new one.");
+    (void)esp_mqtt_client_destroy(mqtt_client);
+    initializeMqttClient();
+  }
 }
 
 //
@@ -219,22 +227,29 @@ bool IotHubClient::pushMessage(JsonDocument &doc) {
   //
   doc["messageId"] = message_id;
   serializeJson(doc, stream);
-  std::string messagePayload = stream.str();
-  ESP_LOGD(TAG, "messagePayload:%s", messagePayload.c_str());
+  std::string payload = stream.str();
+  ESP_LOGD(TELEMETRY, "messagePayload:%s", payload.c_str());
   // Count up message_id
   message_id = message_id + 1;
-  //
-  EVENT_INSTANCE *message =
-      Esp32MQTTClient_Event_Generate(messagePayload.c_str(), MESSAGE);
-  //    Esp32MQTTClient_Event_AddProp(message, "temperatureAlert", "true");
-  bool result = Esp32MQTTClient_SendEventInstance(message);
-  if (result) {
-    ESP_LOGD(TAG, "Esp32MQTTClient_SendEventInstance: success");
-  } else {
-    ESP_LOGD(TAG, "Esp32MQTTClient_SendEventInstance: failure");
-  }
 
-  return result;
+  // The topic could be obtained just once during setup,
+  // however if properties are used the topic need to be generated again to
+  // reflect the current values of the properties.
+  if (az_result_failed(az_iot_hub_client_telemetry_get_publish_topic(
+          &client, nullptr, telemetry_topic.data(), telemetry_topic.size(),
+          nullptr))) {
+    ESP_LOGE(TELEMETRY, "Failed az_iot_hub_client_telemetry_get_publish_topic");
+    return false;
+  }
+  if (esp_mqtt_client_publish(mqtt_client, telemetry_topic.data(),
+                              payload.c_str(), 0, MQTT_QOS1,
+                              DO_NOT_RETAIN_MSG) == 0) {
+    ESP_LOGE(TELEMETRY, "Failed publishing");
+    return false;
+  } else {
+    ESP_LOGI(TELEMETRY, "Message published successfully");
+    return true;
+  }
 }
 
 //
@@ -244,7 +259,7 @@ bool IotHubClient::pushTempHumiPres(const std::string &sensor_id,
                                     const TempHumiPres &input) {
   DynamicJsonDocument doc(MESSAGE_MAX_LEN);
   if (doc.capacity() == 0) {
-    ESP_LOGE(TAG, "memory allocation error.");
+    ESP_LOGE(TELEMETRY, "memory allocation error.");
     return false;
   }
   std::string buf;
@@ -265,7 +280,7 @@ bool IotHubClient::pushTvocEco2(const std::string &sensor_id,
                                 const TvocEco2 &input) {
   DynamicJsonDocument doc(MESSAGE_MAX_LEN);
   if (doc.capacity() == 0) {
-    ESP_LOGE(TAG, "memory allocation error.");
+    ESP_LOGE(TELEMETRY, "memory allocation error.");
     return false;
   }
   std::string buf;
@@ -274,11 +289,11 @@ bool IotHubClient::pushTvocEco2(const std::string &sensor_id,
   doc["measuredAt"] = TickTack::isoformatUTC(buf, input.at);
   doc["tvoc"] = input.tvoc.value;
   doc["eCo2"] = input.eCo2.value;
-  if (input.tvoc_baseline.good()) {
-    doc["tvoc_baseline"] = input.tvoc_baseline.get().value;
+  if (input.tvoc_baseline.has_value()) {
+    doc["tvoc_baseline"] = input.tvoc_baseline.value().value;
   }
-  if (input.eCo2_baseline.good()) {
-    doc["eCo2_baseline"] = input.eCo2_baseline.get().value;
+  if (input.eCo2_baseline.has_value()) {
+    doc["eCo2_baseline"] = input.eCo2_baseline.value().value;
   }
   //
   return pushMessage(doc);
@@ -291,7 +306,7 @@ bool IotHubClient::pushCo2TempHumi(const std::string &sensor_id,
                                    const Co2TempHumi &input) {
   DynamicJsonDocument doc(MESSAGE_MAX_LEN);
   if (doc.capacity() == 0) {
-    ESP_LOGE(TAG, "memory allocation error.");
+    ESP_LOGE(TELEMETRY, "memory allocation error.");
     return false;
   }
   std::string buf;

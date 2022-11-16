@@ -143,29 +143,31 @@ public:
     //
     Screen::lcd.setFont(&fonts::lgfxJapanGothic_20);
     std::time_t now = std::time(nullptr);
-    Bme280 bme = peri.bme280.calculateSMA(now);
-    Sgp30 sgp = peri.sgp30.calculateSMA(now);
-    Scd30 scd = peri.scd30.calculateSMA(now);
-    if (bme.good()) {
-      Screen::lcd.printf("温度 %6.1f ℃\n", bme.get().temperature.value);
-      Screen::lcd.printf("湿度 %6.1f ％\n", bme.get().relative_humidity.value);
-      Screen::lcd.printf("気圧 %6.1f hPa\n", bme.get().pressure.value);
+    std::optional<TempHumiPres> bme = peri.bme280.calculateSMA(now);
+    std::optional<TvocEco2> sgp = peri.sgp30.calculateSMA(now);
+    std::optional<Co2TempHumi> scd = peri.scd30.calculateSMA(now);
+    if (bme.has_value()) {
+      Screen::lcd.printf("温度 %6.1f ℃\n", bme.value().temperature.value);
+      Screen::lcd.printf("湿度 %6.1f ％\n",
+                         bme.value().relative_humidity.value);
+      Screen::lcd.printf("気圧 %6.1f hPa\n", bme.value().pressure.value);
     } else {
       Screen::lcd.printf("温度 ------ ℃\n");
       Screen::lcd.printf("湿度 ------ ％\n");
       Screen::lcd.printf("気圧 ------ hPa\n");
     }
-    if (sgp.good()) {
-      Screen::lcd.printf("eCO2 %6d ppm\n", sgp.get().eCo2.value);
-      Screen::lcd.printf("TVOC %6d ppb\n", sgp.get().tvoc.value);
+    if (sgp.has_value()) {
+      Screen::lcd.printf("eCO2 %6d ppm\n", sgp.value().eCo2.value);
+      Screen::lcd.printf("TVOC %6d ppb\n", sgp.value().tvoc.value);
     } else {
       Screen::lcd.printf("eCO2 ------ ppm\n");
       Screen::lcd.printf("TVOC ------ ppb\n");
     }
-    if (scd.good()) {
-      Screen::lcd.printf("CO2  %6d ppm\n", scd.get().co2.value);
-      Screen::lcd.printf("温度 %6.1f ℃\n", scd.get().temperature.value);
-      Screen::lcd.printf("湿度 %6.1f ％\n", scd.get().relative_humidity.value);
+    if (scd.has_value()) {
+      Screen::lcd.printf("CO2  %6d ppm\n", scd.value().co2.value);
+      Screen::lcd.printf("温度 %6.1f ℃\n", scd.value().temperature.value);
+      Screen::lcd.printf("湿度 %6.1f ％\n",
+                         scd.value().relative_humidity.value);
     } else {
       Screen::lcd.printf("CO2  ------ ppm\n");
       Screen::lcd.printf("温度 ------ ℃\n");
@@ -400,13 +402,13 @@ public:
   void render(const struct tm &local) override {
     Peripherals &peri = Peripherals::getInstance();
     std::time_t now = std::time(nullptr);
-    Bme280 bme = peri.bme280.calculateSMA(now);
-    Sgp30 sgp = peri.sgp30.calculateSMA(now);
-    Scd30 scd = peri.scd30.calculateSMA(now);
+    std::optional<TempHumiPres> bme = peri.bme280.calculateSMA(now);
+    std::optional<TvocEco2> sgp = peri.sgp30.calculateSMA(now);
+    std::optional<Co2TempHumi> scd = peri.scd30.calculateSMA(now);
 #define BME(_X_)                                                               \
   do {                                                                         \
-    if (bme.good()) {                                                          \
-      t.render_value_float(bme.get()._X_.value);                               \
+    if (bme.has_value()) {                                                     \
+      t.render_value_float(bme.value()._X_.value);                             \
     } else {                                                                   \
       t.render_notavailable();                                                 \
     }                                                                          \
@@ -414,8 +416,8 @@ public:
     //
 #define SGP(_X_)                                                               \
   do {                                                                         \
-    if (sgp.good()) {                                                          \
-      t.render_value_uint16(sgp.get()._X_.value);                              \
+    if (sgp.has_value()) {                                                     \
+      t.render_value_uint16(sgp.value()._X_.value);                            \
     } else {                                                                   \
       t.render_notavailable();                                                 \
     }                                                                          \
@@ -423,8 +425,8 @@ public:
     //
 #define SCD(_X_)                                                               \
   do {                                                                         \
-    if (scd.good()) {                                                          \
-      t.render_value_uint16(scd.get()._X_.value);                              \
+    if (scd.has_value()) {                                                     \
+      t.render_value_uint16(scd.value()._X_.value);                            \
     } else {                                                                   \
       t.render_notavailable();                                                 \
     }                                                                          \

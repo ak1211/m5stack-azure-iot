@@ -2,68 +2,64 @@
 // Licensed under the MIT License <https://spdx.org/licenses/MIT.html>
 // See LICENSE file in the project root for full license information.
 //
-#ifndef LED_SIGNAL_HPP
-#define LED_SIGNAL_HPP
+#pragma once
 
 #include "value_types.hpp"
-#include <Adafruit_NeoPixel.h>
+#include <FastLED.h>
+#include <array>
 
 //
 //
 //
 class LedSignal {
+
 public:
-  constexpr static uint16_t NUMPIXELS = 10;
-  constexpr static uint16_t GPIO_PIN_NEOPIXEL = 25;
-  constexpr static uint8_t BME280_I2C_ADDRESS = 0x76;
-  //
-  LedSignal() {
-    pixels =
-        Adafruit_NeoPixel(NUMPIXELS, GPIO_PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
-  }
+  constexpr static uint8_t NUM_OF_LEDS{10};
+  constexpr static uint8_t GPIO_PIN_SK6815{25};
+  constexpr static uint8_t BME280_I2C_ADDRESS{0x76};
   //
   bool begin() {
-    pixels.begin();
-    pixels.setBrightness(64);
+    FastLED.addLeds<SK6812, GPIO_PIN_SK6815, GRB>(std::data(leds),
+                                                  std::size(leds));
+    FastLED.setBrightness(64);
     offSignal();
     return true;
   }
   //
   void offSignal() {
-    uint32_t c = Adafruit_NeoPixel::Color(0, 0, 0);
-    for (int i = 0; i < pixels.numPixels(); ++i) {
-      pixels.setPixelColor(i, c);
+    for (auto &v : leds) {
+      v = CRGB::Black;
     }
-    pixels.show();
+    FastLED.show();
   }
   //
   void showSignal(Ppm co2) {
-    uint32_t c = Adafruit_NeoPixel::Color(0, 0, 0);
+    auto c = CRGB::Black;
     if (0 <= co2.value && co2.value < 500) {
       // blue
-      c = Adafruit_NeoPixel::Color(21, 21, 88);
+      c = CRGB::Blue;
     } else if (500 <= co2.value && co2.value < 900) {
-      // bluegreen
-      c = Adafruit_NeoPixel::Color(21, 88, 88);
+      // lightblue
+      c = CRGB::LightBlue;
     } else if (900 <= co2.value && co2.value < 1200) {
       // green
-      c = Adafruit_NeoPixel::Color(0, 204, 0);
+      c = CRGB::Green;
     } else if (1200 <= co2.value && co2.value < 1700) {
       // yellow
-      c = Adafruit_NeoPixel::Color(204, 204, 0);
+      c = CRGB::Yellow;
     } else if (1700 <= co2.value && co2.value < 2500) {
-      // pink
-      c = Adafruit_NeoPixel::Color(204, 0, 102);
+      // orange
+      c = CRGB::Orange;
     } else {
       // red
-      c = Adafruit_NeoPixel::Color(204, 0, 0);
+      c = CRGB::Red;
     }
-    pixels.fill(c, 0, pixels.numPixels());
-    pixels.show();
+    for (auto &v : leds) {
+      v = c;
+    }
+    FastLED.show();
   }
 
 private:
-  Adafruit_NeoPixel pixels;
+  std::array<CRGB, NUM_OF_LEDS> leds;
 };
-
-#endif // LED_SIGNAL_HPP

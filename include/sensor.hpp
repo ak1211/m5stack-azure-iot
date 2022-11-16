@@ -2,8 +2,7 @@
 // Licensed under the MIT License <https://spdx.org/licenses/MIT.html>
 // See LICENSE file in the project root for full license information.
 //
-#ifndef SENSOR_HPP
-#define SENSOR_HPP
+#pragma once
 
 #include "moving_average.hpp"
 #include "value_types.hpp"
@@ -13,6 +12,7 @@
 #include <Adafruit_Sensor.h>
 #include <cstdint>
 #include <ctime>
+#include <optional>
 #include <string>
 
 template <class T> class Sensor {
@@ -36,7 +36,7 @@ struct TempHumiPres {
   PcRH relative_humidity;
   HPa pressure;
 };
-using Bme280 = MeasuredValues<TempHumiPres>;
+using Bme280 = std::optional<TempHumiPres>;
 template <> class Sensor<Bme280> {
 public:
   constexpr static uint8_t INTERVAL = 5;
@@ -81,10 +81,10 @@ struct TvocEco2 {
   std::time_t at;
   Ppm eCo2;
   Ppb tvoc;
-  MeasuredValues<BaselineECo2> eCo2_baseline;
-  MeasuredValues<BaselineTotalVoc> tvoc_baseline;
+  std::optional<BaselineECo2> eCo2_baseline;
+  std::optional<BaselineTotalVoc> tvoc_baseline;
 };
-using Sgp30 = MeasuredValues<TvocEco2>;
+using Sgp30 = std::optional<TvocEco2>;
 template <> class Sensor<Sgp30> {
 public:
   constexpr static uint8_t INTERVAL = 3;
@@ -93,11 +93,16 @@ public:
   Sensor(SensorDescriptor custom_sensor_descriptor)
       : sensor_descriptor{custom_sensor_descriptor},
         initialized{false},
-        last_tvoc_eco2{} {}
+        last_tvoc_eco2{custom_sensor_descriptor,
+                       0,
+                       Ppm{},
+                       Ppb{},
+                       std::nullopt,
+                       std::nullopt} {}
   SensorDescriptor getSensorDescriptor() { return sensor_descriptor; }
   void printSensorDetails();
-  bool begin(MeasuredValues<BaselineECo2> eco2_base,
-             MeasuredValues<BaselineTotalVoc> tvoc_base);
+  bool begin(std::optional<BaselineECo2> eco2_base,
+             std::optional<BaselineTotalVoc> tvoc_base);
   bool active() { return initialized; }
   bool readyToRead(std::time_t now);
   Sgp30 read(std::time_t measured_at);
@@ -127,7 +132,7 @@ struct Co2TempHumi {
   DegC temperature;
   PcRH relative_humidity;
 };
-using Scd30 = MeasuredValues<Co2TempHumi>;
+using Scd30 = std::optional<Co2TempHumi>;
 template <> class Sensor<Scd30> {
 public:
   constexpr static uint8_t INTERVAL = 7;
@@ -155,5 +160,3 @@ private:
   SimpleMovingAverage<SMA_PERIOD, float, double> sma_temperature;
   SimpleMovingAverage<SMA_PERIOD, float, double> sma_relative_humidity;
 };
-
-#endif // SENSOR_HPP
