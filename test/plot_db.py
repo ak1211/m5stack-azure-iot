@@ -96,6 +96,7 @@ def plot(df, sensorIds, filename, tz):
     axs[0, 0].set_title('temperature', fontsize=18)
     for sid in sensorIds:
         qry_str = "sensorId=='{}'".format(sid)
+        print("DBG {}".format(qry_str))
         ddf = df.query(qry_str).get('temperature').dropna()
         if len(ddf) > 0:
             axs[0, 0].plot(ddf, 'o-', label=sid)

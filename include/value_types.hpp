@@ -91,17 +91,18 @@ public:
          static_cast<uint64_t>(c7) << 0;   // 8th byte
   }
   //
-  void toString(std::string &str) {
-    str.clear();
-    str.reserve(8);
-    str.push_back(static_cast<char>(id >> 56 & 0xff)); // 1st byte
-    str.push_back(static_cast<char>(id >> 48 & 0xff)); // 2nd byte
-    str.push_back(static_cast<char>(id >> 40 & 0xff)); // 3rd byte
-    str.push_back(static_cast<char>(id >> 32 & 0xff)); // 4th byte
-    str.push_back(static_cast<char>(id >> 24 & 0xff)); // 5th byte
-    str.push_back(static_cast<char>(id >> 16 & 0xff)); // 6th byte
-    str.push_back(static_cast<char>(id >> 8 & 0xff));  // 7th byte
-    str.push_back(static_cast<char>(id >> 0 & 0xff));  // 8th byte
+  std::string toString() {
+    char buf[8] = {
+        static_cast<char>(id >> 56 & 0xff), // 1st byte
+        static_cast<char>(id >> 48 & 0xff), // 2nd byte
+        static_cast<char>(id >> 40 & 0xff), // 3rd byte
+        static_cast<char>(id >> 32 & 0xff), // 4th byte
+        static_cast<char>(id >> 24 & 0xff), // 5th byte
+        static_cast<char>(id >> 16 & 0xff), // 6th byte
+        static_cast<char>(id >> 8 & 0xff),  // 7th byte
+        static_cast<char>(id >> 0 & 0xff),  // 8th byte
+    };
+    return std::string(buf);
   }
 };
 
