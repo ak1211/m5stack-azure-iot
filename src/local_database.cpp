@@ -46,7 +46,7 @@ LocalDatabase::RowId LocalDatabase::insert_temperature(SensorId sensor_id,
                               " temperature(sensor_id,at,degc)"
                               " VALUES(?,?,?);";
   rowid_temperature =
-      raw_insert_time_and_float(query, sensor_id, at, degc.value);
+      raw_insert_time_and_float(query, sensor_id, at, degc.degc());
   return rowid_temperature;
 }
 //
@@ -88,7 +88,7 @@ LocalDatabase::RowId LocalDatabase::insert_relative_humidity(SensorId sensor_id,
     return 0;
   }
   rowid_relative_humidity =
-      raw_insert_time_and_float(query, sensor_id, at, rh.value);
+      raw_insert_time_and_float(query, sensor_id, at, rh.percentRH());
   return rowid_relative_humidity;
 }
 //
@@ -127,7 +127,7 @@ LocalDatabase::RowId LocalDatabase::insert_pressure(SensorId sensor_id,
     ESP_LOGI(TAG, "database is not available.");
     return 0;
   }
-  rowid_pressure = raw_insert_time_and_float(query, sensor_id, at, hpa.value);
+  rowid_pressure = raw_insert_time_and_float(query, sensor_id, at, hpa.hpa());
   return rowid_pressure;
 }
 //
@@ -353,25 +353,23 @@ bool LocalDatabase::insert(const TempHumiPres &temp_humi_pres) {
   }
   int64_t rawid;
 
-  rawid =
-      insert_temperature(temp_humi_pres.sensor_descriptor.id, temp_humi_pres.at,
-                         static_cast<DegC>(temp_humi_pres.temperature.value));
+  rawid = insert_temperature(temp_humi_pres.sensor_descriptor.id,
+                             temp_humi_pres.at, temp_humi_pres.temperature);
   if (rawid < 0) {
     ESP_LOGE(TAG, "insert_temperature() failure.");
     return false;
   }
 
-  rawid =
-      insert_pressure(temp_humi_pres.sensor_descriptor.id, temp_humi_pres.at,
-                      static_cast<HPa>(temp_humi_pres.pressure.value));
+  rawid = insert_pressure(temp_humi_pres.sensor_descriptor.id,
+                          temp_humi_pres.at, temp_humi_pres.pressure);
   if (rawid < 0) {
     ESP_LOGE(TAG, "insert_pressure() failure.");
     return false;
   }
 
-  rawid = insert_relative_humidity(
-      temp_humi_pres.sensor_descriptor.id, temp_humi_pres.at,
-      static_cast<PcRH>(temp_humi_pres.relative_humidity.value));
+  rawid = insert_relative_humidity(temp_humi_pres.sensor_descriptor.id,
+                                   temp_humi_pres.at,
+                                   temp_humi_pres.relative_humidity);
   if (rawid < 0) {
     ESP_LOGE(TAG, "insert_relative_humidity() failure.");
     return false;
@@ -442,17 +440,16 @@ bool LocalDatabase::insert(const Co2TempHumi &co2_temp_humi) {
   }
   int64_t rawid;
 
-  rawid =
-      insert_temperature(co2_temp_humi.sensor_descriptor.id, co2_temp_humi.at,
-                         static_cast<DegC>(co2_temp_humi.temperature.value));
+  rawid = insert_temperature(co2_temp_humi.sensor_descriptor.id,
+                             co2_temp_humi.at, co2_temp_humi.temperature);
   if (rawid < 0) {
     ESP_LOGE(TAG, "insert_temperature() failure.");
     return false;
   }
 
-  rawid = insert_relative_humidity(
-      co2_temp_humi.sensor_descriptor.id, co2_temp_humi.at,
-      static_cast<PcRH>(co2_temp_humi.relative_humidity.value));
+  rawid = insert_relative_humidity(co2_temp_humi.sensor_descriptor.id,
+                                   co2_temp_humi.at,
+                                   co2_temp_humi.relative_humidity);
   if (rawid < 0) {
     ESP_LOGE(TAG, "insert_relative_humidity() failure.");
     return false;

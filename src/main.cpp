@@ -113,16 +113,12 @@ periodical_measurement_sets(std::time_t measured_at) {
 //
 //
 //
-static std::string &
-absolute_sensor_id_from_SensorDescriptor(std::string &output,
-                                         SensorDescriptor descriptor) {
-  std::string strDescriptor;
-  descriptor.toString(strDescriptor);
-  //
-  output = Credentials.device_id;
-  output.push_back('-');
-  output += strDescriptor;
-  return output;
+static std::string
+absolute_sensor_id_from_SensorDescriptor(SensorDescriptor descriptor) {
+  std::string a{Credentials.device_id};
+  std::string b{'-'};
+  std::string c{descriptor.toString()};
+  return std::string{a + b + c};
 }
 
 //
@@ -144,10 +140,9 @@ static void periodical_push_message(const MeasurementSets &m) {
     if (!peri.sgp30.setHumidity(absolute_humidity)) {
       ESP_LOGE(TAG, "setHumidity error.");
     }
-    std::string sensor_id;
-    absolute_sensor_id_from_SensorDescriptor(sensor_id,
-                                             temp_humi_pres.sensor_descriptor);
-    if (peri.iothub_client.pushTempHumiPres(sensor_id, temp_humi_pres)) {
+    if (auto sid = absolute_sensor_id_from_SensorDescriptor(
+            temp_humi_pres.sensor_descriptor);
+        peri.iothub_client.pushTempHumiPres(sid, temp_humi_pres)) {
       ESP_LOGD(TAG, "pushTempHumiPres() success.");
     } else {
       ESP_LOGE(TAG, "pushTempHumiPres() failure.");
@@ -158,10 +153,9 @@ static void periodical_push_message(const MeasurementSets &m) {
   // eCo2, TVOC
   if (m.sgp30.has_value()) {
     TvocEco2 tvoc_eco2 = m.sgp30.value();
-    std::string sensor_id;
-    absolute_sensor_id_from_SensorDescriptor(sensor_id,
-                                             tvoc_eco2.sensor_descriptor);
-    if (peri.iothub_client.pushTvocEco2(sensor_id, tvoc_eco2)) {
+    if (auto sid = absolute_sensor_id_from_SensorDescriptor(
+            tvoc_eco2.sensor_descriptor);
+        peri.iothub_client.pushTvocEco2(sid, tvoc_eco2)) {
       ESP_LOGD(TAG, "pushTvocEco2() success.");
     } else {
       ESP_LOGE(TAG, "pushTvocEco2() failure.");
@@ -172,10 +166,9 @@ static void periodical_push_message(const MeasurementSets &m) {
   // co2, Temperature, Relative Humidity
   if (m.scd30.has_value()) {
     Co2TempHumi co2_temp_humi = m.scd30.value();
-    std::string sensor_id;
-    absolute_sensor_id_from_SensorDescriptor(sensor_id,
-                                             co2_temp_humi.sensor_descriptor);
-    if (peri.iothub_client.pushCo2TempHumi(sensor_id, co2_temp_humi)) {
+    if (auto sid = absolute_sensor_id_from_SensorDescriptor(
+            co2_temp_humi.sensor_descriptor);
+        peri.iothub_client.pushCo2TempHumi(sid, co2_temp_humi)) {
       ESP_LOGD(TAG, "pushCo2TempHumi() success.");
     } else {
       ESP_LOGE(TAG, "pushCo2TempHumi() failure.");

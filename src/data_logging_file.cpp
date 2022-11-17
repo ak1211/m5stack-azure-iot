@@ -46,11 +46,12 @@ void DataLoggingFile::write_data_to_log_file(time_t at, const TempHumiPres &bme,
     // first field is date and time
     i += strftime(&p[i], LENGTH - i, "%Y-%m-%dT%H:%M:%SZ", &utc);
     // 2nd field is temperature
-    i += snprintf(&p[i], LENGTH - i, ", %6.2f", bme.temperature.value);
+    i += snprintf(&p[i], LENGTH - i, ", %6.2f", bme.temperature.degc());
     // 3nd field is relative_humidity
-    i += snprintf(&p[i], LENGTH - i, ", %6.2f", bme.relative_humidity.value);
+    i += snprintf(&p[i], LENGTH - i, ", %6.2f",
+                  bme.relative_humidity.percentRH());
     // 4th field is pressure
-    i += snprintf(&p[i], LENGTH - i, ", %7.2f", bme.pressure.value);
+    i += snprintf(&p[i], LENGTH - i, ", %7.2f", bme.pressure.hpa());
     // 5th field is TVOC
     i += snprintf(&p[i], LENGTH - i, ", %5d", sgp.tvoc.value);
     // 6th field is eCo2
@@ -72,9 +73,10 @@ void DataLoggingFile::write_data_to_log_file(time_t at, const TempHumiPres &bme,
     // 9th field is co2
     i += snprintf(&p[i], LENGTH - i, ", %5d", scd.co2.value);
     // 10th field is temperature
-    i += snprintf(&p[i], LENGTH - i, ", %6.2f", scd.temperature.value);
+    i += snprintf(&p[i], LENGTH - i, ", %6.2f", scd.temperature.degc());
     // 11th field is relative_humidity
-    i += snprintf(&p[i], LENGTH - i, ", %6.2f", scd.relative_humidity.value);
+    i += snprintf(&p[i], LENGTH - i, ", %6.2f",
+                  scd.relative_humidity.percentRH());
 
     ESP_LOGD(TAG, "%s", p);
 

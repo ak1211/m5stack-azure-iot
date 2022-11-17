@@ -5,55 +5,92 @@
 #ifndef VALUE_TYPES_HPP
 #define VALUE_TYPES_HPP
 
+#include <cmath>
 #include <cstdint>
+#include <limits>
 #include <optional>
 #include <string>
 
-// [V] voltage
+/// [V] voltage
 struct Voltage final {
-  explicit Voltage(float init = 0.0f) : value(init) {}
+  explicit Voltage(float init = 0.0f) : value{init} {}
+  float get() const { return value; }
+  float voltage() const {
+    return std::round(static_cast<double>(value) * 1000.0) / 1000.0;
+  }
+
+private:
   float value;
 };
 
-// [A] ampere
+/// [A] ampere
 struct Ampere final {
-  explicit Ampere(float init = 0.0f) : value(init) {}
+  explicit Ampere(float init = 0.0f) : value{init} {}
+  float get() const { return value; }
+  float ampere() const {
+    return std::round(static_cast<double>(value) * 1000.0) / 1000.0;
+  }
+  bool positive() const { return value > 0.0f; }
+  bool negative() const { return value < 0.0f; }
+  bool zero() const {
+    return std::abs(value - 0.0f) <= std::numeric_limits<float>::epsilon();
+  }
+
+private:
   float value;
 };
 
 // degree celsius
 struct DegC final {
-  explicit DegC(float init = 0.0f) : value(init) {}
+  explicit DegC(float init = 0.0f) : value{init} {}
+  float get() const { return value; }
+  float degc() const {
+    return std::round(static_cast<double>(value) * 100.0) / 100.0;
+  }
+
+private:
   float value;
 };
 
 // [hPa] hecto-pascal
 struct HPa final {
-  explicit HPa(float init = 0.0f) : value(init) {}
+  explicit HPa(float init = 0.0f) : value{init} {}
+  float get() const { return value; }
+  float hpa() const {
+    return std::round(static_cast<double>(value) * 100.0) / 100.0;
+  }
+
+private:
   float value;
 };
 
 // [%] relative humidity
 struct PcRH final {
-  explicit PcRH(float init = 0.0f) : value(init) {}
+  explicit PcRH(float init = 0.0f) : value{init} {}
+  float get() const { return value; }
+  float percentRH() const {
+    return std::round(static_cast<double>(value) * 100.0) / 100.0;
+  }
+
+private:
   float value;
 };
 
 // [mg / m^3] absolute humidity
 struct MilligramPerCubicMetre final {
-  explicit MilligramPerCubicMetre(uint32_t init = 0u) : value(init) {}
+  explicit MilligramPerCubicMetre(uint32_t init = 0u) : value{init} {}
   uint32_t value;
 };
 
 // [ppm] parts per million
 struct Ppm final {
-  explicit Ppm(uint16_t init = 0u) : value(init) {}
+  explicit Ppm(uint16_t init = 0u) : value{init} {}
   uint16_t value;
 };
 
 // [ppb] parts per billion
 struct Ppb final {
-  explicit Ppb(uint16_t init = 0u) : value(init) {}
+  explicit Ppb(uint16_t init = 0u) : value{init} {}
   uint16_t value;
 };
 
@@ -62,13 +99,13 @@ using BaselineSGP30T = uint16_t;
 
 // SGP30 baseline(equivalent CO2)
 struct BaselineECo2 final {
-  BaselineECo2(BaselineSGP30T init = 0u) : value(init) {}
+  BaselineECo2(BaselineSGP30T init = 0u) : value{init} {}
   BaselineSGP30T value;
 };
 
 // SGP30 baseline(Total VOC)
 struct BaselineTotalVoc final {
-  BaselineTotalVoc(BaselineSGP30T init = 0u) : value(init) {}
+  BaselineTotalVoc(BaselineSGP30T init = 0u) : value{init} {}
   BaselineSGP30T value;
 };
 
@@ -91,17 +128,18 @@ public:
          static_cast<uint64_t>(c7) << 0;   // 8th byte
   }
   //
-  void toString(std::string &str) {
-    str.clear();
-    str.reserve(8);
-    str.push_back(static_cast<char>(id >> 56 & 0xff)); // 1st byte
-    str.push_back(static_cast<char>(id >> 48 & 0xff)); // 2nd byte
-    str.push_back(static_cast<char>(id >> 40 & 0xff)); // 3rd byte
-    str.push_back(static_cast<char>(id >> 32 & 0xff)); // 4th byte
-    str.push_back(static_cast<char>(id >> 24 & 0xff)); // 5th byte
-    str.push_back(static_cast<char>(id >> 16 & 0xff)); // 6th byte
-    str.push_back(static_cast<char>(id >> 8 & 0xff));  // 7th byte
-    str.push_back(static_cast<char>(id >> 0 & 0xff));  // 8th byte
+  std::string toString() {
+    char buf[8] = {
+        static_cast<char>(id >> 56 & 0xff), // 1st byte
+        static_cast<char>(id >> 48 & 0xff), // 2nd byte
+        static_cast<char>(id >> 40 & 0xff), // 3rd byte
+        static_cast<char>(id >> 32 & 0xff), // 4th byte
+        static_cast<char>(id >> 24 & 0xff), // 5th byte
+        static_cast<char>(id >> 16 & 0xff), // 6th byte
+        static_cast<char>(id >> 8 & 0xff),  // 7th byte
+        static_cast<char>(id >> 0 & 0xff),  // 8th byte
+    };
+    return std::string(buf);
   }
 };
 

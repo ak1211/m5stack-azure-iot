@@ -63,20 +63,19 @@ Bme280 Sensor<Bme280>::read(std::time_t measured_at) {
   }
   //
   {
-    DegC temp = DegC(temperature);
-    HPa pres = HPa(pressure / 100.0f); // pascal to hecto-pascal
-    PcRH humi = PcRH(humidity);
+    //    DegC temp = DegC(temperature);
+    float pres = pressure / 100.0f; // pascal to hecto-pascal
     //
     last_measured_at = measured_at;
-    sma_temperature.push_back(temp.value);
-    sma_relative_humidity.push_back(humi.value);
-    sma_pressure.push_back(pres.value);
+    sma_temperature.push_back(temperature);
+    sma_relative_humidity.push_back(humidity);
+    sma_pressure.push_back(pres);
     return Bme280({
         .sensor_descriptor = getSensorDescriptor(),
         .at = measured_at,
-        .temperature = temp,
-        .relative_humidity = humi,
-        .pressure = pres,
+        .temperature = DegC(temperature),
+        .relative_humidity = PcRH(humidity),
+        .pressure = HPa(pres),
     });
   }
 
@@ -211,9 +210,9 @@ MilligramPerCubicMetre calculateAbsoluteHumidity(DegC temperature,
                                                  PcRH humidity) {
   float absolute_humidity =
       216.7f *
-      ((humidity.value / 100.0f) * 6.112f *
-       exp((17.62f * temperature.value) / (243.12f + temperature.value)) /
-       (273.15f + temperature.value));
+      ((humidity.get() / 100.0f) * 6.112f *
+       std::exp((17.62f * temperature.get()) / (243.12f + temperature.get())) /
+       (273.15f + temperature.get()));
   return MilligramPerCubicMetre(
       static_cast<uint32_t>(1000.0f * absolute_humidity));
 }

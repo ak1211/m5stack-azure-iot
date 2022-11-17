@@ -130,8 +130,8 @@ public:
     }
     Screen::lcd.printf("Batt %4.0f%% %4.2fV %c%5.3fA",
                        peri.system_power.getBatteryPercentage(),
-                       peri.system_power.getBatteryVoltage().value, sign,
-                       peri.system_power.getBatteryChargingCurrent().value);
+                       peri.system_power.getBatteryVoltage().voltage(), sign,
+                       peri.system_power.getBatteryChargingCurrent().ampere());
     Screen::lcd.print("\n");
     //
     {
@@ -147,10 +147,10 @@ public:
     std::optional<TvocEco2> sgp = peri.sgp30.calculateSMA(now);
     std::optional<Co2TempHumi> scd = peri.scd30.calculateSMA(now);
     if (bme.has_value()) {
-      Screen::lcd.printf("温度 %6.1f ℃\n", bme.value().temperature.value);
+      Screen::lcd.printf("温度 %6.1f ℃\n", bme.value().temperature.degc());
       Screen::lcd.printf("湿度 %6.1f ％\n",
-                         bme.value().relative_humidity.value);
-      Screen::lcd.printf("気圧 %6.1f hPa\n", bme.value().pressure.value);
+                         bme.value().relative_humidity.percentRH());
+      Screen::lcd.printf("気圧 %6.1f hPa\n", bme.value().pressure.hpa());
     } else {
       Screen::lcd.printf("温度 ------ ℃\n");
       Screen::lcd.printf("湿度 ------ ％\n");
@@ -165,9 +165,9 @@ public:
     }
     if (scd.has_value()) {
       Screen::lcd.printf("CO2  %6d ppm\n", scd.value().co2.value);
-      Screen::lcd.printf("温度 %6.1f ℃\n", scd.value().temperature.value);
+      Screen::lcd.printf("温度 %6.1f ℃\n", scd.value().temperature.degc());
       Screen::lcd.printf("湿度 %6.1f ％\n",
-                         scd.value().relative_humidity.value);
+                         scd.value().relative_humidity.percentRH());
     } else {
       Screen::lcd.printf("CO2  ------ ppm\n");
       Screen::lcd.printf("温度 ------ ℃\n");
@@ -408,7 +408,7 @@ public:
 #define BME(_X_)                                                               \
   do {                                                                         \
     if (bme.has_value()) {                                                     \
-      t.render_value_float(bme.value()._X_.value);                             \
+      t.render_value_float(bme.value()._X_.get());                             \
     } else {                                                                   \
       t.render_notavailable();                                                 \
     }                                                                          \

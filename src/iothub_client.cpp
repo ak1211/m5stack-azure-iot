@@ -266,9 +266,9 @@ bool IotHubClient::pushTempHumiPres(const std::string &sensor_id,
   //
   doc["sensorId"] = sensor_id;
   doc["measuredAt"] = TickTack::isoformatUTC(buf, input.at);
-  doc["temperature"] = input.temperature.value;
-  doc["humidity"] = input.relative_humidity.value;
-  doc["pressure"] = input.pressure.value;
+  doc["temperature"] = input.temperature.degc();
+  doc["humidity"] = input.relative_humidity.percentRH();
+  doc["pressure"] = input.pressure.hpa();
   //
   return pushMessage(doc);
 }
@@ -314,8 +314,8 @@ bool IotHubClient::pushCo2TempHumi(const std::string &sensor_id,
   doc["sensorId"] = sensor_id;
   doc["measuredAt"] = TickTack::isoformatUTC(buf, input.at);
   doc["co2"] = input.co2.value;
-  doc["temperature"] = input.temperature.value;
-  doc["humidity"] = input.relative_humidity.value;
+  doc["temperature"] = input.temperature.degc();
+  doc["humidity"] = input.relative_humidity.percentRH();
   //
   return pushMessage(doc);
 }
