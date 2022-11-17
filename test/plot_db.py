@@ -8,6 +8,7 @@
 # See LICENSE file in the project root for full license information.
 
 from azure.cosmos import CosmosClient
+import os
 import sys
 import numpy as np
 import pandas as pd
@@ -70,11 +71,17 @@ def calculate_absolute_humidity(df):
     return df
 
 
-def plot(df, sensorIds, filename, tz):
+def plot(df, sensorIds, filename_png, filename_csv, tz):
+    #
+    # 何もないなら何もしない
+    #
+    if len(df) == 0:
+        return
     #
     df = calculate_absolute_humidity(df)
     df = df.set_index('measuredAt')
-    print(df)
+    # print(df)
+    df.to_csv(filename_csv)
     #
     major_formatter = DateFormatter('%a\n%Y-%m-%d\n%H:%M:%S\n%Z', tz=tz)
     major_locator = DayLocator(tz=tz)
@@ -96,7 +103,6 @@ def plot(df, sensorIds, filename, tz):
     axs[0, 0].set_title('temperature', fontsize=18)
     for sid in sensorIds:
         qry_str = "sensorId=='{}'".format(sid)
-        print("DBG {}".format(qry_str))
         ddf = df.query(qry_str).get('temperature').dropna()
         if len(ddf) > 0:
             axs[0, 0].plot(ddf, 'o-', label=sid)
@@ -218,7 +224,7 @@ def plot(df, sensorIds, filename, tz):
     axs[3, 1].legend(fontsize=18)
     #
 #    fig.tight_layout()
-    fig.savefig(filename)
+    fig.savefig(filename_png)
 
 
 def take_sensorId(container):
@@ -293,17 +299,22 @@ def run(url, key):
     for week in weeklies:
         begin = week[0]
         end = week[-1] + timedelta(days=1) - timedelta(microseconds=1)
-        df = take_items_from_container(container, begin, end, tz)
         begin_ = begin.strftime('%Y-%m-%d')
         end_ = end.strftime('%Y-%m-%d')
-        filename = "{}_{}.png".format(begin_, end_)
-        plot(df, sensorIds, filename, tz)
-        print("----------")
+        filename_png = "{}_{}.png".format(begin_, end_)
+        filename_csv = "{}_{}.csv".format(begin_, end_)
+       # 同名のファイルがあれば何もしない
+        if (os.path.isfile(filename_png)):
+            print("file {} is already exist, pass".format(filename_png))
+        else:
+            df = take_items_from_container(container, begin, end, tz)
+            plot(df, sensorIds, filename_png, filename_csv, tz)
+            print("----------")
 
 
 if __name__ == "__main__":
     if len(sys.argv) <= 2:
-        print("{} url key".format(sys.argv[0]))
+        print("$ {} CosmosDBのURI CosmosDBのキー".format(sys.argv[0]))
     else:
         url = sys.argv[1]
         key = sys.argv[2]
