@@ -22,7 +22,7 @@ SystemPower::PowerNow SystemPower::power_now() {
 }
 
 Ampere SystemPower::getBatteryChargingCurrent() {
-  return Ampere(abs(battery_current.value));
+  return Ampere(std::abs(battery_current.ampere()));
 }
 
 void SystemPower::update() {

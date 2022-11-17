@@ -5,55 +5,92 @@
 #ifndef VALUE_TYPES_HPP
 #define VALUE_TYPES_HPP
 
+#include <cmath>
 #include <cstdint>
+#include <limits>
 #include <optional>
 #include <string>
 
-// [V] voltage
+/// [V] voltage
 struct Voltage final {
-  explicit Voltage(float init = 0.0f) : value(init) {}
+  explicit Voltage(float init = 0.0f) : value{init} {}
+  float get() const { return value; }
+  float voltage() const {
+    return std::round(static_cast<double>(value) * 1000.0) / 1000.0;
+  }
+
+private:
   float value;
 };
 
-// [A] ampere
+/// [A] ampere
 struct Ampere final {
-  explicit Ampere(float init = 0.0f) : value(init) {}
+  explicit Ampere(float init = 0.0f) : value{init} {}
+  float get() const { return value; }
+  float ampere() const {
+    return std::round(static_cast<double>(value) * 1000.0) / 1000.0;
+  }
+  bool positive() const { return value > 0.0f; }
+  bool negative() const { return value < 0.0f; }
+  bool zero() const {
+    return std::abs(value - 0.0f) <= std::numeric_limits<float>::epsilon();
+  }
+
+private:
   float value;
 };
 
 // degree celsius
 struct DegC final {
-  explicit DegC(float init = 0.0f) : value(init) {}
+  explicit DegC(float init = 0.0f) : value{init} {}
+  float get() const { return value; }
+  float degc() const {
+    return std::round(static_cast<double>(value) * 100.0) / 100.0;
+  }
+
+private:
   float value;
 };
 
 // [hPa] hecto-pascal
 struct HPa final {
-  explicit HPa(float init = 0.0f) : value(init) {}
+  explicit HPa(float init = 0.0f) : value{init} {}
+  float get() const { return value; }
+  float hpa() const {
+    return std::round(static_cast<double>(value) * 100.0) / 100.0;
+  }
+
+private:
   float value;
 };
 
 // [%] relative humidity
 struct PcRH final {
-  explicit PcRH(float init = 0.0f) : value(init) {}
+  explicit PcRH(float init = 0.0f) : value{init} {}
+  float get() const { return value; }
+  float percentRH() const {
+    return std::round(static_cast<double>(value) * 100.0) / 100.0;
+  }
+
+private:
   float value;
 };
 
 // [mg / m^3] absolute humidity
 struct MilligramPerCubicMetre final {
-  explicit MilligramPerCubicMetre(uint32_t init = 0u) : value(init) {}
+  explicit MilligramPerCubicMetre(uint32_t init = 0u) : value{init} {}
   uint32_t value;
 };
 
 // [ppm] parts per million
 struct Ppm final {
-  explicit Ppm(uint16_t init = 0u) : value(init) {}
+  explicit Ppm(uint16_t init = 0u) : value{init} {}
   uint16_t value;
 };
 
 // [ppb] parts per billion
 struct Ppb final {
-  explicit Ppb(uint16_t init = 0u) : value(init) {}
+  explicit Ppb(uint16_t init = 0u) : value{init} {}
   uint16_t value;
 };
 
@@ -62,13 +99,13 @@ using BaselineSGP30T = uint16_t;
 
 // SGP30 baseline(equivalent CO2)
 struct BaselineECo2 final {
-  BaselineECo2(BaselineSGP30T init = 0u) : value(init) {}
+  BaselineECo2(BaselineSGP30T init = 0u) : value{init} {}
   BaselineSGP30T value;
 };
 
 // SGP30 baseline(Total VOC)
 struct BaselineTotalVoc final {
-  BaselineTotalVoc(BaselineSGP30T init = 0u) : value(init) {}
+  BaselineTotalVoc(BaselineSGP30T init = 0u) : value{init} {}
   BaselineSGP30T value;
 };
 

@@ -26,8 +26,8 @@ public:
   inline Voltage getBatteryVoltage() { return battery_voltage; }
   inline float getBatteryPercentage() { return battery_percentage; }
   Ampere getBatteryChargingCurrent();
-  inline bool isBatteryCharging() { return (battery_current.value > 0.00f); }
-  inline bool isBatteryDischarging() { return (battery_current.value < 0.00f); }
+  inline bool isBatteryCharging() { return battery_current.positive(); }
+  inline bool isBatteryDischarging() { return battery_current.negative(); }
   void update();
 
 private:

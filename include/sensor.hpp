@@ -40,7 +40,7 @@ using Bme280 = std::optional<TempHumiPres>;
 template <> class Sensor<Bme280> {
 public:
   constexpr static uint8_t INTERVAL = 5;
-  constexpr static uint8_t SMA_PERIOD = 1 + 120 / INTERVAL; // 120 seconds
+  constexpr static uint8_t SMA_PERIOD = 1 + 60 / INTERVAL; // 60 seconds
   //
   Sensor(SensorDescriptor custom_sensor_descriptor)
       : sensor_descriptor{custom_sensor_descriptor},
@@ -88,7 +88,7 @@ using Sgp30 = std::optional<TvocEco2>;
 template <> class Sensor<Sgp30> {
 public:
   constexpr static uint8_t INTERVAL = 3;
-  constexpr static uint8_t SMA_PERIOD = 1 + 120 / INTERVAL; // 120 seconds
+  constexpr static uint8_t SMA_PERIOD = 1 + 60 / INTERVAL; // 60 seconds
   //
   Sensor(SensorDescriptor custom_sensor_descriptor)
       : sensor_descriptor{custom_sensor_descriptor},
@@ -136,7 +136,7 @@ using Scd30 = std::optional<Co2TempHumi>;
 template <> class Sensor<Scd30> {
 public:
   constexpr static uint8_t INTERVAL = 7;
-  constexpr static uint8_t SMA_PERIOD = 1 + 120 / INTERVAL; // 120 seconds
+  constexpr static uint8_t SMA_PERIOD = 1 + 60 / INTERVAL; // 60 seconds
   //
   Sensor(SensorDescriptor custom_sensor_descriptor)
       : sensor_descriptor{custom_sensor_descriptor},

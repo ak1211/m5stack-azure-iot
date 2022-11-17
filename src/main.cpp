@@ -115,7 +115,10 @@ periodical_measurement_sets(std::time_t measured_at) {
 //
 static std::string
 absolute_sensor_id_from_SensorDescriptor(SensorDescriptor descriptor) {
-  return (Credentials.device_id + '-' + descriptor.toString());
+  std::string a{Credentials.device_id};
+  std::string b{'-'};
+  std::string c{descriptor.toString()};
+  return std::string{a + b + c};
 }
 
 //
