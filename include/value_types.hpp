@@ -2,8 +2,7 @@
 // Licensed under the MIT License <https://spdx.org/licenses/MIT.html>
 // See LICENSE file in the project root for full license information.
 //
-#ifndef VALUE_TYPES_HPP
-#define VALUE_TYPES_HPP
+#pragma once
 
 #include <cmath>
 #include <cstdint>
@@ -12,68 +11,61 @@
 #include <string>
 
 /// [V] voltage
-struct Voltage final {
+class Voltage final {
+  float value;
+
+public:
+  constexpr static float SHIFT = 1000.0f;
   explicit Voltage(float init = 0.0f) : value{init} {}
   float get() const { return value; }
-  float voltage() const {
-    return std::round(static_cast<double>(value) * 1000.0) / 1000.0;
-  }
-
-private:
-  float value;
+  float voltage() const { return std::nearbyintf(value * SHIFT) / SHIFT; }
 };
 
 /// [A] ampere
-struct Ampere final {
+class Ampere final {
+  float value;
+
+public:
+  constexpr static float SHIFT = 1000.0f;
   explicit Ampere(float init = 0.0f) : value{init} {}
   float get() const { return value; }
-  float ampere() const {
-    return std::round(static_cast<double>(value) * 1000.0) / 1000.0;
-  }
-  bool positive() const { return value > 0.0f; }
-  bool negative() const { return value < 0.0f; }
-  bool zero() const {
-    return std::abs(value - 0.0f) <= std::numeric_limits<float>::epsilon();
-  }
-
-private:
-  float value;
+  float ampere() const { return std::nearbyintf(value * SHIFT) / SHIFT; }
+  bool negative() const { return std::signbit(value); }
+  bool positive() const { return !negative(); }
+  bool zero() const { return std::fpclassify(value) == FP_ZERO; }
 };
 
 // degree celsius
-struct DegC final {
+class DegC final {
+  constexpr static float SHIFT = 100.0f;
+  float value;
+
+public:
   explicit DegC(float init = 0.0f) : value{init} {}
   float get() const { return value; }
-  float degc() const {
-    return std::round(static_cast<double>(value) * 100.0) / 100.0;
-  }
-
-private:
-  float value;
+  float degc() const { return std::nearbyintf(value * SHIFT) / SHIFT; }
 };
 
 // [hPa] hecto-pascal
-struct HPa final {
+class HPa final {
+  float value;
+
+public:
+  constexpr static float SHIFT = 100.0f;
   explicit HPa(float init = 0.0f) : value{init} {}
   float get() const { return value; }
-  float hpa() const {
-    return std::round(static_cast<double>(value) * 100.0) / 100.0;
-  }
-
-private:
-  float value;
+  float hpa() const { return std::nearbyintf(value * SHIFT) / SHIFT; }
 };
 
 // [%] relative humidity
-struct PcRH final {
+class PcRH final {
+  float value;
+
+public:
+  constexpr static float SHIFT = 100.0f;
   explicit PcRH(float init = 0.0f) : value{init} {}
   float get() const { return value; }
-  float percentRH() const {
-    return std::round(static_cast<double>(value) * 100.0) / 100.0;
-  }
-
-private:
-  float value;
+  float percentRH() const { return std::nearbyintf(value * SHIFT) / SHIFT; }
 };
 
 // [mg / m^3] absolute humidity
@@ -111,10 +103,7 @@ struct BaselineTotalVoc final {
 
 using SensorId = uint64_t;
 //
-class SensorDescriptor {
-public:
-  SensorId id;
-  //
+struct SensorDescriptor final {
   explicit SensorDescriptor(SensorId inital = 0) : id{inital} {}
   explicit SensorDescriptor(char c0, char c1, char c2, char c3, char c4,
                             char c5, char c6, char c7) {
@@ -128,7 +117,7 @@ public:
          static_cast<uint64_t>(c7) << 0;   // 8th byte
   }
   //
-  std::string toString() {
+  std::string toString() const {
     char buf[8] = {
         static_cast<char>(id >> 56 & 0xff), // 1st byte
         static_cast<char>(id >> 48 & 0xff), // 2nd byte
@@ -141,6 +130,6 @@ public:
     };
     return std::string(buf);
   }
+  //
+  SensorId id;
 };
-
-#endif // VALUE_TYPES_HPP
