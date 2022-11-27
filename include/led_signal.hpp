@@ -35,7 +35,7 @@ public:
     FastLED.show();
   }
   //
-  static CRGB hslToRgb(double hue /* 0 < 360*/, double saturation /* 0 <= 1 */,
+  static CRGB hslToRgb(double hue /* 0 < 360 */, double saturation /* 0 <= 1 */,
                        double lightness /* 0 <= 1 */) {
     double C = saturation * (1.0 - std::abs(2.0 * lightness - 1.0));
     double Max = lightness + (C / 2.0);
