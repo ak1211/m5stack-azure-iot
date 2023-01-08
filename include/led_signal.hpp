@@ -14,24 +14,22 @@
 //
 //
 class LedSignal {
+  constexpr static auto NUM_OF_LEDS = uint8_t{10};
+  constexpr static auto GPIO_PIN_SK6815 = uint8_t{25};
+  constexpr static auto BME280_I2C_ADDRESS = uint8_t{0x76};
+  std::array<CRGB, NUM_OF_LEDS> leds;
 
 public:
-  constexpr static uint8_t NUM_OF_LEDS{10};
-  constexpr static uint8_t GPIO_PIN_SK6815{25};
-  constexpr static uint8_t BME280_I2C_ADDRESS{0x76};
   //
   bool begin() {
-    FastLED.addLeds<SK6812, GPIO_PIN_SK6815, GRB>(std::data(leds),
-                                                  std::size(leds));
+    FastLED.addLeds<SK6812, GPIO_PIN_SK6815, GRB>(leds.data(), leds.size());
     FastLED.setBrightness(64);
     offSignal();
     return true;
   }
   //
   void offSignal() {
-    for (auto &v : leds) {
-      v = CRGB::Black;
-    }
+    std::fill(leds.begin(), leds.end(), CRGB::Black);
     FastLED.show();
   }
   //
@@ -95,7 +93,4 @@ public:
     std::fill(leds.begin(), leds.end(), rgb);
     FastLED.show();
   }
-
-private:
-  std::array<CRGB, NUM_OF_LEDS> leds;
 };

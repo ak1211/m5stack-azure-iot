@@ -2,8 +2,7 @@
 // Licensed under the MIT License <https://spdx.org/licenses/MIT.html>
 // See LICENSE file in the project root for full license information.
 //
-#ifndef TICKTACK_HPP
-#define TICKTACK_HPP
+#pragma once
 
 #include <chrono>
 #include <cstdint>
@@ -136,5 +135,3 @@ private:
     }
   }
 };
-
-#endif // TICKTACK_HPP

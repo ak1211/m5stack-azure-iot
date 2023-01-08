@@ -4,6 +4,7 @@
 //
 #include "data_logging_file.hpp"
 #include <SD.h>
+#include <chrono>
 
 constexpr static const char *TAG = "LoggingModule";
 
@@ -13,15 +14,18 @@ constexpr static const char *TAG = "LoggingModule";
 bool DataLoggingFile::begin() {
   _ready = false;
   switch (SD.cardType()) {
-  case CARD_MMC: /* fallthrough */
-  case CARD_SD:  /* fallthrough */
+  case CARD_MMC:
+    [[fallthrough]];
+  case CARD_SD:
+    [[fallthrough]];
   case CARD_SDHC: {
     write_header_to_log_file();
-    data_logging_file = SD.open(data_fname.c_str(), FILE_APPEND);
+    data_logging_file = SD.open(data_fname.data(), FILE_APPEND);
     _ready = true;
     break;
   }
   case CARD_NONE: /* fallthrough */
+    [[fallthrough]];
   case CARD_UNKNOWN:
     ESP_LOGD(TAG, "No MEMORY CARD found.");
     break;
@@ -46,12 +50,23 @@ void DataLoggingFile::write_data_to_log_file(time_t at, const TempHumiPres &bme,
     // first field is date and time
     i += strftime(&p[i], LENGTH - i, "%Y-%m-%dT%H:%M:%SZ", &utc);
     // 2nd field is temperature
-    i += snprintf(&p[i], LENGTH - i, ", %6.2f", bme.temperature.degc());
+    {
+      const DegC tCelcius = bme.temperature;
+      i += snprintf(&p[i], LENGTH - i, ", %6.2f",
+                    static_cast<float>(tCelcius.count()));
+    }
     // 3nd field is relative_humidity
-    i += snprintf(&p[i], LENGTH - i, ", %6.2f",
-                  bme.relative_humidity.percentRH());
+    {
+      const RelHumidity rh = bme.relative_humidity;
+      i += snprintf(&p[i], LENGTH - i, ", %6.2f",
+                    static_cast<float>(rh.count()));
+    }
     // 4th field is pressure
-    i += snprintf(&p[i], LENGTH - i, ", %7.2f", bme.pressure.hpa());
+    {
+      const HectoPa hpa = bme.pressure;
+      i += snprintf(&p[i], LENGTH - i, ", %7.2f",
+                    static_cast<float>(hpa.count()));
+    }
     // 5th field is TVOC
     i += snprintf(&p[i], LENGTH - i, ", %5d", sgp.tvoc.value);
     // 6th field is eCo2
@@ -73,10 +88,17 @@ void DataLoggingFile::write_data_to_log_file(time_t at, const TempHumiPres &bme,
     // 9th field is co2
     i += snprintf(&p[i], LENGTH - i, ", %5d", scd.co2.value);
     // 10th field is temperature
-    i += snprintf(&p[i], LENGTH - i, ", %6.2f", scd.temperature.degc());
+    {
+      const DegC tCelcius = scd.temperature;
+      i += snprintf(&p[i], LENGTH - i, ", %6.2f",
+                    static_cast<float>(tCelcius.count()));
+    }
     // 11th field is relative_humidity
-    i += snprintf(&p[i], LENGTH - i, ", %6.2f",
-                  scd.relative_humidity.percentRH());
+    {
+      const RelHumidity rh = scd.relative_humidity;
+      i += snprintf(&p[i], LENGTH - i, ", %6.2f",
+                    static_cast<float>(rh.count()));
+    }
 
     ESP_LOGD(TAG, "%s", p);
 
@@ -95,7 +117,7 @@ void DataLoggingFile::write_data_to_log_file(time_t at, const TempHumiPres &bme,
 //
 //
 void DataLoggingFile::write_header_to_log_file() {
-  File f = SD.open(header_fname.c_str(), FILE_WRITE);
+  File f = SD.open(header_fname.data(), FILE_WRITE);
   //
   const size_t LENGTH = 1024;
   char *p = (char *)calloc(LENGTH + 1, sizeof(char));

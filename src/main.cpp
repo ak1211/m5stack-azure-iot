@@ -13,6 +13,8 @@
 #include <ctime>
 #include <lwip/apps/sntp.h>
 
+using namespace std::literals::string_literals;
+
 constexpr static const char *TAG = "MainModule";
 
 //
@@ -62,6 +64,7 @@ void setup() {
   // initializing M5Stack and UART, I2C, Touch, RTC, etc. peripherals.
   //
   M5.begin(true, true, true, true);
+  delay(2000);
   Peripherals::begin(Credentials.wifi_ssid, Credentials.wifi_password,
                      Credentials.iothub_fqdn, Credentials.device_id,
                      Credentials.device_key);
@@ -84,7 +87,7 @@ void setup() {
 //
 //
 //
-struct MeasurementSets {
+struct MeasurementSets final {
   std::time_t measured_at;
   Bme280 bme280;
   Sgp30 sgp30;
@@ -115,10 +118,7 @@ periodical_measurement_sets(std::time_t measured_at) {
 //
 static std::string
 absolute_sensor_id_from_SensorDescriptor(SensorDescriptor descriptor) {
-  std::string a{Credentials.device_id};
-  std::string b{'-'};
-  std::string c{descriptor.toString()};
-  return std::string{a + b + c};
+  return std::string(Credentials.device_id) + "-"s + std::string(descriptor);
 }
 
 //

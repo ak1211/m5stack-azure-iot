@@ -10,12 +10,12 @@
 //
 //
 //
-bool WifiLauncher::begin(const std::string &wifi_ssid,
-                         const std::string &wifi_password) {
+bool WifiLauncher::begin(std::string_view wifi_ssid,
+                         std::string_view wifi_password) {
   Screen::lcd.println(F("Wifi Connecting..."));
-  WiFi.begin(wifi_ssid.c_str(), wifi_password.c_str());
+  WiFi.begin(wifi_ssid.data(), wifi_password.data());
   wifi_connected = false;
-  for (int16_t n = 1; n <= NUM_OF_TRY_TO_WIFI_CONNECTION; n++) {
+  for (auto n = 1; n <= NUM_OF_TRY_TO_WIFI_CONNECTION; ++n) {
     if (WiFi.status() == WL_CONNECTED) {
       wifi_connected = true;
       break;

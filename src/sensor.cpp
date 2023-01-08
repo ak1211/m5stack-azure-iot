@@ -36,7 +36,7 @@ bool Sensor<Bme280>::begin(uint8_t i2c_address) {
 }
 //
 bool Sensor<Bme280>::readyToRead(std::time_t now) {
-  return active() && (difftime(now, last_measured_at) >= INTERVAL);
+  return active() && (std::difftime(now, last_measured_at) >= INTERVAL);
 }
 //
 Bme280 Sensor<Bme280>::read(std::time_t measured_at) {
@@ -63,19 +63,20 @@ Bme280 Sensor<Bme280>::read(std::time_t measured_at) {
   }
   //
   {
-    //    DegC temp = DegC(temperature);
-    float pres = pressure / 100.0f; // pascal to hecto-pascal
+    auto tCelcius = CentiDegC(static_cast<int16_t>(100.0f * temperature));
+    auto mrh = MilliRH(static_cast<int16_t>(1000.0f * humidity));
+    auto pa = Pascal(static_cast<uint32_t>(pressure));
     //
     last_measured_at = measured_at;
-    sma_temperature.push_back(temperature);
-    sma_relative_humidity.push_back(humidity);
-    sma_pressure.push_back(pres);
+    sma_temperature.push_back(tCelcius.count());
+    sma_relative_humidity.push_back(mrh.count());
+    sma_pressure.push_back(pa.count());
     return Bme280({
         .sensor_descriptor = getSensorDescriptor(),
         .at = measured_at,
-        .temperature = DegC(temperature),
-        .relative_humidity = PcRH(humidity),
-        .pressure = HPa(pres),
+        .temperature = tCelcius,
+        .relative_humidity = mrh,
+        .pressure = pa,
     });
   }
 
@@ -93,9 +94,9 @@ Bme280 Sensor<Bme280>::calculateSMA(std::time_t measured_at) {
     return Bme280({
         .sensor_descriptor = getSensorDescriptor(),
         .at = measured_at,
-        .temperature = DegC(sma_temperature.calculate()),
-        .relative_humidity = PcRH(sma_relative_humidity.calculate()),
-        .pressure = HPa(sma_pressure.calculate()),
+        .temperature = CentiDegC(sma_temperature.calculate()),
+        .relative_humidity = MilliRH(sma_relative_humidity.calculate()),
+        .pressure = Pascal(sma_pressure.calculate()),
     });
   } else {
     return Bme280();
@@ -135,7 +136,7 @@ bool Sensor<Sgp30>::begin(std::optional<BaselineECo2> eco2_base,
 }
 //
 bool Sensor<Sgp30>::readyToRead(std::time_t now) {
-  return active() && (difftime(now, last_tvoc_eco2.at) >= INTERVAL);
+  return active() && (std::difftime(now, last_tvoc_eco2.at) >= INTERVAL);
 }
 //
 Sgp30 Sensor<Sgp30>::read(std::time_t measured_at) {
@@ -207,12 +208,12 @@ bool Sensor<Sgp30>::setHumidity(MilligramPerCubicMetre absolute_humidity) {
 }
 //
 MilligramPerCubicMetre calculateAbsoluteHumidity(DegC temperature,
-                                                 PcRH humidity) {
+                                                 RelHumidity humidity) {
+  const auto tCelsius = temperature.count();
   float absolute_humidity =
-      216.7f *
-      ((humidity.get() / 100.0f) * 6.112f *
-       std::exp((17.62f * temperature.get()) / (243.12f + temperature.get())) /
-       (273.15f + temperature.get()));
+      216.7f * ((humidity.count() / 100.0f) * 6.112f *
+                std::exp((17.62f * tCelsius) / (243.12f + tCelsius)) /
+                (273.15f + tCelsius));
   return MilligramPerCubicMetre(
       static_cast<uint32_t>(1000.0f * absolute_humidity));
 }
@@ -241,7 +242,7 @@ bool Sensor<Scd30>::begin() {
 }
 //
 bool Sensor<Scd30>::readyToRead(std::time_t now) {
-  return active() && (difftime(now, last_measured_at) >= INTERVAL) &&
+  return active() && (std::difftime(now, last_measured_at) >= INTERVAL) &&
          scd30.dataReady();
 }
 //
@@ -265,34 +266,37 @@ Scd30 Sensor<Scd30>::read(std::time_t measured_at) {
 
   if (!std::isfinite(co2)) {
     ESP_LOGE(TAG, "SCD30 sensor: co2 is not finite.");
-    goto error;
+    ESP_LOGD(TAG, "reset SCD30 sensor.");
+    scd30.reset();
+    return Scd30();
   }
   if (!std::isfinite(temperature)) {
     ESP_LOGE(TAG, "SCD30 sensor: temperature is not finite.");
-    goto error;
+    ESP_LOGD(TAG, "reset SCD30 sensor.");
+    scd30.reset();
+    return Scd30();
   }
   if (!std::isfinite(relative_humidity)) {
     ESP_LOGE(TAG, "SCD30 sensor: relative humidity is not finite.");
-    goto error;
+    ESP_LOGD(TAG, "reset SCD30 sensor.");
+    scd30.reset();
+    return Scd30();
   }
 
   // successfully
+  CentiDegC tCelcius = CentiDegC(static_cast<int16_t>(100.0f * temperature));
+  MilliRH mRH = MilliRH(static_cast<int16_t>(1000.0f * relative_humidity));
   last_measured_at = measured_at;
   sma_co2.push_back(static_cast<uint16_t>(co2));
-  sma_temperature.push_back(temperature);
-  sma_relative_humidity.push_back(relative_humidity);
+  sma_temperature.push_back(tCelcius.count());
+  sma_relative_humidity.push_back(mRH.count());
   return Scd30({
       .sensor_descriptor = getSensorDescriptor(),
       .at = measured_at,
       .co2 = Ppm(static_cast<uint16_t>(co2)),
-      .temperature = DegC(temperature),
-      .relative_humidity = PcRH(relative_humidity),
+      .temperature = tCelcius,
+      .relative_humidity = mRH,
   });
-
-error:
-  ESP_LOGD(TAG, "reset SCD30 sensor.");
-  scd30.reset();
-  return Scd30();
 }
 //
 Scd30 Sensor<Scd30>::calculateSMA(std::time_t measured_at) {
@@ -302,8 +306,8 @@ Scd30 Sensor<Scd30>::calculateSMA(std::time_t measured_at) {
         .sensor_descriptor = getSensorDescriptor(),
         .at = measured_at,
         .co2 = Ppm(sma_co2.calculate()),
-        .temperature = DegC(sma_temperature.calculate()),
-        .relative_humidity = PcRH(sma_relative_humidity.calculate()),
+        .temperature = CentiDegC(sma_temperature.calculate()),
+        .relative_humidity = MilliRH(sma_relative_humidity.calculate()),
     });
   } else {
     return Scd30();

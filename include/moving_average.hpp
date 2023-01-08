@@ -2,40 +2,32 @@
 // Licensed under the MIT License <https://spdx.org/licenses/MIT.html>
 // See LICENSE file in the project root for full license information.
 //
-#ifndef MOVING_AVERAGE_HPP
-#define MOVING_AVERAGE_HPP
+#pragma once
 
+#include <array>
 #include <cstdint>
+#include <numeric>
 
-template <uint8_t N, class value_t, class sum_t> class SimpleMovingAverage {
-public:
+template <uint8_t N, typename value_t, typename sum_t>
+class SimpleMovingAverage final {
   static_assert(N > 0, "N must be a natural number.");
-  //
-  SimpleMovingAverage() : ready_to_go{false}, position{}, ring{} {};
+  bool ready_to_go;
+  std::array<value_t, N> ring;
+  typename decltype(ring)::iterator itr;
+
+public:
+  SimpleMovingAverage() : ready_to_go{false}, ring{}, itr{ring.begin()} {};
   //
   inline bool ready() { return ready_to_go; }
-  void push_back(value_t v) {
-    ring[position] = v;
-    if ((position + 1) < N) {
-      position = position + 1;
-    } else {
+  void push_back(value_t input) {
+    if (itr == ring.end()) {
+      itr = ring.begin();
       ready_to_go = true;
-      position = 0;
     }
+    *itr++ = input;
   }
   value_t calculate() {
-    sum_t sum = ring[0];
-    for (uint_fast8_t i = 1; i < N; ++i) {
-      sum = sum + ring[i];
-    }
-    value_t average = sum / N;
-    return average;
+    sum_t summary = std::accumulate(ring.cbegin(), ring.cend(), sum_t(0));
+    return summary / N;
   }
-
-private:
-  bool ready_to_go;
-  uint_fast16_t position;
-  value_t ring[N];
 };
-
-#endif // MOVING_AVERAGE_HPP

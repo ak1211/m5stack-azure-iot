@@ -5,6 +5,8 @@
 #include "iothub_client.hpp"
 #include "credentials.h"
 #include <Arduinojson.h>
+#include <chrono>
+#include <cmath>
 #include <ctime>
 #include <esp_sntp.h>
 #include <mqtt_client.h>
@@ -24,6 +26,11 @@ constexpr static const char TELEMETRY[] = "TELEMETRY";
 // When developing for your own Arduino-based platform,
 // please follow the format '(ard;<platform>)'.
 #define AZURE_SDK_CLIENT_USER_AGENT "c%2F" AZ_SDK_VERSION_STRING "(ard;esp32)"
+
+//
+double round_to_2_decimal_places(double x) {
+  return std::nearbyint(x * 100.0) / 100.0;
+}
 
 //
 uint32_t IotHubClient::message_id = 0;
@@ -262,13 +269,16 @@ bool IotHubClient::pushTempHumiPres(const std::string &sensor_id,
     ESP_LOGE(TELEMETRY, "memory allocation error.");
     return false;
   }
+  const DegC tCelcius = input.temperature;
+  const RelHumidity rh = input.relative_humidity;
+  const HectoPa hpa = input.pressure;
   std::string buf;
   //
   doc["sensorId"] = sensor_id;
   doc["measuredAt"] = TickTack::isoformatUTC(buf, input.at);
-  doc["temperature"] = input.temperature.degc();
-  doc["humidity"] = input.relative_humidity.percentRH();
-  doc["pressure"] = input.pressure.hpa();
+  doc["temperature"] = round_to_2_decimal_places(tCelcius.count());
+  doc["humidity"] = round_to_2_decimal_places(rh.count());
+  doc["pressure"] = round_to_2_decimal_places(hpa.count());
   //
   return pushMessage(doc);
 }
@@ -309,13 +319,15 @@ bool IotHubClient::pushCo2TempHumi(const std::string &sensor_id,
     ESP_LOGE(TELEMETRY, "memory allocation error.");
     return false;
   }
+  const DegC tCelcius = input.temperature;
+  const RelHumidity rh = input.relative_humidity;
   std::string buf;
   //
   doc["sensorId"] = sensor_id;
   doc["measuredAt"] = TickTack::isoformatUTC(buf, input.at);
   doc["co2"] = input.co2.value;
-  doc["temperature"] = input.temperature.degc();
-  doc["humidity"] = input.relative_humidity.percentRH();
+  doc["temperature"] = round_to_2_decimal_places(tCelcius.count());
+  doc["humidity"] = round_to_2_decimal_places(rh.count());
   //
   return pushMessage(doc);
 }

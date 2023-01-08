@@ -15,7 +15,7 @@
 #include <optional>
 #include <string>
 
-template <class T> class Sensor {
+template <typename T> class Sensor {
 public:
   SensorDescriptor getSensorDescriptor() = 0;
   void printSensorDetails() = 0;
@@ -32,15 +32,25 @@ public:
 struct TempHumiPres {
   SensorDescriptor sensor_descriptor;
   std::time_t at;
-  DegC temperature;
-  PcRH relative_humidity;
-  HPa pressure;
+  CentiDegC temperature;
+  MilliRH relative_humidity;
+  Pascal pressure;
 };
+//
 using Bme280 = std::optional<TempHumiPres>;
 template <> class Sensor<Bme280> {
-public:
-  constexpr static uint8_t INTERVAL = 5;
+  constexpr static uint8_t INTERVAL = 12;
   constexpr static uint8_t SMA_PERIOD = 1 + 60 / INTERVAL; // 60 seconds
+  //
+  SensorDescriptor sensor_descriptor;
+  bool initialized;
+  std::time_t last_measured_at;
+  Adafruit_BME280 bme280;
+  SimpleMovingAverage<SMA_PERIOD, int16_t, int32_t> sma_temperature;
+  SimpleMovingAverage<SMA_PERIOD, uint16_t, uint32_t> sma_relative_humidity;
+  SimpleMovingAverage<SMA_PERIOD, uint32_t, uint32_t> sma_pressure;
+
+public:
   //
   Sensor(SensorDescriptor custom_sensor_descriptor)
       : sensor_descriptor{custom_sensor_descriptor},
@@ -62,15 +72,6 @@ public:
                        Adafruit_BME280::FILTER_OFF,
                        Adafruit_BME280::STANDBY_MS_1000);
   }
-
-private:
-  SensorDescriptor sensor_descriptor;
-  bool initialized;
-  std::time_t last_measured_at;
-  Adafruit_BME280 bme280;
-  SimpleMovingAverage<SMA_PERIOD, float, double> sma_temperature;
-  SimpleMovingAverage<SMA_PERIOD, float, double> sma_relative_humidity;
-  SimpleMovingAverage<SMA_PERIOD, float, double> sma_pressure;
 };
 
 //
@@ -84,12 +85,20 @@ struct TvocEco2 {
   std::optional<BaselineECo2> eCo2_baseline;
   std::optional<BaselineTotalVoc> tvoc_baseline;
 };
+//
 using Sgp30 = std::optional<TvocEco2>;
 template <> class Sensor<Sgp30> {
-public:
-  constexpr static uint8_t INTERVAL = 3;
+  constexpr static uint8_t INTERVAL = 12;
   constexpr static uint8_t SMA_PERIOD = 1 + 60 / INTERVAL; // 60 seconds
   //
+  SensorDescriptor sensor_descriptor;
+  bool initialized;
+  TvocEco2 last_tvoc_eco2;
+  Adafruit_SGP30 sgp30;
+  SimpleMovingAverage<SMA_PERIOD, uint16_t, uint32_t> sma_eCo2;
+  SimpleMovingAverage<SMA_PERIOD, uint16_t, uint32_t> sma_tvoc;
+
+public:
   Sensor(SensorDescriptor custom_sensor_descriptor)
       : sensor_descriptor{custom_sensor_descriptor},
         initialized{false},
@@ -110,17 +119,9 @@ public:
   //
   bool setIAQBaseline(BaselineECo2 eco2_base, BaselineTotalVoc tvoc_base);
   bool setHumidity(MilligramPerCubicMetre absolute_humidity);
-
-private:
-  SensorDescriptor sensor_descriptor;
-  bool initialized;
-  TvocEco2 last_tvoc_eco2;
-  Adafruit_SGP30 sgp30;
-  SimpleMovingAverage<SMA_PERIOD, uint16_t, uint32_t> sma_eCo2;
-  SimpleMovingAverage<SMA_PERIOD, uint16_t, uint32_t> sma_tvoc;
 };
 extern MilligramPerCubicMetre calculateAbsoluteHumidity(DegC temperature,
-                                                        PcRH humidity);
+                                                        RelHumidity humidity);
 
 //
 // Sensirion SCD30: NDIR CO2 and Humidity Sensor
@@ -129,15 +130,23 @@ struct Co2TempHumi {
   SensorDescriptor sensor_descriptor;
   std::time_t at;
   Ppm co2;
-  DegC temperature;
-  PcRH relative_humidity;
+  CentiDegC temperature;
+  MilliRH relative_humidity;
 };
 using Scd30 = std::optional<Co2TempHumi>;
 template <> class Sensor<Scd30> {
-public:
-  constexpr static uint8_t INTERVAL = 7;
+  constexpr static uint8_t INTERVAL = 12;
   constexpr static uint8_t SMA_PERIOD = 1 + 60 / INTERVAL; // 60 seconds
   //
+  SensorDescriptor sensor_descriptor;
+  bool initialized;
+  std::time_t last_measured_at;
+  Adafruit_SCD30 scd30;
+  SimpleMovingAverage<SMA_PERIOD, uint16_t, uint32_t> sma_co2;
+  SimpleMovingAverage<SMA_PERIOD, int16_t, int32_t> sma_temperature;
+  SimpleMovingAverage<SMA_PERIOD, uint16_t, uint32_t> sma_relative_humidity;
+
+public:
   Sensor(SensorDescriptor custom_sensor_descriptor)
       : sensor_descriptor{custom_sensor_descriptor},
         initialized{false},
@@ -150,13 +159,4 @@ public:
   bool readyToRead(std::time_t now);
   Scd30 read(std::time_t measured_at);
   Scd30 calculateSMA(std::time_t measured_at);
-
-private:
-  SensorDescriptor sensor_descriptor;
-  bool initialized;
-  std::time_t last_measured_at;
-  Adafruit_SCD30 scd30;
-  SimpleMovingAverage<SMA_PERIOD, uint16_t, uint32_t> sma_co2;
-  SimpleMovingAverage<SMA_PERIOD, float, double> sma_temperature;
-  SimpleMovingAverage<SMA_PERIOD, float, double> sma_relative_humidity;
 };

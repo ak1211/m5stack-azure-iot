@@ -27,8 +27,8 @@ Peripherals::Peripherals()
       wifi_launcher{WifiLauncher()},
       iothub_client{IotHubClient()} {}
 //
-bool Peripherals::begin(const std::string &wifi_ssid,
-                        const std::string &wifi_password,
+bool Peripherals::begin(std::string_view wifi_ssid,
+                        std::string_view wifi_password,
                         std::string_view iothub_fqdn,
                         std::string_view device_id,
                         std::string_view device_key) {

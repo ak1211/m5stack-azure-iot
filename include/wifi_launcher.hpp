@@ -2,8 +2,7 @@
 // Licensed under the MIT License <https://spdx.org/licenses/MIT.html>
 // See LICENSE file in the project root for full license information.
 //
-#ifndef WIFI_LAUNCHER_HPP
-#define WIFI_LAUNCHER_HPP
+#pragma once
 
 #include <cstdint>
 #include <string>
@@ -12,15 +11,12 @@
 //
 //
 class WifiLauncher {
+  bool wifi_connected;
+
 public:
-  constexpr static uint16_t NUM_OF_TRY_TO_WIFI_CONNECTION = 50;
+  constexpr static auto NUM_OF_TRY_TO_WIFI_CONNECTION = uint16_t{50};
   //
   WifiLauncher() : wifi_connected(false) {}
   bool hasWifiConnection() { return wifi_connected; }
-  bool begin(const std::string &wifi_ssid, const std::string &wifi_password);
-
-private:
-  bool wifi_connected;
+  bool begin(std::string_view wifi_ssid, std::string_view wifi_password);
 };
-
-#endif // WIFI_LAUNCHER_HPP
