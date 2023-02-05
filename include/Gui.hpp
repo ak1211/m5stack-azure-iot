@@ -156,6 +156,9 @@ class SystemHealth final : public Interface {
   lv_obj_t *status_label{nullptr};
   lv_obj_t *power_source_label{nullptr};
   lv_obj_t *battery_label{nullptr};
+  lv_obj_t *available_heap_label{nullptr};
+  lv_obj_t *available_internal_heap_label{nullptr};
+  lv_obj_t *minimum_free_heap_label{nullptr};
 
 public:
   SystemHealth(Init init) noexcept;
