@@ -221,8 +221,12 @@ void GUI::startUI() noexcept {
 
 //
 void GUI::home() noexcept {
+  constexpr auto HOME_POS = 2;
   vibrate();
-  tiles[2]->setActiveTile(tileview);
+  auto itr = std::next(tiles.begin(), HOME_POS);
+  if (itr < tiles.end()) {
+    itr->get()->setActiveTile(tileview);
+  }
 }
 
 //
@@ -230,12 +234,11 @@ void GUI::prev() noexcept {
   vibrate();
   auto itr = std::find_if(tiles.cbegin(), tiles.cend(),
                           [&](const std::unique_ptr<Tile::Interface> &t) {
-                            return t->isActiveTile(tileview);
+                            return (t) ? t->isActiveTile(tileview) : false;
                           });
   if (itr != tiles.cend()) {
-    if (itr != tiles.cbegin()) {
-      std::advance(itr, -1);
-      itr->get()->setActiveTile(tileview);
+    if (tiles.cbegin() <= std::prev(itr)) {
+      std::prev(itr)->get()->setActiveTile(tileview);
     }
   }
 }
@@ -245,12 +248,11 @@ void GUI::next() noexcept {
   vibrate();
   auto itr = std::find_if(tiles.cbegin(), tiles.cend(),
                           [&](const std::unique_ptr<Tile::Interface> &t) {
-                            return t->isActiveTile(tileview);
+                            return (t) ? t->isActiveTile(tileview) : false;
                           });
   if (itr != tiles.cend()) {
-    std::advance(itr, 1);
-    if (itr != tiles.cend()) {
-      itr->get()->setActiveTile(tileview);
+    if (std::next(itr) < tiles.cend()) {
+      std::next(itr)->get()->setActiveTile(tileview);
     }
   }
 }

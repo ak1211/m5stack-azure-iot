@@ -10,6 +10,7 @@
 
 // MQTT通信
 namespace Telemetry {
+constexpr static auto MAXIMUM_QUEUE_SIZE = 500;
 using MessageId = uint32_t;
 // 送信用
 using Payload =
@@ -26,6 +27,12 @@ extern bool init(std::string_view iothub_fqdn, std::string_view device_id,
 //
 extern bool loopMqtt();
 //
-inline void pushMessage(const Payload &&in) { sending_fifo_queue.push(in); }
+inline bool pushMessage(const Payload &&in) {
+  if (sending_fifo_queue.size() < MAXIMUM_QUEUE_SIZE) {
+    sending_fifo_queue.push(in);
+    return true;
+  }
+  return false;
+}
 
 } // namespace Telemetry
