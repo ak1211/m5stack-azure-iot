@@ -197,7 +197,7 @@ public:
   BasicChart &operator=(const BasicChart &) = delete;
   virtual ~BasicChart() noexcept;
   virtual void setActiveTile(lv_obj_t *tileview) noexcept override {
-    lv_obj_set_tile(tileview, tile, LV_ANIM_OFF);
+    lv_obj_set_tile(tileview, tile, LV_ANIM_ON);
   }
   virtual bool isActiveTile(lv_obj_t *tileview) const noexcept override {
     return tile == lv_tileview_get_tile_act(tileview);
