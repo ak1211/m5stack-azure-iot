@@ -2,17 +2,19 @@
 // Licensed under the MIT License <https://spdx.org/licenses/MIT.html>
 // See LICENSE file in the project root for full license information.
 //
-#include "sensor.hpp"
-#include "peripherals.hpp"
+#include "Sensor.hpp"
+#include "Application.hpp"
+#include "Time.hpp"
+#include <M5Core2.h>
 #include <cmath>
+#include <variant>
 
-constexpr static const char *TAG = "SensorModule";
+using namespace std::chrono;
 
 //
 // Bosch BME280 Humidity and Pressure Sensor
 //
-//
-void Sensor<Bme280>::printSensorDetails() {
+void Sensor::Bme280Device::printSensorDetails() {
   Adafruit_Sensor *temperature = bme280.getTemperatureSensor();
   Adafruit_Sensor *pressure = bme280.getPressureSensor();
   Adafruit_Sensor *humidity = bme280.getHumiditySensor();
@@ -20,62 +22,61 @@ void Sensor<Bme280>::printSensorDetails() {
     temperature->printSensorDetails();
     pressure->printSensorDetails();
     humidity->printSensorDetails();
-  } else {
-    ESP_LOGE(TAG, "BME280 sensor has problems.");
+    return;
   }
+  ESP_LOGE(MAIN, "BME280 sensor has problems.");
 }
 //
-bool Sensor<Bme280>::begin(uint8_t i2c_address) {
+bool Sensor::Bme280Device::init() {
   initialized = false;
   if (!bme280.begin(i2c_address)) {
-    return initialized;
+    return false;
   }
   setSampling();
   initialized = true;
   return initialized;
 }
 //
-bool Sensor<Bme280>::readyToRead(std::time_t now) {
-  return active() && (std::difftime(now, last_measured_at) >= INTERVAL);
+bool Sensor::Bme280Device::readyToRead() noexcept {
+  return active() && (steady_clock::now() - last_measured_at >= INTERVAL);
 }
 //
-Bme280 Sensor<Bme280>::read(std::time_t measured_at) {
+Sensor::MeasuredValue Sensor::Bme280Device::read() {
   if (!active()) {
-    ESP_LOGE(TAG, "BME280 sensor inactived.");
-    return Bme280();
+    ESP_LOGE(MAIN, "BME280 sensor inactived.");
+    return std::monostate{};
   }
   bme280.takeForcedMeasurement();
 
-  float temperature = bme280.readTemperature();
-  float pressure = bme280.readPressure();
   float humidity = bme280.readHumidity();
-  if (!std::isfinite(temperature)) {
-    ESP_LOGE(TAG, "BME280 sensor: temperature is not finite.");
+  float pressure = bme280.readPressure();
+  float temperature = bme280.readTemperature();
+  if (!std::isfinite(humidity)) {
+    ESP_LOGE(MAIN, "BME280 sensor: humidity is not finite.");
     goto error;
   }
   if (!std::isfinite(pressure)) {
-    ESP_LOGE(TAG, "BME280 sensor: pressure is not finite.");
+    ESP_LOGE(MAIN, "BME280 sensor: pressure is not finite.");
     goto error;
   }
-  if (!std::isfinite(humidity)) {
-    ESP_LOGE(TAG, "BME280 sensor: humidity is not finite.");
+  if (!std::isfinite(temperature)) {
+    ESP_LOGE(MAIN, "BME280 sensor: temperature is not finite.");
     goto error;
   }
   //
   {
-    auto tCelcius = CentiDegC(static_cast<int16_t>(100.0f * temperature));
-    auto mrh = MilliRH(static_cast<int16_t>(1000.0f * humidity));
-    auto pa = Pascal(static_cast<uint32_t>(pressure));
-    //
-    last_measured_at = measured_at;
-    sma_temperature.push_back(tCelcius.count());
-    sma_relative_humidity.push_back(mrh.count());
+    auto t = round<CentiDegC>(DegC(temperature));
+    auto rh = round<CentiRH>(PctRH(humidity));
+    auto pa = round<DeciPa>(Pascal(pressure));
+    // successfully
+    last_measured_at = steady_clock::now();
+    sma_temperature.push_back(t.count());
+    sma_relative_humidity.push_back(rh.count());
     sma_pressure.push_back(pa.count());
     return Bme280({
         .sensor_descriptor = getSensorDescriptor(),
-        .at = measured_at,
-        .temperature = tCelcius,
-        .relative_humidity = mrh,
+        .temperature = t,
+        .relative_humidity = rh,
         .pressure = pa,
     });
   }
@@ -83,132 +84,110 @@ Bme280 Sensor<Bme280>::read(std::time_t measured_at) {
 error:
   if (bme280.init()) {
     setSampling();
-    ESP_LOGD(TAG, "BME280 sensor: succeessfully re-initialized.");
+    ESP_LOGD(MAIN, "BME280 sensor: error to re-initialize.");
   }
-  return Bme280();
+  return std::monostate{};
 }
 //
-Bme280 Sensor<Bme280>::calculateSMA(std::time_t measured_at) {
+Sensor::MeasuredValue Sensor::Bme280Device::calculateSMA() noexcept {
   if (sma_temperature.ready() && sma_relative_humidity.ready() &&
       sma_pressure.ready()) {
     return Bme280({
         .sensor_descriptor = getSensorDescriptor(),
-        .at = measured_at,
         .temperature = CentiDegC(sma_temperature.calculate()),
-        .relative_humidity = MilliRH(sma_relative_humidity.calculate()),
-        .pressure = Pascal(sma_pressure.calculate()),
+        .relative_humidity = CentiRH(sma_relative_humidity.calculate()),
+        .pressure = DeciPa(sma_pressure.calculate()),
     });
   } else {
-    return Bme280();
+    return std::monostate{};
   }
 }
 
 //
 // Sensirion SGP30: Air Quality Sensor
 //
-void Sensor<Sgp30>::printSensorDetails() {
+void Sensor::Sgp30Device::printSensorDetails() {
   Serial.printf("SGP30 serial number is [0x%x, 0x%x, 0x%x]\n",
                 sgp30.serialnumber[0], sgp30.serialnumber[1],
                 sgp30.serialnumber[2]);
 }
 //
-bool Sensor<Sgp30>::begin(std::optional<BaselineECo2> eco2_base,
-                          std::optional<BaselineTotalVoc> tvoc_base) {
+bool Sensor::Sgp30Device::init() {
   initialized = false;
   if (!sgp30.begin()) {
     return initialized;
-  }
-  if (eco2_base.has_value() && tvoc_base.has_value()) {
-    // baseline set to SGP30
-    bool result =
-        setIAQBaseline(static_cast<BaselineECo2>(eco2_base.value().value),
-                       static_cast<BaselineTotalVoc>(tvoc_base.value().value));
-    if (result) {
-      ESP_LOGI(TAG, "SGP30 setIAQBaseline success");
-    } else {
-      ESP_LOGE(TAG, "SGP30 setIAQBaseline failure");
-    }
-  } else {
-    ESP_LOGI(TAG, "SGP30 built-in Automatic Baseline Correction algorithm.");
   }
   initialized = true;
   return initialized;
 }
 //
-bool Sensor<Sgp30>::readyToRead(std::time_t now) {
-  return active() && (std::difftime(now, last_tvoc_eco2.at) >= INTERVAL);
+bool Sensor::Sgp30Device::readyToRead() noexcept {
+  return active() && (steady_clock::now() - last_measured_at >= INTERVAL);
 }
 //
-Sgp30 Sensor<Sgp30>::read(std::time_t measured_at) {
+Sensor::MeasuredValue Sensor::Sgp30Device::read() {
   if (!active()) {
-    ESP_LOGE(TAG, "SGP30 sensor inactived.");
-    return Sgp30();
+    ESP_LOGE(MAIN, "SGP30 sensor inactived.");
+    return std::monostate{};
   }
   if (!sgp30.IAQmeasure()) {
-    ESP_LOGE(TAG, "SGP30 sensing failed.");
-    return Sgp30();
+    ESP_LOGE(MAIN, "SGP30 sensing failed.");
+    return std::monostate{};
   }
-  // 稼働時間が 12h　を超えている状態のときにベースラインを取得する
-  std::optional<BaselineECo2> eco2_base{std::nullopt};
-  std::optional<BaselineTotalVoc> tvoc_base{std::nullopt};
-  Peripherals &peri = Peripherals::getInstance();
-  if (peri.ticktack.available()) {
-    uint32_t uptime_seconds = peri.ticktack.uptimeSeconds();
-    constexpr uint32_t half_day = 12 * 60 * 60; // 43200 seconds
-    if (uptime_seconds > half_day) {
-      uint16_t eco2;
-      uint16_t tvoc;
-      if (sgp30.getIAQBaseline(&eco2, &tvoc)) {
-        ESP_LOGD(TAG, "SGP30 baseline sensing.");
-        eco2_base = BaselineECo2{eco2};
-        tvoc_base = BaselineTotalVoc{tvoc};
-      } else {
-        ESP_LOGE(TAG, "SGP30 sensing failed.");
-        return Sgp30();
-      }
+  // 稼働時間が 12hour　を超えている状態のときにベースラインを取得する
+  constexpr auto half_day = seconds{12 * 60 * 60}; // 43200 seconds
+  if (Time::uptime() > half_day) {
+    if (uint16_t eco2, tvoc; sgp30.getIAQBaseline(&eco2, &tvoc)) {
+      last_eco2_baseline = BaselineECo2(eco2);
+      last_tvoc_baseline = BaselineTotalVoc(tvoc);
     }
   }
 
   // successfully
+  last_measured_at = steady_clock::now();
   sma_eCo2.push_back(sgp30.eCO2);
   sma_tvoc.push_back(sgp30.TVOC);
-  last_tvoc_eco2 = {
+  return Sgp30({
       .sensor_descriptor = getSensorDescriptor(),
-      .at = measured_at,
       .eCo2 = Ppm(sgp30.eCO2),
       .tvoc = Ppb(sgp30.TVOC),
-      .eCo2_baseline = eco2_base,
-      .tvoc_baseline = tvoc_base,
-  };
-  return Sgp30(last_tvoc_eco2);
+      .eCo2_baseline = last_eco2_baseline,
+      .tvoc_baseline = last_tvoc_baseline,
+  });
 }
 //
-Sgp30 Sensor<Sgp30>::calculateSMA(std::time_t measured_at) {
+Sensor::MeasuredValue Sensor::Sgp30Device::calculateSMA() noexcept {
   if (sma_eCo2.ready() && sma_tvoc.ready()) {
     return Sgp30({
-        .sensor_descriptor = last_tvoc_eco2.sensor_descriptor,
-        .at = measured_at,
+        .sensor_descriptor = getSensorDescriptor(),
         .eCo2 = Ppm(sma_eCo2.calculate()),
         .tvoc = Ppb(sma_tvoc.calculate()),
-        .eCo2_baseline = last_tvoc_eco2.eCo2_baseline,
-        .tvoc_baseline = last_tvoc_eco2.tvoc_baseline,
+        .eCo2_baseline = last_eco2_baseline,
+        .tvoc_baseline = last_tvoc_baseline,
     });
   } else {
-    return Sgp30();
+    return std::monostate{};
   }
 }
 //
-bool Sensor<Sgp30>::setIAQBaseline(BaselineECo2 eco2_base,
-                                   BaselineTotalVoc tvoc_base) {
-  return sgp30.setIAQBaseline(eco2_base.value, tvoc_base.value);
+bool Sensor::Sgp30Device::setIAQBaseline(BaselineECo2 eco2_base,
+                                         BaselineTotalVoc tvoc_base) noexcept {
+  auto result = sgp30.setIAQBaseline(eco2_base.value, tvoc_base.value);
+  if (result) {
+    ESP_LOGI(MAIN, "SGP30 setIAQBaseline success");
+  } else {
+    ESP_LOGE(MAIN, "SGP30 setIAQBaseline failure");
+  }
+  return result;
 }
 //
-bool Sensor<Sgp30>::setHumidity(MilligramPerCubicMetre absolute_humidity) {
+bool Sensor::Sgp30Device::setHumidity(
+    MilligramPerCubicMetre absolute_humidity) noexcept {
   return sgp30.setHumidity(absolute_humidity.value);
 }
 //
 MilligramPerCubicMetre calculateAbsoluteHumidity(DegC temperature,
-                                                 RelHumidity humidity) {
+                                                 PctRH humidity) {
   const auto tCelsius = temperature.count();
   float absolute_humidity =
       216.7f * ((humidity.count() / 100.0f) * 6.112f *
@@ -219,20 +198,20 @@ MilligramPerCubicMetre calculateAbsoluteHumidity(DegC temperature,
 }
 
 //
-// Sensirion SCD30: NDIR CO2 and Humidity Sensor
+// Sensirion SCD30: NDIR CO2 and Temperature and Humidity Sensor
 //
-void Sensor<Scd30>::printSensorDetails() {
+void Sensor::Scd30Device::printSensorDetails() {
   Adafruit_Sensor *temperature = scd30.getTemperatureSensor();
   Adafruit_Sensor *humidity = scd30.getHumiditySensor();
   if (temperature && humidity) {
     temperature->printSensorDetails();
     humidity->printSensorDetails();
   } else {
-    ESP_LOGE(TAG, "SCD30 sensor has problems.");
+    ESP_LOGE(MAIN, "SCD30 sensor has problems.");
   }
 }
 //
-bool Sensor<Scd30>::begin() {
+bool Sensor::Scd30Device::init() {
   initialized = false;
   if (!scd30.begin()) {
     return initialized;
@@ -241,23 +220,23 @@ bool Sensor<Scd30>::begin() {
   return initialized;
 }
 //
-bool Sensor<Scd30>::readyToRead(std::time_t now) {
-  return active() && (std::difftime(now, last_measured_at) >= INTERVAL) &&
+bool Sensor::Scd30Device::readyToRead() noexcept {
+  return active() && (steady_clock::now() - last_measured_at >= INTERVAL) &&
          scd30.dataReady();
 }
 //
-Scd30 Sensor<Scd30>::read(std::time_t measured_at) {
+Sensor::MeasuredValue Sensor::Scd30Device::read() {
   if (!active()) {
-    ESP_LOGE(TAG, "SCD30 sensor inactived.");
-    return Scd30();
+    ESP_LOGE(MAIN, "SCD30 sensor inactived.");
+    return std::monostate{};
   }
   if (!scd30.dataReady()) {
-    ESP_LOGE(TAG, "SCD30 sensor is not ready.");
-    return Scd30();
+    ESP_LOGE(MAIN, "SCD30 sensor is not ready.");
+    return std::monostate{};
   }
   if (!scd30.read()) {
-    ESP_LOGE(TAG, "SCD30 sensing failed.");
-    return Scd30();
+    ESP_LOGE(MAIN, "SCD30 sensing failed.");
+    return std::monostate{};
   }
 
   float co2 = scd30.CO2;
@@ -265,51 +244,262 @@ Scd30 Sensor<Scd30>::read(std::time_t measured_at) {
   float relative_humidity = scd30.relative_humidity;
 
   if (!std::isfinite(co2)) {
-    ESP_LOGE(TAG, "SCD30 sensor: co2 is not finite.");
-    ESP_LOGD(TAG, "reset SCD30 sensor.");
+    ESP_LOGE(MAIN, "SCD30 sensor: co2 is not finite.");
+    ESP_LOGD(MAIN, "reset SCD30 sensor.");
     scd30.reset();
-    return Scd30();
+    return std::monostate{};
   }
   if (!std::isfinite(temperature)) {
-    ESP_LOGE(TAG, "SCD30 sensor: temperature is not finite.");
-    ESP_LOGD(TAG, "reset SCD30 sensor.");
+    ESP_LOGE(MAIN, "SCD30 sensor: temperature is not finite.");
+    ESP_LOGD(MAIN, "reset SCD30 sensor.");
     scd30.reset();
-    return Scd30();
+    return std::monostate{};
   }
   if (!std::isfinite(relative_humidity)) {
-    ESP_LOGE(TAG, "SCD30 sensor: relative humidity is not finite.");
-    ESP_LOGD(TAG, "reset SCD30 sensor.");
+    ESP_LOGE(MAIN, "SCD30 sensor: relative humidity is not finite.");
+    ESP_LOGD(MAIN, "reset SCD30 sensor.");
     scd30.reset();
-    return Scd30();
+    return std::monostate{};
   }
 
   // successfully
+  last_measured_at = steady_clock::now();
   CentiDegC tCelcius = CentiDegC(static_cast<int16_t>(100.0f * temperature));
-  MilliRH mRH = MilliRH(static_cast<int16_t>(1000.0f * relative_humidity));
-  last_measured_at = measured_at;
+  CentiRH mRH = CentiRH(static_cast<int16_t>(100.0f * relative_humidity));
   sma_co2.push_back(static_cast<uint16_t>(co2));
   sma_temperature.push_back(tCelcius.count());
   sma_relative_humidity.push_back(mRH.count());
   return Scd30({
       .sensor_descriptor = getSensorDescriptor(),
-      .at = measured_at,
       .co2 = Ppm(static_cast<uint16_t>(co2)),
       .temperature = tCelcius,
       .relative_humidity = mRH,
   });
 }
 //
-Scd30 Sensor<Scd30>::calculateSMA(std::time_t measured_at) {
+Sensor::MeasuredValue Sensor::Scd30Device::calculateSMA() noexcept {
   if (sma_co2.ready() && sma_temperature.ready() &&
       sma_relative_humidity.ready()) {
     return Scd30({
         .sensor_descriptor = getSensorDescriptor(),
-        .at = measured_at,
         .co2 = Ppm(sma_co2.calculate()),
         .temperature = CentiDegC(sma_temperature.calculate()),
-        .relative_humidity = MilliRH(sma_relative_humidity.calculate()),
+        .relative_humidity = CentiRH(sma_relative_humidity.calculate()),
     });
   } else {
-    return Scd30();
+    return std::monostate{};
+  }
+}
+
+//
+// Sensirion SCD41: PASens CO2 and Temperature and Humidity Sensor
+//
+void Sensor::Scd41Device::printSensorDetails() {
+  uint16_t serial0;
+  uint16_t serial1;
+  uint16_t serial2;
+  if (auto error = scd4x.getSerialNumber(serial0, serial1, serial2); error) {
+    char errorMessage[256];
+    ESP_LOGE(MAIN, "Error trying to execute getSerialNumber(): ");
+    errorToString(error, errorMessage, std::size(errorMessage));
+    ESP_LOGE(MAIN, "%s", errorMessage);
+    return;
+  }
+  Serial.printf("SCD41 serial number is [0x%x, 0x%x, 0x%x]\n", serial0, serial1,
+                serial2);
+}
+//
+bool Sensor::Scd41Device::init() {
+  uint16_t result = 0;
+
+  initialized = false;
+  scd4x.begin(Wire);
+  // stop potentially previously started measurement
+  if (result = scd4x.stopPeriodicMeasurement(); result) {
+    ESP_LOGE(MAIN, "Error trying to execute stopPeriodicMeasurement(): ");
+    goto error;
+  }
+  // Start Measurement
+  if (auto error = scd4x.startPeriodicMeasurement(); error) {
+    ESP_LOGE(MAIN, "Error trying to execute startPeriodicMeasurement(): ");
+    goto error;
+  }
+
+  initialized = true;
+  return initialized;
+error:
+  char errorMessage[256]{};
+  errorToString(result, errorMessage, std::size(errorMessage));
+  ESP_LOGE(MAIN, "%s", errorMessage);
+  return false;
+}
+//
+Sensor::Scd41Device::SensorStatus
+Sensor::Scd41Device::getSensorStatus() noexcept {
+  constexpr uint16_t BITMASK = 0b0000011111111111;
+  uint16_t status = 0;
+  auto error = scd4x.getDataReadyStatus(status);
+  if (error) {
+    char errorMessage[256];
+    ESP_LOGE(MAIN, "Error trying to execute getDataReadyStatus(): ");
+    errorToString(error, errorMessage, std::size(errorMessage));
+    ESP_LOGE(MAIN, "%s", errorMessage);
+    return SensorStatus::DataNotReady;
+  }
+  if (status & BITMASK == 0) {
+    return SensorStatus::DataNotReady;
+  } else {
+    return SensorStatus::DataReady;
+  }
+}
+//
+bool Sensor::Scd41Device::readyToRead() noexcept {
+  return active() && (steady_clock::now() - last_measured_at >= INTERVAL) &&
+         getSensorStatus() == SensorStatus::DataReady;
+}
+//
+Sensor::MeasuredValue Sensor::Scd41Device::read() {
+  if (!active()) {
+    ESP_LOGE(MAIN, "SCD41 sensor inactived.");
+    return std::monostate{};
+  }
+  if (getSensorStatus() == SensorStatus::DataNotReady) {
+    ESP_LOGE(MAIN, "SCD41 sensor is not ready.");
+    return std::monostate{};
+  }
+  uint16_t co2 = 0;
+  float temperature = 0.0f;
+  float relative_humidity = 0.0f;
+  if (auto error = scd4x.readMeasurement(co2, temperature, relative_humidity);
+      error) {
+    char errorMessage[256];
+    ESP_LOGE(MAIN, "Error trying to execute readMeasurement(): ");
+    errorToString(error, errorMessage, std::size(errorMessage));
+    ESP_LOGE(MAIN, "%s", errorMessage);
+    return std::monostate{};
+  } else if (co2 == 0) {
+    ESP_LOGE(MAIN, "Invalid sample detected, skipping.");
+    return std::monostate{};
+  }
+
+  // successfully
+  last_measured_at = steady_clock::now();
+  CentiDegC tCelcius = CentiDegC(static_cast<int16_t>(100.0f * temperature));
+  CentiRH mRH = CentiRH(static_cast<int16_t>(100.0f * relative_humidity));
+  sma_co2.push_back(static_cast<uint16_t>(co2));
+  sma_temperature.push_back(tCelcius.count());
+  sma_relative_humidity.push_back(mRH.count());
+  return Scd41({
+      .sensor_descriptor = getSensorDescriptor(),
+      .co2 = Ppm(static_cast<uint16_t>(co2)),
+      .temperature = tCelcius,
+      .relative_humidity = mRH,
+  });
+}
+//
+Sensor::MeasuredValue Sensor::Scd41Device::calculateSMA() noexcept {
+  if (sma_co2.ready() && sma_temperature.ready() &&
+      sma_relative_humidity.ready()) {
+    return Scd41({
+        .sensor_descriptor = getSensorDescriptor(),
+        .co2 = Ppm(sma_co2.calculate()),
+        .temperature = CentiDegC(sma_temperature.calculate()),
+        .relative_humidity = CentiRH(sma_relative_humidity.calculate()),
+    });
+  } else {
+    return std::monostate{};
+  }
+}
+
+//
+// M5Stack ENV.iii unit: Temperature and Humidity and Pressure Sensor
+//
+void Sensor::M5Env3Device::printSensorDetails() {}
+//
+bool Sensor::M5Env3Device::init() {
+  initialized = false;
+  if (!sht31.begin(ENV3_I2C_ADDRESS_SHT31)) {
+    return false;
+  }
+  if (sht31.isHeaterEnabled()) {
+    ESP_LOGE(MAIN, "M5Env3-SHT31 sensor heater ENABLED.");
+  } else {
+    ESP_LOGE(MAIN, "M5Env3-SHT31 sensor heater DISABLED.");
+  }
+  if (qmp6988.init() == 0) {
+    return false;
+  }
+  initialized = true;
+  return initialized;
+}
+//
+bool Sensor::M5Env3Device::readyToRead() noexcept {
+  return active() && (steady_clock::now() - last_measured_at >= INTERVAL);
+}
+//
+Sensor::MeasuredValue Sensor::M5Env3Device::read() {
+  if (!active()) {
+    ESP_LOGE(MAIN, "M5Env3 sensor inactived.");
+    return std::monostate{};
+  }
+
+  //
+  float temperature = 0, humidity = 0;
+  float pressure = 0;
+  sht31.readBoth(&temperature, &humidity);
+  if (!std::isfinite(temperature)) {
+    ESP_LOGE(MAIN, "SHT31 sensor: temperature is not finite.");
+    goto error_sht31;
+  }
+  if (!std::isfinite(humidity)) {
+    ESP_LOGE(MAIN, "SHT31 sensor: humidity is not finite.");
+    goto error_sht31;
+  }
+  pressure = qmp6988.calcPressure();
+  if (pressure == 0.0f) {
+    goto error_qmp6988;
+  }
+  //
+  {
+    auto t = round<CentiDegC>(DegC(temperature));
+    auto rh = round<CentiRH>(PctRH(humidity));
+    auto pa = round<DeciPa>(Pascal(pressure));
+    // successfully
+    last_measured_at = steady_clock::now();
+    sma_temperature.push_back(t.count());
+    sma_relative_humidity.push_back(rh.count());
+    sma_pressure.push_back(pa.count());
+    return M5Env3({
+        .sensor_descriptor = getSensorDescriptor(),
+        .temperature = t,
+        .relative_humidity = rh,
+        .pressure = pa,
+    });
+  }
+
+error_sht31:
+  if (sht31.begin(ENV3_I2C_ADDRESS_SHT31)) {
+    ESP_LOGD(MAIN, "SHT31 sensor: error to re-initialize.");
+  }
+  return std::monostate{};
+
+error_qmp6988:
+  if (qmp6988.init()) {
+    ESP_LOGD(MAIN, "QMP6988 sensor: error to re-initialize.");
+  }
+  return std::monostate{};
+}
+//
+Sensor::MeasuredValue Sensor::M5Env3Device::calculateSMA() noexcept {
+  if (sma_temperature.ready() && sma_relative_humidity.ready() &&
+      sma_pressure.ready()) {
+    return M5Env3({
+        .sensor_descriptor = getSensorDescriptor(),
+        .temperature = CentiDegC(sma_temperature.calculate()),
+        .relative_humidity = CentiRH(sma_relative_humidity.calculate()),
+        .pressure = DeciPa(sma_pressure.calculate()),
+    });
+  } else {
+    return std::monostate{};
   }
 }

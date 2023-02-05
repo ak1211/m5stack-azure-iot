@@ -2,253 +2,378 @@
 // Licensed under the MIT License <https://spdx.org/licenses/MIT.html>
 // See LICENSE file in the project root for full license information.
 //
+#include "Application.hpp"
+#include "BottomCaseLed.hpp"
+#include "DataLoggingFile.hpp"
+#include "Gui.hpp"
+#include "LocalDatabase.hpp"
+#include "Peripherals.hpp"
+#include "SystemPower.hpp"
+#include "Telemetry.hpp"
+#include "Time.hpp"
 #include "credentials.h"
-#include "iothub_client.hpp"
-#include "peripherals.hpp"
 #include <ArduinoOTA.h>
-#include <LovyanGFX.hpp>
-#include <M5Core2.h>
 #include <WiFi.h>
 #include <chrono>
 #include <ctime>
-#include <lwip/apps/sntp.h>
+#include <esp_log.h>
+#include <functional>
+#include <future>
+#include <lvgl.h>
+#include <optional>
+#include <string>
+#include <tuple>
+#include <variant>
+#include <vector>
 
 using namespace std::literals::string_literals;
+using namespace std::chrono;
+using namespace std::chrono_literals;
 
-constexpr static const char *TAG = "MainModule";
-
+// 記録インスタンス
+std::unique_ptr<Application::HistoriesBme280> Application::historiesBme280{};
+std::unique_ptr<Application::HistoriesSgp30> Application::historiesSgp30{};
+std::unique_ptr<Application::HistoriesScd30> Application::historiesScd30{};
+std::unique_ptr<Application::HistoriesScd41> Application::historiesScd41{};
+std::unique_ptr<Application::HistoriesM5Env3> Application::historiesM5Env3{};
 //
-// globals
+LocalDatabase local_database(Application::sqlite3_file_name);
 //
-constexpr static uint8_t IOTHUB_PUSH_MESSAGE_EVERY_MINUTES = 1; // 1 mimutes
-static_assert(IOTHUB_PUSH_MESSAGE_EVERY_MINUTES < 60,
-              "IOTHUB_PUSH_MESSAGE_EVERY_MINUTES is lesser than 60 minutes.");
-
-constexpr static uint8_t IOTHUB_PUSH_STATE_EVERY_MINUTES = 15; // 15 minutes
-static_assert(IOTHUB_PUSH_STATE_EVERY_MINUTES < 60,
-              "IOTHUB_PUSH_STATE_EVERY_MINUTES is lesser than 60 minutes.");
-
-//
-// callbacks
-//
+DataLoggingFile data_logging_file(Application::data_log_file_name,
+                                  Application::header_log_file_name);
 
 //
-void btnAEvent(Event &e) {
-  Peripherals &peri = Peripherals::getInstance();
-  peri.screen.prev();
-  peri.screen.update(peri.ticktack.time());
+// Over The Air update
+//
+static void setupOTA() {
+  ArduinoOTA
+      .onStart([]() {
+        String type;
+        if (ArduinoOTA.getCommand() == U_FLASH)
+          type = "sketch";
+        else // U_SPIFFS
+          type = "filesystem";
+
+        // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS
+        // using SPIFFS.end()
+        Serial.println("Start updating " + type);
+      })
+      .onEnd([]() { Serial.println("\nEnd"); })
+      .onProgress([](unsigned int progress, unsigned int total) {
+        Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+      })
+      .onError([](ota_error_t error) {
+        Serial.printf("Error[%u]: ", error);
+        if (error == OTA_AUTH_ERROR)
+          Serial.println("Auth Failed");
+        else if (error == OTA_BEGIN_ERROR)
+          Serial.println("Begin Failed");
+        else if (error == OTA_CONNECT_ERROR)
+          Serial.println("Connect Failed");
+        else if (error == OTA_RECEIVE_ERROR)
+          Serial.println("Receive Failed");
+        else if (error == OTA_END_ERROR)
+          Serial.println("End Failed");
+      });
+
+  ArduinoOTA.begin();
 }
+
 //
-void btnBEvent(Event &e) {
-  Peripherals &peri = Peripherals::getInstance();
-  peri.screen.home();
-  peri.screen.update(peri.ticktack.time());
-}
+// WiFi APへ接続確立を試みる
 //
-void btnCEvent(Event &e) {
-  Peripherals &peri = Peripherals::getInstance();
-  peri.screen.next();
-  peri.screen.update(peri.ticktack.time());
-}
-//
-void releaseEvent(Event &e) {
-  Peripherals &peri = Peripherals::getInstance();
-  peri.screen.releaseEvent(e);
+static bool connectToWiFi(std::string_view ssid, std::string_view password,
+                          seconds timeout) {
+  if (WiFi.status() == WL_CONNECTED) {
+    return true;
+  }
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid.data(), password.data());
+  bool ok{false};
+  auto timeover{steady_clock::now() + timeout};
+  while (!ok && steady_clock::now() < timeover) {
+    ok = WiFi.status() == WL_CONNECTED;
+    std::this_thread::sleep_for(10ms);
+  }
+  return WiFi.status() == WL_CONNECTED;
 }
 
 //
 //
 //
 void setup() {
-  //
+  constexpr auto timeout{5s};
   // initializing M5Stack and UART, I2C, Touch, RTC, etc. peripherals.
-  //
   M5.begin(true, true, true, true);
-  delay(2000);
-  Peripherals::begin(Credentials.wifi_ssid, Credentials.wifi_password,
-                     Credentials.iothub_fqdn, Credentials.device_id,
-                     Credentials.device_key);
-  Peripherals &peri = Peripherals::getInstance();
-
-  //
+  // init SystemPower
+  SystemPower::init();
+  // init BottomCaseLed
+  BottomCaseLed::init();
+  // init GUI
+  GUI::init();
+  { // init WiFi
+    GUI::showBootstrappingMessage("connect to WiFi AP. SSID:\""s +
+                                  Credentials.wifi_ssid + "\""s);
+    if (!connectToWiFi(Credentials.wifi_ssid, Credentials.wifi_password, 30s)) {
+      GUI::showBootstrappingMessage("connect failed.");
+    }
+  }
+  { // init Time
+    GUI::showBootstrappingMessage("init time.");
+    // initialize Time
+    Time::init();
+  }
+  { // init OTA update
+    GUI::showBootstrappingMessage("setup OTA update.");
+    setupOTA();
+  }
+  { // init LocalDatabase
+    GUI::showBootstrappingMessage("init LocalDatabase.");
+    if (!local_database.begin()) {
+      GUI::showBootstrappingMessage("LocalDatabase is not available.");
+    }
+  }
+  { // init DataLoggingFile
+    GUI::showBootstrappingMessage("init DataLoggingFile.");
+    if (!data_logging_file.init()) {
+      GUI::showBootstrappingMessage("DataLoggingFile is not available.");
+    }
+  }
+  { // get baseline for "Sensirion SGP30: Air Quality Sensor" from database
+    std::optional<BaselineECo2> baseline_eco2{std::nullopt};
+    std::optional<BaselineTotalVoc> baseline_tvoc{std::nullopt};
+    auto eco2 = local_database.get_latest_baseline_eco2(
+        SensorId(Peripherals::SENSOR_DESCRIPTOR_SGP30));
+    if (std::get<0>(eco2)) {
+      baseline_eco2 = std::get<2>(eco2);
+      ESP_LOGD(MAIN, "get_latest_baseline_eco2: at(%d), baseline(%d)",
+               std::get<1>(eco2), std::get<2>(eco2));
+    } else {
+      ESP_LOGE(MAIN, "get_latest_baseline_eco2: failed.");
+    }
+    //
+    auto tvoc = local_database.get_latest_baseline_total_voc(
+        SensorId(Peripherals::SENSOR_DESCRIPTOR_SGP30));
+    if (std::get<0>(tvoc)) {
+      baseline_tvoc = std::get<2>(tvoc);
+      ESP_LOGD(MAIN, "get_latest_baseline_total_voc: at(%d), baseline(%d)",
+               std::get<1>(tvoc), std::get<2>(tvoc));
+    } else {
+      ESP_LOGE(MAIN, "get_latest_baseline_total_voc: failed.");
+    }
+    //
+    // init sensors
+    //
+    for (auto &sensor_device : Peripherals::sensors) {
+      std::ostringstream oss;
+      SensorDescriptor desc = sensor_device->getSensorDescriptor();
+      oss << "init " << desc.str() << " sensor.";
+      GUI::showBootstrappingMessage(oss.str().c_str());
+      bool ok{false};
+      auto timeover{steady_clock::now() + timeout};
+      while (!ok && steady_clock::now() < timeover) {
+        std::this_thread::sleep_for(10ms);
+        ok = sensor_device->init();
+      }
+      if (ok) {
+        if (sensor_device->getSensorDescriptor() ==
+            Peripherals::SENSOR_DESCRIPTOR_SGP30) {
+          if (baseline_eco2.has_value() && baseline_tvoc.has_value()) {
+            auto p = static_cast<Sensor::Sgp30Device *>(sensor_device.get());
+            p->setIAQBaseline(*baseline_eco2, *baseline_tvoc);
+          } else {
+            ESP_LOGI(MAIN,
+                     "SGP30 built-in Automatic Baseline Correction algorithm.");
+          }
+        }
+      } else {
+        oss.str("");
+        oss << desc.str() << " sensor not found.";
+        GUI::showBootstrappingMessage(oss.str().c_str());
+      }
+    }
+    // 初期化に失敗した(つまり接続されていない)センサーをsensorsベクタから削除する
+    auto result =
+        std::remove_if(Peripherals::sensors.begin(), Peripherals::sensors.end(),
+                       [](auto &sensor_device) {
+                         auto active = sensor_device->active();
+                         return active == false;
+                       });
+    Peripherals::sensors.erase(result, Peripherals::sensors.end());
+    //
+    // それぞれのセンサーに対応する記録インスタンスを準備する
+    //
+    using namespace Application;
+    for (auto &sensor_device : Peripherals::sensors) {
+      switch (SensorId(sensor_device->getSensorDescriptor())) {
+      case SensorId(Peripherals::SENSOR_DESCRIPTOR_BME280):
+        historiesBme280 = std::make_unique<HistoriesBme280>();
+        break;
+      case SensorId(Peripherals::SENSOR_DESCRIPTOR_SGP30):
+        historiesSgp30 = std::make_unique<HistoriesSgp30>();
+        break;
+      case SensorId(Peripherals::SENSOR_DESCRIPTOR_SCD30):
+        historiesScd30 = std::make_unique<HistoriesScd30>();
+        break;
+      case SensorId(Peripherals::SENSOR_DESCRIPTOR_SCD41):
+        historiesScd41 = std::make_unique<HistoriesScd41>();
+        break;
+      case SensorId(Peripherals::SENSOR_DESCRIPTOR_M5ENV3):
+        historiesM5Env3 = std::make_unique<HistoriesM5Env3>();
+        break;
+      default:
+        ESP_LOGD(MAIN, "histories sensor_device initialization error.");
+        GUI::showBootstrappingMessage(
+            "histories sensor_device initialization error.");
+        break;
+      }
+    }
+  }
+  { // init MQTT
+    GUI::showBootstrappingMessage("connect MQTT.");
+    bool ok{false};
+    auto timeover{steady_clock::now() + timeout};
+    while (!ok && steady_clock::now() < timeover) {
+      std::this_thread::sleep_for(10ms);
+      ok = Telemetry::init(Credentials.iothub_fqdn, Credentials.device_id,
+                           Credentials.device_key);
+    }
+    if (!ok) {
+      GUI::showBootstrappingMessage("connect failed.");
+    }
+  }
   // register the button hook
-  //
-  M5.BtnA.addHandler(btnAEvent, E_RELEASE);
-  M5.BtnB.addHandler(btnBEvent, E_RELEASE);
-  M5.BtnC.addHandler(btnCEvent, E_RELEASE);
-  M5.background.addHandler(releaseEvent, E_RELEASE);
-
-  //
-  // start up
-  //
-  peri.screen.repaint(peri.ticktack.time());
-}
-
-//
-//
-//
-struct MeasurementSets final {
-  std::time_t measured_at;
-  Bme280 bme280;
-  Sgp30 sgp30;
-  Scd30 scd30;
-};
-
-static struct MeasurementSets
-periodical_measurement_sets(std::time_t measured_at) {
-  Peripherals &peri = Peripherals::getInstance();
-
-  if (peri.bme280.readyToRead(measured_at)) {
-    peri.bme280.read(measured_at);
-  }
-  if (peri.sgp30.readyToRead(measured_at)) {
-    peri.sgp30.read(measured_at);
-  }
-  if (peri.scd30.readyToRead(measured_at)) {
-    peri.scd30.read(measured_at);
-  }
-  return {.measured_at = measured_at,
-          .bme280 = peri.bme280.calculateSMA(measured_at),
-          .sgp30 = peri.sgp30.calculateSMA(measured_at),
-          .scd30 = peri.scd30.calculateSMA(measured_at)};
-}
-
-//
-//
-//
-static std::string
-absolute_sensor_id_from_SensorDescriptor(SensorDescriptor descriptor) {
-  return std::string(Credentials.device_id) + "-"s + std::string(descriptor);
-}
-
-//
-//
-//
-static void periodical_push_message(const MeasurementSets &m) {
-  Peripherals &peri = Peripherals::getInstance();
-
-  // BME280 sensor values.
-  // Temperature, Relative Humidity, Pressure
-  if (m.bme280.has_value()) {
-    TempHumiPres temp_humi_pres = m.bme280.value();
-    //
-    // calculate the Aboslute Humidity from Temperature and Relative Humidity
-    MilligramPerCubicMetre absolute_humidity = calculateAbsoluteHumidity(
-        temp_humi_pres.temperature, temp_humi_pres.relative_humidity);
-    ESP_LOGI(TAG, "absolute humidity: %d", absolute_humidity.value);
-    // set "Absolute Humidity" to the SGP30 sensor.
-    if (!peri.sgp30.setHumidity(absolute_humidity)) {
-      ESP_LOGE(TAG, "setHumidity error.");
-    }
-    if (auto sid = absolute_sensor_id_from_SensorDescriptor(
-            temp_humi_pres.sensor_descriptor);
-        peri.iothub_client.pushTempHumiPres(sid, temp_humi_pres)) {
-      ESP_LOGD(TAG, "pushTempHumiPres() success.");
-    } else {
-      ESP_LOGE(TAG, "pushTempHumiPres() failure.");
-      peri.iothub_client.check();
-    }
-  }
-  // SGP30 sensor values.
-  // eCo2, TVOC
-  if (m.sgp30.has_value()) {
-    TvocEco2 tvoc_eco2 = m.sgp30.value();
-    if (auto sid = absolute_sensor_id_from_SensorDescriptor(
-            tvoc_eco2.sensor_descriptor);
-        peri.iothub_client.pushTvocEco2(sid, tvoc_eco2)) {
-      ESP_LOGD(TAG, "pushTvocEco2() success.");
-    } else {
-      ESP_LOGE(TAG, "pushTvocEco2() failure.");
-      peri.iothub_client.check();
-    }
-  }
-  // SCD30 sensor values.
-  // co2, Temperature, Relative Humidity
-  if (m.scd30.has_value()) {
-    Co2TempHumi co2_temp_humi = m.scd30.value();
-    if (auto sid = absolute_sensor_id_from_SensorDescriptor(
-            co2_temp_humi.sensor_descriptor);
-        peri.iothub_client.pushCo2TempHumi(sid, co2_temp_humi)) {
-      ESP_LOGD(TAG, "pushCo2TempHumi() success.");
-    } else {
-      ESP_LOGE(TAG, "pushCo2TempHumi() failure.");
-      peri.iothub_client.check();
-    }
-  }
-}
-
-//
-//
-//
-static void periodical_send_to_iothub(const MeasurementSets &m) {
-  struct tm utc;
-  gmtime_r(&m.measured_at, &utc);
-  //
-  bool allowToPushMessage =
-      utc.tm_sec == 0 && utc.tm_min % IOTHUB_PUSH_MESSAGE_EVERY_MINUTES == 0;
-  bool allowToPushState =
-      utc.tm_sec == 0 && utc.tm_min % IOTHUB_PUSH_STATE_EVERY_MINUTES == 0;
-
-  Peripherals &peri = Peripherals::getInstance();
-  //
-  if (peri.wifi_launcher.hasWifiConnection()) {
-    //
-    // send to IoT Hub
-    //
-    if (allowToPushMessage) {
-      periodical_push_message(m);
-    }
-  }
-  //
-  if (allowToPushMessage) {
-    //
-    // insert to local logging file
-    //
-    if (m.bme280.has_value() && m.sgp30.has_value() && m.scd30.has_value()) {
-      peri.data_logging_file.write_data_to_log_file(
-          m.measured_at, m.bme280.value(), m.sgp30.value(), m.scd30.value());
-    }
-    //
-    // insert to local database
-    //
-    if (m.bme280.has_value()) {
-      peri.local_database.insert(m.bme280.value());
-    }
-    if (m.sgp30.has_value()) {
-      peri.local_database.insert(m.sgp30.value());
-    }
-    if (m.scd30.has_value()) {
-      peri.local_database.insert(m.scd30.value());
-    }
-  }
+  M5.BtnA.addHandler([](Event &e) { GUI::prev(); }, E_RELEASE);
+  M5.BtnB.addHandler([](Event &e) { GUI::home(); }, E_RELEASE);
+  M5.BtnC.addHandler([](Event &e) { GUI::next(); }, E_RELEASE);
+  // start ui
+  GUI::startUI();
 }
 
 //
 //
 //
 void loop() {
-  ArduinoOTA.handle();
-  delay(1);
+  static time_point before_time = steady_clock::now();
 
-  Peripherals &peri = Peripherals::getInstance();
-  if (peri.wifi_launcher.hasWifiConnection()) {
-    peri.iothub_client.check();
-  }
-  using namespace std::chrono;
-
-  static time_point before_time = system_clock::now();
-
-  if (auto time = system_clock::now(); (time - before_time) >= seconds{1}) {
-    peri.ticktack.update();
-    MeasurementSets m = periodical_measurement_sets(peri.ticktack.time());
-    peri.screen.update(m.measured_at);
-    if (m.scd30.has_value()) {
-      Ppm co2 = m.scd30.value().co2;
-      peri.led_signal.showSignal(co2);
+  if (steady_clock::now() - before_time >= 1s) {
+    before_time = steady_clock::now();
+    // 測定
+    for (auto &sensor_device : Peripherals::sensors) {
+      auto measured = sensor_device->readyToRead() ? sensor_device->read()
+                                                   : std::monostate{};
+      if (auto p = std::get_if<Sensor::Scd30>(&measured); p) {
+        BottomCaseLed::showSignal(p->co2);
+      }
     }
-    periodical_send_to_iothub(m);
-    before_time = time;
+    //
+    if (Time::sync_completed()) {
+      system_clock::time_point nowtp = system_clock::now();
+      //
+      if (duration_cast<seconds>(nowtp.time_since_epoch()).count() % 60 == 0) {
+        //
+        // それぞれのセンサーによる記録値(ValueObject)を対応する記録インスタンスに入れる
+        //
+        struct Visitor {
+          system_clock::time_point tp;
+          Visitor(system_clock::time_point arg) : tp{arg} {}
+          // Not Available (N/A)
+          bool operator()(std::monostate) { return false; }
+          // Bosch BME280: Temperature and Humidity and Pressure Sensor
+          bool operator()(const Sensor::Bme280 &in) {
+            MeasurementBme280 m = {tp, in};
+            if (Application::historiesBme280) {
+              Application::historiesBme280->insert(m);
+            } else {
+              ESP_LOGE(MAIN, "histories buffer had not available");
+            }
+            Telemetry::pushMessage(m);
+            local_database.insert(m);
+            return true;
+          }
+          // Sensirion SGP30: Air Quality Sensor
+          bool operator()(const Sensor::Sgp30 &in) {
+            MeasurementSgp30 m = {tp, in};
+            if (Application::historiesSgp30) {
+              Application::historiesSgp30->insert(m);
+            } else {
+              ESP_LOGE(MAIN, "histories buffer had not available");
+            }
+            Telemetry::pushMessage(m);
+            local_database.insert(m);
+            return true;
+          }
+          // Sensirion SCD30: NDIR CO2 and Temperature and Humidity Sensor
+          bool operator()(const Sensor::Scd30 &in) {
+            MeasurementScd30 m = {tp, in};
+            if (Application::historiesScd30) {
+              Application::historiesScd30->insert(m);
+            } else {
+              ESP_LOGE(MAIN, "histories buffer had not available");
+            }
+            Telemetry::pushMessage(m);
+            local_database.insert(m);
+            return true;
+          }
+          // Sensirion SCD41: PASens CO2 and Temperature and Humidity Sensor
+          bool operator()(const Sensor::Scd41 &in) {
+            MeasurementScd41 m = {tp, in};
+            if (Application::historiesScd41) {
+              Application::historiesScd41->insert(m);
+            } else {
+              ESP_LOGE(MAIN, "histories buffer had not available");
+            }
+            Telemetry::pushMessage(m);
+            local_database.insert(m);
+            return true;
+          }
+          // M5Stack ENV.iii unit: Temperature and Humidity and Pressure Sensor
+          bool operator()(const Sensor::M5Env3 &in) {
+            MeasurementM5Env3 m = {tp, in};
+            if (Application::historiesM5Env3) {
+              Application::historiesM5Env3->insert(m);
+            } else {
+              ESP_LOGE(MAIN, "histories buffer had not available");
+            }
+            Telemetry::pushMessage(m);
+            local_database.insert(m);
+            return true;
+          }
+        };
+        //
+        // 毎分0秒時点の値を取り込む
+        //
+        bool success = true;
+        for (auto &sensor_device : Peripherals::sensors) {
+          bool result =
+              std::visit(Visitor{nowtp}, sensor_device->calculateSMA());
+          success = success && result;
+        }
+        // insert to local logging file
+        if (success) {
+          auto a = Application::historiesBme280
+                       ? Application::historiesBme280->getLatestValue()
+                       : std::nullopt;
+          auto b = Application::historiesSgp30
+                       ? Application::historiesSgp30->getLatestValue()
+                       : std::nullopt;
+          auto c = Application::historiesScd30
+                       ? Application::historiesScd30->getLatestValue()
+                       : std::nullopt;
+          //
+          // TODO: add M5Env3 and SCD51
+          //
+          if (a && b && c) {
+            data_logging_file.write_data_to_log_file(a->first, a->second,
+                                                     b->second, c->second);
+          }
+        }
+      }
+      Telemetry::loopMqtt();
+    }
   }
 
+  ArduinoOTA.handle();
   M5.update();
+  lv_task_handler();
 }
