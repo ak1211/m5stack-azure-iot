@@ -9,7 +9,10 @@
         "xlogging.h": "c",
         "platform.h": "c",
         "crt_abstractions.h": "c",
-        "threadapi.h": "c"
+        "threadapi.h": "c",
+        "lvgl.h": "c",
+        "lv_log.h": "c",
+        "lv_hal.h": "c"
     },
     "python.formatting.provider": "autopep8"
 }
