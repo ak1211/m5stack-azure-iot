@@ -17,6 +17,7 @@
 #include <cmath>
 #include <cstddef>
 #include <ctime>
+#include <esp_system.h>
 #include <iomanip>
 #include <sstream>
 #include <tuple>
@@ -319,6 +320,9 @@ GUI::Tile::SystemHealth::SystemHealth(GUI::Tile::Init init) noexcept {
   status_label = create(&style_label);
   power_source_label = create(&style_label);
   battery_label = create(&style_label);
+  available_heap_label = create(&style_label);
+  available_internal_heap_label = create(&style_label);
+  minimum_free_heap_label = create(&style_label);
   //
   render();
 }
@@ -408,6 +412,24 @@ void GUI::Tile::SystemHealth::render() noexcept {
                 ? "CHARGING"sv
                 : "DISCHARGING"sv);
     lv_label_set_text(battery_label, oss.str().c_str());
+  }
+  { // available heap memory
+    uint32_t memfree = esp_get_free_heap_size();
+    std::ostringstream oss;
+    oss << "available heap size: " << memfree;
+    lv_label_set_text(available_heap_label, oss.str().c_str());
+  }
+  { // available internal heap memory
+    uint32_t memfree = esp_get_free_internal_heap_size();
+    std::ostringstream oss;
+    oss << "available internal heap size: " << memfree;
+    lv_label_set_text(available_internal_heap_label, oss.str().c_str());
+  }
+  { // minumum free heap memory
+    uint32_t memfree = esp_get_minimum_free_heap_size();
+    std::ostringstream oss;
+    oss << "minimum free heap size: " << memfree;
+    lv_label_set_text(minimum_free_heap_label, oss.str().c_str());
   }
 }
 

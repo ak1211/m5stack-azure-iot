@@ -10,7 +10,7 @@
 
 // MQTT通信
 namespace Telemetry {
-constexpr static auto MAXIMUM_QUEUE_SIZE = 500;
+constexpr static auto MAXIMUM_QUEUE_SIZE = 100;
 using MessageId = uint32_t;
 // 送信用
 using Payload =
