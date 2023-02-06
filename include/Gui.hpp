@@ -57,11 +57,11 @@ extern void showBootstrappingMessage(std::string_view msg) noexcept;
 //
 extern void startUI() noexcept;
 //
-extern void home() noexcept;
+extern void buttonB() noexcept;
 //
-extern void prev() noexcept;
+extern void buttonA() noexcept;
 //
-extern void next() noexcept;
+extern void buttonC() noexcept;
 //
 extern void vibrate() noexcept;
 } // namespace GUI
@@ -82,7 +82,7 @@ public:
   BootMessage &operator=(const BootMessage &) = delete;
   virtual ~BootMessage() noexcept;
   virtual void setActiveTile(lv_obj_t *tileview) noexcept override {
-    lv_obj_set_tile(tileview, tile, LV_ANIM_OFF);
+    lv_obj_set_tile(tileview, tile, LV_ANIM_ON);
   }
   virtual bool isActiveTile(lv_obj_t *tileview) const noexcept override {
     return tile == lv_tileview_get_tile_act(tileview);
@@ -108,7 +108,7 @@ public:
   Summary &operator=(const Summary &) = delete;
   virtual ~Summary() noexcept;
   virtual void setActiveTile(lv_obj_t *tileview) noexcept override {
-    lv_obj_set_tile(tileview, tile, LV_ANIM_OFF);
+    lv_obj_set_tile(tileview, tile, LV_ANIM_ON);
   }
   virtual bool isActiveTile(lv_obj_t *tileview) const noexcept override {
     return tile == lv_tileview_get_tile_act(tileview);
@@ -135,7 +135,7 @@ public:
   Clock &operator=(const Clock &) = delete;
   virtual ~Clock() noexcept;
   virtual void setActiveTile(lv_obj_t *tileview) noexcept override {
-    lv_obj_set_tile(tileview, tile, LV_ANIM_OFF);
+    lv_obj_set_tile(tileview, tile, LV_ANIM_ON);
   }
   virtual bool isActiveTile(lv_obj_t *tileview) const noexcept override {
     return tile == lv_tileview_get_tile_act(tileview);
@@ -166,7 +166,7 @@ public:
   SystemHealth &operator=(const SystemHealth &) = delete;
   virtual ~SystemHealth() noexcept;
   virtual void setActiveTile(lv_obj_t *tileview) noexcept override {
-    lv_obj_set_tile(tileview, tile, LV_ANIM_OFF);
+    lv_obj_set_tile(tileview, tile, LV_ANIM_ON);
   }
   virtual bool isActiveTile(lv_obj_t *tileview) const noexcept override {
     return tile == lv_tileview_get_tile_act(tileview);
