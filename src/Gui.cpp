@@ -224,7 +224,7 @@ void GUI::startUI() noexcept {
 void GUI::home() noexcept {
   constexpr auto HOME_POS = 2;
   vibrate();
-  lv_obj_set_tile_id(tileview, HOME_POS, 0, LV_ANIM_OFF);
+  lv_obj_set_tile_id(tileview, HOME_POS, 0, LV_ANIM_ON);
 }
 
 //
