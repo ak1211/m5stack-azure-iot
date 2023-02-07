@@ -221,14 +221,20 @@ void GUI::startUI() noexcept {
     row_id++;
   }
   //
-  buttonC();
+  moveNext();
 }
 
 //
-void GUI::buttonB() noexcept { vibrate(); }
+void GUI::home() noexcept {
+  vibrate();
+  auto itr = std::next(tiles.cbegin(), 1);
+  if (itr != tiles.cend()) {
+    itr->get()->setActiveTile(tileview);
+  }
+}
 
 //
-void GUI::buttonA() noexcept {
+void GUI::movePrev() noexcept {
   vibrate();
   auto itr = std::find_if(tiles.cbegin(), tiles.cend(),
                           [&](const std::unique_ptr<Tile::Interface> &t) {
@@ -242,7 +248,7 @@ void GUI::buttonA() noexcept {
 }
 
 //
-void GUI::buttonC() noexcept {
+void GUI::moveNext() noexcept {
   vibrate();
   auto itr = std::find_if(tiles.cbegin(), tiles.cend(),
                           [&](const std::unique_ptr<Tile::Interface> &t) {

@@ -36,7 +36,7 @@ constexpr static auto lcdVertResolution{
     Application::M5StackCore2_VertResolution};
 // draw buffer
 constexpr auto DRAW_BUF_1_SIZE =
-    lcdHorizResolution * 50; // A buffer for 50 rows
+    lcdHorizResolution * lcdVertResolution * 2; // screen buffer
 extern std::unique_ptr<lv_color_t[]> draw_buf_1;
 extern lv_disp_draw_buf_t draw_buf_dsc_1;
 // display driver
@@ -57,11 +57,11 @@ extern void showBootstrappingMessage(std::string_view msg) noexcept;
 //
 extern void startUI() noexcept;
 //
-extern void buttonB() noexcept;
+extern void home() noexcept;
 //
-extern void buttonA() noexcept;
+extern void movePrev() noexcept;
 //
-extern void buttonC() noexcept;
+extern void moveNext() noexcept;
 //
 extern void vibrate() noexcept;
 } // namespace GUI

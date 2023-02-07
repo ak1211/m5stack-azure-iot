@@ -243,9 +243,9 @@ void setup() {
     }
   }
   // register the button hook
-  M5.BtnA.addHandler([](Event &e) { GUI::buttonA(); }, E_RELEASE);
-  M5.BtnB.addHandler([](Event &e) { GUI::buttonB(); }, E_RELEASE);
-  M5.BtnC.addHandler([](Event &e) { GUI::buttonC(); }, E_RELEASE);
+  M5.BtnA.addHandler([](Event &e) { GUI::movePrev(); }, E_RELEASE);
+  M5.BtnB.addHandler([](Event &e) { GUI::home(); }, E_RELEASE);
+  M5.BtnC.addHandler([](Event &e) { GUI::moveNext(); }, E_RELEASE);
   // start ui
   GUI::startUI();
 }
