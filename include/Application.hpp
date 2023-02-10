@@ -33,7 +33,7 @@ constexpr static auto M5StackCore2_VertResolution = uint16_t{240};
 // 各センサーの測定値の記録用
 // 現在のところ1分毎の記録なので HISTORY_BUFFER_SIZE 分の記録をする
 //
-constexpr static auto HISTORY_BUFFER_SIZE = 120;
+constexpr static auto HISTORY_BUFFER_SIZE = 180;
 using HistoriesBme280 = Histories<MeasurementBme280, HISTORY_BUFFER_SIZE>;
 using HistoriesSgp30 = Histories<MeasurementSgp30, HISTORY_BUFFER_SIZE>;
 using HistoriesScd30 = Histories<MeasurementScd30, HISTORY_BUFFER_SIZE>;
