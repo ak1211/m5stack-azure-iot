@@ -241,12 +241,15 @@ void GUI::startUI() noexcept {
     row_id++;
   }
   //
-  home();
+  moveNext();
 }
 
 //
 void GUI::home() noexcept {
-  if constexpr (false) { // なぜかハングアップするのでコメントアウト
+  //
+  // 原因不明のハングアップするのでコメントアウト
+  //
+  if constexpr (false) {
     vibrate();
     auto itr = std::next(tiles.cbegin(), 1);
     if (itr != tiles.cend()) {
