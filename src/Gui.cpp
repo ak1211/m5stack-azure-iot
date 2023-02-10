@@ -30,7 +30,8 @@ using namespace std::literals::string_view_literals;
 LGFX GUI::lcd;
 // draw buffer
 std::unique_ptr<lv_color_t[]> GUI::draw_buf_1{};
-lv_disp_draw_buf_t GUI::draw_buf_dsc_1;
+std::unique_ptr<lv_color_t[]> GUI::draw_buf_2{};
+lv_disp_draw_buf_t GUI::draw_buf_dsc;
 // display driver
 lv_disp_drv_t GUI::disp_drv;
 // touchpad
@@ -71,11 +72,17 @@ static void touchpad_read(lv_indev_drv_t *indev_drv,
 }
 
 //
-static void lv_port_init() noexcept {
+static void lv_port_init() noexcept(false) {
   // buffer
-  GUI::draw_buf_1 = std::make_unique<lv_color_t[]>(GUI::DRAW_BUF_1_SIZE);
-  lv_disp_draw_buf_init(&GUI::draw_buf_dsc_1, GUI::draw_buf_1.get(), nullptr,
-                        GUI::DRAW_BUF_1_SIZE); // Initialize the display buffer
+  GUI::draw_buf_1 = std::make_unique<lv_color_t[]>(GUI::DRAW_BUF_SIZE);
+  GUI::draw_buf_2 = std::make_unique<lv_color_t[]>(GUI::DRAW_BUF_SIZE);
+  if (GUI::draw_buf_1 == nullptr || GUI::draw_buf_2 == nullptr) {
+    ESP_LOGE(MAIN, "memory allocation error");
+    return;
+  }
+  lv_disp_draw_buf_init(&GUI::draw_buf_dsc, GUI::draw_buf_1.get(),
+                        GUI::draw_buf_2.get(),
+                        GUI::DRAW_BUF_SIZE); // Initialize the display buffer
 
   //
   lv_disp_drv_init(&GUI::disp_drv);
@@ -83,7 +90,7 @@ static void lv_port_init() noexcept {
   GUI::disp_drv.ver_res = GUI::lcdVertResolution;
   GUI::disp_drv.flush_cb = disp_flush;
   //
-  GUI::disp_drv.draw_buf = &GUI::draw_buf_dsc_1;
+  GUI::disp_drv.draw_buf = &GUI::draw_buf_dsc;
   // Finally register the driver
   lv_disp_drv_register(&GUI::disp_drv);
 }
@@ -97,7 +104,17 @@ static void lv_port_indev_init() {
 }
 
 //
-void GUI::init() noexcept {
+static bool
+check_if_active_tile(const std::unique_ptr<GUI::Tile::Interface> &t) {
+  if (auto p = t.get(); p) {
+    return p->isActiveTile(GUI::tileview);
+  } else {
+    return false;
+  }
+}
+
+//
+void GUI::init() {
   // LovyanGFX init
   lcd.init();
   lcd.setColorDepth(16);
@@ -111,24 +128,27 @@ void GUI::init() noexcept {
   lv_obj_add_event_cb(
       tileview,
       [](lv_event_t *event) -> void {
-        for (auto &t : GUI::tiles) {
-          if (t.get()->isActiveTile(GUI::tileview)) {
-            t.get()->valueChangedEventHook(event);
-            break;
-          }
+        auto itr =
+            std::find_if(tiles.cbegin(), tiles.cend(), check_if_active_tile);
+        if (itr == tiles.cend()) {
+          return;
+        }
+        if (auto p = itr->get(); p) {
+          p->valueChangedEventHook(event);
         }
       },
       LV_EVENT_VALUE_CHANGED, nullptr);
   // set timer callback
   constexpr auto INTERVAL_MILLIS = 499;
   lv_timer_t *timer = lv_timer_create(
-      [](lv_timer_t *timer) -> void {
-        LV_UNUSED(timer);
-        for (auto &t : GUI::tiles) {
-          if (t.get()->isActiveTile(GUI::tileview)) {
-            t.get()->timerHook();
-            break;
-          }
+      [](lv_timer_t *) -> void {
+        auto itr =
+            std::find_if(tiles.cbegin(), tiles.cend(), check_if_active_tile);
+        if (itr == tiles.cend()) {
+          return;
+        }
+        if (auto p = itr->get(); p) {
+          p->timerHook();
         }
       },
       INTERVAL_MILLIS, nullptr);
@@ -221,7 +241,7 @@ void GUI::startUI() noexcept {
     row_id++;
   }
   //
-  moveNext();
+  home();
 }
 
 //
@@ -229,20 +249,22 @@ void GUI::home() noexcept {
   vibrate();
   auto itr = std::next(tiles.cbegin(), 1);
   if (itr != tiles.cend()) {
-    itr->get()->setActiveTile(tileview);
+    if (auto p = itr->get(); p) {
+      p->setActiveTile(tileview);
+    }
   }
 }
 
 //
 void GUI::movePrev() noexcept {
   vibrate();
-  auto itr = std::find_if(tiles.cbegin(), tiles.cend(),
-                          [&](const std::unique_ptr<Tile::Interface> &t) {
-                            return (t) ? t->isActiveTile(tileview) : false;
-                          });
-  if (itr != tiles.cend()) {
-    if (tiles.cbegin() <= std::prev(itr)) {
-      std::prev(itr)->get()->setActiveTile(tileview);
+  auto itr = std::find_if(tiles.cbegin(), tiles.cend(), check_if_active_tile);
+  if (itr == tiles.cend()) {
+    return;
+  }
+  if (tiles.cbegin() <= std::prev(itr)) {
+    if (auto p = std::prev(itr)->get(); p) {
+      p->setActiveTile(tileview);
     }
   }
 }
@@ -250,13 +272,13 @@ void GUI::movePrev() noexcept {
 //
 void GUI::moveNext() noexcept {
   vibrate();
-  auto itr = std::find_if(tiles.cbegin(), tiles.cend(),
-                          [&](const std::unique_ptr<Tile::Interface> &t) {
-                            return (t) ? t->isActiveTile(tileview) : false;
-                          });
-  if (itr != tiles.cend()) {
-    if (std::next(itr) < tiles.cend()) {
-      std::next(itr)->get()->setActiveTile(tileview);
+  auto itr = std::find_if(tiles.cbegin(), tiles.cend(), check_if_active_tile);
+  if (itr == tiles.cend()) {
+    return;
+  }
+  if (std::next(itr) < tiles.cend()) {
+    if (auto p = std::next(itr)->get(); p) {
+      p->setActiveTile(tileview);
     }
   }
 }

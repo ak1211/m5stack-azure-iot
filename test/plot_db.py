@@ -22,7 +22,8 @@ from dateutil import parser
 
 
 def time_sequential_data_frame(item_list, tz):
-    pairs = [('sensorId', lambda x:x),
+    pairs = [('messageId', lambda x:x),
+             ('sensorId', lambda x:x),
              ('measuredAt', lambda x:parser.parse(x).astimezone(tz)),
              ('temperature', lambda x: float(x) if x is not None else None),
              ('humidity', lambda x: float(x) if x is not None else None),

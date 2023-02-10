@@ -35,10 +35,11 @@ constexpr static auto lcdHorizResolution{
 constexpr static auto lcdVertResolution{
     Application::M5StackCore2_VertResolution};
 // draw buffer
-constexpr auto DRAW_BUF_1_SIZE =
-    lcdHorizResolution * lcdVertResolution * 2; // screen buffer
+constexpr auto DRAW_BUF_SIZE =
+    lcdHorizResolution * lcdVertResolution; // screen buffer
 extern std::unique_ptr<lv_color_t[]> draw_buf_1;
-extern lv_disp_draw_buf_t draw_buf_dsc_1;
+extern std::unique_ptr<lv_color_t[]> draw_buf_2;
+extern lv_disp_draw_buf_t draw_buf_dsc;
 // display driver
 extern lv_disp_drv_t disp_drv;
 // touchpad
@@ -51,7 +52,7 @@ using TileVector = std::vector<std::unique_ptr<Tile::Interface>>;
 extern lv_obj_t *tileview;
 extern TileVector tiles;
 //
-extern void init() noexcept;
+extern void init();
 //
 extern void showBootstrappingMessage(std::string_view msg) noexcept;
 //
