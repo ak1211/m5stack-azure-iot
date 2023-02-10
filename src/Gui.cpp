@@ -246,11 +246,13 @@ void GUI::startUI() noexcept {
 
 //
 void GUI::home() noexcept {
-  vibrate();
-  auto itr = std::next(tiles.cbegin(), 1);
-  if (itr != tiles.cend()) {
-    if (auto p = itr->get(); p) {
-      p->setActiveTile(tileview);
+  if constexpr (false) { // なぜかハングアップするのでコメントアウト
+    vibrate();
+    auto itr = std::next(tiles.cbegin(), 1);
+    if (itr != tiles.cend()) {
+      if (auto p = itr->get(); p) {
+        p->setActiveTile(tileview);
+      }
     }
   }
 }
