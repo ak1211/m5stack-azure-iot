@@ -3,14 +3,17 @@
 // See LICENSE file in the project root for full license information.
 //
 #pragma once
-#include "Application.hpp"
-#include "Sensor.hpp"
 #include <M5Core2.h>
 #undef min
 #undef max
+
 #define LGFX_USE_V1
 #define LGFX_AUTODETECT
 #include <LovyanGFX.hpp>
+
+#include "Application.hpp"
+#include "Sensor.hpp"
+#include <LGFX_AUTODETECT.hpp>
 #include <algorithm>
 #include <chrono>
 #include <lvgl.h>
@@ -45,6 +48,8 @@ extern lv_disp_drv_t disp_drv;
 // touchpad
 extern lv_indev_t *indev_touchpad;
 extern lv_indev_drv_t indev_drv;
+// timer
+extern lv_timer_t *periodical_timer;
 // bootstrapping message
 extern std::vector<char> bootstrapping_message_cstr;
 // tile widget
