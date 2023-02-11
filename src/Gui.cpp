@@ -37,6 +37,8 @@ lv_disp_drv_t GUI::disp_drv;
 // touchpad
 lv_indev_t *GUI::indev_touchpad{nullptr};
 lv_indev_drv_t GUI::indev_drv;
+// timer
+lv_timer_t *GUI::periodical_timer{nullptr};
 // bootstrapping message
 std::vector<char> GUI::bootstrapping_message_cstr{'\0'};
 // tile widget
@@ -124,6 +126,11 @@ void GUI::init() {
   lv_port_indev_init();
   // tileview init
   tileview = lv_tileview_create(lv_scr_act());
+  // make first tile
+  using namespace Tile;
+  tiles.emplace_back(
+      std::make_unique<BootMessage>(Init{tileview, 0, 0, LV_DIR_RIGHT}));
+  tiles[0]->setActiveTile(tileview);
   // set value changed callback
   lv_obj_add_event_cb(
       tileview,
@@ -140,7 +147,7 @@ void GUI::init() {
       LV_EVENT_VALUE_CHANGED, nullptr);
   // set timer callback
   constexpr auto INTERVAL_MILLIS = 499;
-  lv_timer_t *timer = lv_timer_create(
+  periodical_timer = lv_timer_create(
       [](lv_timer_t *) -> void {
         auto itr =
             std::find_if(tiles.cbegin(), tiles.cend(), check_if_active_tile);
@@ -152,10 +159,7 @@ void GUI::init() {
         }
       },
       INTERVAL_MILLIS, nullptr);
-  using namespace Tile;
-  tiles.emplace_back(
-      std::make_unique<BootMessage>(Init{tileview, 0, 0, LV_DIR_RIGHT}));
-  tiles[0]->setActiveTile(tileview);
+  //
   lv_task_handler();
   showBootstrappingMessage("System Boot.");
 }
@@ -176,69 +180,74 @@ void GUI::showBootstrappingMessage(std::string_view msg) noexcept {
 void GUI::startUI() noexcept {
   using namespace Tile;
   lv_obj_t *tv = tileview;
-  auto row_id = 1;
+  auto col_id = 1;
   {
-    auto col_id = 0;
-    tiles.emplace_back(std::make_unique<Clock>(
-        Init{tv, row_id, col_id++, LV_DIR_HOR | LV_DIR_VER}));
+    tiles.emplace_back(
+        std::make_unique<Clock>(Init{tv, col_id, 0, LV_DIR_HOR | LV_DIR_VER}));
+    col_id++;
+  }
+  {
     tiles.emplace_back(std::make_unique<SystemHealth>(
-        Init{tv, row_id, col_id++, LV_DIR_RIGHT | LV_DIR_BOTTOM}));
+        Init{tv, col_id, 0, LV_DIR_RIGHT | LV_DIR_BOTTOM}));
+    col_id++;
+  }
+  {
     tiles.emplace_back(std::make_unique<Summary>(
-        Init{tv, row_id, col_id++, LV_DIR_RIGHT | LV_DIR_BOTTOM}));
-    row_id++;
+        Init{tv, col_id, 0, LV_DIR_RIGHT | LV_DIR_BOTTOM}));
+    col_id++;
   }
   // M5 unit ENV3
   if (Application::historiesM5Env3) {
-    auto col_id = 0;
+    auto row_id = 0;
     tiles.emplace_back(std::make_unique<M5Env3TemperatureChart>(
-        Init{tv, row_id, col_id++, LV_DIR_HOR | LV_DIR_BOTTOM}));
+        Init{tv, col_id, row_id++, LV_DIR_HOR | LV_DIR_BOTTOM}));
     tiles.emplace_back(std::make_unique<M5Env3RelativeHumidityChart>(
-        Init{tv, row_id, col_id++, LV_DIR_ALL}));
+        Init{tv, col_id, row_id++, LV_DIR_ALL}));
     tiles.emplace_back(std::make_unique<M5Env3PressureChart>(
-        Init{tv, row_id, col_id++, LV_DIR_HOR | LV_DIR_TOP}));
-    row_id++;
+        Init{tv, col_id, row_id++, LV_DIR_HOR | LV_DIR_TOP}));
+    col_id++;
   }
   // BME280
   if (Application::historiesBme280) {
-    auto col_id = 0;
+    auto row_id = 0;
     tiles.emplace_back(std::make_unique<Bme280TemperatureChart>(
-        Init{tv, row_id, col_id++, LV_DIR_HOR | LV_DIR_BOTTOM}));
+        Init{tv, col_id, row_id++, LV_DIR_HOR | LV_DIR_BOTTOM}));
     tiles.emplace_back(std::make_unique<Bme280RelativeHumidityChart>(
-        Init{tv, row_id, col_id++, LV_DIR_ALL}));
+        Init{tv, col_id, row_id++, LV_DIR_ALL}));
     tiles.emplace_back(std::make_unique<Bme280PressureChart>(
-        Init{tv, row_id, col_id++, LV_DIR_HOR | LV_DIR_TOP}));
-    row_id++;
+        Init{tv, col_id, row_id++, LV_DIR_HOR | LV_DIR_TOP}));
+    col_id++;
   }
   // SCD30
   if (Application::historiesScd30) {
-    auto col_id = 0;
+    auto row_id = 0;
     tiles.emplace_back(std::make_unique<Scd30TemperatureChart>(
-        Init{tv, row_id, col_id++, LV_DIR_HOR | LV_DIR_BOTTOM}));
+        Init{tv, col_id, row_id++, LV_DIR_HOR | LV_DIR_BOTTOM}));
     tiles.emplace_back(std::make_unique<Scd30RelativeHumidityChart>(
-        Init{tv, row_id, col_id++, LV_DIR_ALL}));
+        Init{tv, col_id, row_id++, LV_DIR_ALL}));
     tiles.emplace_back(std::make_unique<Scd30Co2Chart>(
-        Init{tv, row_id, col_id++, LV_DIR_HOR | LV_DIR_TOP}));
-    row_id++;
+        Init{tv, col_id, row_id++, LV_DIR_HOR | LV_DIR_TOP}));
+    col_id++;
   }
   // SCD41
   if (Application::historiesScd41) {
-    auto col_id = 0;
+    auto row_id = 0;
     tiles.emplace_back(std::make_unique<Scd41TemperatureChart>(
-        Init{tv, row_id, col_id++, LV_DIR_HOR | LV_DIR_BOTTOM}));
+        Init{tv, col_id, row_id++, LV_DIR_HOR | LV_DIR_BOTTOM}));
     tiles.emplace_back(std::make_unique<Scd41RelativeHumidityChart>(
-        Init{tv, row_id, col_id++, LV_DIR_ALL}));
+        Init{tv, col_id, row_id++, LV_DIR_ALL}));
     tiles.emplace_back(std::make_unique<Scd41Co2Chart>(
-        Init{tv, row_id, col_id++, LV_DIR_HOR | LV_DIR_TOP}));
-    row_id++;
+        Init{tv, col_id, row_id++, LV_DIR_HOR | LV_DIR_TOP}));
+    col_id++;
   }
   // SGP30
   if (Application::historiesSgp30) {
-    auto col_id = 0;
+    auto row_id = 0;
     tiles.emplace_back(std::make_unique<Sgp30Eco2Chart>(
-        Init{tv, row_id, col_id++, LV_DIR_LEFT | LV_DIR_BOTTOM}));
+        Init{tv, col_id, row_id++, LV_DIR_LEFT | LV_DIR_BOTTOM}));
     tiles.emplace_back(std::make_unique<Sgp30TotalVocChart>(
-        Init{tv, row_id, col_id++, LV_DIR_LEFT | LV_DIR_TOP}));
-    row_id++;
+        Init{tv, col_id, row_id++, LV_DIR_LEFT | LV_DIR_TOP}));
+    col_id++;
   }
   //
   moveNext();
@@ -246,18 +255,13 @@ void GUI::startUI() noexcept {
 
 //
 void GUI::home() noexcept {
-  //
-  // 原因不明のハングアップするのでコメントアウト
-  //
-  if constexpr (false) {
-    vibrate();
-    auto itr = std::next(tiles.cbegin(), 1);
-    if (itr != tiles.cend()) {
-      if (auto p = itr->get(); p) {
-        p->setActiveTile(tileview);
-      }
-    }
+  constexpr auto COL_ID = 3;
+  constexpr auto ROW_ID = 0;
+  vibrate();
+  if (periodical_timer) {
+    lv_timer_reset(periodical_timer);
   }
+  lv_obj_set_tile_id(tileview, COL_ID, ROW_ID, LV_ANIM_OFF);
 }
 
 //
@@ -267,10 +271,14 @@ void GUI::movePrev() noexcept {
   if (itr == tiles.cend()) {
     return;
   }
-  if (tiles.cbegin() <= std::prev(itr)) {
-    if (auto p = std::prev(itr)->get(); p) {
-      p->setActiveTile(tileview);
+  if (itr == tiles.cbegin()) {
+    return;
+  }
+  if (auto p = std::prev(itr)->get(); p) {
+    if (periodical_timer) {
+      lv_timer_reset(periodical_timer);
     }
+    p->setActiveTile(tileview);
   }
 }
 
@@ -281,10 +289,14 @@ void GUI::moveNext() noexcept {
   if (itr == tiles.cend()) {
     return;
   }
-  if (std::next(itr) < tiles.cend()) {
-    if (auto p = std::next(itr)->get(); p) {
-      p->setActiveTile(tileview);
+  if (std::next(itr) == tiles.cend()) {
+    return;
+  }
+  if (auto p = std::next(itr)->get(); p) {
+    if (periodical_timer) {
+      lv_timer_reset(periodical_timer);
     }
+    p->setActiveTile(tileview);
   }
 }
 
