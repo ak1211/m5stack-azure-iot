@@ -75,7 +75,7 @@ extern void vibrate() noexcept;
 namespace GUI::Tile {
 using namespace std::chrono;
 // init argument for "lv_tileview_add_tile()"
-using Init = std::tuple<lv_obj_t *, uint8_t, uint8_t, lv_dir_t>;
+using InitArg = std::tuple<lv_obj_t *, uint8_t, uint8_t, lv_dir_t>;
 
 //
 class BootMessage final : public Interface {
@@ -83,7 +83,7 @@ class BootMessage final : public Interface {
   lv_obj_t *message_label{nullptr};
 
 public:
-  BootMessage(Init init) noexcept;
+  BootMessage(InitArg init) noexcept;
   BootMessage(BootMessage &&) = delete;
   BootMessage &operator=(const BootMessage &) = delete;
   virtual ~BootMessage() noexcept;
@@ -109,7 +109,7 @@ class Summary final : public Interface {
   Measurements latest;
 
 public:
-  Summary(Init init) noexcept;
+  Summary(InitArg init) noexcept;
   Summary(Summary &&) = delete;
   Summary &operator=(const Summary &) = delete;
   virtual ~Summary() noexcept;
@@ -136,7 +136,7 @@ class Clock final : public Interface {
   lv_meter_indicator_t *hour_indic{nullptr};
 
 public:
-  Clock(Init init) noexcept;
+  Clock(InitArg init) noexcept;
   Clock(Clock &&) = delete;
   Clock &operator=(const Clock &) = delete;
   virtual ~Clock() noexcept;
@@ -167,7 +167,7 @@ class SystemHealth final : public Interface {
   lv_obj_t *minimum_free_heap_label{nullptr};
 
 public:
-  SystemHealth(Init init) noexcept;
+  SystemHealth(InitArg init) noexcept;
   SystemHealth(SystemHealth &&) = delete;
   SystemHealth &operator=(const SystemHealth &) = delete;
   virtual ~SystemHealth() noexcept;
@@ -198,7 +198,7 @@ protected:
   std::optional<ValuePair> latest{};
 
 public:
-  BasicChart(Init init, const std::string &inSubheading) noexcept;
+  BasicChart(InitArg init, const std::string &inSubheading) noexcept;
   BasicChart(BasicChart &&) = delete;
   BasicChart &operator=(const BasicChart &) = delete;
   virtual ~BasicChart() noexcept;
@@ -220,7 +220,7 @@ public:
 //
 class M5Env3TemperatureChart final : public BasicChart<Sensor::M5Env3> {
 public:
-  M5Env3TemperatureChart(Init init) noexcept;
+  M5Env3TemperatureChart(InitArg init) noexcept;
   M5Env3TemperatureChart(M5Env3TemperatureChart &&) = delete;
   M5Env3TemperatureChart &operator=(const M5Env3TemperatureChart &) = delete;
   virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
@@ -233,7 +233,7 @@ public:
 //
 class Bme280TemperatureChart final : public BasicChart<Sensor::Bme280> {
 public:
-  Bme280TemperatureChart(Init init) noexcept;
+  Bme280TemperatureChart(InitArg init) noexcept;
   Bme280TemperatureChart(Bme280TemperatureChart &&) = delete;
   Bme280TemperatureChart &operator=(const Bme280TemperatureChart &) = delete;
   virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
@@ -246,7 +246,7 @@ public:
 //
 class Scd30TemperatureChart final : public BasicChart<Sensor::Scd30> {
 public:
-  Scd30TemperatureChart(Init init) noexcept;
+  Scd30TemperatureChart(InitArg init) noexcept;
   Scd30TemperatureChart(Scd30TemperatureChart &&) = delete;
   Scd30TemperatureChart &operator=(const Scd30TemperatureChart &) = delete;
   virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
@@ -259,7 +259,7 @@ public:
 //
 class Scd41TemperatureChart final : public BasicChart<Sensor::Scd41> {
 public:
-  Scd41TemperatureChart(Init init) noexcept;
+  Scd41TemperatureChart(InitArg init) noexcept;
   Scd41TemperatureChart(Scd41TemperatureChart &&) = delete;
   Scd41TemperatureChart &operator=(const Scd30TemperatureChart &) = delete;
   virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
@@ -272,7 +272,7 @@ public:
 //
 class M5Env3RelativeHumidityChart final : public BasicChart<Sensor::M5Env3> {
 public:
-  M5Env3RelativeHumidityChart(Init init) noexcept;
+  M5Env3RelativeHumidityChart(InitArg init) noexcept;
   M5Env3RelativeHumidityChart(M5Env3RelativeHumidityChart &&) = delete;
   M5Env3RelativeHumidityChart &
   operator=(const M5Env3RelativeHumidityChart &) = delete;
@@ -286,7 +286,7 @@ public:
 //
 class Bme280RelativeHumidityChart final : public BasicChart<Sensor::Bme280> {
 public:
-  Bme280RelativeHumidityChart(Init init) noexcept;
+  Bme280RelativeHumidityChart(InitArg init) noexcept;
   Bme280RelativeHumidityChart(Bme280RelativeHumidityChart &&) = delete;
   Bme280RelativeHumidityChart &
   operator=(const Bme280RelativeHumidityChart &) = delete;
@@ -300,7 +300,7 @@ public:
 //
 class Scd30RelativeHumidityChart final : public BasicChart<Sensor::Scd30> {
 public:
-  Scd30RelativeHumidityChart(Init init) noexcept;
+  Scd30RelativeHumidityChart(InitArg init) noexcept;
   Scd30RelativeHumidityChart(Scd30RelativeHumidityChart &&) = delete;
   Scd30RelativeHumidityChart &
   operator=(const Scd30RelativeHumidityChart &) = delete;
@@ -314,7 +314,7 @@ public:
 //
 class Scd41RelativeHumidityChart final : public BasicChart<Sensor::Scd41> {
 public:
-  Scd41RelativeHumidityChart(Init init) noexcept;
+  Scd41RelativeHumidityChart(InitArg init) noexcept;
   Scd41RelativeHumidityChart(Scd41RelativeHumidityChart &&) = delete;
   Scd41RelativeHumidityChart &
   operator=(const Scd41RelativeHumidityChart &) = delete;
@@ -328,7 +328,7 @@ public:
 //
 class M5Env3PressureChart final : public BasicChart<Sensor::M5Env3> {
 public:
-  M5Env3PressureChart(Init init) noexcept;
+  M5Env3PressureChart(InitArg init) noexcept;
   M5Env3PressureChart(M5Env3PressureChart &&) = delete;
   M5Env3PressureChart &operator=(const M5Env3PressureChart &) = delete;
   virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
@@ -342,7 +342,7 @@ public:
 //
 class Bme280PressureChart final : public BasicChart<Sensor::Bme280> {
 public:
-  Bme280PressureChart(Init init) noexcept;
+  Bme280PressureChart(InitArg init) noexcept;
   Bme280PressureChart(Bme280PressureChart &&) = delete;
   Bme280PressureChart &operator=(const Bme280PressureChart &) = delete;
   virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
@@ -356,7 +356,7 @@ public:
 //
 class Sgp30TotalVocChart final : public BasicChart<Sensor::Sgp30> {
 public:
-  Sgp30TotalVocChart(Init init) noexcept;
+  Sgp30TotalVocChart(InitArg init) noexcept;
   Sgp30TotalVocChart(Sgp30TotalVocChart &&) = delete;
   Sgp30TotalVocChart &operator=(const Sgp30TotalVocChart &) = delete;
   virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
@@ -369,7 +369,7 @@ public:
 //
 class Sgp30Eco2Chart final : public BasicChart<Sensor::Sgp30> {
 public:
-  Sgp30Eco2Chart(Init init) noexcept;
+  Sgp30Eco2Chart(InitArg init) noexcept;
   Sgp30Eco2Chart(Sgp30Eco2Chart &&) = delete;
   Sgp30Eco2Chart &operator=(const Sgp30Eco2Chart &) = delete;
   virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
@@ -382,7 +382,7 @@ public:
 //
 class Scd30Co2Chart final : public BasicChart<Sensor::Scd30> {
 public:
-  Scd30Co2Chart(Init init) noexcept;
+  Scd30Co2Chart(InitArg init) noexcept;
   Scd30Co2Chart(Scd30Co2Chart &&) = delete;
   Scd30Co2Chart &operator=(const Scd30Co2Chart &) = delete;
   virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
@@ -392,7 +392,7 @@ public:
 //
 class Scd41Co2Chart final : public BasicChart<Sensor::Scd41> {
 public:
-  Scd41Co2Chart(Init init) noexcept;
+  Scd41Co2Chart(InitArg init) noexcept;
   Scd41Co2Chart(Scd41Co2Chart &&) = delete;
   Scd41Co2Chart &operator=(const Scd41Co2Chart &) = delete;
   virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
