@@ -243,6 +243,8 @@ void GUI::startUI() noexcept {
     auto row = 0;
     dir = dir | LV_DIR_BOTTOM;
     add_tile<Sgp30Eco2Chart>(tiles, {tv, col, row++, dir});
+    dir = dir | LV_DIR_TOP;
+    //
     dir = dir & ~LV_DIR_BOTTOM;
     add_tile<Sgp30TotalVocChart>(tiles, {tv, col, row++, dir});
   };
