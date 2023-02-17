@@ -46,6 +46,6 @@ std::string Time::isoformatUTC(std::time_t utctime) noexcept {
   struct tm tm;
   gmtime_r(&utctime, &tm);
   std::ostringstream oss;
-  oss << std::put_time(&tm, "%FT%T%z");
+  oss << std::put_time(&tm, "%FT%TZ");
   return oss.str().c_str();
 }
