@@ -99,7 +99,7 @@ static bool connectToWiFi(std::string_view ssid, std::string_view password,
 }
 
 //
-//
+// Arduinoのsetup()関数
 //
 void setup() {
   constexpr auto timeout{5s};
@@ -242,138 +242,154 @@ void setup() {
       GUI::showBootstrappingMessage("connect failed.");
     }
   }
-  // register the button hook
-  M5.BtnA.addHandler([](Event &e) { GUI::movePrev(); }, E_RELEASE);
-  M5.BtnB.addHandler([](Event &e) { GUI::home(); }, E_RELEASE);
-  M5.BtnC.addHandler([](Event &e) { GUI::moveNext(); }, E_RELEASE);
   // start ui
   GUI::startUI();
 }
 
 //
+// 高速度loop()関数
 //
-//
-void loop() {
-  static time_point before_time = steady_clock::now();
-
-  if (steady_clock::now() - before_time >= 1s) {
-    before_time = steady_clock::now();
-    // 測定
-    for (auto &sensor_device : Peripherals::sensors) {
-      auto measured = sensor_device->readyToRead() ? sensor_device->read()
-                                                   : std::monostate{};
-      if (auto p = std::get_if<Sensor::Scd30>(&measured); p) {
-        BottomCaseLed::showSignal(p->co2);
-      }
-    }
-    //
-    if (Time::sync_completed()) {
-      system_clock::time_point nowtp = system_clock::now();
-      //
-      if (duration_cast<seconds>(nowtp.time_since_epoch()).count() % 60 == 0) {
-        //
-        // それぞれのセンサーによる記録値(ValueObject)を対応する記録インスタンスに入れる
-        //
-        struct Visitor {
-          system_clock::time_point tp;
-          Visitor(system_clock::time_point arg) : tp{arg} {}
-          // Not Available (N/A)
-          bool operator()(std::monostate) { return false; }
-          // Bosch BME280: Temperature and Humidity and Pressure Sensor
-          bool operator()(const Sensor::Bme280 &in) {
-            MeasurementBme280 m = {tp, in};
-            if (Application::historiesBme280) {
-              Application::historiesBme280->insert(m);
-            } else {
-              ESP_LOGE(MAIN, "histories buffer had not available");
-            }
-            Telemetry::pushMessage(m);
-            local_database.insert(m);
-            return true;
-          }
-          // Sensirion SGP30: Air Quality Sensor
-          bool operator()(const Sensor::Sgp30 &in) {
-            MeasurementSgp30 m = {tp, in};
-            if (Application::historiesSgp30) {
-              Application::historiesSgp30->insert(m);
-            } else {
-              ESP_LOGE(MAIN, "histories buffer had not available");
-            }
-            Telemetry::pushMessage(m);
-            local_database.insert(m);
-            return true;
-          }
-          // Sensirion SCD30: NDIR CO2 and Temperature and Humidity Sensor
-          bool operator()(const Sensor::Scd30 &in) {
-            MeasurementScd30 m = {tp, in};
-            if (Application::historiesScd30) {
-              Application::historiesScd30->insert(m);
-            } else {
-              ESP_LOGE(MAIN, "histories buffer had not available");
-            }
-            Telemetry::pushMessage(m);
-            local_database.insert(m);
-            return true;
-          }
-          // Sensirion SCD41: PASens CO2 and Temperature and Humidity Sensor
-          bool operator()(const Sensor::Scd41 &in) {
-            MeasurementScd41 m = {tp, in};
-            if (Application::historiesScd41) {
-              Application::historiesScd41->insert(m);
-            } else {
-              ESP_LOGE(MAIN, "histories buffer had not available");
-            }
-            Telemetry::pushMessage(m);
-            local_database.insert(m);
-            return true;
-          }
-          // M5Stack ENV.iii unit: Temperature and Humidity and Pressure Sensor
-          bool operator()(const Sensor::M5Env3 &in) {
-            MeasurementM5Env3 m = {tp, in};
-            if (Application::historiesM5Env3) {
-              Application::historiesM5Env3->insert(m);
-            } else {
-              ESP_LOGE(MAIN, "histories buffer had not available");
-            }
-            Telemetry::pushMessage(m);
-            local_database.insert(m);
-            return true;
-          }
-        };
-        //
-        // 毎分0秒時点の値を取り込む
-        //
-        bool success = true;
-        for (auto &sensor_device : Peripherals::sensors) {
-          bool result =
-              std::visit(Visitor{nowtp}, sensor_device->calculateSMA());
-          success = success && result;
-        }
-        // insert to local logging file
-        if (success) {
-          auto a = Application::historiesBme280
-                       ? Application::historiesBme280->getLatestValue()
-                       : std::nullopt;
-          auto b = Application::historiesSgp30
-                       ? Application::historiesSgp30->getLatestValue()
-                       : std::nullopt;
-          auto c = Application::historiesScd30
-                       ? Application::historiesScd30->getLatestValue()
-                       : std::nullopt;
-          //
-          // TODO: add M5Env3 and SCD51
-          //
-          if (a && b && c) {
-            data_logging_file.write_data_to_log_file(a->first, a->second,
-                                                     b->second, c->second);
-          }
-        }
-      }
-      Telemetry::loopMqtt();
-    }
-  }
-
+inline void high_speed_loop() {
   ArduinoOTA.handle();
   M5.update();
   lv_task_handler();
+  if (M5.BtnA.wasPressed()) {
+    GUI::movePrev();
+  } else if (M5.BtnB.wasPressed()) {
+    GUI::home();
+  } else if (M5.BtnC.wasPressed()) {
+    GUI::moveNext();
+  }
+}
+
+//
+// 低速度loop()関数
+//
+inline void low_speed_loop(system_clock::time_point nowtp) {
+  // 測定
+  for (auto &sensor_device : Peripherals::sensors) {
+    auto measured =
+        sensor_device->readyToRead() ? sensor_device->read() : std::monostate{};
+    if (auto p = std::get_if<Sensor::Scd30>(&measured); p) {
+      BottomCaseLed::showSignal(p->co2);
+    }
+  }
+  //
+  if (duration_cast<seconds>(nowtp.time_since_epoch()).count() % 60 == 0) {
+    //
+    // それぞれのセンサーによる記録値(ValueObject)を対応する記録インスタンスに入れる
+    //
+    struct Visitor {
+      system_clock::time_point tp;
+      Visitor(system_clock::time_point arg) : tp{arg} {}
+      // Not Available (N/A)
+      bool operator()(std::monostate) { return false; }
+      // Bosch BME280: Temperature and Humidity and Pressure Sensor
+      bool operator()(const Sensor::Bme280 &in) {
+        MeasurementBme280 m = {tp, in};
+        if (Application::historiesBme280) {
+          Application::historiesBme280->insert(m);
+        } else {
+          ESP_LOGE(MAIN, "histories buffer had not available");
+        }
+        Telemetry::pushMessage(m);
+        local_database.insert(m);
+        return true;
+      }
+      // Sensirion SGP30: Air Quality Sensor
+      bool operator()(const Sensor::Sgp30 &in) {
+        MeasurementSgp30 m = {tp, in};
+        if (Application::historiesSgp30) {
+          Application::historiesSgp30->insert(m);
+        } else {
+          ESP_LOGE(MAIN, "histories buffer had not available");
+        }
+        Telemetry::pushMessage(m);
+        local_database.insert(m);
+        return true;
+      }
+      // Sensirion SCD30: NDIR CO2 and Temperature and Humidity Sensor
+      bool operator()(const Sensor::Scd30 &in) {
+        MeasurementScd30 m = {tp, in};
+        if (Application::historiesScd30) {
+          Application::historiesScd30->insert(m);
+        } else {
+          ESP_LOGE(MAIN, "histories buffer had not available");
+        }
+        Telemetry::pushMessage(m);
+        local_database.insert(m);
+        return true;
+      }
+      // Sensirion SCD41: PASens CO2 and Temperature and Humidity Sensor
+      bool operator()(const Sensor::Scd41 &in) {
+        MeasurementScd41 m = {tp, in};
+        if (Application::historiesScd41) {
+          Application::historiesScd41->insert(m);
+        } else {
+          ESP_LOGE(MAIN, "histories buffer had not available");
+        }
+        Telemetry::pushMessage(m);
+        local_database.insert(m);
+        return true;
+      }
+      // M5Stack ENV.iii unit: Temperature and Humidity and Pressure Sensor
+      bool operator()(const Sensor::M5Env3 &in) {
+        MeasurementM5Env3 m = {tp, in};
+        if (Application::historiesM5Env3) {
+          Application::historiesM5Env3->insert(m);
+        } else {
+          ESP_LOGE(MAIN, "histories buffer had not available");
+        }
+        Telemetry::pushMessage(m);
+        local_database.insert(m);
+        return true;
+      }
+    };
+    //
+    // 毎分0秒時点の値を取り込む
+    //
+    bool success = true;
+    for (auto &sensor_device : Peripherals::sensors) {
+      bool result = std::visit(Visitor{nowtp}, sensor_device->calculateSMA());
+      success = success && result;
+    }
+    // insert to local logging file
+    if (success) {
+      auto a = Application::historiesBme280
+                   ? Application::historiesBme280->getLatestValue()
+                   : std::nullopt;
+      auto b = Application::historiesSgp30
+                   ? Application::historiesSgp30->getLatestValue()
+                   : std::nullopt;
+      auto c = Application::historiesScd30
+                   ? Application::historiesScd30->getLatestValue()
+                   : std::nullopt;
+      //
+      // TODO: add M5Env3 and SCD41
+      //
+      if (a && b && c) {
+        data_logging_file.write_data_to_log_file(a->first, a->second, b->second,
+                                                 c->second);
+      }
+    }
+  }
+  Telemetry::loopMqtt();
+}
+
+//
+// Arduinoのloop()関数
+//
+void loop() {
+  high_speed_loop();
+  //
+  using namespace std::chrono;
+  static system_clock::time_point before{};
+  if (Time::sync_completed()) {
+    auto nowtp = system_clock::now();
+    //
+    if (nowtp - before >= 1s) {
+      low_speed_loop(nowtp);
+      before = nowtp;
+    }
+  }
 }

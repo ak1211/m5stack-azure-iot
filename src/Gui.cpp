@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <ctime>
 #include <esp_system.h>
+#include <functional>
 #include <iomanip>
 #include <sstream>
 #include <tuple>
@@ -116,6 +117,12 @@ check_if_active_tile(const std::unique_ptr<GUI::Tile::Interface> &t) {
 }
 
 //
+template <typename T>
+static void add_tile(GUI::TileVector &vect, const GUI::Tile::InitArg &arg) {
+  vect.emplace_back(std::make_unique<T>(arg));
+}
+
+//
 void GUI::init() {
   // LovyanGFX init
   lcd.init();
@@ -127,9 +134,7 @@ void GUI::init() {
   // tileview init
   tileview = lv_tileview_create(lv_scr_act());
   // make first tile
-  using namespace Tile;
-  tiles.emplace_back(
-      std::make_unique<BootMessage>(Init{tileview, 0, 0, LV_DIR_RIGHT}));
+  add_tile<Tile::BootMessage>(tiles, {tileview, 0, 0, LV_DIR_RIGHT});
   tiles[0]->setActiveTile(tileview);
   // set value changed callback
   lv_obj_add_event_cb(
@@ -179,75 +184,103 @@ void GUI::showBootstrappingMessage(std::string_view msg) noexcept {
 //
 void GUI::startUI() noexcept {
   using namespace Tile;
-  lv_obj_t *tv = tileview;
-  auto col_id = 1;
-  {
-    tiles.emplace_back(
-        std::make_unique<Clock>(Init{tv, col_id, 0, LV_DIR_HOR | LV_DIR_VER}));
-    col_id++;
-  }
-  {
-    tiles.emplace_back(std::make_unique<SystemHealth>(
-        Init{tv, col_id, 0, LV_DIR_RIGHT | LV_DIR_BOTTOM}));
-    col_id++;
-  }
-  {
-    tiles.emplace_back(std::make_unique<Summary>(
-        Init{tv, col_id, 0, LV_DIR_RIGHT | LV_DIR_BOTTOM}));
-    col_id++;
-  }
+  //
+  using Fn = std::function<void(lv_obj_t * tv, int16_t col, uint8_t dir)>;
+  // Clock
+  Fn addClock = [](lv_obj_t *tv, int16_t col, uint8_t dir) {
+    add_tile<Clock>(tiles, {tv, col, 0, dir});
+  };
+  // SystemHealth
+  Fn addSystemHealth = [](lv_obj_t *tv, int16_t col, uint8_t dir) {
+    add_tile<SystemHealth>(tiles, {tv, col, 0, dir});
+  };
+  // Summary
+  Fn addSummary = [](lv_obj_t *tv, int16_t col, uint8_t dir) {
+    add_tile<Summary>(tiles, {tv, col, 0, dir});
+  };
   // M5 unit ENV3
-  if (Application::historiesM5Env3) {
-    auto row_id = 0;
-    tiles.emplace_back(std::make_unique<M5Env3TemperatureChart>(
-        Init{tv, col_id, row_id++, LV_DIR_HOR | LV_DIR_BOTTOM}));
-    tiles.emplace_back(std::make_unique<M5Env3RelativeHumidityChart>(
-        Init{tv, col_id, row_id++, LV_DIR_ALL}));
-    tiles.emplace_back(std::make_unique<M5Env3PressureChart>(
-        Init{tv, col_id, row_id++, LV_DIR_HOR | LV_DIR_TOP}));
-    col_id++;
-  }
+  Fn addM5Env3 = [](lv_obj_t *tv, int16_t col, uint8_t dir) {
+    auto row = 0;
+    dir = dir | LV_DIR_BOTTOM;
+    add_tile<M5Env3TemperatureChart>(tiles, {tv, col, row++, dir});
+    dir = dir | LV_DIR_TOP;
+    add_tile<M5Env3RelativeHumidityChart>(tiles, {tv, col, row++, dir});
+    dir = dir & ~LV_DIR_BOTTOM;
+    add_tile<M5Env3PressureChart>(tiles, {tv, col, row++, dir});
+  };
   // BME280
-  if (Application::historiesBme280) {
-    auto row_id = 0;
-    tiles.emplace_back(std::make_unique<Bme280TemperatureChart>(
-        Init{tv, col_id, row_id++, LV_DIR_HOR | LV_DIR_BOTTOM}));
-    tiles.emplace_back(std::make_unique<Bme280RelativeHumidityChart>(
-        Init{tv, col_id, row_id++, LV_DIR_ALL}));
-    tiles.emplace_back(std::make_unique<Bme280PressureChart>(
-        Init{tv, col_id, row_id++, LV_DIR_HOR | LV_DIR_TOP}));
-    col_id++;
-  }
+  Fn addBme280 = [](lv_obj_t *tv, int16_t col, uint8_t dir) {
+    auto row = 0;
+    dir = dir | LV_DIR_BOTTOM;
+    add_tile<Bme280TemperatureChart>(tiles, {tv, col, row++, dir});
+    dir = dir | LV_DIR_TOP;
+    add_tile<Bme280RelativeHumidityChart>(tiles, {tv, col, row++, dir});
+    dir = dir & ~LV_DIR_BOTTOM;
+    add_tile<Bme280PressureChart>(tiles, {tv, col, row++, dir});
+  };
   // SCD30
-  if (Application::historiesScd30) {
-    auto row_id = 0;
-    tiles.emplace_back(std::make_unique<Scd30TemperatureChart>(
-        Init{tv, col_id, row_id++, LV_DIR_HOR | LV_DIR_BOTTOM}));
-    tiles.emplace_back(std::make_unique<Scd30RelativeHumidityChart>(
-        Init{tv, col_id, row_id++, LV_DIR_ALL}));
-    tiles.emplace_back(std::make_unique<Scd30Co2Chart>(
-        Init{tv, col_id, row_id++, LV_DIR_HOR | LV_DIR_TOP}));
-    col_id++;
-  }
+  Fn addScd30 = [](lv_obj_t *tv, int16_t col, uint8_t dir) {
+    auto row = 0;
+    dir = dir | LV_DIR_BOTTOM;
+    add_tile<Scd30TemperatureChart>(tiles, {tv, col, row++, dir});
+    dir = dir | LV_DIR_TOP;
+    add_tile<Scd30RelativeHumidityChart>(tiles, {tv, col, row++, dir});
+    dir = dir & ~LV_DIR_BOTTOM;
+    add_tile<Scd30Co2Chart>(tiles, {tv, col, row++, dir});
+  };
   // SCD41
-  if (Application::historiesScd41) {
-    auto row_id = 0;
-    tiles.emplace_back(std::make_unique<Scd41TemperatureChart>(
-        Init{tv, col_id, row_id++, LV_DIR_HOR | LV_DIR_BOTTOM}));
-    tiles.emplace_back(std::make_unique<Scd41RelativeHumidityChart>(
-        Init{tv, col_id, row_id++, LV_DIR_ALL}));
-    tiles.emplace_back(std::make_unique<Scd41Co2Chart>(
-        Init{tv, col_id, row_id++, LV_DIR_HOR | LV_DIR_TOP}));
-    col_id++;
-  }
+  Fn addScd41 = [](lv_obj_t *tv, int16_t col, uint8_t dir) {
+    auto row = 0;
+    dir = dir | LV_DIR_BOTTOM;
+    add_tile<Scd41TemperatureChart>(tiles, {tv, col, row++, dir});
+    dir = dir | LV_DIR_TOP;
+    add_tile<Scd41RelativeHumidityChart>(tiles, {tv, col, row++, dir});
+    dir = dir & ~LV_DIR_BOTTOM;
+    add_tile<Scd41Co2Chart>(tiles, {tv, col, row++, dir});
+  };
   // SGP30
+  Fn addSgp30 = [](lv_obj_t *tv, int16_t col, uint8_t dir) {
+    auto row = 0;
+    dir = dir | LV_DIR_BOTTOM;
+    add_tile<Sgp30Eco2Chart>(tiles, {tv, col, row++, dir});
+    dir = dir | LV_DIR_TOP;
+    //
+    dir = dir & ~LV_DIR_BOTTOM;
+    add_tile<Sgp30TotalVocChart>(tiles, {tv, col, row++, dir});
+  };
+  //
+  // ここでタイルを用意する
+  //
+  std::vector<Fn> functions;
+  // Tile::BootMessageの次からこの並び順
+  functions.push_back(addClock);
+  functions.push_back(addSystemHealth);
+  functions.push_back(addSummary);
+  if (Application::historiesM5Env3) {
+    functions.push_back(addM5Env3);
+  }
+  if (Application::historiesBme280) {
+    functions.push_back(addBme280);
+  }
+  if (Application::historiesScd30) {
+    functions.push_back(addScd30);
+  }
+  if (Application::historiesScd41) {
+    functions.push_back(addScd41);
+  }
   if (Application::historiesSgp30) {
-    auto row_id = 0;
-    tiles.emplace_back(std::make_unique<Sgp30Eco2Chart>(
-        Init{tv, col_id, row_id++, LV_DIR_LEFT | LV_DIR_BOTTOM}));
-    tiles.emplace_back(std::make_unique<Sgp30TotalVocChart>(
-        Init{tv, col_id, row_id++, LV_DIR_LEFT | LV_DIR_TOP}));
-    col_id++;
+    functions.push_back(addSgp30);
+  }
+  //
+  auto col = 1;
+  for (auto it = functions.begin(); it != functions.end(); ++it) {
+    Fn &f = *it;
+    uint8_t dir = LV_DIR_HOR;
+    if (std::next(it) == functions.end()) {
+      // 最後のタイルだけ右移動を禁止する
+      dir = dir & ~LV_DIR_RIGHT;
+    }
+    f(tileview, col++, dir);
   }
   //
   moveNext();
@@ -267,11 +300,8 @@ void GUI::home() noexcept {
 //
 void GUI::movePrev() noexcept {
   vibrate();
-  auto itr = std::find_if(tiles.cbegin(), tiles.cend(), check_if_active_tile);
-  if (itr == tiles.cend()) {
-    return;
-  }
-  if (itr == tiles.cbegin()) {
+  auto itr = std::find_if(tiles.begin(), tiles.end(), check_if_active_tile);
+  if (itr == tiles.end() || itr == tiles.begin()) {
     return;
   }
   if (auto p = std::prev(itr)->get(); p) {
@@ -285,11 +315,8 @@ void GUI::movePrev() noexcept {
 //
 void GUI::moveNext() noexcept {
   vibrate();
-  auto itr = std::find_if(tiles.cbegin(), tiles.cend(), check_if_active_tile);
-  if (itr == tiles.cend()) {
-    return;
-  }
-  if (std::next(itr) == tiles.cend()) {
+  auto itr = std::find_if(tiles.begin(), tiles.end(), check_if_active_tile);
+  if (itr == tiles.end() || std::next(itr) == tiles.end()) {
     return;
   }
   if (auto p = std::next(itr)->get(); p) {
@@ -313,7 +340,7 @@ void GUI::vibrate() noexcept {
 //
 //
 //
-GUI::Tile::BootMessage::BootMessage(GUI::Tile::Init init) noexcept {
+GUI::Tile::BootMessage::BootMessage(GUI::Tile::InitArg init) noexcept {
   tile = std::apply(lv_tileview_add_tile, init);
   message_label = lv_label_create(tile);
   lv_label_set_long_mode(message_label, LV_LABEL_LONG_WRAP);
@@ -336,7 +363,7 @@ void GUI::Tile::BootMessage::timerHook() noexcept {}
 //
 //
 //
-GUI::Tile::SystemHealth::SystemHealth(GUI::Tile::Init init) noexcept {
+GUI::Tile::SystemHealth::SystemHealth(GUI::Tile::InitArg init) noexcept {
   tile = std::apply(lv_tileview_add_tile, init);
   lv_style_init(&style_label);
   lv_style_set_text_font(&style_label, &lv_font_montserrat_16);
@@ -478,7 +505,7 @@ void GUI::Tile::SystemHealth::render() noexcept {
 //
 //
 //
-GUI::Tile::Clock::Clock(Tile::Init init) noexcept {
+GUI::Tile::Clock::Clock(Tile::InitArg init) noexcept {
   tile = std::apply(lv_tileview_add_tile, init);
   meter = lv_meter_create(tile);
   auto size =
@@ -546,7 +573,7 @@ void GUI::Tile::Clock::render(const std::tm &tm) noexcept {
 //
 //
 //
-GUI::Tile::Summary::Summary(GUI::Tile::Init init) noexcept {
+GUI::Tile::Summary::Summary(GUI::Tile::InitArg init) noexcept {
   tile = std::apply(lv_tileview_add_tile, init);
   table = lv_table_create(tile);
   //
@@ -840,7 +867,7 @@ void GUI::Tile::Summary::render() noexcept {
 //
 //
 template <typename T>
-GUI::Tile::BasicChart<T>::BasicChart(Init init,
+GUI::Tile::BasicChart<T>::BasicChart(InitArg init,
                                      const std::string &inSubheading) noexcept {
   tile = std::apply(lv_tileview_add_tile, init);
   subheading = inSubheading;
@@ -936,7 +963,7 @@ void GUI::Tile::BasicChart<T>::setChartValue(
 //
 //
 //
-GUI::Tile::M5Env3TemperatureChart::M5Env3TemperatureChart(Init init) noexcept
+GUI::Tile::M5Env3TemperatureChart::M5Env3TemperatureChart(InitArg init) noexcept
     : BasicChart(init, "ENV.III unit Temperature") {
   lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
 }
@@ -986,7 +1013,7 @@ void GUI::Tile::M5Env3TemperatureChart::drawEventHook(
 //
 //
 //
-GUI::Tile::Bme280TemperatureChart::Bme280TemperatureChart(Init init) noexcept
+GUI::Tile::Bme280TemperatureChart::Bme280TemperatureChart(InitArg init) noexcept
     : BasicChart(init, "BME280 Temperature") {
   lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
 }
@@ -1036,7 +1063,7 @@ void GUI::Tile::Bme280TemperatureChart::drawEventHook(
 //
 //
 //
-GUI::Tile::Scd30TemperatureChart::Scd30TemperatureChart(Init init) noexcept
+GUI::Tile::Scd30TemperatureChart::Scd30TemperatureChart(InitArg init) noexcept
     : BasicChart(init, "SCD30 Temperature") {
   lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
 }
@@ -1087,7 +1114,7 @@ void GUI::Tile::Scd30TemperatureChart::drawEventHook(
 //
 //
 //
-GUI::Tile::Scd41TemperatureChart::Scd41TemperatureChart(Init init) noexcept
+GUI::Tile::Scd41TemperatureChart::Scd41TemperatureChart(InitArg init) noexcept
     : BasicChart(init, "SCD41 Temperature") {
   lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
 }
@@ -1139,7 +1166,7 @@ void GUI::Tile::Scd41TemperatureChart::drawEventHook(
 //
 //
 GUI::Tile::M5Env3RelativeHumidityChart::M5Env3RelativeHumidityChart(
-    Init init) noexcept
+    InitArg init) noexcept
     : BasicChart(init, "ENV.III unit Relative Humidity") {
   lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
 }
@@ -1191,7 +1218,7 @@ void GUI::Tile::M5Env3RelativeHumidityChart::drawEventHook(
 //
 //
 GUI::Tile::Bme280RelativeHumidityChart::Bme280RelativeHumidityChart(
-    Init init) noexcept
+    InitArg init) noexcept
     : BasicChart(init, "BME280 Relative Humidity") {
   lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
 }
@@ -1243,7 +1270,7 @@ void GUI::Tile::Bme280RelativeHumidityChart::drawEventHook(
 //
 //
 GUI::Tile::Scd30RelativeHumidityChart::Scd30RelativeHumidityChart(
-    Init init) noexcept
+    InitArg init) noexcept
     : BasicChart(init, "SCD30 Relative Humidity") {
   lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
 }
@@ -1295,7 +1322,7 @@ void GUI::Tile::Scd30RelativeHumidityChart::drawEventHook(
 //
 //
 GUI::Tile::Scd41RelativeHumidityChart::Scd41RelativeHumidityChart(
-    Init init) noexcept
+    InitArg init) noexcept
     : BasicChart(init, "SCD41 Relative Humidity") {
   lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
 }
@@ -1346,7 +1373,7 @@ void GUI::Tile::Scd41RelativeHumidityChart::drawEventHook(
 //
 //
 //
-GUI::Tile::M5Env3PressureChart::M5Env3PressureChart(Init init) noexcept
+GUI::Tile::M5Env3PressureChart::M5Env3PressureChart(InitArg init) noexcept
     : BasicChart(init, "ENV.III unit Pressure") {
   lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
 }
@@ -1396,7 +1423,7 @@ void GUI::Tile::M5Env3PressureChart::drawEventHook(lv_event_t *event) noexcept {
 //
 //
 //
-GUI::Tile::Bme280PressureChart::Bme280PressureChart(Init init) noexcept
+GUI::Tile::Bme280PressureChart::Bme280PressureChart(InitArg init) noexcept
     : BasicChart(init, "BME280 Pressure") {
   lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
 }
@@ -1446,7 +1473,7 @@ void GUI::Tile::Bme280PressureChart::drawEventHook(lv_event_t *event) noexcept {
 //
 //
 //
-GUI::Tile::Sgp30TotalVocChart::Sgp30TotalVocChart(Init init) noexcept
+GUI::Tile::Sgp30TotalVocChart::Sgp30TotalVocChart(InitArg init) noexcept
     : BasicChart(init, "SGP30 Total VOC") {
   lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
 }
@@ -1495,7 +1522,7 @@ void GUI::Tile::Sgp30TotalVocChart::drawEventHook(lv_event_t *event) noexcept {
 //
 //
 //
-GUI::Tile::Sgp30Eco2Chart::Sgp30Eco2Chart(Init init) noexcept
+GUI::Tile::Sgp30Eco2Chart::Sgp30Eco2Chart(InitArg init) noexcept
     : BasicChart(init, "SGP30 equivalent CO2") {
   lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
 }
@@ -1543,7 +1570,7 @@ void GUI::Tile::Sgp30Eco2Chart::drawEventHook(lv_event_t *event) noexcept {
 //
 //
 //
-GUI::Tile::Scd30Co2Chart::Scd30Co2Chart(Init init) noexcept
+GUI::Tile::Scd30Co2Chart::Scd30Co2Chart(InitArg init) noexcept
     : BasicChart(init, "SCD30 CO2") {}
 
 void GUI::Tile::Scd30Co2Chart::valueChangedEventHook(lv_event_t *) noexcept {
@@ -1573,7 +1600,7 @@ void GUI::Tile::Scd30Co2Chart::timerHook() noexcept {
 //
 //
 //
-GUI::Tile::Scd41Co2Chart::Scd41Co2Chart(Init init) noexcept
+GUI::Tile::Scd41Co2Chart::Scd41Co2Chart(InitArg init) noexcept
     : BasicChart(init, "SCD41 CO2") {}
 
 void GUI::Tile::Scd41Co2Chart::valueChangedEventHook(lv_event_t *) noexcept {
