@@ -10,7 +10,7 @@
 #include "LocalDatabase.hpp"
 #include "SystemPower.hpp"
 #include "Time.hpp"
-#include <Wifi.h>
+#include <WiFi.h>
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -253,7 +253,7 @@ void GUI::startUI() noexcept {
   //
   std::vector<Fn> functions;
   // Tile::BootMessageの次からこの並び順
-  functions.push_back(addClock);
+//  functions.push_back(addClock);
   functions.push_back(addSystemHealth);
   functions.push_back(addSummary);
   if (Application::historiesM5Env3) {
@@ -283,12 +283,12 @@ void GUI::startUI() noexcept {
     f(tileview, col++, dir);
   }
   //
-  moveNext();
+  home();
 }
 
 //
 void GUI::home() noexcept {
-  constexpr auto COL_ID = 3;
+  constexpr auto COL_ID = 2;
   constexpr auto ROW_ID = 0;
   vibrate();
   if (periodical_timer) {
@@ -451,13 +451,13 @@ void GUI::Tile::SystemHealth::render() noexcept {
     } else {
       oss << "No WiFi connection.";
     }
-    oss << std::endl                                   //
-        << std::setfill(' ')                           //
-        << "uptime" << std::setw(2) << days << "days," //
-        << std::setw(2) << hour << ":"                 //
-        << std::setfill('0')                           //
-        << std::setw(2) << min << ":"                  //
-        << std::setw(2) << sec;                        //
+    oss << std::endl                     //
+        << std::setfill(' ')             //
+        << "uptime " << days << " days," //
+        << std::setfill('0')             //
+        << std::setw(2) << hour << ":"   //
+        << std::setw(2) << min << ":"    //
+        << std::setw(2) << sec;          //
     lv_label_set_text(status_label, oss.str().c_str());
   }
   { // power source
