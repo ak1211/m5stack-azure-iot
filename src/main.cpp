@@ -270,9 +270,6 @@ inline void low_speed_loop(system_clock::time_point nowtp) {
   for (auto &sensor_device : Peripherals::sensors) {
     auto measured =
         sensor_device->readyToRead() ? sensor_device->read() : std::monostate{};
-    if (auto p = std::get_if<Sensor::Scd30>(&measured); p) {
-      BottomCaseLed::showSignal(p->co2);
-    }
   }
   //
   if (duration_cast<seconds>(nowtp.time_since_epoch()).count() % 60 == 0) {
@@ -311,6 +308,9 @@ inline void low_speed_loop(system_clock::time_point nowtp) {
       // Sensirion SCD30: NDIR CO2 and Temperature and Humidity Sensor
       bool operator()(const Sensor::Scd30 &in) {
         MeasurementScd30 m = {tp, in};
+        // CO2の値でLEDの色を変える
+        BottomCaseLed::showSignal(in.co2);
+        //
         if (Application::historiesScd30) {
           Application::historiesScd30->insert(m);
         } else {
