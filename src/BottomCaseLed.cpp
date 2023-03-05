@@ -25,16 +25,18 @@ void BottomCaseLed::offSignal() noexcept {
 
 //
 void BottomCaseLed::showSignal(Ppm co2) noexcept {
-  constexpr float_t start = 360.0 + 240.0;     // 600 degrees == BLUE
+  constexpr float_t start = 360.0 + 180.0;     // 540 degrees == CYAN
   constexpr float_t end = 300.0;               // 300 degrees == PURPLE
   constexpr float_t L = std::abs(start - end); //
   constexpr float_t rotation = -1.0;           // anticlockwise
   //
-  const float_t normalized =
-      std::clamp(static_cast<double>(co2.value), 0.0, 3500.0) / 3500.0;
+  constexpr auto lower = 0.0;
+  constexpr auto upper = 3500.0;
+  const auto clamped = std::clamp(static_cast<double>(co2.value), lower, upper);
+  const float_t normalized = (clamped - lower) / (upper - lower + 1);
   const float_t hue = start + rotation * (L * normalized);
-  constexpr float_t saturation = 0.9;
-  constexpr float_t lightness = 0.3;
+  constexpr float_t saturation = 1.0;
+  constexpr float_t lightness = 0.2;
 
   auto rgb = hslToRgb(hue >= 360.0 ? hue - 360.0 : hue, saturation, lightness);
   std::fill(leds.begin(), leds.end(), rgb);
