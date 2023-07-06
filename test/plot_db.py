@@ -82,7 +82,7 @@ def plot(df, sensorIds, filename_png, filename_csv, tz):
     df = calculate_absolute_humidity(df)
     df = df.set_index('measuredAt')
     # print(df)
-    df.to_csv(filename_csv)
+    df.to_csv(filename_csv, date_format='%Y-%m-%dT%H:%M:%S%z')
     #
     major_formatter = DateFormatter('%a\n%Y-%m-%d\n%H:%M:%S\n%Z', tz=tz)
     major_locator = DayLocator(tz=tz)
