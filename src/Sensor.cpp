@@ -5,7 +5,7 @@
 #include "Sensor.hpp"
 #include "Application.hpp"
 #include "Time.hpp"
-#include <M5Core2.h>
+#include <M5Unified.h>
 #include <cmath>
 #include <variant>
 
@@ -336,9 +336,8 @@ error:
 //
 Sensor::Scd41Device::SensorStatus
 Sensor::Scd41Device::getSensorStatus() noexcept {
-  constexpr uint16_t BITMASK = 0b0000011111111111;
-  uint16_t status = 0;
-  auto error = scd4x.getDataReadyStatus(status);
+  bool dataReadyFlag{false};
+  const auto error = scd4x.getDataReadyFlag(dataReadyFlag);
   if (error) {
     char errorMessage[256];
     ESP_LOGE(MAIN, "Error trying to execute getDataReadyStatus(): ");
@@ -346,11 +345,7 @@ Sensor::Scd41Device::getSensorStatus() noexcept {
     ESP_LOGE(MAIN, "%s", errorMessage);
     return SensorStatus::DataNotReady;
   }
-  if (status & BITMASK == 0) {
-    return SensorStatus::DataNotReady;
-  } else {
-    return SensorStatus::DataReady;
-  }
+  return dataReadyFlag ? SensorStatus::DataReady : SensorStatus::DataNotReady;
 }
 //
 bool Sensor::Scd41Device::readyToRead() noexcept {
@@ -426,11 +421,12 @@ bool Sensor::M5Env3Device::init() {
   } else {
     ESP_LOGE(MAIN, "M5Env3-SHT31 sensor heater DISABLED.");
   }
-  if (qmp6988.init() == 0) {
+  if (qmp6988.begin()) {
+    initialized = true;
+    return true;
+  } else {
     return false;
   }
-  initialized = true;
-  return initialized;
 }
 //
 bool Sensor::M5Env3Device::readyToRead() noexcept {
@@ -484,7 +480,7 @@ error_sht31:
   return std::monostate{};
 
 error_qmp6988:
-  if (qmp6988.init()) {
+  if (qmp6988.begin()) {
     ESP_LOGD(MAIN, "QMP6988 sensor: error to re-initialize.");
   }
   return std::monostate{};

@@ -103,8 +103,10 @@ static bool connectToWiFi(std::string_view ssid, std::string_view password,
 //
 void setup() {
   constexpr auto timeout{5s};
-  // initializing M5Stack and UART, I2C, Touch, RTC, etc. peripherals.
-  M5.begin(true, true, true, true);
+  // initializing M5Stack Core2 with M5Unified
+  auto cfg = M5.config();
+  M5.begin(cfg);
+  M5.Display.setColorDepth(16);
   // init SystemPower
   SystemPower::init();
   // init BottomCaseLed

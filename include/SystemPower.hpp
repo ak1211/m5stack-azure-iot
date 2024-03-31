@@ -4,7 +4,7 @@
 //
 #pragma once
 #include "value_types.hpp"
-#include <M5Core2.h>
+#include <M5Unified.h>
 #include <tuple>
 
 namespace SystemPower {
@@ -13,12 +13,16 @@ extern void init() noexcept;
 // 外部電源 / バッテリー電源
 enum class PowerSource { External, Internal };
 inline PowerSource getPowerSource() noexcept {
-  return M5.Axp.isACIN() ? PowerSource::External : PowerSource::Internal;
+
+  return M5.Power.Axp192.isACIN() ? PowerSource::External
+                                  : PowerSource::Internal;
 }
 //
-using BatteryPercentage = int8_t;
+using BatteryLevel = int8_t;
 // バッテリー電圧
-extern std::pair<MilliVoltage, BatteryPercentage> getBatteryVoltage() noexcept;
+extern MilliVoltage getBatteryVoltage() noexcept;
+// バッテリー残量
+extern BatteryLevel getBatteryLevel() noexcept;
 // バッテリー充電中 / 放電中
 enum class BatteryCurrentDirection { Charging, Discharging };
 //
