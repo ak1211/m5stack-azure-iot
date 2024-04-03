@@ -3,15 +3,16 @@
 // See LICENSE file in the project root for full license information.
 //
 #pragma once
+#include "M5UnitENV.h"
 #include "SimpleMovingAverage.hpp"
 #include "value_types.hpp"
 #include <Adafruit_BME280.h>
 #include <Adafruit_SCD30.h>
 #include <Adafruit_SGP30.h>
-#include <Adafruit_SHT31.h>
 #include <Adafruit_Sensor.h>
 #include <QMP6988.h>
 #include <SensirionI2CScd4x.h>
+#include <Wire.h>
 #include <chrono>
 #include <cstdint>
 #include <ctime>
@@ -129,6 +130,7 @@ class Bme280Device : public Device {
   //
   const SensorDescriptor sensor_descriptor;
   const uint8_t i2c_address;
+  TwoWire &two_wire;
   bool initialized{false};
   std::chrono::steady_clock::time_point last_measured_at{};
   Adafruit_BME280 bme280;
@@ -139,9 +141,10 @@ class Bme280Device : public Device {
 
 public:
   Bme280Device(const SensorDescriptor &custom_sensor_descriptor,
-               uint8_t i2c_address)
+               uint8_t i2c_address, TwoWire &wire)
       : sensor_descriptor{custom_sensor_descriptor},
         i2c_address{i2c_address},
+        two_wire{wire},
         initialized{false},
         last_measured_at{} {}
   // delte copy constructor / copy assignment operator
@@ -175,6 +178,7 @@ class Sgp30Device : public Device {
       std::chrono::seconds{61} / INTERVAL; // reads per min
   //
   const SensorDescriptor sensor_descriptor;
+  TwoWire &two_wire;
   bool initialized{false};
   std::chrono::steady_clock::time_point last_measured_at{};
   std::optional<BaselineECo2> last_eco2_baseline{std::nullopt};
@@ -184,8 +188,9 @@ class Sgp30Device : public Device {
   SimpleMovingAverage<SMA_PERIOD, uint16_t, uint32_t> sma_tvoc{};
 
 public:
-  Sgp30Device(const SensorDescriptor &custom_sensor_descriptor)
+  Sgp30Device(const SensorDescriptor &custom_sensor_descriptor, TwoWire &wire)
       : sensor_descriptor{custom_sensor_descriptor},
+        two_wire{wire},
         initialized{false},
         last_eco2_baseline{std::nullopt},
         last_tvoc_baseline{std::nullopt} {}
@@ -215,6 +220,7 @@ class Scd30Device : public Device {
       std::chrono::seconds{61} / INTERVAL; // reads per min
   //
   const SensorDescriptor &sensor_descriptor;
+  TwoWire &two_wire;
   bool initialized{false};
   std::chrono::steady_clock::time_point last_measured_at{};
   Adafruit_SCD30 scd30;
@@ -223,8 +229,9 @@ class Scd30Device : public Device {
   SimpleMovingAverage<SMA_PERIOD, uint16_t, uint32_t> sma_relative_humidity{};
 
 public:
-  Scd30Device(const SensorDescriptor &custom_sensor_descriptor)
+  Scd30Device(const SensorDescriptor &custom_sensor_descriptor, TwoWire &wire)
       : sensor_descriptor{custom_sensor_descriptor},
+        two_wire{wire},
         initialized{false},
         last_measured_at{} {}
   // delte copy constructor / copy assignment operator
@@ -249,6 +256,7 @@ class Scd41Device : public Device {
       std::chrono::seconds{61} / INTERVAL; // reads per min
   //
   const SensorDescriptor &sensor_descriptor;
+  TwoWire &two_wire;
   bool initialized{false};
   std::chrono::steady_clock::time_point last_measured_at{};
   SensirionI2CScd4x scd4x;
@@ -257,8 +265,9 @@ class Scd41Device : public Device {
   SimpleMovingAverage<SMA_PERIOD, uint16_t, uint32_t> sma_relative_humidity{};
 
 public:
-  Scd41Device(const SensorDescriptor &custom_sensor_descriptor)
+  Scd41Device(const SensorDescriptor &custom_sensor_descriptor, TwoWire &wire)
       : sensor_descriptor{custom_sensor_descriptor},
+        two_wire{wire},
         initialized{false},
         last_measured_at{} {}
   // delte copy constructor / copy assignment operator
@@ -284,11 +293,16 @@ class M5Env3Device : public Device {
   constexpr static auto SMA_PERIOD =
       std::chrono::seconds{61} / INTERVAL; // reads per min
   constexpr static auto ENV3_I2C_ADDRESS_SHT31 = uint8_t{0x44};
+  constexpr static auto ENV3_I2C_ADDRESS_QMP6988 = uint8_t{0x70};
   //
   const SensorDescriptor sensor_descriptor;
+  TwoWire &two_wire;
+  uint8_t address;
+  uint8_t sda_pin;
+  uint8_t scl_pin;
   bool initialized{false};
   std::chrono::steady_clock::time_point last_measured_at{};
-  Adafruit_SHT31 sht31;
+  SHT3X sht31;
   QMP6988 qmp6988;
   SimpleMovingAverage<SMA_PERIOD, CentiDegC::rep, int32_t> sma_temperature{};
   SimpleMovingAverage<SMA_PERIOD, CentiRH::rep, int32_t>
@@ -296,8 +310,12 @@ class M5Env3Device : public Device {
   SimpleMovingAverage<SMA_PERIOD, DeciPa::rep, int32_t> sma_pressure{};
 
 public:
-  M5Env3Device(const SensorDescriptor &custom_sensor_descriptor)
+  M5Env3Device(const SensorDescriptor &custom_sensor_descriptor, TwoWire &wire,
+               uint8_t sda_pin, uint8_t scl_pin)
       : sensor_descriptor{custom_sensor_descriptor},
+        two_wire{wire},
+        sda_pin{sda_pin},
+        scl_pin{scl_pin},
         initialized{false},
         last_measured_at{} {}
   // delte copy constructor / copy assignment operator

@@ -8,28 +8,34 @@
 
 //
 void SystemPower::init() noexcept {
-  M5.Axp.SetCHGCurrent(AXP192::kCHG_280mA);
-  // M5.Axp.SetLcdVoltage(3300);
-  M5.Axp.SetLcdVoltage(2800);
-  M5.Axp.SetLDOVoltage(3, 3300);
+  M5.Power.Axp192.setChargeCurrent(280);
+  M5.Display.setBrightness(200);
+  // stop the vibration
+  M5.Power.Axp192.setLDO3(0);
 }
 
 // バッテリー電圧
-std::pair<MilliVoltage, SystemPower::BatteryPercentage>
-SystemPower::getBatteryVoltage() noexcept {
-  auto voltage = M5.Axp.GetBatVoltage();
-  auto percentage = (voltage < 3.2f) ? 0.0f : (voltage - 3.2f) * 100.0f;
-  auto clamped = std::round(std::clamp(percentage, 0.0f, 100.0f));
-  return {MilliVoltage(static_cast<int32_t>(1000.0f * voltage)), clamped};
+MilliVoltage SystemPower::getBatteryVoltage() noexcept {
+  auto voltage = M5.Power.Axp192.getBatteryVoltage();
+  return MilliVoltage(static_cast<int32_t>(1000.0f * voltage));
+}
+
+// バッテリー残量
+SystemPower::BatteryLevel SystemPower::getBatteryLevel() noexcept {
+  return M5.Power.Axp192.getBatteryLevel();
 }
 
 //
 std::pair<MilliAmpere, SystemPower::BatteryCurrentDirection>
 SystemPower::getBatteryCurrent() noexcept {
-  MilliAmpere current{static_cast<int32_t>(M5.Axp.GetBatCurrent())};
-  auto direction = (current < MilliAmpere::zero())
-                       ? BatteryCurrentDirection::Discharging
-                       : BatteryCurrentDirection::Charging;
+  MilliAmpere chargeCurrent{
+      static_cast<int32_t>(M5.Power.Axp192.getBatteryChargeCurrent())};
+  MilliAmpere dischargeCurrent{
+      static_cast<int32_t>(M5.Power.Axp192.getBatteryDischargeCurrent())};
 
-  return {std::chrono::abs(current), direction};
+  if (chargeCurrent > dischargeCurrent) {
+    return {chargeCurrent, BatteryCurrentDirection::Charging};
+  } else {
+    return {dischargeCurrent, BatteryCurrentDirection::Discharging};
+  }
 }

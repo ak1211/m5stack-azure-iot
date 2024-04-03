@@ -4,6 +4,7 @@
 //
 #pragma once
 #include "Sensor.hpp"
+#include <Wire.h>
 #include <cstdint>
 #include <memory>
 #include <vector>
@@ -23,4 +24,6 @@ constexpr static auto SENSOR_DESCRIPTOR_M5ENV3 =
     SensorDescriptor({'M', '5', 'E', 'N', 'V', '3', '\0', '\0'});
 //
 extern std::vector<std::unique_ptr<Sensor::Device>> sensors;
+// 初期化
+extern void init(TwoWire &wire, int8_t sda_pin, int8_t scl_pin) noexcept;
 } // namespace Peripherals

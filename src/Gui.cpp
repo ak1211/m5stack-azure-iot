@@ -2,14 +2,12 @@
 // Licensed under the MIT License <https://spdx.org/licenses/MIT.html>
 // See LICENSE file in the project root for full license information.
 //
-#include <M5Core2.h>
-#undef max
-#undef min
-#include "Application.hpp"
 #include "Gui.hpp"
+#include "Application.hpp"
 #include "LocalDatabase.hpp"
 #include "SystemPower.hpp"
 #include "Time.hpp"
+#include <M5Unified.h>
 #include <WiFi.h>
 #include <algorithm>
 #include <array>
@@ -27,8 +25,6 @@ using namespace std::chrono;
 using namespace std::literals::string_literals;
 using namespace std::literals::string_view_literals;
 
-//
-LGFX GUI::lcd;
 // draw buffer
 std::unique_ptr<lv_color_t[]> GUI::draw_buf_1{};
 std::unique_ptr<lv_color_t[]> GUI::draw_buf_2{};
@@ -51,8 +47,8 @@ static void disp_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area,
                        lv_color_t *color_p) noexcept {
   int32_t width = area->x2 - area->x1 + 1;
   int32_t height = area->y2 - area->y1 + 1;
-  GUI::lcd.setAddrWindow(area->x1, area->y1, width, height);
-  GUI::lcd.pushPixels((uint16_t *)color_p, width * height, true);
+  M5.Display.setAddrWindow(area->x1, area->y1, width, height);
+  M5.Display.pushPixels((uint16_t *)color_p, width * height, true);
 
   /*IMPORTANT!!!
    *Inform the graphics library that you are ready with the flushing*/
@@ -64,8 +60,8 @@ static void touchpad_read(lv_indev_drv_t *indev_drv,
   lv_coord_t last_x = 0;
   lv_coord_t last_y = 0;
 
-  if (M5.Touch.ispressed()) {
-    auto coordinate = M5.Touch.getPressPoint();
+  if (M5.Touch.getDetail().isPressed()) {
+    auto coordinate = M5.Touch.getTouchPointRaw();
     data->point.x = coordinate.x;
     data->point.y = coordinate.y;
     data->state = LV_INDEV_STATE_PR;
@@ -124,9 +120,6 @@ static void add_tile(GUI::TileVector &vect, const GUI::Tile::InitArg &arg) {
 
 //
 void GUI::init() {
-  // LovyanGFX init
-  lcd.init();
-  lcd.setColorDepth(16);
   // LGVL init
   lv_init();
   lv_port_init();
@@ -187,9 +180,11 @@ void GUI::startUI() noexcept {
   //
   using Fn = std::function<void(lv_obj_t * tv, int16_t col, uint8_t dir)>;
   // Clock
-  Fn addClock = [](lv_obj_t *tv, int16_t col, uint8_t dir) {
-    add_tile<Clock>(tiles, {tv, col, 0, dir});
-  };
+  if constexpr (false) {
+    Fn addClock = [](lv_obj_t *tv, int16_t col, uint8_t dir) {
+      add_tile<Clock>(tiles, {tv, col, 0, dir});
+    };
+  }
   // SystemHealth
   Fn addSystemHealth = [](lv_obj_t *tv, int16_t col, uint8_t dir) {
     add_tile<SystemHealth>(tiles, {tv, col, 0, dir});
@@ -253,7 +248,7 @@ void GUI::startUI() noexcept {
   //
   std::vector<Fn> functions;
   // Tile::BootMessageの次からこの並び順
-//  functions.push_back(addClock);
+  //  functions.push_back(addClock);
   functions.push_back(addSystemHealth);
   functions.push_back(addSummary);
   if (Application::historiesM5Env3) {
@@ -288,12 +283,12 @@ void GUI::startUI() noexcept {
 
 //
 void GUI::home() noexcept {
-  constexpr auto COL_ID = 2;
-  constexpr auto ROW_ID = 0;
   vibrate();
   if (periodical_timer) {
     lv_timer_reset(periodical_timer);
   }
+  constexpr auto COL_ID = 2;
+  constexpr auto ROW_ID = 0;
   lv_obj_set_tile_id(tileview, COL_ID, ROW_ID, LV_ANIM_OFF);
 }
 
@@ -330,11 +325,11 @@ void GUI::moveNext() noexcept {
 //
 void GUI::vibrate() noexcept {
   constexpr auto MILLIS = 100;
-  lv_timer_t *timer = lv_timer_create(
-      [](lv_timer_t *) -> void { M5.Axp.SetLDOEnable(3, false); }, MILLIS,
-      nullptr);
+  lv_timer_t *timer =
+      lv_timer_create([](lv_timer_t *) -> void { M5.Power.Axp192.setLDO3(0); },
+                      MILLIS, nullptr);
   lv_timer_set_repeat_count(timer, 1); // one-shot timer
-  M5.Axp.SetLDOEnable(3, true);
+  M5.Power.Axp192.setLDO3(3300);
 }
 
 //
@@ -414,9 +409,10 @@ void GUI::Tile::SystemHealth::render() noexcept {
   const int16_t hour = uptime.count() / (60 * 60) % 24;
   const int32_t days = uptime.count() / (60 * 60 * 24);
   //
-  const auto [batCurrent, curDirection] = SystemPower::getBatteryCurrent();
-  const auto [batVolt, batPercentage] = SystemPower::getBatteryVoltage();
-  const Voltage volt = batVolt;
+  const auto [batCurrent, currentDirection] = SystemPower::getBatteryCurrent();
+  const auto batVoltage = SystemPower::getBatteryVoltage();
+  const auto batLevel = SystemPower::getBatteryLevel();
+  const Voltage volt = batVoltage;
   const Ampere amp = batCurrent;
   //
   { // now time
@@ -470,14 +466,14 @@ void GUI::Tile::SystemHealth::render() noexcept {
   }
   { // battery status
     std::ostringstream oss;
-    oss << "Battery "                                                  //
-        << std::setfill(' ') << std::setw(3) << +batPercentage << "% " //
-        << std::setfill(' ') << std::fixed                             //
-        << std::setw(5) << std::setprecision(3)                        //
-        << static_cast<float>(volt.count()) << "V "                    //
-        << std::setw(5) << std::setprecision(3)                        //
-        << static_cast<float>(amp.count()) << "A "                     //
-        << (curDirection == SystemPower::BatteryCurrentDirection::Charging
+    oss << "Battery "                                             //
+        << std::setfill(' ') << std::setw(3) << +batLevel << "% " //
+        << std::setfill(' ') << std::fixed                        //
+        << std::setw(5) << std::setprecision(3)                   //
+        << static_cast<float>(volt.count()) << "V "               //
+        << std::setw(5) << std::setprecision(3)                   //
+        << static_cast<float>(amp.count()) << "A "                //
+        << (currentDirection == SystemPower::BatteryCurrentDirection::Charging
                 ? "CHARGING"sv
                 : "DISCHARGING"sv);
     lv_label_set_text(battery_label, oss.str().c_str());

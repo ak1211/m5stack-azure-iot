@@ -3,17 +3,8 @@
 // See LICENSE file in the project root for full license information.
 //
 #pragma once
-#include <M5Core2.h>
-#undef min
-#undef max
-
-#define LGFX_USE_V1
-#define LGFX_AUTODETECT
-#include <LovyanGFX.hpp>
-
 #include "Application.hpp"
 #include "Sensor.hpp"
-#include <LGFX_AUTODETECT.hpp>
 #include <algorithm>
 #include <chrono>
 #include <lvgl.h>
@@ -30,8 +21,6 @@ struct Interface {
 } // namespace GUI::Tile
 
 namespace GUI {
-// LovyanGFX
-extern LGFX lcd;
 // display resolution
 constexpr static auto lcdHorizResolution{
     Application::M5StackCore2_HorizResolution};

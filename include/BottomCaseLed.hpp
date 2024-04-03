@@ -11,10 +11,11 @@
 namespace BottomCaseLed {
 constexpr static auto NUM_OF_LEDS = uint8_t{10};
 constexpr static auto GPIO_PIN_SK6815 = uint8_t{25};
-constexpr static auto BME280_I2C_ADDRESS = uint8_t{0x76};
 extern std::array<CRGB, NUM_OF_LEDS> leds;
 //
 extern void init() noexcept;
+//
+extern void showProgressive(CRGB color) noexcept;
 //
 extern void offSignal() noexcept;
 //
