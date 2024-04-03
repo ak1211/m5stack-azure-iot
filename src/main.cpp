@@ -274,7 +274,7 @@ void setup() {
     }
   }
   // init MQTT
-  if constexpr (false) {
+  if constexpr (true) {
     GUI::showBootstrappingMessage("connect MQTT.");
     bool ok{false};
     auto timeover{steady_clock::now() + TIMEOUT};
