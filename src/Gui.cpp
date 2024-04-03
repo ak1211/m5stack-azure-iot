@@ -180,9 +180,11 @@ void GUI::startUI() noexcept {
   //
   using Fn = std::function<void(lv_obj_t * tv, int16_t col, uint8_t dir)>;
   // Clock
-  Fn addClock = [](lv_obj_t *tv, int16_t col, uint8_t dir) {
-    add_tile<Clock>(tiles, {tv, col, 0, dir});
-  };
+  if constexpr (false) {
+    Fn addClock = [](lv_obj_t *tv, int16_t col, uint8_t dir) {
+      add_tile<Clock>(tiles, {tv, col, 0, dir});
+    };
+  }
   // SystemHealth
   Fn addSystemHealth = [](lv_obj_t *tv, int16_t col, uint8_t dir) {
     add_tile<SystemHealth>(tiles, {tv, col, 0, dir});
@@ -281,12 +283,12 @@ void GUI::startUI() noexcept {
 
 //
 void GUI::home() noexcept {
-  constexpr auto COL_ID = 2;
-  constexpr auto ROW_ID = 0;
   vibrate();
   if (periodical_timer) {
     lv_timer_reset(periodical_timer);
   }
+  constexpr auto COL_ID = 2;
+  constexpr auto ROW_ID = 0;
   lv_obj_set_tile_id(tileview, COL_ID, ROW_ID, LV_ANIM_OFF);
 }
 

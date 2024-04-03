@@ -14,6 +14,7 @@
 #include "credentials.h"
 #include <ArduinoOTA.h>
 #include <WiFi.h>
+#include <Wire.h>
 #include <chrono>
 #include <ctime>
 #include <esp_log.h>
@@ -25,6 +26,8 @@
 #include <tuple>
 #include <variant>
 #include <vector>
+
+#include <M5Unified.h>
 
 using namespace std::literals::string_literals;
 using namespace std::chrono;
@@ -83,14 +86,14 @@ static void setupOTA() {
 // WiFi APへ接続確立を試みる
 //
 static bool connectToWiFi(std::string_view ssid, std::string_view password,
-                          seconds timeout) {
+                          seconds TIMEOUT) {
   if (WiFi.status() == WL_CONNECTED) {
     return true;
   }
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid.data(), password.data());
   bool ok{false};
-  auto timeover{steady_clock::now() + timeout};
+  auto timeover{steady_clock::now() + TIMEOUT};
   while (!ok && steady_clock::now() < timeover) {
     ok = WiFi.status() == WL_CONNECTED;
     std::this_thread::sleep_for(10ms);
@@ -99,90 +102,129 @@ static bool connectToWiFi(std::string_view ssid, std::string_view password,
 }
 
 //
+// get baseline for "Sensirion SGP30: Air Quality Sensor" from database
+//
+using BaselinesSGP30 = std::pair<BaselineECo2, BaselineTotalVoc>;
+static std::optional<BaselinesSGP30> getLatestBaselineSGP30() {
+  std::optional<BaselineECo2> baseline_eco2{std::nullopt};
+  std::optional<BaselineTotalVoc> baseline_tvoc{std::nullopt};
+  //
+  if (auto [available, at, eco2] = local_database.get_latest_baseline_eco2(
+          SensorId(Peripherals::SENSOR_DESCRIPTOR_SGP30));
+      available) {
+    baseline_eco2 = eco2;
+    ESP_LOGD(MAIN, "latest_baseline_eco2: at(%d), baseline(%d)", at, eco2);
+  }
+  if (auto [available, at, tvoc] = local_database.get_latest_baseline_total_voc(
+          SensorId(Peripherals::SENSOR_DESCRIPTOR_SGP30));
+      available) {
+    baseline_tvoc = tvoc;
+    ESP_LOGD(MAIN, "latest_baseline_total_voc: at(%d), baseline(%d)", at, tvoc);
+  }
+
+  if (baseline_eco2.has_value() && baseline_tvoc.has_value()) {
+    return std::make_pair(baseline_eco2.value(), baseline_tvoc.value());
+  } else {
+    ESP_LOGE(MAIN, "getLatestBaselines: failed.");
+    return std::nullopt;
+  }
+}
+
+//
 // Arduinoのsetup()関数
 //
 void setup() {
-  constexpr auto timeout{5s};
+  constexpr auto TIMEOUT{5s};
   // initializing M5Stack Core2 with M5Unified
-  auto cfg = M5.config();
-  M5.begin(cfg);
-  M5.Display.setColorDepth(16);
+  {
+    auto cfg = M5.config();
+    M5.begin(cfg);
+    Wire.end();
+    Wire.begin(M5.Ex_I2C.getSDA(), M5.Ex_I2C.getSCL());
+    M5.Display.setColorDepth(16);
+  }
+  // init peripherals
+  Peripherals::init(Wire, M5.Ex_I2C.getSDA(), M5.Ex_I2C.getSCL());
   // init SystemPower
   SystemPower::init();
   // init BottomCaseLed
   BottomCaseLed::init();
   // init GUI
+  BottomCaseLed::showProgressive(CRGB::White);
   GUI::init();
-  { // init WiFi
+  // init WiFi
+  if constexpr (true) {
+    BottomCaseLed::showProgressive(CRGB::White);
     GUI::showBootstrappingMessage("connect to WiFi AP. SSID:\""s +
                                   Credentials.wifi_ssid + "\""s);
     if (!connectToWiFi(Credentials.wifi_ssid, Credentials.wifi_password, 30s)) {
       GUI::showBootstrappingMessage("connect failed.");
     }
   }
-  { // init Time
+  // init Time
+  if constexpr (true) {
+    BottomCaseLed::showProgressive(CRGB::White);
     GUI::showBootstrappingMessage("init time.");
     // initialize Time
     Time::init();
   }
-  { // init OTA update
+  // init OTA update
+  if constexpr (true) {
+    BottomCaseLed::showProgressive(CRGB::White);
     GUI::showBootstrappingMessage("setup OTA update.");
     setupOTA();
   }
-  { // init LocalDatabase
+  // init LocalDatabase
+  if constexpr (true) {
+    BottomCaseLed::showProgressive(CRGB::White);
     GUI::showBootstrappingMessage("init LocalDatabase.");
     if (!local_database.begin()) {
       GUI::showBootstrappingMessage("LocalDatabase is not available.");
     }
   }
-  { // init DataLoggingFile
+  // init DataLoggingFile
+  if constexpr (true) {
+    BottomCaseLed::showProgressive(CRGB::White);
     GUI::showBootstrappingMessage("init DataLoggingFile.");
     if (!data_logging_file.init()) {
       GUI::showBootstrappingMessage("DataLoggingFile is not available.");
     }
   }
-  { // get baseline for "Sensirion SGP30: Air Quality Sensor" from database
-    std::optional<BaselineECo2> baseline_eco2{std::nullopt};
-    std::optional<BaselineTotalVoc> baseline_tvoc{std::nullopt};
-    auto eco2 = local_database.get_latest_baseline_eco2(
-        SensorId(Peripherals::SENSOR_DESCRIPTOR_SGP30));
-    if (std::get<0>(eco2)) {
-      baseline_eco2 = std::get<2>(eco2);
-      ESP_LOGD(MAIN, "get_latest_baseline_eco2: at(%d), baseline(%d)",
-               std::get<1>(eco2), std::get<2>(eco2));
-    } else {
-      ESP_LOGE(MAIN, "get_latest_baseline_eco2: failed.");
-    }
-    //
-    auto tvoc = local_database.get_latest_baseline_total_voc(
-        SensorId(Peripherals::SENSOR_DESCRIPTOR_SGP30));
-    if (std::get<0>(tvoc)) {
-      baseline_tvoc = std::get<2>(tvoc);
-      ESP_LOGD(MAIN, "get_latest_baseline_total_voc: at(%d), baseline(%d)",
-               std::get<1>(tvoc), std::get<2>(tvoc));
-    } else {
-      ESP_LOGE(MAIN, "get_latest_baseline_total_voc: failed.");
-    }
-    //
-    // init sensors
-    //
+  // get baseline for "Sensirion SGP30: Air Quality Sensor" from database
+  std::optional<BaselinesSGP30> baseline_sgp30{std::nullopt};
+  if constexpr (true) {
+    BottomCaseLed::showProgressive(CRGB::White);
+    baseline_sgp30 = getLatestBaselineSGP30();
+  }
+  // init sensors
+  if constexpr (true) {
+    ESP_LOGI(MAIN, "init sensors");
     for (auto &sensor_device : Peripherals::sensors) {
+      BottomCaseLed::showProgressive(CRGB::White);
+      //
       std::ostringstream oss;
       SensorDescriptor desc = sensor_device->getSensorDescriptor();
       oss << "init " << desc.str() << " sensor.";
       GUI::showBootstrappingMessage(oss.str().c_str());
       bool ok{false};
-      auto timeover{steady_clock::now() + timeout};
-      while (!ok && steady_clock::now() < timeover) {
+      auto timeover{steady_clock::now() + TIMEOUT};
+      while (steady_clock::now() < timeover) {
+        if (ok = sensor_device->init(); ok) {
+          ESP_LOGI(MAIN, "%s init success.", desc.str().c_str());
+          break;
+        }
+        ESP_LOGI(MAIN, "%s init failed, retry", desc.str().c_str());
         std::this_thread::sleep_for(10ms);
-        ok = sensor_device->init();
       }
       if (ok) {
         if (sensor_device->getSensorDescriptor() ==
             Peripherals::SENSOR_DESCRIPTOR_SGP30) {
-          if (baseline_eco2.has_value() && baseline_tvoc.has_value()) {
-            auto p = static_cast<Sensor::Sgp30Device *>(sensor_device.get());
-            p->setIAQBaseline(*baseline_eco2, *baseline_tvoc);
+          // センサーがSGP30の場合のみ
+          if (baseline_sgp30.has_value()) {
+            auto [eco2, tvoc] = *baseline_sgp30;
+            auto sensor_ptr =
+                static_cast<Sensor::Sgp30Device *>(sensor_device.get());
+            sensor_ptr->setIAQBaseline(eco2, tvoc);
           } else {
             ESP_LOGI(MAIN,
                      "SGP30 built-in Automatic Baseline Correction algorithm.");
@@ -231,20 +273,23 @@ void setup() {
       }
     }
   }
-  { // init MQTT
+  // init MQTT
+  if constexpr (false) {
     GUI::showBootstrappingMessage("connect MQTT.");
     bool ok{false};
-    auto timeover{steady_clock::now() + timeout};
+    auto timeover{steady_clock::now() + TIMEOUT};
     while (!ok && steady_clock::now() < timeover) {
-      std::this_thread::sleep_for(10ms);
+      BottomCaseLed::showProgressive(CRGB::White);
       ok = Telemetry::init(Credentials.iothub_fqdn, Credentials.device_id,
                            Credentials.device_key);
+      std::this_thread::sleep_for(10ms);
     }
     if (!ok) {
       GUI::showBootstrappingMessage("connect failed.");
     }
   }
-  // start ui
+  // setup successful
+  BottomCaseLed::offSignal();
   GUI::startUI();
 }
 

@@ -5,7 +5,6 @@
 #pragma once
 #include "Application.hpp"
 #include "Sensor.hpp"
-#include <M5Unified.h>
 #include <algorithm>
 #include <chrono>
 #include <lvgl.h>

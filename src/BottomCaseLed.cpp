@@ -9,12 +9,30 @@
 #include <cmath>
 
 std::array<CRGB, BottomCaseLed::NUM_OF_LEDS> BottomCaseLed::leds{};
+static int8_t number_of_progressive = 0;
+static int8_t direction_of_progressive = 1;
 
 //
 void BottomCaseLed::init() noexcept {
   FastLED.addLeds<SK6812, GPIO_PIN_SK6815, GRB>(leds.data(), leds.size());
   FastLED.setBrightness(50);
   offSignal();
+}
+
+//
+void BottomCaseLed::showProgressive(CRGB color) noexcept {
+  std::fill(leds.begin(), leds.end(), CRGB::Black);
+  int8_t index = std::clamp(number_of_progressive, int8_t{0}, int8_t{5});
+  leds[index] = color;
+  FastLED.show();
+  number_of_progressive += direction_of_progressive;
+  if (number_of_progressive >= 5) {
+    direction_of_progressive = -1;
+    number_of_progressive = 5;
+  } else if (number_of_progressive <= 0) {
+    direction_of_progressive = 1;
+    number_of_progressive = 0;
+  }
 }
 
 //

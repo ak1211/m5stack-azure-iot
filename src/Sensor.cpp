@@ -29,7 +29,7 @@ void Sensor::Bme280Device::printSensorDetails() {
 //
 bool Sensor::Bme280Device::init() {
   initialized = false;
-  if (!bme280.begin(i2c_address)) {
+  if (!bme280.begin(i2c_address, &two_wire)) {
     return false;
   }
   setSampling();
@@ -114,7 +114,7 @@ void Sensor::Sgp30Device::printSensorDetails() {
 //
 bool Sensor::Sgp30Device::init() {
   initialized = false;
-  if (!sgp30.begin()) {
+  if (!sgp30.begin(&two_wire)) {
     return initialized;
   }
   initialized = true;
@@ -213,7 +213,7 @@ void Sensor::Scd30Device::printSensorDetails() {
 //
 bool Sensor::Scd30Device::init() {
   initialized = false;
-  if (!scd30.begin()) {
+  if (!scd30.begin(97U, &two_wire)) {
     return initialized;
   }
   initialized = true;
@@ -313,7 +313,7 @@ bool Sensor::Scd41Device::init() {
   uint16_t result = 0;
 
   initialized = false;
-  scd4x.begin(Wire);
+  scd4x.begin(two_wire);
   // stop potentially previously started measurement
   if (result = scd4x.stopPeriodicMeasurement(); result) {
     ESP_LOGE(MAIN, "Error trying to execute stopPeriodicMeasurement(): ");
@@ -413,20 +413,14 @@ void Sensor::M5Env3Device::printSensorDetails() {}
 //
 bool Sensor::M5Env3Device::init() {
   initialized = false;
-  if (!sht31.begin(ENV3_I2C_ADDRESS_SHT31)) {
+  if (!sht31.begin(&two_wire, ENV3_I2C_ADDRESS_SHT31, sda_pin, scl_pin)) {
     return false;
   }
-  if (sht31.isHeaterEnabled()) {
-    ESP_LOGE(MAIN, "M5Env3-SHT31 sensor heater ENABLED.");
-  } else {
-    ESP_LOGE(MAIN, "M5Env3-SHT31 sensor heater DISABLED.");
-  }
-  if (qmp6988.begin()) {
-    initialized = true;
-    return true;
-  } else {
+  if (!qmp6988.begin(&two_wire, ENV3_I2C_ADDRESS_QMP6988, sda_pin, scl_pin)) {
     return false;
   }
+  initialized = true;
+  return true;
 }
 //
 bool Sensor::M5Env3Device::readyToRead() noexcept {
@@ -438,28 +432,18 @@ Sensor::MeasuredValue Sensor::M5Env3Device::read() {
     ESP_LOGE(MAIN, "M5Env3 sensor inactived.");
     return std::monostate{};
   }
-
   //
-  float temperature = 0, humidity = 0;
-  float pressure = 0;
-  sht31.readBoth(&temperature, &humidity);
-  if (!std::isfinite(temperature)) {
-    ESP_LOGE(MAIN, "SHT31 sensor: temperature is not finite.");
+  if (!sht31.update()) {
     goto error_sht31;
   }
-  if (!std::isfinite(humidity)) {
-    ESP_LOGE(MAIN, "SHT31 sensor: humidity is not finite.");
-    goto error_sht31;
-  }
-  pressure = qmp6988.calcPressure();
-  if (pressure == 0.0f) {
+  if (!qmp6988.update()) {
     goto error_qmp6988;
   }
   //
   {
-    auto t = round<CentiDegC>(DegC(temperature));
-    auto rh = round<CentiRH>(PctRH(humidity));
-    auto pa = round<DeciPa>(Pascal(pressure));
+    auto t = round<CentiDegC>(DegC(sht31.cTemp));
+    auto rh = round<CentiRH>(PctRH(sht31.humidity));
+    auto pa = round<DeciPa>(Pascal(qmp6988.pressure));
     // successfully
     last_measured_at = steady_clock::now();
     sma_temperature.push_back(t.count());
@@ -474,13 +458,13 @@ Sensor::MeasuredValue Sensor::M5Env3Device::read() {
   }
 
 error_sht31:
-  if (sht31.begin(ENV3_I2C_ADDRESS_SHT31)) {
+  if (sht31.begin(&two_wire, ENV3_I2C_ADDRESS_SHT31, sda_pin, scl_pin)) {
     ESP_LOGD(MAIN, "SHT31 sensor: error to re-initialize.");
   }
   return std::monostate{};
 
 error_qmp6988:
-  if (qmp6988.begin()) {
+  if (qmp6988.begin(&two_wire, ENV3_I2C_ADDRESS_QMP6988, sda_pin, scl_pin)) {
     ESP_LOGD(MAIN, "QMP6988 sensor: error to re-initialize.");
   }
   return std::monostate{};

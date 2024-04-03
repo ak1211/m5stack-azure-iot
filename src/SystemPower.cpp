@@ -9,9 +9,9 @@
 //
 void SystemPower::init() noexcept {
   M5.Power.Axp192.setChargeCurrent(280);
-  // M5.Axp.SetLcdVoltage(3300);
   M5.Display.setBrightness(200);
-  M5.Power.Axp192.setLDO3(3300);
+  // stop the vibration
+  M5.Power.Axp192.setLDO3(0);
 }
 
 // バッテリー電圧
