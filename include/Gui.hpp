@@ -11,14 +11,14 @@
 #include <memory>
 #include <tuple>
 
-namespace GUI::Tile {
+namespace TileWidget {
 struct Interface {
   virtual void setActiveTile(lv_obj_t *tileview) noexcept = 0;
   virtual bool isActiveTile(lv_obj_t *tileview) const noexcept = 0;
   virtual void valueChangedEventHook(lv_event_t *event) noexcept = 0;
   virtual void timerHook() noexcept = 0;
 };
-} // namespace GUI::Tile
+} // namespace TileWidget
 
 namespace GUI {
 // display resolution
@@ -42,7 +42,7 @@ extern lv_timer_t *periodical_timer;
 // bootstrapping message
 extern std::vector<char> bootstrapping_message_cstr;
 // tile widget
-using TileVector = std::vector<std::unique_ptr<Tile::Interface>>;
+using TileVector = std::vector<std::unique_ptr<TileWidget::Interface>>;
 extern lv_obj_t *tileview;
 extern TileVector tiles;
 //
@@ -61,7 +61,7 @@ extern void moveNext() noexcept;
 extern void vibrate() noexcept;
 } // namespace GUI
 
-namespace GUI::Tile {
+namespace TileWidget {
 using namespace std::chrono;
 // init argument for "lv_tileview_add_tile()"
 using InitArg = std::tuple<lv_obj_t *, uint8_t, uint8_t, lv_dir_t>;
@@ -387,4 +387,4 @@ public:
   virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
   virtual void timerHook() noexcept override;
 };
-} // namespace GUI::Tile
+} // namespace TileWidget

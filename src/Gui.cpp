@@ -104,7 +104,7 @@ static void lv_port_indev_init() {
 
 //
 static bool
-check_if_active_tile(const std::unique_ptr<GUI::Tile::Interface> &t) {
+check_if_active_tile(const std::unique_ptr<TileWidget::Interface> &t) {
   if (auto p = t.get(); p) {
     return p->isActiveTile(GUI::tileview);
   } else {
@@ -114,7 +114,7 @@ check_if_active_tile(const std::unique_ptr<GUI::Tile::Interface> &t) {
 
 //
 template <typename T>
-static void add_tile(GUI::TileVector &vect, const GUI::Tile::InitArg &arg) {
+static void add_tile(GUI::TileVector &vect, const TileWidget::InitArg &arg) {
   vect.emplace_back(std::make_unique<T>(arg));
 }
 
@@ -127,7 +127,7 @@ void GUI::init() {
   // tileview init
   tileview = lv_tileview_create(lv_scr_act());
   // make first tile
-  add_tile<Tile::BootMessage>(tiles, {tileview, 0, 0, LV_DIR_RIGHT});
+  add_tile<TileWidget::BootMessage>(tiles, {tileview, 0, 0, LV_DIR_RIGHT});
   tiles[0]->setActiveTile(tileview);
   // set value changed callback
   lv_obj_add_event_cb(
@@ -176,7 +176,7 @@ void GUI::showBootstrappingMessage(std::string_view msg) noexcept {
 
 //
 void GUI::startUI() noexcept {
-  using namespace Tile;
+  using namespace TileWidget;
   //
   using Fn = std::function<void(lv_obj_t * tv, int16_t col, uint8_t dir)>;
   // Clock
@@ -247,7 +247,7 @@ void GUI::startUI() noexcept {
   // ここでタイルを用意する
   //
   std::vector<Fn> functions;
-  // Tile::BootMessageの次からこの並び順
+  // TileWidget::BootMessageの次からこの並び順
   //  functions.push_back(addClock);
   functions.push_back(addSystemHealth);
   functions.push_back(addSummary);
@@ -335,7 +335,7 @@ void GUI::vibrate() noexcept {
 //
 //
 //
-GUI::Tile::BootMessage::BootMessage(GUI::Tile::InitArg init) noexcept {
+TileWidget::BootMessage::BootMessage(TileWidget::InitArg init) noexcept {
   tile = std::apply(lv_tileview_add_tile, init);
   message_label = lv_label_create(tile);
   lv_label_set_long_mode(message_label, LV_LABEL_LONG_WRAP);
@@ -343,22 +343,22 @@ GUI::Tile::BootMessage::BootMessage(GUI::Tile::InitArg init) noexcept {
                            GUI::bootstrapping_message_cstr.data());
 }
 
-GUI::Tile::BootMessage::~BootMessage() {
+TileWidget::BootMessage::~BootMessage() {
   lv_obj_clean(tile);
   lv_obj_del(tile);
 }
 
-void GUI::Tile::BootMessage::valueChangedEventHook(lv_event_t *) noexcept {
+void TileWidget::BootMessage::valueChangedEventHook(lv_event_t *) noexcept {
   lv_label_set_text_static(message_label,
                            GUI::bootstrapping_message_cstr.data());
 }
 
-void GUI::Tile::BootMessage::timerHook() noexcept {}
+void TileWidget::BootMessage::timerHook() noexcept {}
 
 //
 //
 //
-GUI::Tile::SystemHealth::SystemHealth(GUI::Tile::InitArg init) noexcept {
+TileWidget::SystemHealth::SystemHealth(TileWidget::InitArg init) noexcept {
   tile = std::apply(lv_tileview_add_tile, init);
   lv_style_init(&style_label);
   lv_style_set_text_font(&style_label, &lv_font_montserrat_16);
@@ -391,18 +391,18 @@ GUI::Tile::SystemHealth::SystemHealth(GUI::Tile::InitArg init) noexcept {
   render();
 }
 
-GUI::Tile::SystemHealth::~SystemHealth() {
+TileWidget::SystemHealth::~SystemHealth() {
   lv_obj_clean(tile);
   lv_obj_del(tile);
 }
 
-void GUI::Tile::SystemHealth::valueChangedEventHook(lv_event_t *) noexcept {
+void TileWidget::SystemHealth::valueChangedEventHook(lv_event_t *) noexcept {
   render();
 }
 
-void GUI::Tile::SystemHealth::timerHook() noexcept { render(); }
+void TileWidget::SystemHealth::timerHook() noexcept { render(); }
 
-void GUI::Tile::SystemHealth::render() noexcept {
+void TileWidget::SystemHealth::render() noexcept {
   const seconds uptime = Time::uptime();
   const int16_t sec = uptime.count() % 60;
   const int16_t min = uptime.count() / 60 % 60;
@@ -501,7 +501,7 @@ void GUI::Tile::SystemHealth::render() noexcept {
 //
 //
 //
-GUI::Tile::Clock::Clock(Tile::InitArg init) noexcept {
+TileWidget::Clock::Clock(TileWidget::InitArg init) noexcept {
   tile = std::apply(lv_tileview_add_tile, init);
   meter = lv_meter_create(tile);
   auto size =
@@ -536,16 +536,16 @@ GUI::Tile::Clock::Clock(Tile::InitArg init) noexcept {
   timerHook();
 }
 
-GUI::Tile::Clock::~Clock() {
+TileWidget::Clock::~Clock() {
   lv_obj_clean(tile);
   lv_obj_del(tile);
 }
 
-void GUI::Tile::Clock::valueChangedEventHook(lv_event_t *) noexcept {
+void TileWidget::Clock::valueChangedEventHook(lv_event_t *) noexcept {
   timerHook();
 }
 
-void GUI::Tile::Clock::timerHook() noexcept {
+void TileWidget::Clock::timerHook() noexcept {
   if (Time::sync_completed()) {
     std::time_t now = system_clock::to_time_t(system_clock::now());
     std::tm local;
@@ -558,7 +558,7 @@ void GUI::Tile::Clock::timerHook() noexcept {
     render(utc);
   }
 }
-void GUI::Tile::Clock::render(const std::tm &tm) noexcept {
+void TileWidget::Clock::render(const std::tm &tm) noexcept {
   lv_meter_set_indicator_value(meter, sec_indic, tm.tm_sec);
   lv_meter_set_indicator_value(meter, min_indic, tm.tm_min);
   const float h = (60.0f / 12.0f) * (tm.tm_hour % 12);
@@ -569,7 +569,7 @@ void GUI::Tile::Clock::render(const std::tm &tm) noexcept {
 //
 //
 //
-GUI::Tile::Summary::Summary(GUI::Tile::InitArg init) noexcept {
+TileWidget::Summary::Summary(TileWidget::InitArg init) noexcept {
   tile = std::apply(lv_tileview_add_tile, init);
   table = lv_table_create(tile);
   //
@@ -578,16 +578,16 @@ GUI::Tile::Summary::Summary(GUI::Tile::InitArg init) noexcept {
   render();
 }
 
-GUI::Tile::Summary::~Summary() {
+TileWidget::Summary::~Summary() {
   lv_obj_clean(tile);
   lv_obj_del(tile);
 }
 
-void GUI::Tile::Summary::valueChangedEventHook(lv_event_t *) noexcept {
+void TileWidget::Summary::valueChangedEventHook(lv_event_t *) noexcept {
   render();
 }
 
-void GUI::Tile::Summary::timerHook() noexcept {
+void TileWidget::Summary::timerHook() noexcept {
   auto bme = Application::historiesBme280
                  ? Application::historiesBme280->getLatestValue()
                  : std::nullopt;
@@ -603,12 +603,12 @@ void GUI::Tile::Summary::timerHook() noexcept {
   auto now = Measurements{std::move(bme), std::move(sgp), std::move(scd),
                           std::move(m5env3)};
   if (now != latest) {
-    lv_event_send(tileview, LV_EVENT_VALUE_CHANGED, nullptr);
+    lv_event_send(GUI::tileview, LV_EVENT_VALUE_CHANGED, nullptr);
     latest = now;
   }
 }
 
-void GUI::Tile::Summary::render() noexcept {
+void TileWidget::Summary::render() noexcept {
   std::ostringstream oss;
   oss << std::fixed << std::setprecision(2);
   auto row = 0;
@@ -863,8 +863,8 @@ void GUI::Tile::Summary::render() noexcept {
 //
 //
 template <typename T>
-GUI::Tile::BasicChart<T>::BasicChart(InitArg init,
-                                     const std::string &inSubheading) noexcept {
+TileWidget::BasicChart<T>::BasicChart(
+    InitArg init, const std::string &inSubheading) noexcept {
   tile = std::apply(lv_tileview_add_tile, init);
   subheading = inSubheading;
   //
@@ -906,14 +906,14 @@ GUI::Tile::BasicChart<T>::BasicChart(InitArg init,
                                 LV_CHART_AXIS_SECONDARY_Y);
 }
 
-template <typename T> GUI::Tile::BasicChart<T>::~BasicChart() noexcept {
+template <typename T> TileWidget::BasicChart<T>::~BasicChart() noexcept {
   lv_obj_clean(tile);
   lv_obj_del(tile);
 }
 
 template <typename T>
 template <typename U>
-void GUI::Tile::BasicChart<T>::setHeading(
+void TileWidget::BasicChart<T>::setHeading(
     std::string_view strUnit, std::optional<system_clock::time_point> optTP,
     std::optional<U> optValue) noexcept {
   lv_label_set_text(title, subheading.c_str());
@@ -935,7 +935,7 @@ void GUI::Tile::BasicChart<T>::setHeading(
 }
 
 template <typename T>
-void GUI::Tile::BasicChart<T>::setChartValue(
+void TileWidget::BasicChart<T>::setChartValue(
     const std::vector<ValuePair> &histories,
     std::function<lv_coord_t(const ValueT &)> mapping) noexcept {
   //
@@ -959,12 +959,13 @@ void GUI::Tile::BasicChart<T>::setChartValue(
 //
 //
 //
-GUI::Tile::M5Env3TemperatureChart::M5Env3TemperatureChart(InitArg init) noexcept
+TileWidget::M5Env3TemperatureChart::M5Env3TemperatureChart(
+    InitArg init) noexcept
     : BasicChart(init, "ENV.III unit Temperature") {
   lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
 }
 
-void GUI::Tile::M5Env3TemperatureChart::valueChangedEventHook(
+void TileWidget::M5Env3TemperatureChart::valueChangedEventHook(
     lv_event_t *) noexcept {
   auto optTP =
       latest.has_value() ? std::make_optional(latest->first) : std::nullopt;
@@ -979,22 +980,23 @@ void GUI::Tile::M5Env3TemperatureChart::valueChangedEventHook(
                        : std::vector<MeasurementM5Env3>{};
   setChartValue(histories, map_to_coord_t);
 }
-void GUI::Tile::M5Env3TemperatureChart::timerHook() noexcept {
+
+void TileWidget::M5Env3TemperatureChart::timerHook() noexcept {
   auto now = Application::historiesM5Env3
                  ? Application::historiesM5Env3->getLatestValue()
                  : std::nullopt;
   if (now != latest) {
     latest = now;
-    lv_event_send(tileview, LV_EVENT_VALUE_CHANGED, nullptr);
+    lv_event_send(GUI::tileview, LV_EVENT_VALUE_CHANGED, nullptr);
   }
 }
 
 lv_coord_t
-GUI::Tile::M5Env3TemperatureChart::map_to_coord_t(const ValueT &in) noexcept {
+TileWidget::M5Env3TemperatureChart::map_to_coord_t(const ValueT &in) noexcept {
   return in.temperature.count();
 }
 
-void GUI::Tile::M5Env3TemperatureChart::drawEventHook(
+void TileWidget::M5Env3TemperatureChart::drawEventHook(
     lv_event_t *event) noexcept {
   lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
   if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
@@ -1009,12 +1011,13 @@ void GUI::Tile::M5Env3TemperatureChart::drawEventHook(
 //
 //
 //
-GUI::Tile::Bme280TemperatureChart::Bme280TemperatureChart(InitArg init) noexcept
+TileWidget::Bme280TemperatureChart::Bme280TemperatureChart(
+    InitArg init) noexcept
     : BasicChart(init, "BME280 Temperature") {
   lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
 }
 
-void GUI::Tile::Bme280TemperatureChart::valueChangedEventHook(
+void TileWidget::Bme280TemperatureChart::valueChangedEventHook(
     lv_event_t *) noexcept {
   auto optTP =
       latest.has_value() ? std::make_optional(latest->first) : std::nullopt;
@@ -1029,22 +1032,23 @@ void GUI::Tile::Bme280TemperatureChart::valueChangedEventHook(
                        : std::vector<MeasurementBme280>{};
   setChartValue(histories, map_to_coord_t);
 }
-void GUI::Tile::Bme280TemperatureChart::timerHook() noexcept {
+
+void TileWidget::Bme280TemperatureChart::timerHook() noexcept {
   auto now = Application::historiesBme280
                  ? Application::historiesBme280->getLatestValue()
                  : std::nullopt;
   if (now != latest) {
     latest = now;
-    lv_event_send(tileview, LV_EVENT_VALUE_CHANGED, nullptr);
+    lv_event_send(GUI::tileview, LV_EVENT_VALUE_CHANGED, nullptr);
   }
 }
 
 lv_coord_t
-GUI::Tile::Bme280TemperatureChart::map_to_coord_t(const ValueT &in) noexcept {
+TileWidget::Bme280TemperatureChart::map_to_coord_t(const ValueT &in) noexcept {
   return in.temperature.count();
 }
 
-void GUI::Tile::Bme280TemperatureChart::drawEventHook(
+void TileWidget::Bme280TemperatureChart::drawEventHook(
     lv_event_t *event) noexcept {
   lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
   if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
@@ -1059,12 +1063,12 @@ void GUI::Tile::Bme280TemperatureChart::drawEventHook(
 //
 //
 //
-GUI::Tile::Scd30TemperatureChart::Scd30TemperatureChart(InitArg init) noexcept
+TileWidget::Scd30TemperatureChart::Scd30TemperatureChart(InitArg init) noexcept
     : BasicChart(init, "SCD30 Temperature") {
   lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
 }
 
-void GUI::Tile::Scd30TemperatureChart::valueChangedEventHook(
+void TileWidget::Scd30TemperatureChart::valueChangedEventHook(
     lv_event_t *) noexcept {
   auto optTP =
       latest.has_value() ? std::make_optional(latest->first) : std::nullopt;
@@ -1080,22 +1084,22 @@ void GUI::Tile::Scd30TemperatureChart::valueChangedEventHook(
   setChartValue(histories, map_to_coord_t);
 }
 
-void GUI::Tile::Scd30TemperatureChart::timerHook() noexcept {
+void TileWidget::Scd30TemperatureChart::timerHook() noexcept {
   auto now = Application::historiesScd30
                  ? Application::historiesScd30->getLatestValue()
                  : std::nullopt;
   if (now != latest) {
     latest = now;
-    lv_event_send(tileview, LV_EVENT_VALUE_CHANGED, nullptr);
+    lv_event_send(GUI::tileview, LV_EVENT_VALUE_CHANGED, nullptr);
   }
 }
 
 lv_coord_t
-GUI::Tile::Scd30TemperatureChart::map_to_coord_t(const ValueT &in) noexcept {
+TileWidget::Scd30TemperatureChart::map_to_coord_t(const ValueT &in) noexcept {
   return in.temperature.count();
 }
 
-void GUI::Tile::Scd30TemperatureChart::drawEventHook(
+void TileWidget::Scd30TemperatureChart::drawEventHook(
     lv_event_t *event) noexcept {
   lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
   if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
@@ -1110,12 +1114,12 @@ void GUI::Tile::Scd30TemperatureChart::drawEventHook(
 //
 //
 //
-GUI::Tile::Scd41TemperatureChart::Scd41TemperatureChart(InitArg init) noexcept
+TileWidget::Scd41TemperatureChart::Scd41TemperatureChart(InitArg init) noexcept
     : BasicChart(init, "SCD41 Temperature") {
   lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
 }
 
-void GUI::Tile::Scd41TemperatureChart::valueChangedEventHook(
+void TileWidget::Scd41TemperatureChart::valueChangedEventHook(
     lv_event_t *) noexcept {
   auto optTP =
       latest.has_value() ? std::make_optional(latest->first) : std::nullopt;
@@ -1131,22 +1135,22 @@ void GUI::Tile::Scd41TemperatureChart::valueChangedEventHook(
   setChartValue(histories, map_to_coord_t);
 }
 
-void GUI::Tile::Scd41TemperatureChart::timerHook() noexcept {
+void TileWidget::Scd41TemperatureChart::timerHook() noexcept {
   auto now = Application::historiesScd41
                  ? Application::historiesScd41->getLatestValue()
                  : std::nullopt;
   if (now != latest) {
     latest = now;
-    lv_event_send(tileview, LV_EVENT_VALUE_CHANGED, nullptr);
+    lv_event_send(GUI::tileview, LV_EVENT_VALUE_CHANGED, nullptr);
   }
 }
 
 lv_coord_t
-GUI::Tile::Scd41TemperatureChart::map_to_coord_t(const ValueT &in) noexcept {
+TileWidget::Scd41TemperatureChart::map_to_coord_t(const ValueT &in) noexcept {
   return in.temperature.count();
 }
 
-void GUI::Tile::Scd41TemperatureChart::drawEventHook(
+void TileWidget::Scd41TemperatureChart::drawEventHook(
     lv_event_t *event) noexcept {
   lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
   if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
@@ -1161,13 +1165,13 @@ void GUI::Tile::Scd41TemperatureChart::drawEventHook(
 //
 //
 //
-GUI::Tile::M5Env3RelativeHumidityChart::M5Env3RelativeHumidityChart(
+TileWidget::M5Env3RelativeHumidityChart::M5Env3RelativeHumidityChart(
     InitArg init) noexcept
     : BasicChart(init, "ENV.III unit Relative Humidity") {
   lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
 }
 
-void GUI::Tile::M5Env3RelativeHumidityChart::valueChangedEventHook(
+void TileWidget::M5Env3RelativeHumidityChart::valueChangedEventHook(
     lv_event_t *) noexcept {
   auto optTP =
       latest.has_value() ? std::make_optional(latest->first) : std::nullopt;
@@ -1183,22 +1187,22 @@ void GUI::Tile::M5Env3RelativeHumidityChart::valueChangedEventHook(
   setChartValue(histories, map_to_coord_t);
 }
 
-void GUI::Tile::M5Env3RelativeHumidityChart::timerHook() noexcept {
+void TileWidget::M5Env3RelativeHumidityChart::timerHook() noexcept {
   auto now = Application::historiesM5Env3
                  ? Application::historiesM5Env3->getLatestValue()
                  : std::nullopt;
   if (now != latest) {
     latest = now;
-    lv_event_send(tileview, LV_EVENT_VALUE_CHANGED, nullptr);
+    lv_event_send(GUI::tileview, LV_EVENT_VALUE_CHANGED, nullptr);
   }
 }
 
-lv_coord_t GUI::Tile::M5Env3RelativeHumidityChart::map_to_coord_t(
+lv_coord_t TileWidget::M5Env3RelativeHumidityChart::map_to_coord_t(
     const ValueT &in) noexcept {
   return in.relative_humidity.count();
 }
 
-void GUI::Tile::M5Env3RelativeHumidityChart::drawEventHook(
+void TileWidget::M5Env3RelativeHumidityChart::drawEventHook(
     lv_event_t *event) noexcept {
   lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
   if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
@@ -1213,13 +1217,13 @@ void GUI::Tile::M5Env3RelativeHumidityChart::drawEventHook(
 //
 //
 //
-GUI::Tile::Bme280RelativeHumidityChart::Bme280RelativeHumidityChart(
+TileWidget::Bme280RelativeHumidityChart::Bme280RelativeHumidityChart(
     InitArg init) noexcept
     : BasicChart(init, "BME280 Relative Humidity") {
   lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
 }
 
-void GUI::Tile::Bme280RelativeHumidityChart::valueChangedEventHook(
+void TileWidget::Bme280RelativeHumidityChart::valueChangedEventHook(
     lv_event_t *) noexcept {
   auto optTP =
       latest.has_value() ? std::make_optional(latest->first) : std::nullopt;
@@ -1235,22 +1239,22 @@ void GUI::Tile::Bme280RelativeHumidityChart::valueChangedEventHook(
   setChartValue(histories, map_to_coord_t);
 }
 
-void GUI::Tile::Bme280RelativeHumidityChart::timerHook() noexcept {
+void TileWidget::Bme280RelativeHumidityChart::timerHook() noexcept {
   auto now = Application::historiesBme280
                  ? Application::historiesBme280->getLatestValue()
                  : std::nullopt;
   if (now != latest) {
     latest = now;
-    lv_event_send(tileview, LV_EVENT_VALUE_CHANGED, nullptr);
+    lv_event_send(GUI::tileview, LV_EVENT_VALUE_CHANGED, nullptr);
   }
 }
 
-lv_coord_t GUI::Tile::Bme280RelativeHumidityChart::map_to_coord_t(
+lv_coord_t TileWidget::Bme280RelativeHumidityChart::map_to_coord_t(
     const ValueT &in) noexcept {
   return in.relative_humidity.count();
 }
 
-void GUI::Tile::Bme280RelativeHumidityChart::drawEventHook(
+void TileWidget::Bme280RelativeHumidityChart::drawEventHook(
     lv_event_t *event) noexcept {
   lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
   if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
@@ -1265,13 +1269,13 @@ void GUI::Tile::Bme280RelativeHumidityChart::drawEventHook(
 //
 //
 //
-GUI::Tile::Scd30RelativeHumidityChart::Scd30RelativeHumidityChart(
+TileWidget::Scd30RelativeHumidityChart::Scd30RelativeHumidityChart(
     InitArg init) noexcept
     : BasicChart(init, "SCD30 Relative Humidity") {
   lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
 }
 
-void GUI::Tile::Scd30RelativeHumidityChart::valueChangedEventHook(
+void TileWidget::Scd30RelativeHumidityChart::valueChangedEventHook(
     lv_event_t *) noexcept {
   auto optTP =
       latest.has_value() ? std::make_optional(latest->first) : std::nullopt;
@@ -1287,22 +1291,22 @@ void GUI::Tile::Scd30RelativeHumidityChart::valueChangedEventHook(
   setChartValue(histories, map_to_coord_t);
 }
 
-void GUI::Tile::Scd30RelativeHumidityChart::timerHook() noexcept {
+void TileWidget::Scd30RelativeHumidityChart::timerHook() noexcept {
   auto now = Application::historiesScd30
                  ? Application::historiesScd30->getLatestValue()
                  : std::nullopt;
   if (now != latest) {
     latest = now;
-    lv_event_send(tileview, LV_EVENT_VALUE_CHANGED, nullptr);
+    lv_event_send(GUI::tileview, LV_EVENT_VALUE_CHANGED, nullptr);
   }
 }
 
-lv_coord_t GUI::Tile::Scd30RelativeHumidityChart::map_to_coord_t(
+lv_coord_t TileWidget::Scd30RelativeHumidityChart::map_to_coord_t(
     const ValueT &in) noexcept {
   return in.relative_humidity.count();
 }
 
-void GUI::Tile::Scd30RelativeHumidityChart::drawEventHook(
+void TileWidget::Scd30RelativeHumidityChart::drawEventHook(
     lv_event_t *event) noexcept {
   lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
   if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
@@ -1317,13 +1321,13 @@ void GUI::Tile::Scd30RelativeHumidityChart::drawEventHook(
 //
 //
 //
-GUI::Tile::Scd41RelativeHumidityChart::Scd41RelativeHumidityChart(
+TileWidget::Scd41RelativeHumidityChart::Scd41RelativeHumidityChart(
     InitArg init) noexcept
     : BasicChart(init, "SCD41 Relative Humidity") {
   lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
 }
 
-void GUI::Tile::Scd41RelativeHumidityChart::valueChangedEventHook(
+void TileWidget::Scd41RelativeHumidityChart::valueChangedEventHook(
     lv_event_t *) noexcept {
   auto optTP =
       latest.has_value() ? std::make_optional(latest->first) : std::nullopt;
@@ -1339,22 +1343,22 @@ void GUI::Tile::Scd41RelativeHumidityChart::valueChangedEventHook(
   setChartValue(histories, map_to_coord_t);
 }
 
-void GUI::Tile::Scd41RelativeHumidityChart::timerHook() noexcept {
+void TileWidget::Scd41RelativeHumidityChart::timerHook() noexcept {
   auto now = Application::historiesScd41
                  ? Application::historiesScd41->getLatestValue()
                  : std::nullopt;
   if (now != latest) {
     latest = now;
-    lv_event_send(tileview, LV_EVENT_VALUE_CHANGED, nullptr);
+    lv_event_send(GUI::tileview, LV_EVENT_VALUE_CHANGED, nullptr);
   }
 }
 
-lv_coord_t GUI::Tile::Scd41RelativeHumidityChart::map_to_coord_t(
+lv_coord_t TileWidget::Scd41RelativeHumidityChart::map_to_coord_t(
     const ValueT &in) noexcept {
   return in.relative_humidity.count();
 }
 
-void GUI::Tile::Scd41RelativeHumidityChart::drawEventHook(
+void TileWidget::Scd41RelativeHumidityChart::drawEventHook(
     lv_event_t *event) noexcept {
   lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
   if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
@@ -1369,12 +1373,12 @@ void GUI::Tile::Scd41RelativeHumidityChart::drawEventHook(
 //
 //
 //
-GUI::Tile::M5Env3PressureChart::M5Env3PressureChart(InitArg init) noexcept
+TileWidget::M5Env3PressureChart::M5Env3PressureChart(InitArg init) noexcept
     : BasicChart(init, "ENV.III unit Pressure") {
   lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
 }
 
-void GUI::Tile::M5Env3PressureChart::valueChangedEventHook(
+void TileWidget::M5Env3PressureChart::valueChangedEventHook(
     lv_event_t *) noexcept {
   auto optTP =
       latest.has_value() ? std::make_optional(latest->first) : std::nullopt;
@@ -1390,22 +1394,23 @@ void GUI::Tile::M5Env3PressureChart::valueChangedEventHook(
   setChartValue(histories, map_to_coord_t);
 }
 
-void GUI::Tile::M5Env3PressureChart::timerHook() noexcept {
+void TileWidget::M5Env3PressureChart::timerHook() noexcept {
   auto now = Application::historiesM5Env3
                  ? Application::historiesM5Env3->getLatestValue()
                  : std::nullopt;
   if (now != latest) {
     latest = now;
-    lv_event_send(tileview, LV_EVENT_VALUE_CHANGED, nullptr);
+    lv_event_send(GUI::tileview, LV_EVENT_VALUE_CHANGED, nullptr);
   }
 }
 
 lv_coord_t
-GUI::Tile::M5Env3PressureChart::map_to_coord_t(const ValueT &in) noexcept {
+TileWidget::M5Env3PressureChart::map_to_coord_t(const ValueT &in) noexcept {
   return (in.pressure - BIAS).count();
 }
 
-void GUI::Tile::M5Env3PressureChart::drawEventHook(lv_event_t *event) noexcept {
+void TileWidget::M5Env3PressureChart::drawEventHook(
+    lv_event_t *event) noexcept {
   lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
   if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
                                   LV_CHART_DRAW_PART_TICK_LABEL)) {
@@ -1419,12 +1424,12 @@ void GUI::Tile::M5Env3PressureChart::drawEventHook(lv_event_t *event) noexcept {
 //
 //
 //
-GUI::Tile::Bme280PressureChart::Bme280PressureChart(InitArg init) noexcept
+TileWidget::Bme280PressureChart::Bme280PressureChart(InitArg init) noexcept
     : BasicChart(init, "BME280 Pressure") {
   lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
 }
 
-void GUI::Tile::Bme280PressureChart::valueChangedEventHook(
+void TileWidget::Bme280PressureChart::valueChangedEventHook(
     lv_event_t *) noexcept {
   auto optTP =
       latest.has_value() ? std::make_optional(latest->first) : std::nullopt;
@@ -1440,22 +1445,23 @@ void GUI::Tile::Bme280PressureChart::valueChangedEventHook(
   setChartValue(histories, map_to_coord_t);
 }
 
-void GUI::Tile::Bme280PressureChart::timerHook() noexcept {
+void TileWidget::Bme280PressureChart::timerHook() noexcept {
   auto now = Application::historiesBme280
                  ? Application::historiesBme280->getLatestValue()
                  : std::nullopt;
   if (now != latest) {
     latest = now;
-    lv_event_send(tileview, LV_EVENT_VALUE_CHANGED, nullptr);
+    lv_event_send(GUI::tileview, LV_EVENT_VALUE_CHANGED, nullptr);
   }
 }
 
 lv_coord_t
-GUI::Tile::Bme280PressureChart::map_to_coord_t(const ValueT &in) noexcept {
+TileWidget::Bme280PressureChart::map_to_coord_t(const ValueT &in) noexcept {
   return (in.pressure - BIAS).count();
 }
 
-void GUI::Tile::Bme280PressureChart::drawEventHook(lv_event_t *event) noexcept {
+void TileWidget::Bme280PressureChart::drawEventHook(
+    lv_event_t *event) noexcept {
   lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
   if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
                                   LV_CHART_DRAW_PART_TICK_LABEL)) {
@@ -1469,12 +1475,12 @@ void GUI::Tile::Bme280PressureChart::drawEventHook(lv_event_t *event) noexcept {
 //
 //
 //
-GUI::Tile::Sgp30TotalVocChart::Sgp30TotalVocChart(InitArg init) noexcept
+TileWidget::Sgp30TotalVocChart::Sgp30TotalVocChart(InitArg init) noexcept
     : BasicChart(init, "SGP30 Total VOC") {
   lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
 }
 
-void GUI::Tile::Sgp30TotalVocChart::valueChangedEventHook(
+void TileWidget::Sgp30TotalVocChart::valueChangedEventHook(
     lv_event_t *) noexcept {
   auto optTP =
       latest.has_value() ? std::make_optional(latest->first) : std::nullopt;
@@ -1489,22 +1495,22 @@ void GUI::Tile::Sgp30TotalVocChart::valueChangedEventHook(
   setChartValue(histories, map_to_coord_t);
 }
 
-void GUI::Tile::Sgp30TotalVocChart::timerHook() noexcept {
+void TileWidget::Sgp30TotalVocChart::timerHook() noexcept {
   auto now = Application::historiesSgp30
                  ? Application::historiesSgp30->getLatestValue()
                  : std::nullopt;
   if (now != latest) {
     latest = now;
-    lv_event_send(tileview, LV_EVENT_VALUE_CHANGED, nullptr);
+    lv_event_send(GUI::tileview, LV_EVENT_VALUE_CHANGED, nullptr);
   }
 }
 
 lv_coord_t
-GUI::Tile::Sgp30TotalVocChart::map_to_coord_t(const ValueT &in) noexcept {
+TileWidget::Sgp30TotalVocChart::map_to_coord_t(const ValueT &in) noexcept {
   return Ppb(in.tvoc).value / 2;
 }
 
-void GUI::Tile::Sgp30TotalVocChart::drawEventHook(lv_event_t *event) noexcept {
+void TileWidget::Sgp30TotalVocChart::drawEventHook(lv_event_t *event) noexcept {
   lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
   if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
                                   LV_CHART_DRAW_PART_TICK_LABEL)) {
@@ -1518,12 +1524,12 @@ void GUI::Tile::Sgp30TotalVocChart::drawEventHook(lv_event_t *event) noexcept {
 //
 //
 //
-GUI::Tile::Sgp30Eco2Chart::Sgp30Eco2Chart(InitArg init) noexcept
+TileWidget::Sgp30Eco2Chart::Sgp30Eco2Chart(InitArg init) noexcept
     : BasicChart(init, "SGP30 equivalent CO2") {
   lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
 }
 
-void GUI::Tile::Sgp30Eco2Chart::valueChangedEventHook(lv_event_t *) noexcept {
+void TileWidget::Sgp30Eco2Chart::valueChangedEventHook(lv_event_t *) noexcept {
   auto optTP =
       latest.has_value() ? std::make_optional(latest->first) : std::nullopt;
   auto optValue = latest.has_value()
@@ -1537,22 +1543,22 @@ void GUI::Tile::Sgp30Eco2Chart::valueChangedEventHook(lv_event_t *) noexcept {
   setChartValue(histories, map_to_coord_t);
 }
 
-void GUI::Tile::Sgp30Eco2Chart::timerHook() noexcept {
+void TileWidget::Sgp30Eco2Chart::timerHook() noexcept {
   auto now = Application::historiesSgp30
                  ? Application::historiesSgp30->getLatestValue()
                  : std::nullopt;
   if (now != latest) {
     latest = now;
-    lv_event_send(tileview, LV_EVENT_VALUE_CHANGED, nullptr);
+    lv_event_send(GUI::tileview, LV_EVENT_VALUE_CHANGED, nullptr);
   }
 }
 
 lv_coord_t
-GUI::Tile::Sgp30Eco2Chart::map_to_coord_t(const ValueT &in) noexcept {
+TileWidget::Sgp30Eco2Chart::map_to_coord_t(const ValueT &in) noexcept {
   return Ppm(in.eCo2).value / 2;
 }
 
-void GUI::Tile::Sgp30Eco2Chart::drawEventHook(lv_event_t *event) noexcept {
+void TileWidget::Sgp30Eco2Chart::drawEventHook(lv_event_t *event) noexcept {
   lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
   if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
                                   LV_CHART_DRAW_PART_TICK_LABEL)) {
@@ -1566,10 +1572,10 @@ void GUI::Tile::Sgp30Eco2Chart::drawEventHook(lv_event_t *event) noexcept {
 //
 //
 //
-GUI::Tile::Scd30Co2Chart::Scd30Co2Chart(InitArg init) noexcept
+TileWidget::Scd30Co2Chart::Scd30Co2Chart(InitArg init) noexcept
     : BasicChart(init, "SCD30 CO2") {}
 
-void GUI::Tile::Scd30Co2Chart::valueChangedEventHook(lv_event_t *) noexcept {
+void TileWidget::Scd30Co2Chart::valueChangedEventHook(lv_event_t *) noexcept {
   auto optTP =
       latest.has_value() ? std::make_optional(latest->first) : std::nullopt;
   auto optValue = latest.has_value()
@@ -1583,23 +1589,23 @@ void GUI::Tile::Scd30Co2Chart::valueChangedEventHook(lv_event_t *) noexcept {
   setChartValue(histories, [](auto x) { return Ppm(x.co2).value; });
 }
 
-void GUI::Tile::Scd30Co2Chart::timerHook() noexcept {
+void TileWidget::Scd30Co2Chart::timerHook() noexcept {
   auto now = Application::historiesScd30
                  ? Application::historiesScd30->getLatestValue()
                  : std::nullopt;
   if (now != latest) {
     latest = now;
-    lv_event_send(tileview, LV_EVENT_VALUE_CHANGED, nullptr);
+    lv_event_send(GUI::tileview, LV_EVENT_VALUE_CHANGED, nullptr);
   }
 }
 
 //
 //
 //
-GUI::Tile::Scd41Co2Chart::Scd41Co2Chart(InitArg init) noexcept
+TileWidget::Scd41Co2Chart::Scd41Co2Chart(InitArg init) noexcept
     : BasicChart(init, "SCD41 CO2") {}
 
-void GUI::Tile::Scd41Co2Chart::valueChangedEventHook(lv_event_t *) noexcept {
+void TileWidget::Scd41Co2Chart::valueChangedEventHook(lv_event_t *) noexcept {
   auto optTP =
       latest.has_value() ? std::make_optional(latest->first) : std::nullopt;
   auto optValue = latest.has_value()
@@ -1613,12 +1619,12 @@ void GUI::Tile::Scd41Co2Chart::valueChangedEventHook(lv_event_t *) noexcept {
   setChartValue(histories, [](auto x) { return Ppm(x.co2).value; });
 }
 
-void GUI::Tile::Scd41Co2Chart::timerHook() noexcept {
+void TileWidget::Scd41Co2Chart::timerHook() noexcept {
   auto now = Application::historiesScd41
                  ? Application::historiesScd41->getLatestValue()
                  : std::nullopt;
   if (now != latest) {
     latest = now;
-    lv_event_send(tileview, LV_EVENT_VALUE_CHANGED, nullptr);
+    lv_event_send(GUI::tileview, LV_EVENT_VALUE_CHANGED, nullptr);
   }
 }
