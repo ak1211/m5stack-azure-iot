@@ -32,7 +32,7 @@ bool Gui::begin() noexcept {
   lv_init();
   // buffer
   if constexpr (true) {
-    const int32_t DRAW_BUFFER_SIZE{display_width * display_height / 10 *
+    const int32_t DRAW_BUFFER_SIZE{display_width * (display_height / 10) *
                                    (display_color_depth / 8)};
     draw_buf_1 = std::make_unique<lv_color_t[]>(DRAW_BUFFER_SIZE);
     if (draw_buf_1 == nullptr) {
