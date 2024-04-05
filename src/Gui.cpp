@@ -32,8 +32,8 @@ bool Gui::begin() noexcept {
   lv_init();
   // buffer
   if constexpr (true) {
-    const int32_t DRAW_BUFFER_SIZE{display_width * (display_height / 10) *
-                                   (display_color_depth / 8)};
+    const int32_t DRAW_BUFFER_SIZE =
+        display_width * (display_height / 10) * (display_color_depth / 8);
     draw_buf_1 = std::make_unique<lv_color_t[]>(DRAW_BUFFER_SIZE);
     if (draw_buf_1 == nullptr) {
       ESP_LOGE(MAIN, "memory allocation error");
@@ -74,9 +74,9 @@ bool Gui::begin() noexcept {
     indev_drv.read_cb = [](lv_indev_drv_t *indev_drv,
                            lv_indev_data_t *data) noexcept -> void {
       if (M5.Touch.getDetail().isPressed()) {
-        auto coordinate = M5.Touch.getTouchPointRaw();
-        data->point.x = coordinate.x;
-        data->point.y = coordinate.y;
+        auto tp = M5.Touch.getTouchPointRaw();
+        data->point.x = tp.x;
+        data->point.y = tp.y;
         data->state = LV_INDEV_STATE_PR;
       } else {
         data->state = LV_INDEV_STATE_REL;
@@ -92,31 +92,30 @@ bool Gui::begin() noexcept {
   // set value changed callback
   lv_obj_add_event_cb(
       tileview,
-      [](lv_event_t *event) -> void {
+      [](lv_event_t *event) noexcept -> void {
         auto itr = std::find_if(_instance->tiles.cbegin(),
                                 _instance->tiles.cend(), check_if_active_tile);
         if (itr == _instance->tiles.cend()) {
           return;
         }
-        if (auto p = itr->get(); p) {
-          p->valueChangedEventHook(event);
+        if (auto found = itr->get(); found) {
+          found->valueChangedEventHook(event);
         }
       },
       LV_EVENT_VALUE_CHANGED, nullptr);
   // set timer callback
-  constexpr auto INTERVAL_MILLIS = 499;
-  periodical_timer = lv_timer_create(
-      [](lv_timer_t *) -> void {
+  periodic_timer = lv_timer_create(
+      [](lv_timer_t *) noexcept -> void {
         auto itr = std::find_if(_instance->tiles.cbegin(),
                                 _instance->tiles.cend(), check_if_active_tile);
         if (itr == _instance->tiles.cend()) {
           return;
         }
-        if (auto p = itr->get(); p) {
-          p->timerHook();
+        if (auto found = itr->get(); found) {
+          found->timerHook();
         }
       },
-      INTERVAL_MILLIS, nullptr);
+      MILLISECONDS_OF_PERIODIC_TIMER, nullptr);
   //
   lv_task_handler();
 
@@ -232,8 +231,8 @@ void Gui::startUI() noexcept {
 //
 void Gui::home() noexcept {
   vibrate();
-  if (periodical_timer) {
-    lv_timer_reset(periodical_timer);
+  if (periodic_timer) {
+    lv_timer_reset(periodic_timer);
   }
   constexpr auto COL_ID = 2;
   constexpr auto ROW_ID = 0;
@@ -248,8 +247,8 @@ void Gui::movePrev() noexcept {
     return;
   }
   if (auto p = std::prev(itr)->get(); p) {
-    if (periodical_timer) {
-      lv_timer_reset(periodical_timer);
+    if (periodic_timer) {
+      lv_timer_reset(periodic_timer);
     }
     p->setActiveTile(tileview);
   }
@@ -263,8 +262,8 @@ void Gui::moveNext() noexcept {
     return;
   }
   if (auto p = std::next(itr)->get(); p) {
-    if (periodical_timer) {
-      lv_timer_reset(periodical_timer);
+    if (periodic_timer) {
+      lv_timer_reset(periodic_timer);
     }
     p->setActiveTile(tileview);
   }

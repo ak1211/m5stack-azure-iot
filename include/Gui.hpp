@@ -397,6 +397,7 @@ public:
 //
 class Gui {
   inline static Gui *_instance{nullptr};
+  constexpr static uint16_t MILLISECONDS_OF_PERIODIC_TIMER = 499;
 
 public:
   // display resolution
@@ -437,23 +438,26 @@ public:
   }
 
 private:
+  // LVGL draw buffer
   std::unique_ptr<lv_color_t[]> draw_buf_1;
   std::unique_ptr<lv_color_t[]> draw_buf_2;
   lv_disp_draw_buf_t draw_buf_dsc;
-  // display driver
+  // LVGL display driver
   lv_disp_drv_t disp_drv;
-  // touchpad
+  // LVGL (touchpad) input device driver
   lv_indev_t *indev_touchpad{nullptr};
   lv_indev_drv_t indev_drv;
-  // timer
-  lv_timer_t *periodical_timer{nullptr};
+  // LVGL timer
+  lv_timer_t *periodic_timer{nullptr};
+  // LVGL tileview object
+  lv_obj_t *tileview{nullptr};
   // tile widget
   using TileVector = std::vector<std::unique_ptr<Widget::TileBase>>;
-  lv_obj_t *tileview{nullptr};
   TileVector tiles{};
   //
-  static bool check_if_active_tile(const std::unique_ptr<Widget::TileBase> &t) {
-    if (auto p = t.get(); p) {
+  static bool
+  check_if_active_tile(const std::unique_ptr<Widget::TileBase> &tile_to_test) {
+    if (auto p = tile_to_test.get(); p) {
       return p->isActiveTile(_instance->tileview);
     } else {
       return false;
