@@ -141,7 +141,7 @@ void setup() {
   auto logging = [](std::string_view sv) {
     Application::boot_log.logging(sv);
     if (auto p = Gui::getInstance(); p) {
-      p->event_send_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
+      p->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
     }
     lv_task_handler();
   };

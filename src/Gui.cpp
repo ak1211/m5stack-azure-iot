@@ -32,16 +32,20 @@ bool Gui::begin() noexcept {
   lv_init();
   // buffer
   if constexpr (true) {
-    const int32_t draw_buffer_size{display_width * display_height *
-                                   display_color_depth / 8};
-    draw_buf_1 = std::make_unique<lv_color_t[]>(draw_buffer_size);
-    draw_buf_2 = std::make_unique<lv_color_t[]>(draw_buffer_size);
-    if (draw_buf_1 == nullptr || draw_buf_2 == nullptr) {
+    const size_t DRAW_BUFFER_SIZE{display_width * display_height / 10 *
+                                  (display_color_depth / 8)};
+    draw_buf_1 = std::make_unique<lv_color_t[]>(DRAW_BUFFER_SIZE);
+    if (draw_buf_1 == nullptr) {
+      ESP_LOGE(MAIN, "memory allocation error");
+      return false;
+    }
+    draw_buf_2 = std::make_unique<lv_color_t[]>(DRAW_BUFFER_SIZE);
+    if (draw_buf_2 == nullptr) {
       ESP_LOGE(MAIN, "memory allocation error");
       return false;
     }
     lv_disp_draw_buf_init(&draw_buf_dsc, draw_buf_1.get(), draw_buf_2.get(),
-                          draw_buffer_size); // Initialize the display buffer
+                          DRAW_BUFFER_SIZE); // Initialize the display buffer
     //
     lv_disp_drv_init(&disp_drv);
     disp_drv.hor_res = display_width;
@@ -50,8 +54,10 @@ bool Gui::begin() noexcept {
                            lv_color_t *color_p) noexcept -> void {
       int32_t width = area->x2 - area->x1 + 1;
       int32_t height = area->y2 - area->y1 + 1;
+      M5.Display.startWrite();
       M5.Display.setAddrWindow(area->x1, area->y1, width, height);
       M5.Display.pushPixels((uint16_t *)color_p, width * height, true);
+      M5.Display.endWrite();
       /*IMPORTANT!!!
        *Inform the graphics library that you are ready with the flushing*/
       lv_disp_flush_ready(disp_drv);
@@ -223,6 +229,7 @@ void Gui::startUI() noexcept {
   }
   //
   home();
+  lv_task_handler();
 }
 
 //
@@ -297,7 +304,7 @@ void Widget::BootMessage::valueChangedEventHook(lv_event_t *) noexcept {
 
 void Widget::BootMessage::timerHook() noexcept {
   if (auto x = Application::boot_log.size(); x != count) {
-    Gui::getInstance()->event_send_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
+    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
     count = x;
   }
 }
@@ -548,7 +555,7 @@ void Widget::Summary::timerHook() noexcept {
   auto now = Measurements{std::move(bme), std::move(sgp), std::move(scd),
                           std::move(m5env3)};
   if (now != latest) {
-    Gui::getInstance()->event_send_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
+    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
     latest = now;
   }
 }
@@ -931,7 +938,7 @@ void Widget::M5Env3TemperatureChart::timerHook() noexcept {
                  : std::nullopt;
   if (now != latest) {
     latest = now;
-    Gui::getInstance()->event_send_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
+    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
   }
 }
 
@@ -981,7 +988,7 @@ void Widget::Bme280TemperatureChart::timerHook() noexcept {
                  : std::nullopt;
   if (now != latest) {
     latest = now;
-    Gui::getInstance()->event_send_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
+    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
   }
 }
 
@@ -1031,7 +1038,7 @@ void Widget::Scd30TemperatureChart::timerHook() noexcept {
                  : std::nullopt;
   if (now != latest) {
     latest = now;
-    Gui::getInstance()->event_send_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
+    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
   }
 }
 
@@ -1081,7 +1088,7 @@ void Widget::Scd41TemperatureChart::timerHook() noexcept {
                  : std::nullopt;
   if (now != latest) {
     latest = now;
-    Gui::getInstance()->event_send_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
+    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
   }
 }
 
@@ -1132,7 +1139,7 @@ void Widget::M5Env3RelativeHumidityChart::timerHook() noexcept {
                  : std::nullopt;
   if (now != latest) {
     latest = now;
-    Gui::getInstance()->event_send_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
+    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
   }
 }
 
@@ -1184,7 +1191,7 @@ void Widget::Bme280RelativeHumidityChart::timerHook() noexcept {
                  : std::nullopt;
   if (now != latest) {
     latest = now;
-    Gui::getInstance()->event_send_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
+    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
   }
 }
 
@@ -1236,7 +1243,7 @@ void Widget::Scd30RelativeHumidityChart::timerHook() noexcept {
                  : std::nullopt;
   if (now != latest) {
     latest = now;
-    Gui::getInstance()->event_send_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
+    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
   }
 }
 
@@ -1288,7 +1295,7 @@ void Widget::Scd41RelativeHumidityChart::timerHook() noexcept {
                  : std::nullopt;
   if (now != latest) {
     latest = now;
-    Gui::getInstance()->event_send_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
+    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
   }
 }
 
@@ -1338,7 +1345,7 @@ void Widget::M5Env3PressureChart::timerHook() noexcept {
                  : std::nullopt;
   if (now != latest) {
     latest = now;
-    Gui::getInstance()->event_send_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
+    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
   }
 }
 
@@ -1387,7 +1394,7 @@ void Widget::Bme280PressureChart::timerHook() noexcept {
                  : std::nullopt;
   if (now != latest) {
     latest = now;
-    Gui::getInstance()->event_send_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
+    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
   }
 }
 
@@ -1435,7 +1442,7 @@ void Widget::Sgp30TotalVocChart::timerHook() noexcept {
                  : std::nullopt;
   if (now != latest) {
     latest = now;
-    Gui::getInstance()->event_send_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
+    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
   }
 }
 
@@ -1483,7 +1490,7 @@ void Widget::Sgp30Eco2Chart::timerHook() noexcept {
                  : std::nullopt;
   if (now != latest) {
     latest = now;
-    Gui::getInstance()->event_send_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
+    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
   }
 }
 
@@ -1528,7 +1535,7 @@ void Widget::Scd30Co2Chart::timerHook() noexcept {
                  : std::nullopt;
   if (now != latest) {
     latest = now;
-    Gui::getInstance()->event_send_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
+    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
   }
 }
 
@@ -1558,6 +1565,6 @@ void Widget::Scd41Co2Chart::timerHook() noexcept {
                  : std::nullopt;
   if (now != latest) {
     latest = now;
-    Gui::getInstance()->event_send_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
+    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
   }
 }

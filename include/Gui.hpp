@@ -432,7 +432,7 @@ public:
   //
   void vibrate() noexcept;
   //
-  lv_res_t event_send_to_tileview(lv_event_code_t event_code, void *param) {
+  lv_res_t send_event_to_tileview(lv_event_code_t event_code, void *param) {
     return lv_event_send(_instance->tileview, event_code, param);
   }
 
