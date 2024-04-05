@@ -2,69 +2,46 @@
 // Licensed under the MIT License <https://spdx.org/licenses/MIT.html>
 // See LICENSE file in the project root for full license information.
 //
-#include "BottomCaseLed.hpp"
+#include "RgbLed.hpp"
 #include <FastLED.h>
 #include <algorithm>
 #include <array>
 #include <cmath>
 
-std::array<CRGB, BottomCaseLed::NUM_OF_LEDS> BottomCaseLed::leds{};
-static int8_t number_of_progressive = 0;
-static int8_t direction_of_progressive = 1;
-
 //
-void BottomCaseLed::init() noexcept {
+void RgbLed::begin() noexcept {
   FastLED.addLeds<SK6812, GPIO_PIN_SK6815, GRB>(leds.data(), leds.size());
-  FastLED.setBrightness(50);
-  offSignal();
+  FastLED.setBrightness(255);
+  clear();
 }
 
 //
-void BottomCaseLed::showProgressive(CRGB color) noexcept {
-  std::fill(leds.begin(), leds.end(), CRGB::Black);
-  int8_t index = std::clamp(number_of_progressive, int8_t{0}, int8_t{5});
-  leds[index] = color;
-  FastLED.show();
-  number_of_progressive += direction_of_progressive;
-  if (number_of_progressive >= 5) {
-    direction_of_progressive = -1;
-    number_of_progressive = 5;
-  } else if (number_of_progressive <= 0) {
-    direction_of_progressive = 1;
-    number_of_progressive = 0;
-  }
-}
-
-//
-void BottomCaseLed::offSignal() noexcept {
-  std::fill(leds.begin(), leds.end(), CRGB::Black);
+void RgbLed::fill(CRGB color) noexcept {
+  std::fill(leds.begin(), leds.end(), color);
   FastLED.show();
 }
 
 //
-void BottomCaseLed::showSignal(Ppm co2) noexcept {
+CRGB RgbLed::colorFromCarbonDioxide(uint16_t ppm) noexcept {
   constexpr float_t start = 360.0 + 180.0;     // 540 degrees == CYAN
   constexpr float_t end = 300.0;               // 300 degrees == PURPLE
   constexpr float_t L = std::abs(start - end); //
   constexpr float_t rotation = -1.0;           // anticlockwise
   //
-  constexpr auto lower = 0.0;
-  constexpr auto upper = 3500.0;
-  const auto clamped = std::clamp(static_cast<double>(co2.value), lower, upper);
+  constexpr float_t lower = 0.0;
+  constexpr float_t upper = 3500.0;
+  const auto clamped = std::clamp(static_cast<float_t>(ppm), lower, upper);
   const float_t normalized = (clamped - lower) / (upper - lower + 1);
   const float_t hue = start + rotation * (L * normalized);
   constexpr float_t saturation = 1.0;
-  constexpr float_t lightness = 0.2;
+  constexpr float_t lightness = 0.5;
 
-  auto rgb = hslToRgb(hue >= 360.0 ? hue - 360.0 : hue, saturation, lightness);
-  std::fill(leds.begin(), leds.end(), rgb);
-  FastLED.show();
+  return hslToRgb(hue >= 360.0 ? hue - 360.0 : hue, saturation, lightness);
 }
 
 //
-CRGB BottomCaseLed::hslToRgb(float_t hue /* 0 < 360*/,
-                             float_t saturation /* 0 < 1 */,
-                             float_t lightness /* 0 < 1 */) noexcept {
+CRGB RgbLed::hslToRgb(float_t hue /* 0 < 360*/, float_t saturation /* 0 < 1 */,
+                      float_t lightness /* 0 < 1 */) noexcept {
   float_t C = saturation * (1.0 - std::abs(2.0 * lightness - 1.0));
   float_t Max = lightness + (C / 2.0); /* 0 <= 1.0*/
   float_t Min = lightness - (C / 2.0); /* 0 <= 1.0*/

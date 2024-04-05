@@ -11,65 +11,31 @@
 #include <memory>
 #include <tuple>
 
-namespace TileWidget {
-struct Interface {
-  virtual void setActiveTile(lv_obj_t *tileview) noexcept = 0;
-  virtual bool isActiveTile(lv_obj_t *tileview) const noexcept = 0;
-  virtual void valueChangedEventHook(lv_event_t *event) noexcept = 0;
-  virtual void timerHook() noexcept = 0;
-};
-} // namespace TileWidget
-
-namespace GUI {
-// display resolution
-constexpr static auto lcdHorizResolution{
-    Application::M5StackCore2_HorizResolution};
-constexpr static auto lcdVertResolution{
-    Application::M5StackCore2_VertResolution};
-// draw buffer
-constexpr auto DRAW_BUF_SIZE =
-    lcdHorizResolution * lcdVertResolution; // screen buffer
-extern std::unique_ptr<lv_color_t[]> draw_buf_1;
-extern std::unique_ptr<lv_color_t[]> draw_buf_2;
-extern lv_disp_draw_buf_t draw_buf_dsc;
-// display driver
-extern lv_disp_drv_t disp_drv;
-// touchpad
-extern lv_indev_t *indev_touchpad;
-extern lv_indev_drv_t indev_drv;
-// timer
-extern lv_timer_t *periodical_timer;
-// bootstrapping message
-extern std::vector<char> bootstrapping_message_cstr;
-// tile widget
-using TileVector = std::vector<std::unique_ptr<TileWidget::Interface>>;
-extern lv_obj_t *tileview;
-extern TileVector tiles;
 //
-extern void init();
 //
-extern void showBootstrappingMessage(std::string_view msg) noexcept;
 //
-extern void startUI() noexcept;
-//
-extern void home() noexcept;
-//
-extern void movePrev() noexcept;
-//
-extern void moveNext() noexcept;
-//
-extern void vibrate() noexcept;
-} // namespace GUI
-
-namespace TileWidget {
+namespace Widget {
 using namespace std::chrono;
 // init argument for "lv_tileview_add_tile()"
 using InitArg = std::tuple<lv_obj_t *, uint8_t, uint8_t, lv_dir_t>;
 
 //
-class BootMessage final : public Interface {
+//
+//
+struct TileBase {
+  virtual void setActiveTile(lv_obj_t *tileview) noexcept = 0;
+  virtual bool isActiveTile(lv_obj_t *tileview) const noexcept = 0;
+  virtual void valueChangedEventHook(lv_event_t *event) noexcept = 0;
+  virtual void timerHook() noexcept = 0;
+};
+
+//
+//
+//
+class BootMessage final : public TileBase {
   lv_obj_t *tile{nullptr};
   lv_obj_t *message_label{nullptr};
+  size_t count{0};
 
 public:
   BootMessage(InitArg init) noexcept;
@@ -88,7 +54,9 @@ public:
 };
 
 //
-class Summary final : public Interface {
+//
+//
+class Summary final : public TileBase {
   lv_obj_t *tile{nullptr};
   lv_obj_t *table{nullptr};
   //
@@ -114,7 +82,9 @@ public:
 };
 
 //
-class Clock final : public Interface {
+//
+//
+class Clock final : public TileBase {
   lv_obj_t *tile{nullptr};
   lv_obj_t *meter{nullptr};
   lv_meter_scale_t *sec_scale{nullptr};
@@ -141,7 +111,9 @@ public:
 };
 
 //
-class SystemHealth final : public Interface {
+//
+//
+class SystemHealth final : public TileBase {
   lv_obj_t *tile{nullptr};
   lv_obj_t *cont_col{nullptr};
   //
@@ -172,7 +144,9 @@ public:
 };
 
 //
-template <typename T> class BasicChart : public Interface {
+//
+//
+template <typename T> class BasicChart : public TileBase {
 protected:
   lv_obj_t *tile{nullptr};
   lv_obj_t *container{nullptr};
@@ -207,6 +181,8 @@ public:
 };
 
 //
+//
+//
 class M5Env3TemperatureChart final : public BasicChart<Sensor::M5Env3> {
 public:
   M5Env3TemperatureChart(InitArg init) noexcept;
@@ -219,6 +195,8 @@ public:
   static void drawEventHook(lv_event_t *event) noexcept;
 };
 
+//
+//
 //
 class Bme280TemperatureChart final : public BasicChart<Sensor::Bme280> {
 public:
@@ -233,6 +211,8 @@ public:
 };
 
 //
+//
+//
 class Scd30TemperatureChart final : public BasicChart<Sensor::Scd30> {
 public:
   Scd30TemperatureChart(InitArg init) noexcept;
@@ -246,6 +226,8 @@ public:
 };
 
 //
+//
+//
 class Scd41TemperatureChart final : public BasicChart<Sensor::Scd41> {
 public:
   Scd41TemperatureChart(InitArg init) noexcept;
@@ -258,6 +240,8 @@ public:
   static void drawEventHook(lv_event_t *event) noexcept;
 };
 
+//
+//
 //
 class M5Env3RelativeHumidityChart final : public BasicChart<Sensor::M5Env3> {
 public:
@@ -273,6 +257,8 @@ public:
 };
 
 //
+//
+//
 class Bme280RelativeHumidityChart final : public BasicChart<Sensor::Bme280> {
 public:
   Bme280RelativeHumidityChart(InitArg init) noexcept;
@@ -286,6 +272,8 @@ public:
   static void drawEventHook(lv_event_t *event) noexcept;
 };
 
+//
+//
 //
 class Scd30RelativeHumidityChart final : public BasicChart<Sensor::Scd30> {
 public:
@@ -301,6 +289,8 @@ public:
 };
 
 //
+//
+//
 class Scd41RelativeHumidityChart final : public BasicChart<Sensor::Scd41> {
 public:
   Scd41RelativeHumidityChart(InitArg init) noexcept;
@@ -314,6 +304,8 @@ public:
   static void drawEventHook(lv_event_t *event) noexcept;
 };
 
+//
+//
 //
 class M5Env3PressureChart final : public BasicChart<Sensor::M5Env3> {
 public:
@@ -329,6 +321,8 @@ public:
 };
 
 //
+//
+//
 class Bme280PressureChart final : public BasicChart<Sensor::Bme280> {
 public:
   Bme280PressureChart(InitArg init) noexcept;
@@ -343,6 +337,8 @@ public:
 };
 
 //
+//
+//
 class Sgp30TotalVocChart final : public BasicChart<Sensor::Sgp30> {
 public:
   Sgp30TotalVocChart(InitArg init) noexcept;
@@ -355,6 +351,8 @@ public:
   static void drawEventHook(lv_event_t *event) noexcept;
 };
 
+//
+//
 //
 class Sgp30Eco2Chart final : public BasicChart<Sensor::Sgp30> {
 public:
@@ -369,6 +367,8 @@ public:
 };
 
 //
+//
+//
 class Scd30Co2Chart final : public BasicChart<Sensor::Scd30> {
 public:
   Scd30Co2Chart(InitArg init) noexcept;
@@ -379,6 +379,8 @@ public:
 };
 
 //
+//
+//
 class Scd41Co2Chart final : public BasicChart<Sensor::Scd41> {
 public:
   Scd41Co2Chart(InitArg init) noexcept;
@@ -387,4 +389,78 @@ public:
   virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
   virtual void timerHook() noexcept override;
 };
-} // namespace TileWidget
+
+} // namespace Widget
+
+//
+//
+//
+class Gui {
+  inline static Gui *_instance{nullptr};
+
+public:
+  // display resolution
+  const int32_t display_width;
+  const int32_t display_height;
+  const int8_t display_color_depth;
+  //
+  Gui(int32_t display_width, int32_t display_height, int8_t display_color_depth)
+      : display_width{display_width},
+        display_height{display_height},
+        display_color_depth{display_color_depth} {
+    if (_instance) {
+      delete _instance;
+    }
+    _instance = this;
+  }
+  //
+  virtual ~Gui() {}
+  //
+  static Gui *getInstance() noexcept { return _instance; }
+
+public:
+  //
+  bool init() noexcept;
+  //
+  void startUI() noexcept;
+  //
+  void home() noexcept;
+  //
+  void movePrev() noexcept;
+  //
+  void moveNext() noexcept;
+  //
+  void vibrate() noexcept;
+  //
+  lv_res_t event_send_to_tileview(lv_event_code_t event_code, void *param) {
+    return lv_event_send(_instance->tileview, event_code, param);
+  }
+
+private:
+  std::unique_ptr<lv_color_t[]> draw_buf_1;
+  std::unique_ptr<lv_color_t[]> draw_buf_2;
+  lv_disp_draw_buf_t draw_buf_dsc;
+  // display driver
+  lv_disp_drv_t disp_drv;
+  // touchpad
+  lv_indev_t *indev_touchpad{nullptr};
+  lv_indev_drv_t indev_drv;
+  // timer
+  lv_timer_t *periodical_timer{nullptr};
+  // tile widget
+  using TileVector = std::vector<std::unique_ptr<Widget::TileBase>>;
+  lv_obj_t *tileview{nullptr};
+  TileVector tiles{};
+  //
+  static bool check_if_active_tile(const std::unique_ptr<Widget::TileBase> &t) {
+    if (auto p = t.get(); p) {
+      return p->isActiveTile(_instance->tileview);
+    } else {
+      return false;
+    }
+  }
+  //
+  template <typename T> inline void add_tile(const Widget::InitArg &arg) {
+    tiles.emplace_back(std::make_unique<T>(arg));
+  }
+};

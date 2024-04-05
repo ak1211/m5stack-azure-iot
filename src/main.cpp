@@ -3,11 +3,11 @@
 // See LICENSE file in the project root for full license information.
 //
 #include "Application.hpp"
-#include "BottomCaseLed.hpp"
 #include "DataLoggingFile.hpp"
 #include "Gui.hpp"
 #include "LocalDatabase.hpp"
 #include "Peripherals.hpp"
+#include "RgbLed.hpp"
 #include "SystemPower.hpp"
 #include "Telemetry.hpp"
 #include "Time.hpp"
@@ -32,6 +32,9 @@
 using namespace std::literals::string_literals;
 using namespace std::chrono;
 using namespace std::chrono_literals;
+
+// 起動時のログ
+Application::BootLog Application::boot_log{};
 
 // 記録インスタンス
 std::unique_ptr<Application::HistoriesBme280> Application::historiesBme280{};
@@ -134,6 +137,14 @@ static std::optional<BaselinesSGP30> getLatestBaselineSGP30() {
 // Arduinoのsetup()関数
 //
 void setup() {
+  //
+  auto logging = [](std::string_view sv) {
+    Application::boot_log.logging(sv);
+    if (auto p = Gui::getInstance(); p) {
+      p->event_send_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
+    }
+    lv_task_handler();
+  };
   constexpr auto TIMEOUT{5s};
   // initializing M5Stack Core2 with M5Unified
   {
@@ -141,74 +152,78 @@ void setup() {
     M5.begin(cfg);
     Wire.end();
     Wire.begin(M5.Ex_I2C.getSDA(), M5.Ex_I2C.getSCL());
-    M5.Display.setColorDepth(16);
+    M5.Display.setColorDepth(LV_COLOR_DEPTH);
+  }
+  // init RGB LEDS
+  if (auto rgbled = new RgbLed(); rgbled) {
+    rgbled->begin();
+    rgbled->setBrightness(100);
+    rgbled->fill(CRGB::White);
   }
   // init peripherals
   Peripherals::init(Wire, M5.Ex_I2C.getSDA(), M5.Ex_I2C.getSCL());
   // init SystemPower
   SystemPower::init();
-  // init BottomCaseLed
-  BottomCaseLed::init();
   // init GUI
-  BottomCaseLed::showProgressive(CRGB::White);
-  GUI::init();
+  auto gui = new Gui(M5.Display.width(), M5.Display.height(),
+                     M5.Display.getColorDepth());
+  if (!gui->init()) {
+    ESP_LOGE(MAIN, "gui init failure.");
+    return;
+  }
+  logging("System Booting.");
   // init WiFi
   if constexpr (true) {
-    BottomCaseLed::showProgressive(CRGB::White);
-    GUI::showBootstrappingMessage("connect to WiFi AP. SSID:\""s +
-                                  Credentials.wifi_ssid + "\""s);
+    logging("connect to WiFi AP. SSID:\""s + Credentials.wifi_ssid + "\""s);
     if (!connectToWiFi(Credentials.wifi_ssid, Credentials.wifi_password, 30s)) {
-      GUI::showBootstrappingMessage("connect failed.");
+      logging("connect failed.");
     }
   }
   // init Time
   if constexpr (true) {
-    BottomCaseLed::showProgressive(CRGB::White);
-    GUI::showBootstrappingMessage("init time.");
+    logging("init time.");
     // initialize Time
     Time::init();
   }
   // init OTA update
   if constexpr (true) {
-    BottomCaseLed::showProgressive(CRGB::White);
-    GUI::showBootstrappingMessage("setup OTA update.");
+    logging("setup OTA update.");
     setupOTA();
   }
   // init LocalDatabase
   if constexpr (true) {
-    BottomCaseLed::showProgressive(CRGB::White);
-    GUI::showBootstrappingMessage("init LocalDatabase.");
+    logging("init LocalDatabase.");
     if (!local_database.begin()) {
-      GUI::showBootstrappingMessage("LocalDatabase is not available.");
+      logging("LocalDatabase is not available.");
     }
   }
   // init DataLoggingFile
   if constexpr (true) {
-    BottomCaseLed::showProgressive(CRGB::White);
-    GUI::showBootstrappingMessage("init DataLoggingFile.");
+    logging("init DataLoggingFile.");
     if (!data_logging_file.init()) {
-      GUI::showBootstrappingMessage("DataLoggingFile is not available.");
+      logging("DataLoggingFile is not available.");
     }
   }
   // get baseline for "Sensirion SGP30: Air Quality Sensor" from database
   std::optional<BaselinesSGP30> baseline_sgp30{std::nullopt};
   if constexpr (true) {
-    BottomCaseLed::showProgressive(CRGB::White);
     baseline_sgp30 = getLatestBaselineSGP30();
   }
   // init sensors
   if constexpr (true) {
     ESP_LOGI(MAIN, "init sensors");
     for (auto &sensor_device : Peripherals::sensors) {
-      BottomCaseLed::showProgressive(CRGB::White);
       //
       std::ostringstream oss;
       SensorDescriptor desc = sensor_device->getSensorDescriptor();
       oss << "init " << desc.str() << " sensor.";
-      GUI::showBootstrappingMessage(oss.str().c_str());
+      logging(oss.str().c_str());
       bool ok{false};
       auto timeover{steady_clock::now() + TIMEOUT};
       while (steady_clock::now() < timeover) {
+        //
+        lv_task_handler();
+        //
         if (ok = sensor_device->init(); ok) {
           ESP_LOGI(MAIN, "%s init success.", desc.str().c_str());
           break;
@@ -233,7 +248,7 @@ void setup() {
       } else {
         oss.str("");
         oss << desc.str() << " sensor not found.";
-        GUI::showBootstrappingMessage(oss.str().c_str());
+        logging(oss.str().c_str());
       }
     }
     // 初期化に失敗した(つまり接続されていない)センサーをsensorsベクタから削除する
@@ -267,30 +282,30 @@ void setup() {
         break;
       default:
         ESP_LOGD(MAIN, "histories sensor_device initialization error.");
-        GUI::showBootstrappingMessage(
-            "histories sensor_device initialization error.");
+        logging("histories sensor_device initialization error.");
         break;
       }
     }
   }
   // init MQTT
   if constexpr (true) {
-    GUI::showBootstrappingMessage("connect MQTT.");
+    logging("connect MQTT.");
     bool ok{false};
     auto timeover{steady_clock::now() + TIMEOUT};
     while (!ok && steady_clock::now() < timeover) {
-      BottomCaseLed::showProgressive(CRGB::White);
+      //
+      lv_task_handler();
+      //
       ok = Telemetry::init(Credentials.iothub_fqdn, Credentials.device_id,
                            Credentials.device_key);
       std::this_thread::sleep_for(10ms);
     }
     if (!ok) {
-      GUI::showBootstrappingMessage("connect failed.");
+      logging("connect failed.");
     }
   }
   // setup successful
-  BottomCaseLed::offSignal();
-  GUI::startUI();
+  gui->startUI();
 }
 
 //
@@ -299,14 +314,14 @@ void setup() {
 inline void high_speed_loop() {
   ArduinoOTA.handle();
   M5.update();
-  lv_task_handler();
   if (M5.BtnA.wasPressed()) {
-    GUI::movePrev();
+    Gui::getInstance()->movePrev();
   } else if (M5.BtnB.wasPressed()) {
-    GUI::home();
+    Gui::getInstance()->home();
   } else if (M5.BtnC.wasPressed()) {
-    GUI::moveNext();
+    Gui::getInstance()->moveNext();
   }
+  lv_task_handler();
 }
 
 //
@@ -356,7 +371,8 @@ inline void low_speed_loop(system_clock::time_point nowtp) {
       bool operator()(const Sensor::Scd30 &in) {
         MeasurementScd30 m = {tp, in};
         // CO2の値でLEDの色を変える
-        BottomCaseLed::showSignal(in.co2);
+        RgbLed::getInstance()->fill(
+            RgbLed::colorFromCarbonDioxide(in.co2.value));
         //
         if (Application::historiesScd30) {
           Application::historiesScd30->insert(m);
