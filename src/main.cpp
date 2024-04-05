@@ -317,6 +317,7 @@ void setup() {
 // 高速度loop()関数
 //
 inline void high_speed_loop() {
+  lv_task_handler();
   ArduinoOTA.handle();
   M5.update();
   if (M5.BtnA.wasPressed()) {
@@ -326,13 +327,13 @@ inline void high_speed_loop() {
   } else if (M5.BtnC.wasPressed()) {
     Gui::getInstance()->moveNext();
   }
-  lv_task_handler();
 }
 
 //
 // 低速度loop()関数
 //
 inline void low_speed_loop(system_clock::time_point nowtp) {
+  lv_task_handler();
   // 測定
   for (auto &sensor_device : Peripherals::sensors) {
     auto measured =

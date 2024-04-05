@@ -32,8 +32,8 @@ bool Gui::begin() noexcept {
   lv_init();
   // buffer
   if constexpr (true) {
-    const size_t DRAW_BUFFER_SIZE{display_width * display_height / 10 *
-                                  (display_color_depth / 8)};
+    const int32_t DRAW_BUFFER_SIZE{display_width * (display_height / 10) *
+                                   (display_color_depth / 8)};
     draw_buf_1 = std::make_unique<lv_color_t[]>(DRAW_BUFFER_SIZE);
     if (draw_buf_1 == nullptr) {
       ESP_LOGE(MAIN, "memory allocation error");
@@ -73,9 +73,6 @@ bool Gui::begin() noexcept {
     indev_drv.type = LV_INDEV_TYPE_POINTER;
     indev_drv.read_cb = [](lv_indev_drv_t *indev_drv,
                            lv_indev_data_t *data) noexcept -> void {
-      lv_coord_t last_x = 0;
-      lv_coord_t last_y = 0;
-
       if (M5.Touch.getDetail().isPressed()) {
         auto coordinate = M5.Touch.getTouchPointRaw();
         data->point.x = coordinate.x;
