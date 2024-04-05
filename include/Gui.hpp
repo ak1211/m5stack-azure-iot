@@ -420,7 +420,7 @@ public:
 
 public:
   //
-  bool init() noexcept;
+  bool begin() noexcept;
   //
   void startUI() noexcept;
   //

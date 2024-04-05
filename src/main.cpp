@@ -165,9 +165,13 @@ void setup() {
   // init SystemPower
   SystemPower::init();
   // init GUI
-  auto gui = new Gui(M5.Display.width(), M5.Display.height(),
-                     M5.Display.getColorDepth());
-  if (!gui->init()) {
+  if (auto gui = new Gui(M5.Display.width(), M5.Display.height(),
+                         M5.Display.getColorDepth());
+      !gui) {
+    ESP_LOGE(MAIN, "not enough memory.");
+    return;
+  }
+  if (!Gui::getInstance()->begin()) {
     ESP_LOGE(MAIN, "gui init failure.");
     return;
   }
@@ -305,7 +309,8 @@ void setup() {
     }
   }
   // setup successful
-  gui->startUI();
+  logging("setup success.");
+  Gui::getInstance()->startUI();
 }
 
 //

@@ -27,7 +27,7 @@ using namespace std::literals::string_literals;
 using namespace std::literals::string_view_literals;
 
 //
-bool Gui::init() noexcept {
+bool Gui::begin() noexcept {
   // LVGL init
   lv_init();
   // buffer
