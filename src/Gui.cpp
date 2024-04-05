@@ -73,9 +73,6 @@ bool Gui::begin() noexcept {
     indev_drv.type = LV_INDEV_TYPE_POINTER;
     indev_drv.read_cb = [](lv_indev_drv_t *indev_drv,
                            lv_indev_data_t *data) noexcept -> void {
-      lv_coord_t last_x = 0;
-      lv_coord_t last_y = 0;
-
       if (M5.Touch.getDetail().isPressed()) {
         auto coordinate = M5.Touch.getTouchPointRaw();
         data->point.x = coordinate.x;
