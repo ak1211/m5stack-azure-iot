@@ -28,7 +28,6 @@ extern "C" {
 using namespace std::chrono;
 using namespace std::string_literals;
 
-constexpr std::size_t Capacity{JSON_OBJECT_SIZE(128)};
 //
 static std::string to_absolute_sensor_id(SensorDescriptor descriptor) {
   return std::string(Credentials.device_id) + "-"s + descriptor.str();
@@ -38,7 +37,7 @@ template <>
 std::string
 Telemetry::to_json_message<MeasurementBme280>(MessageId messageId,
                                               const MeasurementBme280 &in) {
-  StaticJsonDocument<Capacity> doc;
+  JsonDocument doc;
   doc["messageId"] = messageId;
   doc["sensorId"] = to_absolute_sensor_id(in.second.sensor_descriptor);
   doc["measuredAt"] = Time::isoformatUTC(in.first);
@@ -53,7 +52,7 @@ template <>
 std::string
 Telemetry::to_json_message<MeasurementM5Env3>(MessageId messageId,
                                               const MeasurementM5Env3 &in) {
-  StaticJsonDocument<Capacity> doc;
+  JsonDocument doc;
   doc["messageId"] = messageId;
   doc["sensorId"] = to_absolute_sensor_id(in.second.sensor_descriptor);
   doc["measuredAt"] = Time::isoformatUTC(in.first);
@@ -68,7 +67,7 @@ template <>
 std::string
 Telemetry::to_json_message<MeasurementSgp30>(MessageId messageId,
                                              const MeasurementSgp30 &in) {
-  StaticJsonDocument<Capacity> doc;
+  JsonDocument doc;
   doc["messageId"] = messageId;
   doc["sensorId"] = to_absolute_sensor_id(in.second.sensor_descriptor);
   doc["measuredAt"] = Time::isoformatUTC(in.first);
@@ -88,7 +87,7 @@ template <>
 std::string
 Telemetry::to_json_message<MeasurementScd30>(MessageId messageId,
                                              const MeasurementScd30 &in) {
-  StaticJsonDocument<Capacity> doc;
+  JsonDocument doc;
   doc["messageId"] = messageId;
   doc["sensorId"] = to_absolute_sensor_id(in.second.sensor_descriptor);
   doc["measuredAt"] = Time::isoformatUTC(in.first);
@@ -103,7 +102,7 @@ template <>
 std::string
 Telemetry::to_json_message<MeasurementScd41>(MessageId messageId,
                                              const MeasurementScd41 &in) {
-  StaticJsonDocument<Capacity> doc;
+  JsonDocument doc;
   doc["messageId"] = messageId;
   doc["sensorId"] = to_absolute_sensor_id(in.second.sensor_descriptor);
   doc["measuredAt"] = Time::isoformatUTC(in.first);

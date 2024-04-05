@@ -27,8 +27,27 @@ using MeasurementM5Env3 =
 
 //
 namespace Application {
-constexpr static auto M5StackCore2_HorizResolution = uint16_t{320};
-constexpr static auto M5StackCore2_VertResolution = uint16_t{240};
+//
+// 起動時のログ
+//
+class BootLog {
+  std::vector<char> message_cstring{'\0'};
+
+public:
+  //
+  void logging(std::string_view sv) noexcept {
+    message_cstring.pop_back();
+    std::copy(sv.begin(), sv.end(), std::back_inserter(message_cstring));
+    message_cstring.push_back('\n');
+    message_cstring.push_back('\0');
+  }
+  //
+  const char *c_str() const noexcept { return message_cstring.data(); }
+  //
+  size_t size() const noexcept { return message_cstring.size(); }
+};
+extern BootLog boot_log;
+
 //
 // 各センサーの測定値の記録用
 // 現在のところ1分毎の記録なので HISTORY_BUFFER_SIZE 分の記録をする
