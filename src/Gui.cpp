@@ -35,7 +35,7 @@ void Gui::display_flush_callback(lv_disp_drv_t *disp_drv, const lv_area_t *area,
 
   gfx.startWrite();
   gfx.setAddrWindow(area->x1, area->y1, width, height);
-  gfx.pushPixels((uint16_t *)color_p, width * height, true);
+  gfx.writePixels(reinterpret_cast<uint16_t *>(color_p), width * height, true);
   gfx.endWrite();
 
   /*IMPORTANT!!!
