@@ -455,6 +455,13 @@ private:
   using TileVector = std::vector<std::unique_ptr<Widget::TileBase>>;
   TileVector tiles{};
   //
+  static void display_flush_callback(lv_disp_drv_t *disp_drv,
+                                     const lv_area_t *area,
+                                     lv_color_t *color_p) noexcept;
+  //
+  static void touchpad_read_callback(lv_indev_drv_t *indev_drv,
+                                     lv_indev_data_t *data) noexcept;
+  //
   static bool
   check_if_active_tile(const std::unique_ptr<Widget::TileBase> &tile_to_test) {
     if (auto p = tile_to_test.get(); p) {

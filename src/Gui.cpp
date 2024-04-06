@@ -12,7 +12,6 @@
 #include <array>
 #include <chrono>
 #include <cmath>
-#include <cstddef>
 #include <ctime>
 #include <esp_system.h>
 #include <functional>
@@ -25,6 +24,33 @@
 using namespace std::chrono;
 using namespace std::literals::string_literals;
 using namespace std::literals::string_view_literals;
+
+//
+void Gui::display_flush_callback(lv_disp_drv_t *disp_drv, const lv_area_t *area,
+                                 lv_color_t *color_p) noexcept {
+  int32_t width = area->x2 - area->x1 + 1;
+  int32_t height = area->y2 - area->y1 + 1;
+  M5.Display.startWrite();
+  M5.Display.setAddrWindow(area->x1, area->y1, width, height);
+  M5.Display.pushPixels((uint16_t *)color_p, width * height, true);
+  M5.Display.endWrite();
+  /*IMPORTANT!!!
+   *Inform the graphics library that you are ready with the flushing*/
+  lv_disp_flush_ready(disp_drv);
+}
+
+//
+void Gui::touchpad_read_callback(lv_indev_drv_t *indev_drv,
+                                 lv_indev_data_t *data) noexcept {
+  if (M5.Touch.getDetail().isPressed()) {
+    auto tp = M5.Touch.getTouchPointRaw();
+    data->point.x = tp.x;
+    data->point.y = tp.y;
+    data->state = LV_INDEV_STATE_PR;
+  } else {
+    data->state = LV_INDEV_STATE_REL;
+  }
+}
 
 //
 bool Gui::begin() noexcept {
@@ -50,18 +76,7 @@ bool Gui::begin() noexcept {
     lv_disp_drv_init(&disp_drv);
     disp_drv.hor_res = display_width;
     disp_drv.ver_res = display_height;
-    disp_drv.flush_cb = [](lv_disp_drv_t *disp_drv, const lv_area_t *area,
-                           lv_color_t *color_p) noexcept -> void {
-      int32_t width = area->x2 - area->x1 + 1;
-      int32_t height = area->y2 - area->y1 + 1;
-      M5.Display.startWrite();
-      M5.Display.setAddrWindow(area->x1, area->y1, width, height);
-      M5.Display.pushPixels((uint16_t *)color_p, width * height, true);
-      M5.Display.endWrite();
-      /*IMPORTANT!!!
-       *Inform the graphics library that you are ready with the flushing*/
-      lv_disp_flush_ready(disp_drv);
-    };
+    disp_drv.flush_cb = display_flush_callback;
     //
     disp_drv.draw_buf = &draw_buf_dsc;
     // Finally register the driver
@@ -71,17 +86,7 @@ bool Gui::begin() noexcept {
   if constexpr (true) {
     lv_indev_drv_init(&indev_drv);
     indev_drv.type = LV_INDEV_TYPE_POINTER;
-    indev_drv.read_cb = [](lv_indev_drv_t *indev_drv,
-                           lv_indev_data_t *data) noexcept -> void {
-      if (M5.Touch.getDetail().isPressed()) {
-        auto tp = M5.Touch.getTouchPointRaw();
-        data->point.x = tp.x;
-        data->point.y = tp.y;
-        data->state = LV_INDEV_STATE_PR;
-      } else {
-        data->state = LV_INDEV_STATE_REL;
-      }
-    };
+    indev_drv.read_cb = touchpad_read_callback;
     indev_touchpad = lv_indev_drv_register(&indev_drv);
   }
   // tileview init
