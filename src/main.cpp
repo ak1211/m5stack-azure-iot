@@ -165,9 +165,7 @@ void setup() {
   // init SystemPower
   SystemPower::init();
   // init GUI
-  if (auto gui = new Gui(M5.Display.width(), M5.Display.height(),
-                         M5.Display.getColorDepth());
-      !gui) {
+  if (auto gui = new Gui(M5.Display); !gui) {
     ESP_LOGE(MAIN, "not enough memory.");
     return;
   }

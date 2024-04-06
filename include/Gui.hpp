@@ -11,6 +11,8 @@
 #include <memory>
 #include <tuple>
 
+#include <M5Unified.h>
+
 //
 //
 //
@@ -400,15 +402,9 @@ class Gui {
   constexpr static uint16_t MILLISECONDS_OF_PERIODIC_TIMER = 499;
 
 public:
-  // display resolution
-  const int32_t display_width;
-  const int32_t display_height;
-  const int8_t display_color_depth;
+  M5GFX &gfx;
   //
-  Gui(int32_t display_width, int32_t display_height, int8_t display_color_depth)
-      : display_width{display_width},
-        display_height{display_height},
-        display_color_depth{display_color_depth} {
+  Gui(M5GFX &gfx) : gfx{gfx} {
     if (_instance) {
       delete _instance;
     }

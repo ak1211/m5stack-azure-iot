@@ -28,12 +28,16 @@ using namespace std::literals::string_view_literals;
 //
 void Gui::display_flush_callback(lv_disp_drv_t *disp_drv, const lv_area_t *area,
                                  lv_color_t *color_p) noexcept {
+  M5GFX &gfx = *static_cast<M5GFX *>(disp_drv->user_data);
+
   int32_t width = area->x2 - area->x1 + 1;
   int32_t height = area->y2 - area->y1 + 1;
-  M5.Display.startWrite();
-  M5.Display.setAddrWindow(area->x1, area->y1, width, height);
-  M5.Display.pushPixels((uint16_t *)color_p, width * height, true);
-  M5.Display.endWrite();
+
+  gfx.startWrite();
+  gfx.setAddrWindow(area->x1, area->y1, width, height);
+  gfx.pushPixels((uint16_t *)color_p, width * height, true);
+  gfx.endWrite();
+
   /*IMPORTANT!!!
    *Inform the graphics library that you are ready with the flushing*/
   lv_disp_flush_ready(disp_drv);
@@ -42,13 +46,17 @@ void Gui::display_flush_callback(lv_disp_drv_t *disp_drv, const lv_area_t *area,
 //
 void Gui::touchpad_read_callback(lv_indev_drv_t *indev_drv,
                                  lv_indev_data_t *data) noexcept {
-  if (M5.Touch.getDetail().isPressed()) {
-    auto tp = M5.Touch.getTouchPointRaw();
+  M5GFX &gfx = *static_cast<M5GFX *>(indev_drv->user_data);
+
+  lgfx::touch_point_t tp;
+  bool touched = gfx.getTouch(&tp);
+
+  if (!touched) {
+    data->state = LV_INDEV_STATE_REL;
+  } else {
+    data->state = LV_INDEV_STATE_PR;
     data->point.x = tp.x;
     data->point.y = tp.y;
-    data->state = LV_INDEV_STATE_PR;
-  } else {
-    data->state = LV_INDEV_STATE_REL;
   }
 }
 
@@ -58,8 +66,7 @@ bool Gui::begin() noexcept {
   lv_init();
   // buffer
   if constexpr (true) {
-    const int32_t DRAW_BUFFER_SIZE =
-        display_width * (display_height / 10) * (display_color_depth / 8);
+    const int32_t DRAW_BUFFER_SIZE = gfx.width() * (gfx.height() / 10);
     draw_buf_1 = std::make_unique<lv_color_t[]>(DRAW_BUFFER_SIZE);
     if (draw_buf_1 == nullptr) {
       ESP_LOGE(MAIN, "memory allocation error");
@@ -74,9 +81,10 @@ bool Gui::begin() noexcept {
                           DRAW_BUFFER_SIZE); // Initialize the display buffer
     //
     lv_disp_drv_init(&disp_drv);
-    disp_drv.hor_res = display_width;
-    disp_drv.ver_res = display_height;
+    disp_drv.hor_res = gfx.width();
+    disp_drv.ver_res = gfx.height();
     disp_drv.flush_cb = display_flush_callback;
+    disp_drv.user_data = &gfx;
     //
     disp_drv.draw_buf = &draw_buf_dsc;
     // Finally register the driver
@@ -87,6 +95,8 @@ bool Gui::begin() noexcept {
     lv_indev_drv_init(&indev_drv);
     indev_drv.type = LV_INDEV_TYPE_POINTER;
     indev_drv.read_cb = touchpad_read_callback;
+    indev_drv.user_data = &gfx;
+    //
     indev_touchpad = lv_indev_drv_register(&indev_drv);
   }
   // tileview init
