@@ -399,11 +399,9 @@ public:
 //
 class Gui {
   inline static Gui *_instance{nullptr};
-  constexpr static uint16_t MILLISECONDS_OF_PERIODIC_TIMER = 499;
+  constexpr static uint16_t MILLISECONDS_OF_PERIODIC_TIMER = 250;
 
 public:
-  M5GFX &gfx;
-  //
   Gui(M5GFX &gfx) : gfx{gfx} {
     if (_instance) {
       delete _instance;
@@ -434,6 +432,7 @@ public:
   }
 
 private:
+  M5GFX &gfx;
   // LVGL draw buffer
   std::unique_ptr<lv_color_t[]> draw_buf_1;
   std::unique_ptr<lv_color_t[]> draw_buf_2;
