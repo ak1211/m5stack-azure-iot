@@ -97,7 +97,7 @@ bool Gui::begin() noexcept {
   tileview = lv_tileview_create(lv_scr_act());
   // make the first tile
   add_tile<Widget::BootMessage>({tileview, 0, 0, LV_DIR_RIGHT});
-  tiles[0]->setActiveTile(tileview);
+  tiles.front()->setActiveTile(tileview);
   // set value changed callback
   lv_obj_add_event_cb(
       tileview,

@@ -457,8 +457,8 @@ private:
   static void touchpad_read_callback(lv_indev_drv_t *indev_drv,
                                      lv_indev_data_t *data) noexcept;
   //
-  static bool
-  check_if_active_tile(const std::unique_ptr<Widget::TileBase> &tile_to_test) {
+  static bool check_if_active_tile(
+      const std::unique_ptr<Widget::TileBase> &tile_to_test) noexcept {
     if (auto p = tile_to_test.get(); p) {
       return p->isActiveTile(_instance->tileview);
     } else {
@@ -466,7 +466,8 @@ private:
     }
   }
   //
-  template <typename T> inline void add_tile(const Widget::InitArg &arg) {
+  template <typename T>
+  inline void add_tile(const Widget::InitArg &arg) noexcept {
     tiles.emplace_back(std::make_unique<T>(arg));
   }
 };
