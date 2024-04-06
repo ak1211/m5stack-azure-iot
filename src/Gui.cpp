@@ -64,41 +64,35 @@ void Gui::touchpad_read_callback(lv_indev_drv_t *indev_drv,
 bool Gui::begin() noexcept {
   // LVGL init
   lv_init();
-  // buffer
-  if constexpr (true) {
-    const int32_t DRAW_BUFFER_SIZE = gfx.width() * (gfx.height() / 10);
-    draw_buf_1 = std::make_unique<lv_color_t[]>(DRAW_BUFFER_SIZE);
-    if (draw_buf_1 == nullptr) {
-      ESP_LOGE(MAIN, "memory allocation error");
-      return false;
-    }
-    draw_buf_2 = std::make_unique<lv_color_t[]>(DRAW_BUFFER_SIZE);
-    if (draw_buf_2 == nullptr) {
-      ESP_LOGE(MAIN, "memory allocation error");
-      return false;
-    }
-    lv_disp_draw_buf_init(&draw_buf_dsc, draw_buf_1.get(), draw_buf_2.get(),
-                          DRAW_BUFFER_SIZE); // Initialize the display buffer
-    //
-    lv_disp_drv_init(&disp_drv);
-    disp_drv.hor_res = gfx.width();
-    disp_drv.ver_res = gfx.height();
-    disp_drv.flush_cb = display_flush_callback;
-    disp_drv.user_data = &gfx;
-    //
-    disp_drv.draw_buf = &draw_buf_dsc;
-    // Finally register the driver
-    lv_disp_drv_register(&disp_drv);
+  // LVGL draw buffer
+  const int32_t DRAW_BUFFER_SIZE = gfx.width() * (gfx.height() / 10);
+  lvgl_use.draw_buf_1 = std::make_unique<lv_color_t[]>(DRAW_BUFFER_SIZE);
+  lvgl_use.draw_buf_2 = std::make_unique<lv_color_t[]>(DRAW_BUFFER_SIZE);
+  if (lvgl_use.draw_buf_1 == nullptr || lvgl_use.draw_buf_2 == nullptr) {
+    ESP_LOGE(MAIN, "memory allocation error");
+    return false;
   }
-  //
-  if constexpr (true) {
-    lv_indev_drv_init(&indev_drv);
-    indev_drv.type = LV_INDEV_TYPE_POINTER;
-    indev_drv.read_cb = touchpad_read_callback;
-    indev_drv.user_data = &gfx;
-    //
-    indev_touchpad = lv_indev_drv_register(&indev_drv);
-  }
+  lv_disp_draw_buf_init(&lvgl_use.draw_buf_dsc, lvgl_use.draw_buf_1.get(),
+                        lvgl_use.draw_buf_2.get(), DRAW_BUFFER_SIZE);
+
+  // LVGL display driver
+  lv_disp_drv_init(&lvgl_use.disp_drv);
+  lvgl_use.disp_drv.user_data = &gfx;
+  lvgl_use.disp_drv.hor_res = gfx.width();
+  lvgl_use.disp_drv.ver_res = gfx.height();
+  lvgl_use.disp_drv.flush_cb = display_flush_callback;
+  lvgl_use.disp_drv.draw_buf = &lvgl_use.draw_buf_dsc;
+  // register the display driver
+  lv_disp_drv_register(&lvgl_use.disp_drv);
+
+  // LVGL (touchpad) input device driver
+  lv_indev_drv_init(&lvgl_use.indev_drv);
+  lvgl_use.indev_drv.user_data = &gfx;
+  lvgl_use.indev_drv.type = LV_INDEV_TYPE_POINTER;
+  lvgl_use.indev_drv.read_cb = touchpad_read_callback;
+  // register the input device driver
+  lv_indev_drv_register(&lvgl_use.indev_drv);
+
   // tileview init
   tileview = lv_tileview_create(lv_scr_act());
   // make the first tile

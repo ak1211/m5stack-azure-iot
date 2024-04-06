@@ -433,15 +433,15 @@ public:
 
 private:
   M5GFX &gfx;
-  // LVGL draw buffer
-  std::unique_ptr<lv_color_t[]> draw_buf_1;
-  std::unique_ptr<lv_color_t[]> draw_buf_2;
-  lv_disp_draw_buf_t draw_buf_dsc;
-  // LVGL display driver
-  lv_disp_drv_t disp_drv;
-  // LVGL (touchpad) input device driver
-  lv_indev_t *indev_touchpad{nullptr};
-  lv_indev_drv_t indev_drv;
+  // LVGL use area
+  struct {
+    // LVGL draw buffer
+    std::unique_ptr<lv_color_t[]> draw_buf_1;
+    std::unique_ptr<lv_color_t[]> draw_buf_2;
+    lv_disp_draw_buf_t draw_buf_dsc;
+    lv_disp_drv_t disp_drv;
+    lv_indev_drv_t indev_drv;
+  } lvgl_use;
   // LVGL timer
   lv_timer_t *periodic_timer{nullptr};
   // LVGL tileview object
