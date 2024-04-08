@@ -11,6 +11,8 @@
 #include <memory>
 #include <tuple>
 
+#include <M5Unified.h>
+
 //
 //
 //
@@ -121,8 +123,8 @@ class SystemHealth final : public TileBase {
   //
   lv_obj_t *time_label{nullptr};
   lv_obj_t *status_label{nullptr};
-  lv_obj_t *power_source_label{nullptr};
   lv_obj_t *battery_label{nullptr};
+  lv_obj_t *battery_charging_label{nullptr};
   lv_obj_t *available_heap_label{nullptr};
   lv_obj_t *available_internal_heap_label{nullptr};
   lv_obj_t *minimum_free_heap_label{nullptr};
@@ -397,17 +399,10 @@ public:
 //
 class Gui {
   inline static Gui *_instance{nullptr};
+  constexpr static uint16_t MILLISECONDS_OF_PERIODIC_TIMER = 250;
 
 public:
-  // display resolution
-  const int32_t display_width;
-  const int32_t display_height;
-  const int8_t display_color_depth;
-  //
-  Gui(int32_t display_width, int32_t display_height, int8_t display_color_depth)
-      : display_width{display_width},
-        display_height{display_height},
-        display_color_depth{display_color_depth} {
+  Gui(M5GFX &gfx) : gfx{gfx} {
     if (_instance) {
       delete _instance;
     }
@@ -437,30 +432,42 @@ public:
   }
 
 private:
-  std::unique_ptr<lv_color_t[]> draw_buf_1;
-  std::unique_ptr<lv_color_t[]> draw_buf_2;
-  lv_disp_draw_buf_t draw_buf_dsc;
-  // display driver
-  lv_disp_drv_t disp_drv;
-  // touchpad
-  lv_indev_t *indev_touchpad{nullptr};
-  lv_indev_drv_t indev_drv;
-  // timer
-  lv_timer_t *periodical_timer{nullptr};
+  M5GFX &gfx;
+  // LVGL use area
+  struct {
+    // LVGL draw buffer
+    std::unique_ptr<lv_color_t[]> draw_buf_1;
+    std::unique_ptr<lv_color_t[]> draw_buf_2;
+    lv_disp_draw_buf_t draw_buf_dsc;
+    lv_disp_drv_t disp_drv;
+    lv_indev_drv_t indev_drv;
+  } lvgl_use;
+  // LVGL timer
+  lv_timer_t *periodic_timer{nullptr};
+  // LVGL tileview object
+  lv_obj_t *tileview{nullptr};
   // tile widget
   using TileVector = std::vector<std::unique_ptr<Widget::TileBase>>;
-  lv_obj_t *tileview{nullptr};
   TileVector tiles{};
   //
-  static bool check_if_active_tile(const std::unique_ptr<Widget::TileBase> &t) {
-    if (auto p = t.get(); p) {
+  static void display_flush_callback(lv_disp_drv_t *disp_drv,
+                                     const lv_area_t *area,
+                                     lv_color_t *color_p) noexcept;
+  //
+  static void touchpad_read_callback(lv_indev_drv_t *indev_drv,
+                                     lv_indev_data_t *data) noexcept;
+  //
+  static bool check_if_active_tile(
+      const std::unique_ptr<Widget::TileBase> &tile_to_test) noexcept {
+    if (auto p = tile_to_test.get(); p) {
       return p->isActiveTile(_instance->tileview);
     } else {
       return false;
     }
   }
   //
-  template <typename T> inline void add_tile(const Widget::InitArg &arg) {
+  template <typename T>
+  inline void add_tile(const Widget::InitArg &arg) noexcept {
     tiles.emplace_back(std::make_unique<T>(arg));
   }
 };

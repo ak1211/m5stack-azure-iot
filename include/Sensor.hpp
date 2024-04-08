@@ -3,16 +3,16 @@
 // See LICENSE file in the project root for full license information.
 //
 #pragma once
-#include "M5UnitENV.h"
 #include "SimpleMovingAverage.hpp"
 #include "value_types.hpp"
 #include <Adafruit_BME280.h>
 #include <Adafruit_SCD30.h>
 #include <Adafruit_SGP30.h>
 #include <Adafruit_Sensor.h>
-#include <QMP6988.h>
+#include <M5UnitENV.h>
 #include <SensirionI2CScd4x.h>
 #include <Wire.h>
+
 #include <chrono>
 #include <cstdint>
 #include <ctime>

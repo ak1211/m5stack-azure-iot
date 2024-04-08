@@ -5,16 +5,15 @@
 #include "Gui.hpp"
 #include "Application.hpp"
 #include "LocalDatabase.hpp"
-#include "SystemPower.hpp"
 #include "Time.hpp"
 #include <WiFi.h>
+#include <esp_system.h>
+
 #include <algorithm>
 #include <array>
 #include <chrono>
 #include <cmath>
-#include <cstddef>
 #include <ctime>
-#include <esp_system.h>
 #include <functional>
 #include <iomanip>
 #include <sstream>
@@ -27,96 +26,105 @@ using namespace std::literals::string_literals;
 using namespace std::literals::string_view_literals;
 
 //
+void Gui::display_flush_callback(lv_disp_drv_t *disp_drv, const lv_area_t *area,
+                                 lv_color_t *color_p) noexcept {
+  M5GFX &gfx = *static_cast<M5GFX *>(disp_drv->user_data);
+
+  int32_t width = area->x2 - area->x1 + 1;
+  int32_t height = area->y2 - area->y1 + 1;
+
+  gfx.startWrite();
+  gfx.setAddrWindow(area->x1, area->y1, width, height);
+  gfx.writePixels(reinterpret_cast<uint16_t *>(color_p), width * height, true);
+  gfx.endWrite();
+
+  /*IMPORTANT!!!
+   *Inform the graphics library that you are ready with the flushing*/
+  lv_disp_flush_ready(disp_drv);
+}
+
+//
+void Gui::touchpad_read_callback(lv_indev_drv_t *indev_drv,
+                                 lv_indev_data_t *data) noexcept {
+  M5GFX &gfx = *static_cast<M5GFX *>(indev_drv->user_data);
+
+  lgfx::touch_point_t tp;
+  bool touched = gfx.getTouch(&tp);
+
+  if (!touched) {
+    data->state = LV_INDEV_STATE_REL;
+  } else {
+    data->state = LV_INDEV_STATE_PR;
+    data->point.x = tp.x;
+    data->point.y = tp.y;
+  }
+}
+
+//
 bool Gui::begin() noexcept {
   // LVGL init
   lv_init();
-  // buffer
-  if constexpr (true) {
-    const int32_t DRAW_BUFFER_SIZE{display_width * (display_height / 10) *
-                                   (display_color_depth / 8)};
-    draw_buf_1 = std::make_unique<lv_color_t[]>(DRAW_BUFFER_SIZE);
-    if (draw_buf_1 == nullptr) {
-      ESP_LOGE(MAIN, "memory allocation error");
-      return false;
-    }
-    draw_buf_2 = std::make_unique<lv_color_t[]>(DRAW_BUFFER_SIZE);
-    if (draw_buf_2 == nullptr) {
-      ESP_LOGE(MAIN, "memory allocation error");
-      return false;
-    }
-    lv_disp_draw_buf_init(&draw_buf_dsc, draw_buf_1.get(), draw_buf_2.get(),
-                          DRAW_BUFFER_SIZE); // Initialize the display buffer
-    //
-    lv_disp_drv_init(&disp_drv);
-    disp_drv.hor_res = display_width;
-    disp_drv.ver_res = display_height;
-    disp_drv.flush_cb = [](lv_disp_drv_t *disp_drv, const lv_area_t *area,
-                           lv_color_t *color_p) noexcept -> void {
-      int32_t width = area->x2 - area->x1 + 1;
-      int32_t height = area->y2 - area->y1 + 1;
-      M5.Display.startWrite();
-      M5.Display.setAddrWindow(area->x1, area->y1, width, height);
-      M5.Display.pushPixels((uint16_t *)color_p, width * height, true);
-      M5.Display.endWrite();
-      /*IMPORTANT!!!
-       *Inform the graphics library that you are ready with the flushing*/
-      lv_disp_flush_ready(disp_drv);
-    };
-    //
-    disp_drv.draw_buf = &draw_buf_dsc;
-    // Finally register the driver
-    lv_disp_drv_register(&disp_drv);
+  // LVGL draw buffer
+  const int32_t DRAW_BUFFER_SIZE = gfx.width() * (gfx.height() / 10);
+  lvgl_use.draw_buf_1 = std::make_unique<lv_color_t[]>(DRAW_BUFFER_SIZE);
+  lvgl_use.draw_buf_2 = std::make_unique<lv_color_t[]>(DRAW_BUFFER_SIZE);
+  if (lvgl_use.draw_buf_1 == nullptr || lvgl_use.draw_buf_2 == nullptr) {
+    ESP_LOGE(MAIN, "memory allocation error");
+    return false;
   }
-  //
-  if constexpr (true) {
-    lv_indev_drv_init(&indev_drv);
-    indev_drv.type = LV_INDEV_TYPE_POINTER;
-    indev_drv.read_cb = [](lv_indev_drv_t *indev_drv,
-                           lv_indev_data_t *data) noexcept -> void {
-      if (M5.Touch.getDetail().isPressed()) {
-        auto coordinate = M5.Touch.getTouchPointRaw();
-        data->point.x = coordinate.x;
-        data->point.y = coordinate.y;
-        data->state = LV_INDEV_STATE_PR;
-      } else {
-        data->state = LV_INDEV_STATE_REL;
-      }
-    };
-    indev_touchpad = lv_indev_drv_register(&indev_drv);
-  }
+  lv_disp_draw_buf_init(&lvgl_use.draw_buf_dsc, lvgl_use.draw_buf_1.get(),
+                        lvgl_use.draw_buf_2.get(), DRAW_BUFFER_SIZE);
+
+  // LVGL display driver
+  lv_disp_drv_init(&lvgl_use.disp_drv);
+  lvgl_use.disp_drv.user_data = &gfx;
+  lvgl_use.disp_drv.hor_res = gfx.width();
+  lvgl_use.disp_drv.ver_res = gfx.height();
+  lvgl_use.disp_drv.flush_cb = display_flush_callback;
+  lvgl_use.disp_drv.draw_buf = &lvgl_use.draw_buf_dsc;
+  // register the display driver
+  lv_disp_drv_register(&lvgl_use.disp_drv);
+
+  // LVGL (touchpad) input device driver
+  lv_indev_drv_init(&lvgl_use.indev_drv);
+  lvgl_use.indev_drv.user_data = &gfx;
+  lvgl_use.indev_drv.type = LV_INDEV_TYPE_POINTER;
+  lvgl_use.indev_drv.read_cb = touchpad_read_callback;
+  // register the input device driver
+  lv_indev_drv_register(&lvgl_use.indev_drv);
+
   // tileview init
   tileview = lv_tileview_create(lv_scr_act());
   // make the first tile
   add_tile<Widget::BootMessage>({tileview, 0, 0, LV_DIR_RIGHT});
-  tiles[0]->setActiveTile(tileview);
+  tiles.front()->setActiveTile(tileview);
   // set value changed callback
   lv_obj_add_event_cb(
       tileview,
-      [](lv_event_t *event) -> void {
+      [](lv_event_t *event) noexcept -> void {
         auto itr = std::find_if(_instance->tiles.cbegin(),
                                 _instance->tiles.cend(), check_if_active_tile);
         if (itr == _instance->tiles.cend()) {
           return;
         }
-        if (auto p = itr->get(); p) {
-          p->valueChangedEventHook(event);
+        if (auto found = itr->get(); found) {
+          found->valueChangedEventHook(event);
         }
       },
       LV_EVENT_VALUE_CHANGED, nullptr);
   // set timer callback
-  constexpr auto INTERVAL_MILLIS = 499;
-  periodical_timer = lv_timer_create(
-      [](lv_timer_t *) -> void {
+  periodic_timer = lv_timer_create(
+      [](lv_timer_t *) noexcept -> void {
         auto itr = std::find_if(_instance->tiles.cbegin(),
                                 _instance->tiles.cend(), check_if_active_tile);
         if (itr == _instance->tiles.cend()) {
           return;
         }
-        if (auto p = itr->get(); p) {
-          p->timerHook();
+        if (auto found = itr->get(); found) {
+          found->timerHook();
         }
       },
-      INTERVAL_MILLIS, nullptr);
+      MILLISECONDS_OF_PERIODIC_TIMER, nullptr);
   //
   lv_task_handler();
 
@@ -232,8 +240,8 @@ void Gui::startUI() noexcept {
 //
 void Gui::home() noexcept {
   vibrate();
-  if (periodical_timer) {
-    lv_timer_reset(periodical_timer);
+  if (periodic_timer) {
+    lv_timer_reset(periodic_timer);
   }
   constexpr auto COL_ID = 2;
   constexpr auto ROW_ID = 0;
@@ -248,8 +256,8 @@ void Gui::movePrev() noexcept {
     return;
   }
   if (auto p = std::prev(itr)->get(); p) {
-    if (periodical_timer) {
-      lv_timer_reset(periodical_timer);
+    if (periodic_timer) {
+      lv_timer_reset(periodic_timer);
     }
     p->setActiveTile(tileview);
   }
@@ -263,8 +271,8 @@ void Gui::moveNext() noexcept {
     return;
   }
   if (auto p = std::next(itr)->get(); p) {
-    if (periodical_timer) {
-      lv_timer_reset(periodical_timer);
+    if (periodic_timer) {
+      lv_timer_reset(periodic_timer);
     }
     p->setActiveTile(tileview);
   }
@@ -272,12 +280,12 @@ void Gui::moveNext() noexcept {
 
 //
 void Gui::vibrate() noexcept {
-  constexpr auto MILLIS = 100;
-  lv_timer_t *timer =
-      lv_timer_create([](lv_timer_t *) -> void { M5.Power.Axp192.setLDO3(0); },
-                      MILLIS, nullptr);
+  constexpr auto MILLISECONDS = 100;
+  lv_timer_t *timer = lv_timer_create(
+      [](lv_timer_t *) noexcept -> void { M5.Power.setVibration(0); },
+      MILLISECONDS, nullptr);
   lv_timer_set_repeat_count(timer, 1); // one-shot timer
-  M5.Power.Axp192.setLDO3(3300);       // start vibrate
+  M5.Power.setVibration(255);          // start vibrate
 }
 
 //
@@ -333,8 +341,8 @@ Widget::SystemHealth::SystemHealth(Widget::InitArg init) noexcept {
   //
   time_label = create(&style_label);
   status_label = create(&style_label);
-  power_source_label = create(&style_label);
   battery_label = create(&style_label);
+  battery_charging_label = create(&style_label);
   available_heap_label = create(&style_label);
   available_internal_heap_label = create(&style_label);
   minimum_free_heap_label = create(&style_label);
@@ -359,12 +367,6 @@ void Widget::SystemHealth::render() noexcept {
   const int16_t min = uptime.count() / 60 % 60;
   const int16_t hour = uptime.count() / (60 * 60) % 24;
   const int32_t days = uptime.count() / (60 * 60 * 24);
-  //
-  const auto [batCurrent, currentDirection] = SystemPower::getBatteryCurrent();
-  const auto batVoltage = SystemPower::getBatteryVoltage();
-  const auto batLevel = SystemPower::getBatteryLevel();
-  const Voltage volt = batVoltage;
-  const Ampere amp = batCurrent;
   //
   { // now time
     std::ostringstream oss;
@@ -407,27 +409,33 @@ void Widget::SystemHealth::render() noexcept {
         << std::setw(2) << sec;          //
     lv_label_set_text(status_label, oss.str().c_str());
   }
-  { // power source
-    std::ostringstream oss;
-    oss << (SystemPower::getPowerSource() == SystemPower::PowerSource::External
-                ? "external"sv
-                : "battery"sv)
-        << " power source"sv;
-    lv_label_set_text(power_source_label, oss.str().c_str());
-  }
   { // battery status
+    auto battery_level = M5.Power.getBatteryLevel();
+    auto battery_current = M5.Power.getBatteryCurrent();
+    auto battery_voltage = M5.Power.getBatteryVoltage();
     std::ostringstream oss;
-    oss << "Battery "                                             //
-        << std::setfill(' ') << std::setw(3) << +batLevel << "% " //
-        << std::setfill(' ') << std::fixed                        //
-        << std::setw(5) << std::setprecision(3)                   //
-        << static_cast<float>(volt.count()) << "V "               //
-        << std::setw(5) << std::setprecision(3)                   //
-        << static_cast<float>(amp.count()) << "A "                //
-        << (currentDirection == SystemPower::BatteryCurrentDirection::Charging
-                ? "CHARGING"sv
-                : "DISCHARGING"sv);
+    oss << "Battery "                                                  //
+        << std::setfill(' ') << std::setw(3) << +battery_level << "% " //
+        << std::setfill(' ') << std::fixed                             //
+        << std::setw(5) << std::setprecision(3)                        //
+        << battery_voltage << "mV "                                    //
+        << std::setw(5) << std::setprecision(3)                        //
+        << battery_current << "mA ";                                   //
     lv_label_set_text(battery_label, oss.str().c_str());
+  }
+  { // battery charging
+    std::ostringstream oss;
+    switch (M5.Power.isCharging()) {
+    case M5.Power.is_charging_t::is_discharging: {
+      oss << "DISCHARGING"sv;
+    } break;
+    case M5.Power.is_charging_t::is_charging: {
+      oss << "CHARGING"sv;
+    } break;
+    default: {
+    } break;
+    }
+    lv_label_set_text(battery_charging_label, oss.str().c_str());
   }
   { // available heap memory
     uint32_t memfree = esp_get_free_heap_size();
