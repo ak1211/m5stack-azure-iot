@@ -280,12 +280,12 @@ void Gui::moveNext() noexcept {
 
 //
 void Gui::vibrate() noexcept {
-  constexpr auto MILLIS = 100;
-  lv_timer_t *timer =
-      lv_timer_create([](lv_timer_t *) -> void { M5.Power.Axp192.setLDO3(0); },
-                      MILLIS, nullptr);
+  constexpr auto MILLISECONDS = 100;
+  lv_timer_t *timer = lv_timer_create(
+      [](lv_timer_t *) noexcept -> void { M5.Power.setVibration(0); },
+      MILLISECONDS, nullptr);
   lv_timer_set_repeat_count(timer, 1); // one-shot timer
-  M5.Power.Axp192.setLDO3(3300);       // start vibrate
+  M5.Power.setVibration(255);          // start vibrate
 }
 
 //
