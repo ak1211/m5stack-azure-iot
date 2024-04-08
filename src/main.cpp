@@ -311,8 +311,8 @@ void setup() {
       logging("connect failed.");
     }
   }
-  // setup successful
-  logging("setup success.");
+  //
+  logging("setup done.");
   Gui::getInstance()->startUI();
 }
 
