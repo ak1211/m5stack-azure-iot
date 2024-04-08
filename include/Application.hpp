@@ -5,6 +5,7 @@
 #pragma once
 #include "Histories.hpp"
 #include "Sensor.hpp"
+
 #include <memory>
 
 // ログ出し用

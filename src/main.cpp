@@ -8,10 +8,10 @@
 #include "LocalDatabase.hpp"
 #include "Peripherals.hpp"
 #include "RgbLed.hpp"
-#include "SystemPower.hpp"
 #include "Telemetry.hpp"
 #include "Time.hpp"
 #include "credentials.h"
+
 #include <ArduinoOTA.h>
 #include <WiFi.h>
 #include <Wire.h>
@@ -147,23 +147,28 @@ void setup() {
   };
   constexpr auto TIMEOUT{5s};
   // initializing M5Stack Core2 with M5Unified
-  {
+  if constexpr (true) {
     auto cfg = M5.config();
     M5.begin(cfg);
+    // initialize the 'arduino Wire class'
     Wire.end();
     Wire.begin(M5.Ex_I2C.getSDA(), M5.Ex_I2C.getSCL());
+    // Display
     M5.Display.setColorDepth(LV_COLOR_DEPTH);
+    M5.Display.setBrightness(200);
+    //
+    M5.Power.setChargeCurrent(280);
+    // stop the vibration
+    M5.Power.setVibration(0);
   }
   // init RGB LEDS
   if (auto rgbled = new RgbLed(); rgbled) {
     rgbled->begin();
-    rgbled->setBrightness(100);
+    rgbled->setBrightness(80);
     rgbled->fill(CRGB::White);
   }
   // init peripherals
   Peripherals::init(Wire, M5.Ex_I2C.getSDA(), M5.Ex_I2C.getSCL());
-  // init SystemPower
-  SystemPower::init();
   // init GUI
   if (auto gui = new Gui(M5.Display); !gui) {
     ESP_LOGE(MAIN, "not enough memory.");
@@ -173,7 +178,7 @@ void setup() {
     ESP_LOGE(MAIN, "gui init failure.");
     return;
   }
-  logging("System Booting.");
+  logging("System Start.");
   // init WiFi
   if constexpr (true) {
     logging("connect to WiFi AP. SSID:\""s + Credentials.wifi_ssid + "\""s);

@@ -5,15 +5,15 @@
 #include "Gui.hpp"
 #include "Application.hpp"
 #include "LocalDatabase.hpp"
-#include "SystemPower.hpp"
 #include "Time.hpp"
 #include <WiFi.h>
+#include <esp_system.h>
+
 #include <algorithm>
 #include <array>
 #include <chrono>
 #include <cmath>
 #include <ctime>
-#include <esp_system.h>
 #include <functional>
 #include <iomanip>
 #include <sstream>
@@ -341,8 +341,8 @@ Widget::SystemHealth::SystemHealth(Widget::InitArg init) noexcept {
   //
   time_label = create(&style_label);
   status_label = create(&style_label);
-  power_source_label = create(&style_label);
   battery_label = create(&style_label);
+  battery_charging_label = create(&style_label);
   available_heap_label = create(&style_label);
   available_internal_heap_label = create(&style_label);
   minimum_free_heap_label = create(&style_label);
@@ -367,12 +367,6 @@ void Widget::SystemHealth::render() noexcept {
   const int16_t min = uptime.count() / 60 % 60;
   const int16_t hour = uptime.count() / (60 * 60) % 24;
   const int32_t days = uptime.count() / (60 * 60 * 24);
-  //
-  const auto [batCurrent, currentDirection] = SystemPower::getBatteryCurrent();
-  const auto batVoltage = SystemPower::getBatteryVoltage();
-  const auto batLevel = SystemPower::getBatteryLevel();
-  const Voltage volt = batVoltage;
-  const Ampere amp = batCurrent;
   //
   { // now time
     std::ostringstream oss;
@@ -415,27 +409,33 @@ void Widget::SystemHealth::render() noexcept {
         << std::setw(2) << sec;          //
     lv_label_set_text(status_label, oss.str().c_str());
   }
-  { // power source
-    std::ostringstream oss;
-    oss << (SystemPower::getPowerSource() == SystemPower::PowerSource::External
-                ? "external"sv
-                : "battery"sv)
-        << " power source"sv;
-    lv_label_set_text(power_source_label, oss.str().c_str());
-  }
   { // battery status
+    auto battery_level = M5.Power.getBatteryLevel();
+    auto battery_current = M5.Power.getBatteryCurrent();
+    auto battery_voltage = M5.Power.getBatteryVoltage();
     std::ostringstream oss;
-    oss << "Battery "                                             //
-        << std::setfill(' ') << std::setw(3) << +batLevel << "% " //
-        << std::setfill(' ') << std::fixed                        //
-        << std::setw(5) << std::setprecision(3)                   //
-        << static_cast<float>(volt.count()) << "V "               //
-        << std::setw(5) << std::setprecision(3)                   //
-        << static_cast<float>(amp.count()) << "A "                //
-        << (currentDirection == SystemPower::BatteryCurrentDirection::Charging
-                ? "CHARGING"sv
-                : "DISCHARGING"sv);
+    oss << "Battery "                                                  //
+        << std::setfill(' ') << std::setw(3) << +battery_level << "% " //
+        << std::setfill(' ') << std::fixed                             //
+        << std::setw(5) << std::setprecision(3)                        //
+        << battery_voltage << "mV "                                    //
+        << std::setw(5) << std::setprecision(3)                        //
+        << battery_current << "mA ";                                   //
     lv_label_set_text(battery_label, oss.str().c_str());
+  }
+  { // battery charging
+    std::ostringstream oss;
+    switch (M5.Power.isCharging()) {
+    case M5.Power.is_charging_t::is_discharging: {
+      oss << "DISCHARGING"sv;
+    } break;
+    case M5.Power.is_charging_t::is_charging: {
+      oss << "CHARGING"sv;
+    } break;
+    default: {
+    } break;
+    }
+    lv_label_set_text(battery_charging_label, oss.str().c_str());
   }
   { // available heap memory
     uint32_t memfree = esp_get_free_heap_size();
