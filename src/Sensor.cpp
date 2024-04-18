@@ -25,8 +25,9 @@ void Sensor::Bme280Device::printSensorDetails() {
     humidity->printSensorDetails();
     return;
   }
-  ESP_LOGE(MAIN, "BME280 sensor has problems.");
+  M5_LOGE("BME280 sensor has problems.");
 }
+
 //
 bool Sensor::Bme280Device::init() {
   initialized = false;
@@ -37,14 +38,16 @@ bool Sensor::Bme280Device::init() {
   initialized = true;
   return initialized;
 }
+
 //
 bool Sensor::Bme280Device::readyToRead() noexcept {
   return active() && (steady_clock::now() - last_measured_at >= INTERVAL);
 }
+
 //
 Sensor::MeasuredValue Sensor::Bme280Device::read() {
   if (!active()) {
-    ESP_LOGE(MAIN, "BME280 sensor inactived.");
+    M5_LOGE("BME280 sensor inactived.");
     return std::monostate{};
   }
   bme280.takeForcedMeasurement();
@@ -53,16 +56,16 @@ Sensor::MeasuredValue Sensor::Bme280Device::read() {
   float pressure = bme280.readPressure();
   float temperature = bme280.readTemperature();
   if (!std::isfinite(humidity)) {
-    ESP_LOGE(MAIN, "BME280 sensor: humidity is not finite.");
-    goto error;
+    M5_LOGE("BME280 sensor: humidity is not finite.");
+    goto error_exit;
   }
   if (!std::isfinite(pressure)) {
-    ESP_LOGE(MAIN, "BME280 sensor: pressure is not finite.");
-    goto error;
+    M5_LOGE("BME280 sensor: pressure is not finite.");
+    goto error_exit;
   }
   if (!std::isfinite(temperature)) {
-    ESP_LOGE(MAIN, "BME280 sensor: temperature is not finite.");
-    goto error;
+    M5_LOGE("BME280 sensor: temperature is not finite.");
+    goto error_exit;
   }
   //
   {
@@ -82,13 +85,14 @@ Sensor::MeasuredValue Sensor::Bme280Device::read() {
     });
   }
 
-error:
+error_exit:
   if (bme280.init()) {
     setSampling();
-    ESP_LOGD(MAIN, "BME280 sensor: error to re-initialize.");
+    M5_LOGD("BME280 sensor: error to re-initialize.");
   }
   return std::monostate{};
 }
+
 //
 Sensor::MeasuredValue Sensor::Bme280Device::calculateSMA() noexcept {
   if (sma_temperature.ready() && sma_relative_humidity.ready() &&
@@ -128,11 +132,11 @@ bool Sensor::Sgp30Device::readyToRead() noexcept {
 //
 Sensor::MeasuredValue Sensor::Sgp30Device::read() {
   if (!active()) {
-    ESP_LOGE(MAIN, "SGP30 sensor inactived.");
+    M5_LOGE("SGP30 sensor inactived.");
     return std::monostate{};
   }
   if (!sgp30.IAQmeasure()) {
-    ESP_LOGE(MAIN, "SGP30 sensing failed.");
+    M5_LOGE("SGP30 sensing failed.");
     return std::monostate{};
   }
   // 稼働時間が 12hour　を超えている状態のときにベースラインを取得する
@@ -156,6 +160,7 @@ Sensor::MeasuredValue Sensor::Sgp30Device::read() {
       .tvoc_baseline = last_tvoc_baseline,
   });
 }
+
 //
 Sensor::MeasuredValue Sensor::Sgp30Device::calculateSMA() noexcept {
   if (sma_eCo2.ready() && sma_tvoc.ready()) {
@@ -170,22 +175,25 @@ Sensor::MeasuredValue Sensor::Sgp30Device::calculateSMA() noexcept {
     return std::monostate{};
   }
 }
+
 //
 bool Sensor::Sgp30Device::setIAQBaseline(BaselineECo2 eco2_base,
                                          BaselineTotalVoc tvoc_base) noexcept {
   auto result = sgp30.setIAQBaseline(eco2_base.value, tvoc_base.value);
   if (result) {
-    ESP_LOGI(MAIN, "SGP30 setIAQBaseline success");
+    M5_LOGI("SGP30 setIAQBaseline success");
   } else {
-    ESP_LOGE(MAIN, "SGP30 setIAQBaseline failure");
+    M5_LOGE("SGP30 setIAQBaseline failure");
   }
   return result;
 }
+
 //
 bool Sensor::Sgp30Device::setHumidity(
     MilligramPerCubicMetre absolute_humidity) noexcept {
   return sgp30.setHumidity(absolute_humidity.value);
 }
+
 //
 MilligramPerCubicMetre calculateAbsoluteHumidity(DegC temperature,
                                                  PctRH humidity) {
@@ -208,9 +216,10 @@ void Sensor::Scd30Device::printSensorDetails() {
     temperature->printSensorDetails();
     humidity->printSensorDetails();
   } else {
-    ESP_LOGE(MAIN, "SCD30 sensor has problems.");
+    M5_LOGE("SCD30 sensor has problems.");
   }
 }
+
 //
 bool Sensor::Scd30Device::init() {
   initialized = false;
@@ -220,6 +229,7 @@ bool Sensor::Scd30Device::init() {
   initialized = true;
   return initialized;
 }
+
 //
 bool Sensor::Scd30Device::readyToRead() noexcept {
   return active() && (steady_clock::now() - last_measured_at >= INTERVAL) &&
@@ -228,15 +238,15 @@ bool Sensor::Scd30Device::readyToRead() noexcept {
 //
 Sensor::MeasuredValue Sensor::Scd30Device::read() {
   if (!active()) {
-    ESP_LOGE(MAIN, "SCD30 sensor inactived.");
+    M5_LOGE("SCD30 sensor inactived.");
     return std::monostate{};
   }
   if (!scd30.dataReady()) {
-    ESP_LOGE(MAIN, "SCD30 sensor is not ready.");
+    M5_LOGE("SCD30 sensor is not ready.");
     return std::monostate{};
   }
   if (!scd30.read()) {
-    ESP_LOGE(MAIN, "SCD30 sensing failed.");
+    M5_LOGE("SCD30 sensing failed.");
     return std::monostate{};
   }
 
@@ -245,20 +255,17 @@ Sensor::MeasuredValue Sensor::Scd30Device::read() {
   float relative_humidity = scd30.relative_humidity;
 
   if (!std::isfinite(co2)) {
-    ESP_LOGE(MAIN, "SCD30 sensor: co2 is not finite.");
-    ESP_LOGD(MAIN, "reset SCD30 sensor.");
+    M5_LOGE("SCD30 sensor: co2 is not finite.");
     scd30.reset();
     return std::monostate{};
   }
   if (!std::isfinite(temperature)) {
-    ESP_LOGE(MAIN, "SCD30 sensor: temperature is not finite.");
-    ESP_LOGD(MAIN, "reset SCD30 sensor.");
+    M5_LOGE("SCD30 sensor: temperature is not finite.");
     scd30.reset();
     return std::monostate{};
   }
   if (!std::isfinite(relative_humidity)) {
-    ESP_LOGE(MAIN, "SCD30 sensor: relative humidity is not finite.");
-    ESP_LOGD(MAIN, "reset SCD30 sensor.");
+    M5_LOGE("SCD30 sensor: relative humidity is not finite.");
     scd30.reset();
     return std::monostate{};
   }
@@ -277,6 +284,7 @@ Sensor::MeasuredValue Sensor::Scd30Device::read() {
       .relative_humidity = mRH,
   });
 }
+
 //
 Sensor::MeasuredValue Sensor::Scd30Device::calculateSMA() noexcept {
   if (sma_co2.ready() && sma_temperature.ready() &&
@@ -301,66 +309,67 @@ void Sensor::Scd41Device::printSensorDetails() {
   uint16_t serial2;
   if (auto error = scd4x.getSerialNumber(serial0, serial1, serial2); error) {
     char errorMessage[256];
-    ESP_LOGE(MAIN, "Error trying to execute getSerialNumber(): ");
+    M5_LOGE("Error trying to execute getSerialNumber(): ");
     errorToString(error, errorMessage, std::size(errorMessage));
-    ESP_LOGE(MAIN, "%s", errorMessage);
+    M5_LOGE("%s", errorMessage);
     return;
   }
   Serial.printf("SCD41 serial number is [0x%x, 0x%x, 0x%x]\n", serial0, serial1,
                 serial2);
 }
+
 //
 bool Sensor::Scd41Device::init() {
-  uint16_t result = 0;
 
   initialized = false;
   scd4x.begin(two_wire);
   // stop potentially previously started measurement
-  if (result = scd4x.stopPeriodicMeasurement(); result) {
-    ESP_LOGE(MAIN, "Error trying to execute stopPeriodicMeasurement(): ");
-    goto error;
+  if (auto error = scd4x.stopPeriodicMeasurement(); error) {
+    char errorMessage[256]{};
+    errorToString(error, errorMessage, std::size(errorMessage));
+    M5_LOGE("%s", errorMessage);
+    return false;
   }
   // Start Measurement
   if (auto error = scd4x.startPeriodicMeasurement(); error) {
-    ESP_LOGE(MAIN, "Error trying to execute startPeriodicMeasurement(): ");
-    goto error;
+    char errorMessage[256]{};
+    errorToString(error, errorMessage, std::size(errorMessage));
+    M5_LOGE("%s", errorMessage);
+    return false;
   }
 
   initialized = true;
   return initialized;
-error:
-  char errorMessage[256]{};
-  errorToString(result, errorMessage, std::size(errorMessage));
-  ESP_LOGE(MAIN, "%s", errorMessage);
-  return false;
 }
+
 //
 Sensor::Scd41Device::SensorStatus
 Sensor::Scd41Device::getSensorStatus() noexcept {
   bool dataReadyFlag{false};
-  const auto error = scd4x.getDataReadyFlag(dataReadyFlag);
-  if (error) {
+  if (auto error = scd4x.getDataReadyFlag(dataReadyFlag); error) {
     char errorMessage[256];
-    ESP_LOGE(MAIN, "Error trying to execute getDataReadyStatus(): ");
+    M5_LOGE("Error trying to execute getDataReadyStatus(): ");
     errorToString(error, errorMessage, std::size(errorMessage));
-    ESP_LOGE(MAIN, "%s", errorMessage);
+    M5_LOGE("%s", errorMessage);
     return SensorStatus::DataNotReady;
   }
   return dataReadyFlag ? SensorStatus::DataReady : SensorStatus::DataNotReady;
 }
+
 //
 bool Sensor::Scd41Device::readyToRead() noexcept {
   return active() && (steady_clock::now() - last_measured_at >= INTERVAL) &&
          getSensorStatus() == SensorStatus::DataReady;
 }
+
 //
 Sensor::MeasuredValue Sensor::Scd41Device::read() {
   if (!active()) {
-    ESP_LOGE(MAIN, "SCD41 sensor inactived.");
+    M5_LOGE("SCD41 sensor inactived.");
     return std::monostate{};
   }
   if (getSensorStatus() == SensorStatus::DataNotReady) {
-    ESP_LOGE(MAIN, "SCD41 sensor is not ready.");
+    M5_LOGE("SCD41 sensor is not ready.");
     return std::monostate{};
   }
   uint16_t co2 = 0;
@@ -369,12 +378,12 @@ Sensor::MeasuredValue Sensor::Scd41Device::read() {
   if (auto error = scd4x.readMeasurement(co2, temperature, relative_humidity);
       error) {
     char errorMessage[256];
-    ESP_LOGE(MAIN, "Error trying to execute readMeasurement(): ");
+    M5_LOGE("Error trying to execute readMeasurement(): ");
     errorToString(error, errorMessage, std::size(errorMessage));
-    ESP_LOGE(MAIN, "%s", errorMessage);
+    M5_LOGE("%s", errorMessage);
     return std::monostate{};
   } else if (co2 == 0) {
-    ESP_LOGE(MAIN, "Invalid sample detected, skipping.");
+    M5_LOGE("Invalid sample detected, skipping.");
     return std::monostate{};
   }
 
@@ -392,6 +401,7 @@ Sensor::MeasuredValue Sensor::Scd41Device::read() {
       .relative_humidity = mRH,
   });
 }
+
 //
 Sensor::MeasuredValue Sensor::Scd41Device::calculateSMA() noexcept {
   if (sma_co2.ready() && sma_temperature.ready() &&
@@ -411,6 +421,7 @@ Sensor::MeasuredValue Sensor::Scd41Device::calculateSMA() noexcept {
 // M5Stack ENV.iii unit: Temperature and Humidity and Pressure Sensor
 //
 void Sensor::M5Env3Device::printSensorDetails() {}
+
 //
 bool Sensor::M5Env3Device::init() {
   initialized = false;
@@ -423,22 +434,30 @@ bool Sensor::M5Env3Device::init() {
   initialized = true;
   return true;
 }
+
 //
 bool Sensor::M5Env3Device::readyToRead() noexcept {
   return active() && (steady_clock::now() - last_measured_at >= INTERVAL);
 }
+
 //
 Sensor::MeasuredValue Sensor::M5Env3Device::read() {
   if (!active()) {
-    ESP_LOGE(MAIN, "M5Env3 sensor inactived.");
+    M5_LOGE("M5Env3 sensor inactived.");
     return std::monostate{};
   }
   //
   if (!sht31.update()) {
-    goto error_sht31;
+    if (sht31.begin(&two_wire, ENV3_I2C_ADDRESS_SHT31, sda_pin, scl_pin)) {
+      M5_LOGD("SHT31 sensor: error to re-initialize.");
+    }
+    return std::monostate{};
   }
   if (!qmp6988.update()) {
-    goto error_qmp6988;
+    if (qmp6988.begin(&two_wire, ENV3_I2C_ADDRESS_QMP6988, sda_pin, scl_pin)) {
+      M5_LOGD("QMP6988 sensor: error to re-initialize.");
+    }
+    return std::monostate{};
   }
   //
   {
@@ -457,19 +476,8 @@ Sensor::MeasuredValue Sensor::M5Env3Device::read() {
         .pressure = pa,
     });
   }
-
-error_sht31:
-  if (sht31.begin(&two_wire, ENV3_I2C_ADDRESS_SHT31, sda_pin, scl_pin)) {
-    ESP_LOGD(MAIN, "SHT31 sensor: error to re-initialize.");
-  }
-  return std::monostate{};
-
-error_qmp6988:
-  if (qmp6988.begin(&two_wire, ENV3_I2C_ADDRESS_QMP6988, sda_pin, scl_pin)) {
-    ESP_LOGD(MAIN, "QMP6988 sensor: error to re-initialize.");
-  }
-  return std::monostate{};
 }
+
 //
 Sensor::MeasuredValue Sensor::M5Env3Device::calculateSMA() noexcept {
   if (sma_temperature.ready() && sma_relative_humidity.ready() &&

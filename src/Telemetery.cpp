@@ -19,6 +19,8 @@
 #include <sstream>
 #include <string>
 
+#include <M5Unified.h>
+
 // Azure IoT SDK for C includes
 extern "C" {
 #include <az_core.h>
@@ -156,45 +158,44 @@ esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event) {
     int i, r;
 
   case MQTT_EVENT_ERROR:
-    ESP_LOGI(TELEMETRY, "MQTT event MQTT_EVENT_ERROR");
+    M5_LOGI("MQTT event MQTT_EVENT_ERROR");
     break;
   case MQTT_EVENT_CONNECTED:
-    ESP_LOGI(TELEMETRY, "MQTT event MQTT_EVENT_CONNECTED");
+    M5_LOGI("MQTT event MQTT_EVENT_CONNECTED");
     r = esp_mqtt_client_subscribe(mqtt_client,
                                   AZ_IOT_HUB_CLIENT_C2D_SUBSCRIBE_TOPIC, 1);
     if (r == -1) {
-      ESP_LOGE(TELEMETRY, "Could not subscribe for cloud-to-device messages.");
+      M5_LOGE("Could not subscribe for cloud-to-device messages.");
     } else {
-      ESP_LOGI(TELEMETRY,
-               "Subscribed for cloud-to-device messages; message id:%d", r);
+      M5_LOGI("Subscribed for cloud-to-device messages; message id:%d", r);
     }
     break;
   case MQTT_EVENT_DISCONNECTED:
-    ESP_LOGI(TELEMETRY, "MQTT event MQTT_EVENT_DISCONNECTED");
+    M5_LOGI("MQTT event MQTT_EVENT_DISCONNECTED");
     break;
   case MQTT_EVENT_SUBSCRIBED:
-    ESP_LOGI(TELEMETRY, "MQTT event MQTT_EVENT_SUBSCRIBED");
+    M5_LOGI("MQTT event MQTT_EVENT_SUBSCRIBED");
     break;
   case MQTT_EVENT_UNSUBSCRIBED:
-    ESP_LOGI(TELEMETRY, "MQTT event MQTT_EVENT_UNSUBSCRIBED");
+    M5_LOGI("MQTT event MQTT_EVENT_UNSUBSCRIBED");
     break;
   case MQTT_EVENT_PUBLISHED:
-    ESP_LOGI(TELEMETRY, "MQTT event MQTT_EVENT_PUBLISHED");
+    M5_LOGI("MQTT event MQTT_EVENT_PUBLISHED");
     break;
   case MQTT_EVENT_DATA:
-    ESP_LOGI(TELEMETRY, "MQTT event MQTT_EVENT_DATA");
+    M5_LOGI("MQTT event MQTT_EVENT_DATA");
     incoming_data.fill('\0');
     std::copy_n(event->topic, event->topic_len, incoming_data.begin());
-    ESP_LOGI(RECEIVE, "Topic: %s", incoming_data.data());
+    M5_LOGI("[RECEIVE] Topic: %s", incoming_data.data());
     incoming_data.fill('\0');
     std::copy_n(event->data, event->data_len, incoming_data.begin());
-    ESP_LOGI(RECEIVE, "Data: %s", incoming_data.data());
+    M5_LOGI("[RECEIVE] Data: %s", incoming_data.data());
     break;
   case MQTT_EVENT_BEFORE_CONNECT:
-    ESP_LOGI(TELEMETRY, "MQTT event MQTT_EVENT_BEFORE_CONNECT");
+    M5_LOGI("MQTT event MQTT_EVENT_BEFORE_CONNECT");
     break;
   default:
-    ESP_LOGE(TELEMETRY, "MQTT event UNKNOWN");
+    M5_LOGE("MQTT event UNKNOWN");
     break;
   }
 
@@ -212,7 +213,7 @@ static bool initializeIoTHubClient() {
           az_span_create((uint8_t *)config_device_id.c_str(),
                          config_device_id.length()),
           &client_options))) {
-    ESP_LOGE(TELEMETRY, "Failed initializing Azure IoT Hub client");
+    M5_LOGE("Failed initializing Azure IoT Hub client");
     return false;
   }
 
@@ -220,7 +221,7 @@ static bool initializeIoTHubClient() {
     std::array<char, 128> buffer{};
     if (az_result_failed(az_iot_hub_client_get_client_id(
             &client, buffer.data(), buffer.size() - 1, nullptr))) {
-      ESP_LOGE(TELEMETRY, "Failed getting client id");
+      M5_LOGE("Failed getting client id");
       return false;
     }
     mqtt_client_id = std::string{buffer.data()};
@@ -230,14 +231,14 @@ static bool initializeIoTHubClient() {
     std::array<char, 128> buffer{};
     if (az_result_failed(az_iot_hub_client_get_user_name(
             &client, buffer.data(), buffer.size() - 1, NULL))) {
-      ESP_LOGE(TELEMETRY, "Failed to get MQTT clientId, return code");
+      M5_LOGE("Failed to get MQTT clientId, return code");
       return false;
     }
     mqtt_username = std::string{buffer.data()};
   }
 
-  ESP_LOGI(TELEMETRY, "Client ID: %s", mqtt_client_id.c_str());
-  ESP_LOGI(TELEMETRY, "Username: %s", mqtt_username.c_str());
+  M5_LOGI("Client ID: %s", mqtt_client_id.c_str());
+  M5_LOGI("Username: %s", mqtt_username.c_str());
   return true;
 }
 
@@ -255,7 +256,7 @@ static bool initializeMqttClient() {
                        sas_signature_buffer.size()),
         az_span_create(mqtt_password.data(), mqtt_password.size()));
     if (azIoTSasToken.Generate(SAS_TOKEN_DURATION_IN_MINUTES) != 0) {
-      ESP_LOGE(TELEMETRY, "Failed generating SAS token");
+      M5_LOGE("Failed generating SAS token");
       return std::nullopt;
     }
     return std::make_optional(azIoTSasToken);
@@ -285,18 +286,17 @@ static bool initializeMqttClient() {
   mqtt_client = esp_mqtt_client_init(&mqtt_config);
 
   if (mqtt_client == nullptr) {
-    ESP_LOGE(TELEMETRY, "Failed creating mqtt client");
+    M5_LOGE("Failed creating mqtt client");
     return false;
   }
 
   esp_err_t start_result = esp_mqtt_client_start(mqtt_client);
 
   if (start_result != ESP_OK) {
-    ESP_LOGE(TELEMETRY, "Could not start mqtt client; error code:%d",
-             start_result);
+    M5_LOGE("Could not start mqtt client; error code:%d", start_result);
     return false;
   } else {
-    ESP_LOGI(TELEMETRY, "MQTT client started");
+    M5_LOGI("MQTT client started");
     return true;
   }
 }
@@ -323,7 +323,7 @@ bool Telemetry::init(std::string_view iothub_fqdn, std::string_view device_id,
 //
 bool Telemetry::loopMqtt() {
   if (optSasToken.has_value() && optSasToken->IsExpired()) {
-    ESP_LOGI(TELEMETRY, "SAS token expired; reconnecting with a new one.");
+    M5_LOGI("SAS token expired; reconnecting with a new one.");
     (void)esp_mqtt_client_destroy(mqtt_client);
     return initializeMqttClient();
   }
@@ -333,7 +333,7 @@ bool Telemetry::loopMqtt() {
   if (az_result_failed(az_iot_hub_client_telemetry_get_publish_topic(
           &client, nullptr, telemetry_topic.data(), telemetry_topic.size(),
           nullptr))) {
-    ESP_LOGE(TELEMETRY, "Failed az_iot_hub_client_telemetry_get_publish_topic");
+    M5_LOGE("Failed az_iot_hub_client_telemetry_get_publish_topic");
     return false;
   }
   // 送信するべき測定値があれば送信する
@@ -341,15 +341,15 @@ bool Telemetry::loopMqtt() {
     std::string payload = std::visit(
         [](const auto &x) { return Telemetry::to_json_message(message_id, x); },
         sending_fifo_queue.front());
-    ESP_LOGD(SEND, "%s", payload.c_str());
+    M5_LOGD("[SEND] %s", payload.c_str());
     auto count = esp_mqtt_client_publish(mqtt_client, telemetry_topic.data(),
                                          payload.c_str(), 0, MQTT_QOS1,
                                          DO_NOT_RETAIN_MSG);
     if (count < 0) {
-      ESP_LOGE(TELEMETRY, "Failed publishing");
+      M5_LOGE("Failed publishing");
       return false;
     } else {
-      ESP_LOGI(TELEMETRY, "Message published successfully");
+      M5_LOGI("Message published successfully");
       //  Count up message_id
       message_id = message_id + 1;
       // IoT Coreへ送信した測定値をFIFOから消す

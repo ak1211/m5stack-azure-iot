@@ -399,7 +399,7 @@ public:
 //
 class Gui {
   inline static Gui *_instance{nullptr};
-  constexpr static uint16_t MILLISECONDS_OF_PERIODIC_TIMER = 250;
+  constexpr static uint16_t MILLISECONDS_OF_PERIODIC_TIMER = 100;
 
 public:
   Gui(M5GFX &gfx) : gfx{gfx} {
@@ -417,7 +417,7 @@ public:
   //
   bool begin() noexcept;
   //
-  void startUI() noexcept;
+  void startUi() noexcept;
   //
   void home() noexcept;
   //

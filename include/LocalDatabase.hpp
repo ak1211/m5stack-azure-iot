@@ -14,29 +14,36 @@
 //
 //
 class LocalDatabase final {
-  bool _available;
-  std::string_view sqlite3_filename;
-  sqlite3 *database;
+  bool _available{false};
+  std::string_view sqlite3_filename{};
+  sqlite3 *database{nullptr};
 
 public:
   constexpr static const uint_fast8_t RETRY_COUNT = 100;
   //
   using RowId = int64_t;
-  RowId rowid_temperature;
-  RowId rowid_relative_humidity;
-  RowId rowid_pressure;
-  RowId rowid_carbon_dioxide;
-  RowId rowid_total_voc;
+  RowId rowid_temperature{-1};
+  RowId rowid_relative_humidity{-1};
+  RowId rowid_pressure{-1};
+  RowId rowid_carbon_dioxide{-1};
+  RowId rowid_total_voc{-1};
   //
-  LocalDatabase(std::string_view filename);
+  LocalDatabase(std::string_view filename) noexcept
+      : rowid_temperature{-1},
+        rowid_relative_humidity{-1},
+        rowid_pressure{-1},
+        rowid_carbon_dioxide{-1},
+        rowid_total_voc{-1},
+        _available{false},
+        sqlite3_filename{filename},
+        database{nullptr} {}
+  ~LocalDatabase() noexcept { terminate(); }
   //
-  ~LocalDatabase();
+  bool available() const noexcept { return _available; }
   //
-  bool available() { return _available; }
+  bool begin() noexcept;
   //
-  bool begin();
-  //
-  void terminate();
+  void terminate() noexcept;
   //
   bool insert(const MeasurementBme280 &in);
   bool insert(const MeasurementSgp30 &in);

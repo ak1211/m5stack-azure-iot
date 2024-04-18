@@ -8,6 +8,8 @@
 #include <chrono>
 #include <memory>
 
+#include <M5Unified.h>
+
 using namespace std::chrono;
 
 DataLoggingFile::~DataLoggingFile() { data_logging_file.close(); }
@@ -27,7 +29,7 @@ bool DataLoggingFile::init() {
   case CARD_NONE:
     [[fallthrough]];
   case CARD_UNKNOWN:
-    ESP_LOGD(MAIN, "No MEMORY CARD found.");
+    M5_LOGD("No MEMORY CARD found.");
     break;
   }
   return available();
@@ -121,12 +123,12 @@ void DataLoggingFile::write_data_to_log_file(
     std::advance(itr, n);
   }
   *itr++ = '\0';
-  ESP_LOGD(MAIN, "%s", buffer.data());
+  M5_LOGD("%s", buffer.data());
 
   // write to file
   auto size = data_logging_file.println(buffer.data());
   data_logging_file.flush();
-  ESP_LOGD(MAIN, "wrote size:%u", size);
+  M5_LOGD("wrote size:%u", size);
 }
 
 //
@@ -183,12 +185,12 @@ void DataLoggingFile::write_header_to_log_file() noexcept {
     std::advance(itr, n);
 
     *itr++ = '\0';
-    ESP_LOGD(MAIN, "%s", buffer.data());
+    M5_LOGD("%s", buffer.data());
 
     // write to file
     auto size = data_logging_file.println(buffer.data());
     data_logging_file.flush();
-    ESP_LOGD(MAIN, "wrote size:%u", size);
+    M5_LOGD("wrote size:%u", size);
   }
   f.close();
 }

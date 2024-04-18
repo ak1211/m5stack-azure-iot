@@ -17,7 +17,6 @@
 #include <Wire.h>
 #include <chrono>
 #include <ctime>
-#include <esp_log.h>
 #include <functional>
 #include <future>
 #include <lvgl.h>
@@ -116,19 +115,19 @@ static std::optional<BaselinesSGP30> getLatestBaselineSGP30() {
           SensorId(Peripherals::SENSOR_DESCRIPTOR_SGP30));
       available) {
     baseline_eco2 = eco2;
-    ESP_LOGD(MAIN, "latest_baseline_eco2: at(%d), baseline(%d)", at, eco2);
+    M5_LOGD("latest_baseline_eco2: at(%d), baseline(%d)", at, eco2);
   }
   if (auto [available, at, tvoc] = local_database.get_latest_baseline_total_voc(
           SensorId(Peripherals::SENSOR_DESCRIPTOR_SGP30));
       available) {
     baseline_tvoc = tvoc;
-    ESP_LOGD(MAIN, "latest_baseline_total_voc: at(%d), baseline(%d)", at, tvoc);
+    M5_LOGD("latest_baseline_total_voc: at(%d), baseline(%d)", at, tvoc);
   }
 
   if (baseline_eco2.has_value() && baseline_tvoc.has_value()) {
     return std::make_pair(baseline_eco2.value(), baseline_tvoc.value());
   } else {
-    ESP_LOGE(MAIN, "getLatestBaselines: failed.");
+    M5_LOGE("getLatestBaselines: failed.");
     return std::nullopt;
   }
 }
@@ -143,24 +142,22 @@ void setup() {
     if (auto p = Gui::getInstance(); p) {
       p->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
     }
-    lv_task_handler();
   };
   constexpr auto TIMEOUT{5s};
   // initializing M5Stack Core2 with M5Unified
-  if constexpr (true) {
-    auto cfg = M5.config();
-    M5.begin(cfg);
-    // initialize the 'arduino Wire class'
-    Wire.end();
-    Wire.begin(M5.Ex_I2C.getSDA(), M5.Ex_I2C.getSCL());
-    // Display
-    M5.Display.setColorDepth(LV_COLOR_DEPTH);
-    M5.Display.setBrightness(200);
-    //
-    M5.Power.setChargeCurrent(280);
-    // stop the vibration
-    M5.Power.setVibration(0);
-  }
+  auto cfg = M5.config();
+  M5.begin(cfg);
+  // initialize the 'arduino Wire class'
+  Wire.end();
+  Wire.begin(M5.Ex_I2C.getSDA(), M5.Ex_I2C.getSCL());
+  // Display
+  M5.Display.setColorDepth(LV_COLOR_DEPTH);
+  M5.Display.setBrightness(200);
+  //
+  M5.Power.setChargeCurrent(280);
+  // stop the vibration
+  M5.Power.setVibration(0);
+
   // init RGB LEDS
   if (auto rgbled = new RgbLed(); rgbled) {
     rgbled->begin();
@@ -170,14 +167,27 @@ void setup() {
   // init peripherals
   Peripherals::init(Wire, M5.Ex_I2C.getSDA(), M5.Ex_I2C.getSCL());
   // init GUI
-  if (auto gui = new Gui(M5.Display); !gui) {
-    ESP_LOGE(MAIN, "not enough memory.");
-    return;
+  if (auto gui = new Gui(M5.Display); gui) {
+    if (gui->begin()) {
+      void();
+    } else {
+      goto fatal_error;
+    }
+  } else {
+    goto fatal_error;
   }
-  if (!Gui::getInstance()->begin()) {
-    ESP_LOGE(MAIN, "gui init failure.");
-    return;
-  }
+
+  // create RTOS task
+  static TaskHandle_t rtos_task_handle{};
+  xTaskCreatePinnedToCore(
+      [](void *arg) -> void {
+        while (true) {
+          lv_timer_handler_run_in_period(10);
+          delay(10);
+        }
+      },
+      "Task:LVGL", 8192, nullptr, 10, &rtos_task_handle, ARDUINO_RUNNING_CORE);
+
   logging("System Start.");
   // init WiFi
   if constexpr (true) {
@@ -212,115 +222,105 @@ void setup() {
     }
   }
   // get baseline for "Sensirion SGP30: Air Quality Sensor" from database
-  std::optional<BaselinesSGP30> baseline_sgp30{std::nullopt};
-  if constexpr (true) {
-    baseline_sgp30 = getLatestBaselineSGP30();
-  }
-  // init sensors
-  if constexpr (true) {
-    ESP_LOGI(MAIN, "init sensors");
-    for (auto &sensor_device : Peripherals::sensors) {
+  {
+    std::optional<BaselinesSGP30> baseline_sgp30{std::nullopt};
+    if constexpr (true) {
+      baseline_sgp30 = getLatestBaselineSGP30();
+    }
+    // init sensors
+    if constexpr (true) {
+      M5_LOGI("init sensors");
+      for (auto &sensor_device : Peripherals::sensors) {
+        //
+        std::ostringstream oss;
+        SensorDescriptor desc = sensor_device->getSensorDescriptor();
+        oss << "init " << desc.str() << " sensor.";
+        logging(oss.str().c_str());
+        bool ok{false};
+        auto timeover{steady_clock::now() + TIMEOUT};
+        while (steady_clock::now() < timeover) {
+          //
+          if (ok = sensor_device->init(); ok) {
+            M5_LOGI("%s init success.", desc.str().c_str());
+            break;
+          }
+          M5_LOGI("%s init failed, retry", desc.str().c_str());
+          std::this_thread::sleep_for(10ms);
+        }
+        if (ok) {
+          if (sensor_device->getSensorDescriptor() ==
+              Peripherals::SENSOR_DESCRIPTOR_SGP30) {
+            // センサーがSGP30の場合のみ
+            if (baseline_sgp30.has_value()) {
+              auto [eco2, tvoc] = *baseline_sgp30;
+              auto sensor_ptr =
+                  static_cast<Sensor::Sgp30Device *>(sensor_device.get());
+              sensor_ptr->setIAQBaseline(eco2, tvoc);
+            } else {
+              M5_LOGI(
+                  "SGP30 built-in Automatic Baseline Correction algorithm.");
+            }
+          }
+        } else {
+          oss.str("");
+          oss << desc.str() << " sensor not found.";
+          logging(oss.str().c_str());
+        }
+      }
+      // 初期化に失敗した(つまり接続されていない)センサーをsensorsベクタから削除する
+      auto result =
+          std::remove_if(Peripherals::sensors.begin(),
+                         Peripherals::sensors.end(), [](auto &sensor_device) {
+                           auto active = sensor_device->active();
+                           return active == false;
+                         });
+      Peripherals::sensors.erase(result, Peripherals::sensors.end());
       //
-      std::ostringstream oss;
-      SensorDescriptor desc = sensor_device->getSensorDescriptor();
-      oss << "init " << desc.str() << " sensor.";
-      logging(oss.str().c_str());
-      bool ok{false};
-      auto timeover{steady_clock::now() + TIMEOUT};
-      while (steady_clock::now() < timeover) {
-        //
-        lv_task_handler();
-        //
-        if (ok = sensor_device->init(); ok) {
-          ESP_LOGI(MAIN, "%s init success.", desc.str().c_str());
+      // それぞれのセンサーに対応する記録インスタンスを準備する
+      //
+      using namespace Application;
+      for (auto &sensor_device : Peripherals::sensors) {
+        switch (SensorId(sensor_device->getSensorDescriptor())) {
+        case SensorId(Peripherals::SENSOR_DESCRIPTOR_BME280):
+          historiesBme280 = std::make_unique<HistoriesBme280>();
+          break;
+        case SensorId(Peripherals::SENSOR_DESCRIPTOR_SGP30):
+          historiesSgp30 = std::make_unique<HistoriesSgp30>();
+          break;
+        case SensorId(Peripherals::SENSOR_DESCRIPTOR_SCD30):
+          historiesScd30 = std::make_unique<HistoriesScd30>();
+          break;
+        case SensorId(Peripherals::SENSOR_DESCRIPTOR_SCD41):
+          historiesScd41 = std::make_unique<HistoriesScd41>();
+          break;
+        case SensorId(Peripherals::SENSOR_DESCRIPTOR_M5ENV3):
+          historiesM5Env3 = std::make_unique<HistoriesM5Env3>();
+          break;
+        default:
+          M5_LOGD("histories sensor_device initialization error.");
+          logging("histories sensor_device initialization error.");
           break;
         }
-        ESP_LOGI(MAIN, "%s init failed, retry", desc.str().c_str());
-        std::this_thread::sleep_for(10ms);
       }
-      if (ok) {
-        if (sensor_device->getSensorDescriptor() ==
-            Peripherals::SENSOR_DESCRIPTOR_SGP30) {
-          // センサーがSGP30の場合のみ
-          if (baseline_sgp30.has_value()) {
-            auto [eco2, tvoc] = *baseline_sgp30;
-            auto sensor_ptr =
-                static_cast<Sensor::Sgp30Device *>(sensor_device.get());
-            sensor_ptr->setIAQBaseline(eco2, tvoc);
-          } else {
-            ESP_LOGI(MAIN,
-                     "SGP30 built-in Automatic Baseline Correction algorithm.");
-          }
-        }
-      } else {
-        oss.str("");
-        oss << desc.str() << " sensor not found.";
-        logging(oss.str().c_str());
-      }
-    }
-    // 初期化に失敗した(つまり接続されていない)センサーをsensorsベクタから削除する
-    auto result =
-        std::remove_if(Peripherals::sensors.begin(), Peripherals::sensors.end(),
-                       [](auto &sensor_device) {
-                         auto active = sensor_device->active();
-                         return active == false;
-                       });
-    Peripherals::sensors.erase(result, Peripherals::sensors.end());
-    //
-    // それぞれのセンサーに対応する記録インスタンスを準備する
-    //
-    using namespace Application;
-    for (auto &sensor_device : Peripherals::sensors) {
-      switch (SensorId(sensor_device->getSensorDescriptor())) {
-      case SensorId(Peripherals::SENSOR_DESCRIPTOR_BME280):
-        historiesBme280 = std::make_unique<HistoriesBme280>();
-        break;
-      case SensorId(Peripherals::SENSOR_DESCRIPTOR_SGP30):
-        historiesSgp30 = std::make_unique<HistoriesSgp30>();
-        break;
-      case SensorId(Peripherals::SENSOR_DESCRIPTOR_SCD30):
-        historiesScd30 = std::make_unique<HistoriesScd30>();
-        break;
-      case SensorId(Peripherals::SENSOR_DESCRIPTOR_SCD41):
-        historiesScd41 = std::make_unique<HistoriesScd41>();
-        break;
-      case SensorId(Peripherals::SENSOR_DESCRIPTOR_M5ENV3):
-        historiesM5Env3 = std::make_unique<HistoriesM5Env3>();
-        break;
-      default:
-        ESP_LOGD(MAIN, "histories sensor_device initialization error.");
-        logging("histories sensor_device initialization error.");
-        break;
-      }
-    }
-  }
-  // init MQTT
-  if constexpr (true) {
-    logging("connect MQTT.");
-    bool ok{false};
-    auto timeover{steady_clock::now() + TIMEOUT};
-    while (!ok && steady_clock::now() < timeover) {
-      //
-      lv_task_handler();
-      //
-      ok = Telemetry::init(Credentials.iothub_fqdn, Credentials.device_id,
-                           Credentials.device_key);
-      std::this_thread::sleep_for(10ms);
-    }
-    if (!ok) {
-      logging("connect failed.");
     }
   }
   //
   logging("setup done.");
-  Gui::getInstance()->startUI();
+  Gui::getInstance()->startUi();
+
+  return; // Successfully exit.
+  //
+fatal_error:
+  M5.Display.clear();
+  M5.Display.print("fatal error.");
+  delay(300 * 1000);
+  esp_system_abort("fatal");
 }
 
 //
 // 高速度loop()関数
 //
 inline void high_speed_loop() {
-  lv_task_handler();
   ArduinoOTA.handle();
   M5.update();
   if (M5.BtnA.wasPressed()) {
@@ -336,7 +336,6 @@ inline void high_speed_loop() {
 // 低速度loop()関数
 //
 inline void low_speed_loop(system_clock::time_point nowtp) {
-  lv_task_handler();
   // 測定
   for (auto &sensor_device : Peripherals::sensors) {
     auto measured =
@@ -358,7 +357,7 @@ inline void low_speed_loop(system_clock::time_point nowtp) {
         if (Application::historiesBme280) {
           Application::historiesBme280->insert(m);
         } else {
-          ESP_LOGE(MAIN, "histories buffer had not available");
+          M5_LOGE("histories buffer had not available");
         }
         Telemetry::pushMessage(m);
         local_database.insert(m);
@@ -370,7 +369,7 @@ inline void low_speed_loop(system_clock::time_point nowtp) {
         if (Application::historiesSgp30) {
           Application::historiesSgp30->insert(m);
         } else {
-          ESP_LOGE(MAIN, "histories buffer had not available");
+          M5_LOGE("histories buffer had not available");
         }
         Telemetry::pushMessage(m);
         local_database.insert(m);
@@ -386,7 +385,7 @@ inline void low_speed_loop(system_clock::time_point nowtp) {
         if (Application::historiesScd30) {
           Application::historiesScd30->insert(m);
         } else {
-          ESP_LOGE(MAIN, "histories buffer had not available");
+          M5_LOGE("histories buffer had not available");
         }
         Telemetry::pushMessage(m);
         local_database.insert(m);
@@ -398,7 +397,7 @@ inline void low_speed_loop(system_clock::time_point nowtp) {
         if (Application::historiesScd41) {
           Application::historiesScd41->insert(m);
         } else {
-          ESP_LOGE(MAIN, "histories buffer had not available");
+          M5_LOGE("histories buffer had not available");
         }
         Telemetry::pushMessage(m);
         local_database.insert(m);
@@ -410,7 +409,7 @@ inline void low_speed_loop(system_clock::time_point nowtp) {
         if (Application::historiesM5Env3) {
           Application::historiesM5Env3->insert(m);
         } else {
-          ESP_LOGE(MAIN, "histories buffer had not available");
+          M5_LOGE("histories buffer had not available");
         }
         Telemetry::pushMessage(m);
         local_database.insert(m);
@@ -444,8 +443,20 @@ inline void low_speed_loop(system_clock::time_point nowtp) {
                                                  c->second);
       }
     }
+  } else if (WiFi.status() != WL_CONNECTED) {
+    // WiFiが接続されていない場合は接続する。
+    if (!connectToWiFi(Credentials.wifi_ssid, Credentials.wifi_password, 30s)) {
+      M5_LOGE("WiFi connect failed.");
+    }
   }
-  Telemetry::loopMqtt();
+
+  if (!Telemetry::loopMqtt()) {
+    // 再接続
+    if (!Telemetry::init(Credentials.iothub_fqdn, Credentials.device_id,
+                         Credentials.device_key)) {
+      M5_LOGE("MQTT subscribe failed.");
+    }
+  }
 }
 
 //

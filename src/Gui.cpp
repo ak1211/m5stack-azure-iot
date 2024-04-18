@@ -69,7 +69,7 @@ bool Gui::begin() noexcept {
   lvgl_use.draw_buf_1 = std::make_unique<lv_color_t[]>(DRAW_BUFFER_SIZE);
   lvgl_use.draw_buf_2 = std::make_unique<lv_color_t[]>(DRAW_BUFFER_SIZE);
   if (lvgl_use.draw_buf_1 == nullptr || lvgl_use.draw_buf_2 == nullptr) {
-    ESP_LOGE(MAIN, "memory allocation error");
+    M5_LOGE("memory allocation error");
     return false;
   }
   lv_disp_draw_buf_init(&lvgl_use.draw_buf_dsc, lvgl_use.draw_buf_1.get(),
@@ -125,14 +125,12 @@ bool Gui::begin() noexcept {
         }
       },
       MILLISECONDS_OF_PERIODIC_TIMER, nullptr);
-  //
-  lv_task_handler();
 
   return true;
 }
 
 //
-void Gui::startUI() noexcept {
+void Gui::startUi() noexcept {
   using Fn = std::function<void(lv_obj_t * tv, int16_t col, uint8_t dir)>;
   // Clock
   if constexpr (false) {
@@ -234,7 +232,6 @@ void Gui::startUI() noexcept {
   }
   //
   home();
-  lv_task_handler();
 }
 
 //
@@ -298,10 +295,7 @@ Widget::BootMessage::BootMessage(Widget::InitArg init) noexcept {
   lv_label_set_text_static(message_label, Application::boot_log.c_str());
 }
 
-Widget::BootMessage::~BootMessage() {
-  lv_obj_clean(tile);
-  lv_obj_del(tile);
-}
+Widget::BootMessage::~BootMessage() { lv_obj_del(tile); }
 
 void Widget::BootMessage::valueChangedEventHook(lv_event_t *) noexcept {
   lv_label_set_text_static(message_label, Application::boot_log.c_str());
@@ -350,10 +344,7 @@ Widget::SystemHealth::SystemHealth(Widget::InitArg init) noexcept {
   render();
 }
 
-Widget::SystemHealth::~SystemHealth() {
-  lv_obj_clean(tile);
-  lv_obj_del(tile);
-}
+Widget::SystemHealth::~SystemHealth() { lv_obj_del(tile); }
 
 void Widget::SystemHealth::valueChangedEventHook(lv_event_t *) noexcept {
   render();
@@ -495,10 +486,7 @@ Widget::Clock::Clock(Widget::InitArg init) noexcept {
   timerHook();
 }
 
-Widget::Clock::~Clock() {
-  lv_obj_clean(tile);
-  lv_obj_del(tile);
-}
+Widget::Clock::~Clock() { lv_obj_del(tile); }
 
 void Widget::Clock::valueChangedEventHook(lv_event_t *) noexcept {
   timerHook();
@@ -537,10 +525,7 @@ Widget::Summary::Summary(Widget::InitArg init) noexcept {
   render();
 }
 
-Widget::Summary::~Summary() {
-  lv_obj_clean(tile);
-  lv_obj_del(tile);
-}
+Widget::Summary::~Summary() { lv_obj_del(tile); }
 
 void Widget::Summary::valueChangedEventHook(lv_event_t *) noexcept { render(); }
 
@@ -864,7 +849,6 @@ Widget::BasicChart<T>::BasicChart(InitArg init,
 }
 
 template <typename T> Widget::BasicChart<T>::~BasicChart() noexcept {
-  lv_obj_clean(tile);
   lv_obj_del(tile);
 }
 
