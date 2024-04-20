@@ -4,7 +4,7 @@
 //
 #include "Gui.hpp"
 #include "Application.hpp"
-#include "LocalDatabase.hpp"
+#include "Database.hpp"
 #include "Time.hpp"
 #include <WiFi.h>
 #include <esp_system.h>

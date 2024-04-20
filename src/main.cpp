@@ -4,8 +4,8 @@
 //
 #include "Application.hpp"
 #include "DataLoggingFile.hpp"
+#include "Database.hpp"
 #include "Gui.hpp"
-#include "LocalDatabase.hpp"
 #include "Peripherals.hpp"
 #include "RgbLed.hpp"
 #include "Telemetry.hpp"
@@ -42,7 +42,7 @@ std::unique_ptr<Application::HistoriesScd30> Application::historiesScd30{};
 std::unique_ptr<Application::HistoriesScd41> Application::historiesScd41{};
 std::unique_ptr<Application::HistoriesM5Env3> Application::historiesM5Env3{};
 //
-LocalDatabase local_database(Application::sqlite3_file_name);
+Database database(Application::sqlite3_file_name);
 //
 DataLoggingFile data_logging_file(Application::data_log_file_name,
                                   Application::header_log_file_name);
@@ -84,21 +84,53 @@ static void setupOTA() {
   ArduinoOTA.begin();
 }
 
+static void gotWiFiEvent(WiFiEvent_t event) {
+  switch (event) {
+  case SYSTEM_EVENT_AP_START:
+    M5_LOGI("AP Started");
+    break;
+  case SYSTEM_EVENT_AP_STOP:
+    M5_LOGI("AP Stopped");
+    break;
+  case SYSTEM_EVENT_STA_START:
+    M5_LOGI("STA Started");
+    break;
+  case SYSTEM_EVENT_STA_CONNECTED:
+    M5_LOGI("STA Connected");
+    break;
+  case SYSTEM_EVENT_AP_STA_GOT_IP6: {
+    auto localipv6 = WiFi.localIPv6();
+    M5_LOGI("STA IPv6: %s", localipv6.toString());
+  } break;
+  case SYSTEM_EVENT_STA_GOT_IP: {
+    auto localip = WiFi.localIP();
+    M5_LOGI("STA IPv4: %s", localip.toString());
+  } break;
+  case SYSTEM_EVENT_STA_DISCONNECTED:
+    M5_LOGI("STA Disconnected");
+    //    WiFi.begin();
+    break;
+  case SYSTEM_EVENT_STA_STOP:
+    M5_LOGI("STA Stopped");
+    break;
+  default:
+    break;
+  }
+}
+
 //
-// WiFi APへ接続確立を試みる
+// WiFi APとの接続待ち
 //
-static bool connectToWiFi(std::string_view ssid, std::string_view password,
-                          seconds TIMEOUT) {
+static bool waitingForWiFiConnection(seconds TIMEOUT) {
   if (WiFi.status() == WL_CONNECTED) {
     return true;
   }
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid.data(), password.data());
-  bool ok{false};
+
   auto timeover{steady_clock::now() + TIMEOUT};
-  while (!ok && steady_clock::now() < timeover) {
-    ok = WiFi.status() == WL_CONNECTED;
+  auto status = WiFi.status();
+  while (status != WL_CONNECTED && steady_clock::now() < timeover) {
     std::this_thread::sleep_for(10ms);
+    status = WiFi.status();
   }
   return WiFi.status() == WL_CONNECTED;
 }
@@ -111,23 +143,24 @@ static std::optional<BaselinesSGP30> getLatestBaselineSGP30() {
   std::optional<BaselineECo2> baseline_eco2{std::nullopt};
   std::optional<BaselineTotalVoc> baseline_tvoc{std::nullopt};
   //
-  if (auto [available, at, eco2] = local_database.get_latest_baseline_eco2(
+  if (auto baseline = database.get_latest_baseline_eco2(
           SensorId(Peripherals::SENSOR_DESCRIPTOR_SGP30));
-      available) {
+      baseline.has_value()) {
+    auto [at, eco2] = *baseline;
     baseline_eco2 = eco2;
     M5_LOGD("latest_baseline_eco2: at(%d), baseline(%d)", at, eco2);
   }
-  if (auto [available, at, tvoc] = local_database.get_latest_baseline_total_voc(
+  if (auto baseline = database.get_latest_baseline_total_voc(
           SensorId(Peripherals::SENSOR_DESCRIPTOR_SGP30));
-      available) {
+      baseline.has_value()) {
+    auto [at, tvoc] = *baseline;
     baseline_tvoc = tvoc;
     M5_LOGD("latest_baseline_total_voc: at(%d), baseline(%d)", at, tvoc);
   }
-
   if (baseline_eco2.has_value() && baseline_tvoc.has_value()) {
-    return std::make_pair(baseline_eco2.value(), baseline_tvoc.value());
+    return std::make_pair(*baseline_eco2, *baseline_tvoc);
   } else {
-    M5_LOGE("getLatestBaselines: failed.");
+    M5_LOGE("SGP30 baseline was not recorded.");
     return std::nullopt;
   }
 }
@@ -157,6 +190,11 @@ void setup() {
   M5.Power.setChargeCurrent(280);
   // stop the vibration
   M5.Power.setVibration(0);
+
+  // init WiFi with Station mode
+  WiFi.onEvent(gotWiFiEvent);
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(Credentials.wifi_ssid, Credentials.wifi_password);
 
   // init RGB LEDS
   if (auto rgbled = new RgbLed(); rgbled) {
@@ -192,7 +230,7 @@ void setup() {
   // init WiFi
   if constexpr (true) {
     logging("connect to WiFi AP. SSID:\""s + Credentials.wifi_ssid + "\""s);
-    if (!connectToWiFi(Credentials.wifi_ssid, Credentials.wifi_password, 30s)) {
+    if (!waitingForWiFiConnection(30s)) {
       logging("connect failed.");
     }
   }
@@ -207,11 +245,11 @@ void setup() {
     logging("setup OTA update.");
     setupOTA();
   }
-  // init LocalDatabase
+  // init Database
   if constexpr (true) {
-    logging("init LocalDatabase.");
-    if (!local_database.begin()) {
-      logging("LocalDatabase is not available.");
+    logging("init Database.");
+    if (!database.begin()) {
+      logging("Database is not available.");
     }
   }
   // init DataLoggingFile
@@ -245,7 +283,7 @@ void setup() {
             break;
           }
           M5_LOGI("%s init failed, retry", desc.str().c_str());
-          std::this_thread::sleep_for(10ms);
+          std::this_thread::sleep_for(100ms);
         }
         if (ok) {
           if (sensor_device->getSensorDescriptor() ==
@@ -360,7 +398,7 @@ inline void low_speed_loop(system_clock::time_point nowtp) {
           M5_LOGE("histories buffer had not available");
         }
         Telemetry::pushMessage(m);
-        local_database.insert(m);
+        database.insert(m);
         return true;
       }
       // Sensirion SGP30: Air Quality Sensor
@@ -372,7 +410,7 @@ inline void low_speed_loop(system_clock::time_point nowtp) {
           M5_LOGE("histories buffer had not available");
         }
         Telemetry::pushMessage(m);
-        local_database.insert(m);
+        database.insert(m);
         return true;
       }
       // Sensirion SCD30: NDIR CO2 and Temperature and Humidity Sensor
@@ -388,7 +426,7 @@ inline void low_speed_loop(system_clock::time_point nowtp) {
           M5_LOGE("histories buffer had not available");
         }
         Telemetry::pushMessage(m);
-        local_database.insert(m);
+        database.insert(m);
         return true;
       }
       // Sensirion SCD41: PASens CO2 and Temperature and Humidity Sensor
@@ -400,7 +438,7 @@ inline void low_speed_loop(system_clock::time_point nowtp) {
           M5_LOGE("histories buffer had not available");
         }
         Telemetry::pushMessage(m);
-        local_database.insert(m);
+        database.insert(m);
         return true;
       }
       // M5Stack ENV.iii unit: Temperature and Humidity and Pressure Sensor
@@ -412,7 +450,7 @@ inline void low_speed_loop(system_clock::time_point nowtp) {
           M5_LOGE("histories buffer had not available");
         }
         Telemetry::pushMessage(m);
-        local_database.insert(m);
+        database.insert(m);
         return true;
       }
     };
@@ -445,7 +483,7 @@ inline void low_speed_loop(system_clock::time_point nowtp) {
     }
   } else if (WiFi.status() != WL_CONNECTED) {
     // WiFiが接続されていない場合は接続する。
-    if (!connectToWiFi(Credentials.wifi_ssid, Credentials.wifi_password, 30s)) {
+    if (!waitingForWiFiConnection(30s)) {
       M5_LOGE("WiFi connect failed.");
     }
   }

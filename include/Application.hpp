@@ -8,12 +8,6 @@
 
 #include <memory>
 
-// ログ出し用
-constexpr static char MAIN[] = "MAIN";
-constexpr static char SEND[] = "SEND";
-constexpr static char RECEIVE[] = "RECEIVE";
-constexpr static char TELEMETRY[] = "TELEMETRY";
-
 // 測定時間と測定値のペア
 using MeasurementBme280 =
     std::pair<std::chrono::system_clock::time_point, Sensor::Bme280>;
@@ -68,8 +62,9 @@ extern std::unique_ptr<HistoriesScd30> historiesScd30;
 extern std::unique_ptr<HistoriesScd41> historiesScd41;
 extern std::unique_ptr<HistoriesM5Env3> historiesM5Env3;
 //
-constexpr static auto sqlite3_file_name =
-    std::string_view{"/sd/measurements.sqlite3"};
+// constexpr static auto sqlite3_file_name =
+// std::string_view{"/sd/measurements.sqlite3"};
+constexpr static auto sqlite3_file_name = std::string_view{":memory:"};
 //
 constexpr static auto data_log_file_name =
     std::string_view{"/data-logging.csv"};

@@ -425,10 +425,12 @@ void Sensor::M5Env3Device::printSensorDetails() {}
 //
 bool Sensor::M5Env3Device::init() {
   initialized = false;
-  if (!sht31.begin(&two_wire, ENV3_I2C_ADDRESS_SHT31, sda_pin, scl_pin)) {
+  if (!sht31.begin(&two_wire, ENV3_I2C_ADDRESS_SHT31, sda_pin, scl_pin,
+                   two_wire.getClock())) {
     return false;
   }
-  if (!qmp6988.begin(&two_wire, ENV3_I2C_ADDRESS_QMP6988, sda_pin, scl_pin)) {
+  if (!qmp6988.begin(&two_wire, ENV3_I2C_ADDRESS_QMP6988, sda_pin, scl_pin,
+                     two_wire.getClock())) {
     return false;
   }
   initialized = true;
