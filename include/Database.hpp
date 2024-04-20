@@ -19,7 +19,7 @@
 class Database final {
   bool _available{false};
   std::string_view sqlite3_filename{};
-  sqlite3 *sqlite3_db;
+  sqlite3 *sqlite3_db{nullptr};
 
 public:
   using system_clock = std::chrono::system_clock;
@@ -69,7 +69,8 @@ public:
   bool insert(const MeasurementScd30 &in);
   bool insert(const MeasurementScd41 &in);
   bool insert(const MeasurementM5Env3 &in);
-  //
+
+public:
   //
   RowId insert_temperature(SensorId sensor_id, system_clock::time_point at,
                            DegC degc);
@@ -84,18 +85,24 @@ public:
   //
   size_t read_temperatures(Order order, SensorId sensor_id, size_t limit,
                            ReadCallback<TimePointAndDouble> callback);
-  //
   size_t read_relative_humidities(Order order, SensorId sensor_id, size_t limit,
                                   ReadCallback<TimePointAndDouble> callback);
-  //
   size_t read_pressures(Order order, SensorId sensor_id, size_t limit,
                         ReadCallback<TimePointAndDouble> callback);
-  //
   size_t read_carbon_deoxides(Order order, SensorId sensor_id, size_t limit,
                               ReadCallback<TimePointAndIntAndOptInt> callback);
-  //
   size_t read_total_vocs(Order order, SensorId sensor_id, size_t limit,
                          ReadCallback<TimePointAndIntAndOptInt> callback);
+  //
+  std::vector<TimePointAndDouble>
+  read_temperatures(Order order, SensorId sensor_id, size_t limit);
+  std::vector<TimePointAndDouble>
+  read_relative_humidities(Order order, SensorId sensor_id, size_t limit);
+  std::vector<TimePointAndDouble> read_pressures(Order order, SensorId sensor_id, size_t limit);
+  std::vector<TimePointAndIntAndOptInt>
+  read_carbon_deoxides(Order order, SensorId sensor_id, size_t limit);
+  std::vector<TimePointAndIntAndOptInt>
+  read_total_vocs(Order order, SensorId sensor_id, size_t limit);
   //
   std::optional<std::pair<std::time_t, BaselineECo2>>
   get_latest_baseline_eco2(SensorId sensor_id);

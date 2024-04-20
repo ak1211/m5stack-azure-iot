@@ -61,6 +61,20 @@ size_t Database::read_temperatures(
 }
 
 //
+std::vector<Database::TimePointAndDouble>
+Database::read_temperatures(Order order, SensorId sensor_id, size_t limit) {
+  std::vector<TimePointAndDouble> vect{};
+  vect.reserve(limit);
+  read_temperatures(order, sensor_id, limit,
+                    [&vect](size_t counter, TimePointAndDouble item) -> bool {
+                      vect.push_back(item);
+                      return true;
+                    });
+  vect.shrink_to_fit();
+  return std::move(vect);
+}
+
+//
 //
 //
 constexpr static std::string_view schema_relative_humidity{
@@ -106,6 +120,22 @@ size_t Database::read_relative_humidities(
 }
 
 //
+std::vector<Database::TimePointAndDouble>
+Database::read_relative_humidities(Order order, SensorId sensor_id,
+                                   size_t limit) {
+  std::vector<TimePointAndDouble> vect{};
+  vect.reserve(limit);
+  read_relative_humidities(
+      order, sensor_id, limit,
+      [&vect](size_t counter, TimePointAndDouble item) -> bool {
+        vect.push_back(item);
+        return true;
+      });
+  vect.shrink_to_fit();
+  return std::move(vect);
+}
+
+//
 //
 //
 constexpr static std::string_view schema_pressure{
@@ -148,6 +178,20 @@ Database::read_pressures(Order order, SensorId sensor_id, size_t limit,
   query += (order == OrderDesc) ? " ORDER BY at DESC;" : " ORDER BY at ASC;";
   return read_values(query, std::make_tuple(std::nullopt, sensor_id, limit),
                      callback);
+}
+
+//
+std::vector<Database::TimePointAndDouble>
+Database::read_pressures(Order order, SensorId sensor_id, size_t limit) {
+  std::vector<TimePointAndDouble> vect{};
+  vect.reserve(limit);
+  read_pressures(order, sensor_id, limit,
+                 [&vect](size_t counter, TimePointAndDouble item) -> bool {
+                   vect.push_back(item);
+                   return true;
+                 });
+  vect.shrink_to_fit();
+  return std::move(vect);
 }
 
 //
@@ -197,6 +241,21 @@ size_t Database::read_carbon_deoxides(
 }
 
 //
+std::vector<Database::TimePointAndIntAndOptInt>
+Database::read_carbon_deoxides(Order order, SensorId sensor_id, size_t limit) {
+  std::vector<TimePointAndIntAndOptInt> vect{};
+  vect.reserve(limit);
+  read_carbon_deoxides(
+      order, sensor_id, limit,
+      [&vect](size_t counter, TimePointAndIntAndOptInt item) -> bool {
+        vect.push_back(item);
+        return true;
+      });
+  vect.shrink_to_fit();
+  return std::move(vect);
+}
+
+//
 //
 //
 constexpr static std::string_view schema_total_voc{
@@ -240,6 +299,21 @@ size_t Database::read_total_vocs(
   query += (order == OrderDesc) ? " ORDER BY at DESC;" : " ORDER BY at ASC;";
   return read_values(query, std::make_tuple(std::nullopt, sensor_id, limit),
                      callback);
+}
+
+//
+std::vector<Database::TimePointAndIntAndOptInt>
+Database::read_total_vocs(Order order, SensorId sensor_id, size_t limit) {
+  std::vector<TimePointAndIntAndOptInt> vect{};
+  vect.reserve(limit);
+  read_total_vocs(
+      order, sensor_id, limit,
+      [&vect](size_t counter, TimePointAndIntAndOptInt item) -> bool {
+        vect.push_back(item);
+        return true;
+      });
+  vect.shrink_to_fit();
+  return std::move(vect);
 }
 
 //
