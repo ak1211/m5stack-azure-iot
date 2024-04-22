@@ -26,8 +26,8 @@ using InitArg = std::tuple<lv_obj_t *, uint8_t, uint8_t, lv_dir_t>;
 //
 //
 struct TileBase {
-  virtual void setActiveTile(lv_obj_t *tileview) noexcept = 0;
-  virtual bool isActiveTile(lv_obj_t *tileview) const noexcept = 0;
+  virtual void setActiveTile(lv_obj_t *tileview_obj) noexcept = 0;
+  virtual bool isActiveTile(lv_obj_t *tileview_obj) const noexcept = 0;
   virtual void valueChangedEventHook(lv_event_t *event) noexcept = 0;
   virtual void timerHook() noexcept = 0;
 };
@@ -36,8 +36,8 @@ struct TileBase {
 //
 //
 class BootMessage final : public TileBase {
-  lv_obj_t *tile{nullptr};
-  lv_obj_t *message_label{nullptr};
+  lv_obj_t *tile_obj{nullptr};
+  lv_obj_t *message_label_obj{nullptr};
   size_t count{0};
 
 public:
@@ -45,11 +45,11 @@ public:
   BootMessage(BootMessage &&) = delete;
   BootMessage &operator=(const BootMessage &) = delete;
   virtual ~BootMessage() noexcept;
-  virtual void setActiveTile(lv_obj_t *tileview) noexcept override {
-    lv_obj_set_tile(tileview, tile, LV_ANIM_ON);
+  virtual void setActiveTile(lv_obj_t *tileview_obj) noexcept override {
+    lv_obj_set_tile(tileview_obj, tile_obj, LV_ANIM_ON);
   }
-  virtual bool isActiveTile(lv_obj_t *tileview) const noexcept override {
-    return tile == lv_tileview_get_tile_act(tileview);
+  virtual bool isActiveTile(lv_obj_t *tileview_obj) const noexcept override {
+    return tile_obj == lv_tileview_get_tile_act(tileview_obj);
   }
   virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
   virtual void timerHook() noexcept override;
@@ -60,8 +60,8 @@ public:
 //
 //
 class Summary final : public TileBase {
-  lv_obj_t *tile{nullptr};
-  lv_obj_t *table{nullptr};
+  lv_obj_t *tile_obj{nullptr};
+  lv_obj_t *table_obj{nullptr};
   //
   Database::RowId displayed_rowid{0};
 
@@ -70,11 +70,11 @@ public:
   Summary(Summary &&) = delete;
   Summary &operator=(const Summary &) = delete;
   virtual ~Summary() noexcept;
-  virtual void setActiveTile(lv_obj_t *tileview) noexcept override {
-    lv_obj_set_tile(tileview, tile, LV_ANIM_ON);
+  virtual void setActiveTile(lv_obj_t *tileview_obj) noexcept override {
+    lv_obj_set_tile(tileview_obj, tile_obj, LV_ANIM_ON);
   }
-  virtual bool isActiveTile(lv_obj_t *tileview) const noexcept override {
-    return tile == lv_tileview_get_tile_act(tileview);
+  virtual bool isActiveTile(lv_obj_t *tileview_obj) const noexcept override {
+    return tile_obj == lv_tileview_get_tile_act(tileview_obj);
   }
   virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
   virtual void timerHook() noexcept override;
@@ -85,8 +85,8 @@ public:
 //
 //
 class Clock final : public TileBase {
-  lv_obj_t *tile{nullptr};
-  lv_obj_t *meter{nullptr};
+  lv_obj_t *tile_obj{nullptr};
+  lv_obj_t *meter_obj{nullptr};
   lv_meter_scale_t *sec_scale{nullptr};
   lv_meter_scale_t *min_scale{nullptr};
   lv_meter_scale_t *hour_scale{nullptr};
@@ -99,11 +99,11 @@ public:
   Clock(Clock &&) = delete;
   Clock &operator=(const Clock &) = delete;
   virtual ~Clock() noexcept;
-  virtual void setActiveTile(lv_obj_t *tileview) noexcept override {
-    lv_obj_set_tile(tileview, tile, LV_ANIM_ON);
+  virtual void setActiveTile(lv_obj_t *tileview_obj) noexcept override {
+    lv_obj_set_tile(tileview_obj, tile_obj, LV_ANIM_ON);
   }
-  virtual bool isActiveTile(lv_obj_t *tileview) const noexcept override {
-    return tile == lv_tileview_get_tile_act(tileview);
+  virtual bool isActiveTile(lv_obj_t *tileview_obj) const noexcept override {
+    return tile_obj == lv_tileview_get_tile_act(tileview_obj);
   }
   virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
   virtual void timerHook() noexcept override;
@@ -114,29 +114,29 @@ public:
 //
 //
 class SystemHealth final : public TileBase {
-  lv_obj_t *tile{nullptr};
-  lv_obj_t *cont_col{nullptr};
+  lv_obj_t *tile_obj{nullptr};
+  lv_obj_t *cont_col_obj{nullptr};
   //
-  lv_style_t style_label;
+  lv_style_t label_style;
   //
-  lv_obj_t *time_label{nullptr};
-  lv_obj_t *status_label{nullptr};
-  lv_obj_t *battery_label{nullptr};
-  lv_obj_t *battery_charging_label{nullptr};
-  lv_obj_t *available_heap_label{nullptr};
-  lv_obj_t *available_internal_heap_label{nullptr};
-  lv_obj_t *minimum_free_heap_label{nullptr};
+  lv_obj_t *time_label_obj{nullptr};
+  lv_obj_t *status_label_obj{nullptr};
+  lv_obj_t *battery_label_obj{nullptr};
+  lv_obj_t *battery_charging_label_obj{nullptr};
+  lv_obj_t *available_heap_label_obj{nullptr};
+  lv_obj_t *available_internal_heap_label_obj{nullptr};
+  lv_obj_t *minimum_free_heap_label_obj{nullptr};
 
 public:
   SystemHealth(InitArg init) noexcept;
   SystemHealth(SystemHealth &&) = delete;
   SystemHealth &operator=(const SystemHealth &) = delete;
   virtual ~SystemHealth() noexcept;
-  virtual void setActiveTile(lv_obj_t *tileview) noexcept override {
-    lv_obj_set_tile(tileview, tile, LV_ANIM_ON);
+  virtual void setActiveTile(lv_obj_t *tileview_obj) noexcept override {
+    lv_obj_set_tile(tileview_obj, tile_obj, LV_ANIM_ON);
   }
-  virtual bool isActiveTile(lv_obj_t *tileview) const noexcept override {
-    return tile == lv_tileview_get_tile_act(tileview);
+  virtual bool isActiveTile(lv_obj_t *tileview_obj) const noexcept override {
+    return tile_obj == lv_tileview_get_tile_act(tileview_obj);
   }
   virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
   virtual void timerHook() noexcept override;
@@ -148,11 +148,11 @@ public:
 //
 template <typename T> class BasicChart : public TileBase {
 protected:
-  lv_obj_t *tile{nullptr};
-  lv_obj_t *container{nullptr};
-  lv_obj_t *chart{nullptr};
-  lv_obj_t *title{nullptr};
-  lv_obj_t *label{nullptr};
+  lv_obj_t *tile_obj{nullptr};
+  lv_obj_t *container_obj{nullptr};
+  lv_obj_t *chart_obj{nullptr};
+  lv_obj_t *title_obj{nullptr};
+  lv_obj_t *label_obj{nullptr};
   lv_chart_series_t *chart_series_one{nullptr};
   //
   using ValueT = T;
@@ -164,16 +164,16 @@ public:
   BasicChart(BasicChart &&) = delete;
   BasicChart &operator=(const BasicChart &) = delete;
   virtual ~BasicChart() noexcept;
-  virtual void setActiveTile(lv_obj_t *tileview) noexcept override {
-    lv_obj_set_tile(tileview, tile, LV_ANIM_ON);
+  virtual void setActiveTile(lv_obj_t *tileview_obj) noexcept override {
+    lv_obj_set_tile(tileview_obj, tile_obj, LV_ANIM_ON);
   }
-  virtual bool isActiveTile(lv_obj_t *tileview) const noexcept override {
-    return tile == lv_tileview_get_tile_act(tileview);
+  virtual bool isActiveTile(lv_obj_t *tileview_obj) const noexcept override {
+    return tile_obj == lv_tileview_get_tile_act(tileview_obj);
   }
   template <typename U>
   void setHeading(std::string_view strUnit,
-                  std::optional<system_clock::time_point> optTP,
-                  std::optional<U> optValue) noexcept;
+                  std::optional<system_clock::time_point> opt_timepoint,
+                  std::optional<U> opt_value) noexcept;
   void
   setChartValue(const std::vector<ValueT> &histories,
                 std::function<lv_coord_t(const ValueT &)> mapping) noexcept;
@@ -469,7 +469,7 @@ public:
   void vibrate() noexcept;
   //
   lv_res_t send_event_to_tileview(lv_event_code_t event_code, void *param) {
-    return lv_event_send(_instance->tileview, event_code, param);
+    return lv_event_send(_instance->tileview_obj, event_code, param);
   }
 
 private:
@@ -486,7 +486,7 @@ private:
   // LVGL timer
   lv_timer_t *periodic_timer{nullptr};
   // LVGL tileview object
-  lv_obj_t *tileview{nullptr};
+  lv_obj_t *tileview_obj{nullptr};
   // tile widget
   using TileVector = std::vector<std::unique_ptr<Widget::TileBase>>;
   TileVector tiles{};
@@ -501,7 +501,7 @@ private:
   static bool check_if_active_tile(
       const std::unique_ptr<Widget::TileBase> &tile_to_test) noexcept {
     if (auto p = tile_to_test.get(); p) {
-      return p->isActiveTile(_instance->tileview);
+      return p->isActiveTile(_instance->tileview_obj);
     } else {
       return false;
     }
