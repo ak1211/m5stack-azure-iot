@@ -3,7 +3,6 @@
 // See LICENSE file in the project root for full license information.
 //
 #include "Application.hpp"
-#include "DataLoggingFile.hpp"
 #include "Database.hpp"
 #include "Gui.hpp"
 #include "Peripherals.hpp"
@@ -35,17 +34,8 @@ using namespace std::chrono_literals;
 // 起動時のログ
 Application::BootLog Application::boot_log{};
 
-// 記録インスタンス
-std::unique_ptr<Application::HistoriesBme280> Application::historiesBme280{};
-std::unique_ptr<Application::HistoriesSgp30> Application::historiesSgp30{};
-std::unique_ptr<Application::HistoriesScd30> Application::historiesScd30{};
-std::unique_ptr<Application::HistoriesScd41> Application::historiesScd41{};
-std::unique_ptr<Application::HistoriesM5Env3> Application::historiesM5Env3{};
 //
-Database database(Application::sqlite3_file_name);
-//
-DataLoggingFile data_logging_file(Application::data_log_file_name,
-                                  Application::header_log_file_name);
+Database measurements_database(Application::sqlite3_file_name);
 
 //
 // Over The Air update
@@ -143,14 +133,14 @@ static std::optional<BaselinesSGP30> getLatestBaselineSGP30() {
   std::optional<BaselineECo2> baseline_eco2{std::nullopt};
   std::optional<BaselineTotalVoc> baseline_tvoc{std::nullopt};
   //
-  if (auto baseline = database.get_latest_baseline_eco2(
+  if (auto baseline = measurements_database.get_latest_baseline_eco2(
           SensorId(Peripherals::SENSOR_DESCRIPTOR_SGP30));
       baseline.has_value()) {
     auto [at, eco2] = *baseline;
     baseline_eco2 = eco2;
     M5_LOGD("latest_baseline_eco2: at(%d), baseline(%d)", at, eco2);
   }
-  if (auto baseline = database.get_latest_baseline_total_voc(
+  if (auto baseline = measurements_database.get_latest_baseline_total_voc(
           SensorId(Peripherals::SENSOR_DESCRIPTOR_SGP30));
       baseline.has_value()) {
     auto [at, tvoc] = *baseline;
@@ -180,6 +170,11 @@ void setup() {
   // initializing M5Stack Core2 with M5Unified
   auto cfg = M5.config();
   M5.begin(cfg);
+  // PSRAM init
+  if (!psramInit()) {
+    M5_LOGE("PSRAM inititalize failed.");
+    goto fatal_error;
+  }
   // initialize the 'arduino Wire class'
   Wire.end();
   Wire.begin(M5.Ex_I2C.getSDA(), M5.Ex_I2C.getSCL());
@@ -248,15 +243,8 @@ void setup() {
   // init Database
   if constexpr (true) {
     logging("init Database.");
-    if (!database.begin()) {
+    if (!measurements_database.begin()) {
       logging("Database is not available.");
-    }
-  }
-  // init DataLoggingFile
-  if constexpr (true) {
-    logging("init DataLoggingFile.");
-    if (!data_logging_file.init()) {
-      logging("DataLoggingFile is not available.");
     }
   }
   // get baseline for "Sensirion SGP30: Air Quality Sensor" from database
@@ -309,37 +297,10 @@ void setup() {
       auto result =
           std::remove_if(Peripherals::sensors.begin(),
                          Peripherals::sensors.end(), [](auto &sensor_device) {
-                           auto active = sensor_device->active();
+                           auto active = sensor_device->available();
                            return active == false;
                          });
       Peripherals::sensors.erase(result, Peripherals::sensors.end());
-      //
-      // それぞれのセンサーに対応する記録インスタンスを準備する
-      //
-      using namespace Application;
-      for (auto &sensor_device : Peripherals::sensors) {
-        switch (SensorId(sensor_device->getSensorDescriptor())) {
-        case SensorId(Peripherals::SENSOR_DESCRIPTOR_BME280):
-          historiesBme280 = std::make_unique<HistoriesBme280>();
-          break;
-        case SensorId(Peripherals::SENSOR_DESCRIPTOR_SGP30):
-          historiesSgp30 = std::make_unique<HistoriesSgp30>();
-          break;
-        case SensorId(Peripherals::SENSOR_DESCRIPTOR_SCD30):
-          historiesScd30 = std::make_unique<HistoriesScd30>();
-          break;
-        case SensorId(Peripherals::SENSOR_DESCRIPTOR_SCD41):
-          historiesScd41 = std::make_unique<HistoriesScd41>();
-          break;
-        case SensorId(Peripherals::SENSOR_DESCRIPTOR_M5ENV3):
-          historiesM5Env3 = std::make_unique<HistoriesM5Env3>();
-          break;
-        default:
-          M5_LOGD("histories sensor_device initialization error.");
-          logging("histories sensor_device initialization error.");
-          break;
-        }
-      }
     }
   }
   //
@@ -392,25 +353,15 @@ inline void low_speed_loop(system_clock::time_point nowtp) {
       // Bosch BME280: Temperature and Humidity and Pressure Sensor
       bool operator()(const Sensor::Bme280 &in) {
         MeasurementBme280 m = {tp, in};
-        if (Application::historiesBme280) {
-          Application::historiesBme280->insert(m);
-        } else {
-          M5_LOGE("histories buffer had not available");
-        }
         Telemetry::pushMessage(m);
-        database.insert(m);
+        measurements_database.insert(m);
         return true;
       }
       // Sensirion SGP30: Air Quality Sensor
       bool operator()(const Sensor::Sgp30 &in) {
         MeasurementSgp30 m = {tp, in};
-        if (Application::historiesSgp30) {
-          Application::historiesSgp30->insert(m);
-        } else {
-          M5_LOGE("histories buffer had not available");
-        }
         Telemetry::pushMessage(m);
-        database.insert(m);
+        measurements_database.insert(m);
         return true;
       }
       // Sensirion SCD30: NDIR CO2 and Temperature and Humidity Sensor
@@ -420,37 +371,22 @@ inline void low_speed_loop(system_clock::time_point nowtp) {
         RgbLed::getInstance()->fill(
             RgbLed::colorFromCarbonDioxide(in.co2.value));
         //
-        if (Application::historiesScd30) {
-          Application::historiesScd30->insert(m);
-        } else {
-          M5_LOGE("histories buffer had not available");
-        }
         Telemetry::pushMessage(m);
-        database.insert(m);
+        measurements_database.insert(m);
         return true;
       }
       // Sensirion SCD41: PASens CO2 and Temperature and Humidity Sensor
       bool operator()(const Sensor::Scd41 &in) {
         MeasurementScd41 m = {tp, in};
-        if (Application::historiesScd41) {
-          Application::historiesScd41->insert(m);
-        } else {
-          M5_LOGE("histories buffer had not available");
-        }
         Telemetry::pushMessage(m);
-        database.insert(m);
+        measurements_database.insert(m);
         return true;
       }
       // M5Stack ENV.iii unit: Temperature and Humidity and Pressure Sensor
       bool operator()(const Sensor::M5Env3 &in) {
         MeasurementM5Env3 m = {tp, in};
-        if (Application::historiesM5Env3) {
-          Application::historiesM5Env3->insert(m);
-        } else {
-          M5_LOGE("histories buffer had not available");
-        }
         Telemetry::pushMessage(m);
-        database.insert(m);
+        measurements_database.insert(m);
         return true;
       }
     };
@@ -461,25 +397,6 @@ inline void low_speed_loop(system_clock::time_point nowtp) {
     for (auto &sensor_device : Peripherals::sensors) {
       bool result = std::visit(Visitor{nowtp}, sensor_device->calculateSMA());
       success = success && result;
-    }
-    // insert to local logging file
-    if (success) {
-      auto a = Application::historiesBme280
-                   ? Application::historiesBme280->getLatestValue()
-                   : std::nullopt;
-      auto b = Application::historiesSgp30
-                   ? Application::historiesSgp30->getLatestValue()
-                   : std::nullopt;
-      auto c = Application::historiesScd30
-                   ? Application::historiesScd30->getLatestValue()
-                   : std::nullopt;
-      //
-      // TODO: add M5Env3 and SCD41
-      //
-      if (a && b && c) {
-        data_logging_file.write_data_to_log_file(a->first, a->second, b->second,
-                                                 c->second);
-      }
     }
   } else if (WiFi.status() != WL_CONNECTED) {
     // WiFiが接続されていない場合は接続する。

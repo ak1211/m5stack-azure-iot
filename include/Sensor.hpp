@@ -116,7 +116,7 @@ struct Device {
   virtual SensorDescriptor getSensorDescriptor() const noexcept = 0;
   virtual void printSensorDetails() = 0;
   virtual bool init() = 0;
-  virtual bool active() const noexcept = 0;
+  virtual bool available() const noexcept = 0;
   virtual bool readyToRead() noexcept = 0;
   virtual MeasuredValue read() = 0;
   virtual MeasuredValue calculateSMA() noexcept = 0;
@@ -156,7 +156,7 @@ public:
   }
   void printSensorDetails() override;
   bool init() override;
-  bool active() const noexcept override { return initialized; }
+  bool available() const noexcept override { return initialized; }
   bool readyToRead() noexcept override;
   MeasuredValue read() override;
   MeasuredValue calculateSMA() noexcept override;
@@ -203,7 +203,7 @@ public:
   }
   void printSensorDetails() override;
   bool init() override;
-  bool active() const noexcept override { return initialized; }
+  bool available() const noexcept override { return initialized; }
   bool readyToRead() noexcept override;
   MeasuredValue read() override;
   MeasuredValue calculateSMA() noexcept override;
@@ -243,7 +243,7 @@ public:
   }
   void printSensorDetails() override;
   bool init() override;
-  bool active() const noexcept override { return initialized; }
+  bool available() const noexcept override { return initialized; }
   bool readyToRead() noexcept override;
   MeasuredValue read() override;
   MeasuredValue calculateSMA() noexcept override;
@@ -279,7 +279,7 @@ public:
   }
   void printSensorDetails() override;
   bool init() override;
-  bool active() const noexcept override { return initialized; }
+  bool available() const noexcept override { return initialized; }
   bool readyToRead() noexcept override;
   enum class SensorStatus { DataNotReady, DataReady };
   SensorStatus getSensorStatus() noexcept;
@@ -327,7 +327,7 @@ public:
   }
   void printSensorDetails() override;
   bool init() override;
-  bool active() const noexcept override { return initialized; }
+  bool available() const noexcept override { return initialized; }
   bool readyToRead() noexcept override;
   MeasuredValue read() override;
   MeasuredValue calculateSMA() noexcept override;

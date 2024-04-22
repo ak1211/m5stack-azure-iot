@@ -26,36 +26,43 @@ constexpr static std::string_view schema_temperature{
     ");"};
 
 //
-Database::RowId Database::insert_temperature(SensorId sensor_id,
-                                             system_clock::time_point at,
-                                             DegC degc) {
+std::optional<Database::RowId>
+Database::insert_temperature(SensorId sensor_id, system_clock::time_point at,
+                             DegC degc) {
   constexpr static std::string_view query{
       "INSERT INTO"
       " temperature(sensor_id,at,degc)"
       " VALUES(?,?,?);" // values#0, values#1, values#2
   };
-  CentiDegC tCeltius = std::chrono::round<CentiDegC>(degc);
-  TimePointAndDouble values{sensor_id, at, tCeltius.count()};
-  return insert_values(query, values);
+  TimePointAndDouble values{sensor_id, at, degc.count()};
+  if (auto rowid = insert_values(query, values); rowid) {
+    return (rowid_temperature = rowid);
+  } else {
+    return std::nullopt;
+  }
 }
 
 //
 size_t Database::read_temperatures(
     Order order, SensorId sensor_id, size_t limit,
     Database::ReadCallback<TimePointAndDouble> callback) {
-  constexpr static std::string_view query_part{
+  constexpr static std::string_view query_part1{
       "SELECT"
       " sensor_id,at,degc"
       " FROM temperature"
       " WHERE sensor_id=?" // placeholder#1
-      " LIMIT ?"           // placeholder#2
   };
-  if (!available()) {
-    M5_LOGI("sqlite3_db is not available.");
-    return 0;
-  }
-  std::string query{query_part};
-  query += (order == OrderDesc) ? " ORDER BY at DESC;" : " ORDER BY at ASC;";
+  constexpr static std::string_view query_part2[2]{" ORDER BY at ASC",
+                                                   " ORDER BY at DESC"};
+  constexpr static std::string_view query_part3{
+      " LIMIT ?;" // placeholder#2
+  };
+  static_assert(OrderAsc == 0);
+  static_assert(OrderDesc == 1);
+  std::string query{};
+  query += query_part1;
+  query += query_part2[order];
+  query += query_part3;
   return read_values(query, std::make_tuple(std::nullopt, sensor_id, limit),
                      callback);
 }
@@ -86,35 +93,43 @@ constexpr static std::string_view schema_relative_humidity{
     ");"};
 
 //
-Database::RowId Database::insert_relative_humidity(SensorId sensor_id,
-                                                   system_clock::time_point at,
-                                                   PctRH rh) {
+std::optional<Database::RowId>
+Database::insert_relative_humidity(SensorId sensor_id,
+                                   system_clock::time_point at, PctRH rh) {
   constexpr static std::string_view query{
       "INSERT INTO"
       " relative_humidity(sensor_id,at,rh)"
       " VALUES(?,?,?);" // values#0, values#1, values#2
   };
   TimePointAndDouble values{sensor_id, at, rh.count()};
-  return insert_values(query, values);
+  if (auto rowid = insert_values(query, values); rowid) {
+    return (rowid_relative_humidity = rowid);
+  } else {
+    return std::nullopt;
+  }
 }
 
 //
 size_t Database::read_relative_humidities(
     Order order, SensorId sensor_id, size_t limit,
     Database::ReadCallback<TimePointAndDouble> callback) {
-  constexpr static std::string_view query_part{
+  constexpr static std::string_view query_part1{
       "SELECT"
       " sensor_id,at,rh"
       " FROM relative_humidity"
       " WHERE sensor_id=?" // placeholder#1
-      " LIMIT ?"           // placeholder#2
   };
-  if (!available()) {
-    M5_LOGI("sqlite3_db is not available.");
-    return 0;
-  }
-  std::string query{query_part};
-  query += (order == OrderDesc) ? " ORDER BY at DESC;" : " ORDER BY at ASC;";
+  constexpr static std::string_view query_part2[2]{" ORDER BY at ASC",
+                                                   " ORDER BY at DESC"};
+  constexpr static std::string_view query_part3{
+      " LIMIT ?;" // placeholder#2
+  };
+  static_assert(OrderAsc == 0);
+  static_assert(OrderDesc == 1);
+  std::string query{};
+  query += query_part1;
+  query += query_part2[order];
+  query += query_part3;
   return read_values(query, std::make_tuple(std::nullopt, sensor_id, limit),
                      callback);
 }
@@ -147,35 +162,43 @@ constexpr static std::string_view schema_pressure{
     ");"};
 
 //
-Database::RowId Database::insert_pressure(SensorId sensor_id,
-                                          system_clock::time_point at,
-                                          HectoPa hpa) {
+std::optional<Database::RowId>
+Database::insert_pressure(SensorId sensor_id, system_clock::time_point at,
+                          HectoPa hpa) {
   static const std::string_view query{
       "INSERT INTO"
       " pressure(sensor_id,at,hpa)"
       " VALUES(?,?,?);" // values#0, values#1, values#2
   };
   TimePointAndDouble values{sensor_id, at, hpa.count()};
-  return insert_values(query, values);
+  if (auto rowid = insert_values(query, values); rowid) {
+    return (rowid_pressure = rowid);
+  } else {
+    return std::nullopt;
+  }
 }
 
 //
 size_t
 Database::read_pressures(Order order, SensorId sensor_id, size_t limit,
                          Database::ReadCallback<TimePointAndDouble> callback) {
-  constexpr static std::string_view query_part{
+  constexpr static std::string_view query_part1{
       "SELECT"
       " sensor_id,at,hpa"
       " FROM pressure"
       " WHERE sensor_id=?" // placeholder#1
-      " LIMIT ?"           // placeholder#2
   };
-  if (!available()) {
-    M5_LOGI("sqlite3_db is not available.");
-    return 0;
-  }
-  std::string query{query_part};
-  query += (order == OrderDesc) ? " ORDER BY at DESC;" : " ORDER BY at ASC;";
+  constexpr static std::string_view query_part2[2]{" ORDER BY at ASC",
+                                                   " ORDER BY at DESC"};
+  constexpr static std::string_view query_part3{
+      " LIMIT ?;" // placeholder#2
+  };
+  static_assert(OrderAsc == 0);
+  static_assert(OrderDesc == 1);
+  std::string query{};
+  query += query_part1;
+  query += query_part2[order];
+  query += query_part3;
   return read_values(query, std::make_tuple(std::nullopt, sensor_id, limit),
                      callback);
 }
@@ -207,7 +230,7 @@ constexpr static std::string_view schema_carbon_dioxide{
     ");"};
 
 //
-Database::RowId
+std::optional<Database::RowId>
 Database::insert_carbon_dioxide(SensorId sensor_id, system_clock::time_point at,
                                 Ppm ppm, std::optional<uint16_t> baseline) {
   constexpr static std::string_view query{
@@ -216,26 +239,34 @@ Database::insert_carbon_dioxide(SensorId sensor_id, system_clock::time_point at,
       " VALUES(?,?,?,?);" // values#0, values#1, values#2, values#3
   };
   TimePointAndIntAndOptInt values{sensor_id, at, ppm.value, baseline};
-  return insert_values(query, values);
+  if (auto rowid = insert_values(query, values); rowid) {
+    return (rowid_carbon_dioxide = rowid);
+  } else {
+    return std::nullopt;
+  }
 }
 
 //
 size_t Database::read_carbon_deoxides(
     Order order, SensorId sensor_id, size_t limit,
     Database::ReadCallback<TimePointAndIntAndOptInt> callback) {
-  constexpr static std::string_view query_part{
+  constexpr static std::string_view query_part1{
       "SELECT"
       " sensor_id,at,ppm,baseline"
       " FROM carbon_dioxide"
       " WHERE sensor_id=?" // placeholder#1
-      " LIMIT ?"           // placeholder#2
   };
-  if (!available()) {
-    M5_LOGI("sqlite3_db is not available.");
-    return 0;
-  }
-  std::string query{query_part};
-  query += (order == OrderDesc) ? " ORDER BY at DESC;" : " ORDER BY at ASC;";
+  constexpr static std::string_view query_part2[2]{" ORDER BY at ASC",
+                                                   " ORDER BY at DESC"};
+  constexpr static std::string_view query_part3{
+      " LIMIT ?;" // placeholder#2
+  };
+  static_assert(OrderAsc == 0);
+  static_assert(OrderDesc == 1);
+  std::string query{};
+  query += query_part1;
+  query += query_part2[order];
+  query += query_part3;
   return read_values(query, std::make_tuple(std::nullopt, sensor_id, limit),
                      callback);
 }
@@ -268,35 +299,43 @@ constexpr static std::string_view schema_total_voc{
     ");"};
 
 //
-Database::RowId Database::insert_total_voc(SensorId sensor_id,
-                                           system_clock::time_point at, Ppb ppb,
-                                           std::optional<uint16_t> baseline) {
+std::optional<Database::RowId>
+Database::insert_total_voc(SensorId sensor_id, system_clock::time_point at,
+                           Ppb ppb, std::optional<uint16_t> baseline) {
   constexpr static std::string_view query{
       "INSERT INTO"
       " total_voc(sensor_id,at,ppb,baseline)"
       " VALUES(?,?,?,?);" // values#0, values#1, values#2, values#3
   };
   TimePointAndIntAndOptInt values{sensor_id, at, ppb.value, baseline};
-  return insert_values(query, values);
+  if (auto rowid = insert_values(query, values); rowid) {
+    return (rowid_total_voc = rowid);
+  } else {
+    return std::nullopt;
+  }
 }
 
 //
 size_t Database::read_total_vocs(
     Order order, SensorId sensor_id, size_t limit,
     Database::ReadCallback<TimePointAndIntAndOptInt> callback) {
-  constexpr static std::string_view query_part{
+  constexpr static std::string_view query_part1{
       "SELECT"
       " sensor_id,at,ppb,baseline"
       " FROM total_voc"
       " WHERE sensor_id=?" // placeholder#1
-      " LIMIT ?"           // placeholder#2
   };
-  if (!available()) {
-    M5_LOGI("sqlite3_db is not available.");
-    return 0;
-  }
-  std::string query{query_part};
-  query += (order == OrderDesc) ? " ORDER BY at DESC;" : " ORDER BY at ASC;";
+  constexpr static std::string_view query_part2[2]{" ORDER BY at ASC",
+                                                   " ORDER BY at DESC"};
+  constexpr static std::string_view query_part3{
+      " LIMIT ?;" // placeholder#2
+  };
+  static_assert(OrderAsc == 0);
+  static_assert(OrderDesc == 1);
+  std::string query{};
+  query += query_part1;
+  query += query_part2[order];
+  query += query_part3;
   return read_values(query, std::make_tuple(std::nullopt, sensor_id, limit),
                      callback);
 }
@@ -364,6 +403,30 @@ Database::get_latest_baseline_total_voc(SensorId sensor_id) {
 bool Database::begin() noexcept {
   if (sqlite3_db) {
     terminate();
+  }
+  if (psramFound()) {
+    M5_LOGI("Database is used on PSRAM");
+    // PSRAMメモリアロケータ
+    sqlite3_mem_methods psram_mem_methods{
+        .xMalloc = [](int size) -> void * { return ps_malloc(size); },
+        .xFree = free,
+        .xRealloc = [](void *p, int size) -> void * {
+          return ps_realloc(p, size);
+        },
+        .xSize = [](void *ptr) -> int {
+          return heap_caps_get_allocated_size(ptr);
+        },
+        .xRoundup = [](int n) -> int {
+          return (n + 7) & ~7; // 8の倍数に切り上げる
+        },
+        .xInit = [](void *appData) -> int {
+          // return psramInit() == true ? 0 : -1;
+          return 0; // always OK
+        },
+        .xShutdown = [](void *appData) {},
+        .pAppData = nullptr,
+    };
+    sqlite3_config(SQLITE_CONFIG_MALLOC, &psram_mem_methods);
   }
   //
   if (auto result = sqlite3_initialize(); result != SQLITE_OK) {
@@ -614,8 +677,9 @@ bool Database::insert(const MeasurementM5Env3 &in) {
 }
 
 //
-Database::RowId Database::insert_values(std::string_view query,
-                                        TimePointAndDouble values_to_insert) {
+std::optional<Database::RowId>
+Database::insert_values(std::string_view query,
+                        TimePointAndDouble values_to_insert) {
   auto [sensor_id_to_insert, tp_to_insert, fp_value_to_insert] =
       values_to_insert;
   sqlite3_stmt *stmt{nullptr};
@@ -674,7 +738,7 @@ error_exit:
 }
 
 //
-Database::RowId
+std::optional<Database::RowId>
 Database::insert_values(std::string_view query,
                         TimePointAndIntAndOptInt values_to_insert) {
   auto [sensor_id_to_insert, tp_to_insert, u16_value_to_insert,
@@ -739,11 +803,11 @@ Database::insert_values(std::string_view query,
     goto error_exit;
   }
 
-  return sqlite3_last_insert_rowid(sqlite3_db);
+  return std::make_optional(sqlite3_last_insert_rowid(sqlite3_db));
 
 error_exit:
   sqlite3_finalize(stmt);
-  return -1;
+  return std::nullopt;
 }
 
 //

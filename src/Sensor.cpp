@@ -41,12 +41,12 @@ bool Sensor::Bme280Device::init() {
 
 //
 bool Sensor::Bme280Device::readyToRead() noexcept {
-  return active() && (steady_clock::now() - last_measured_at >= INTERVAL);
+  return available() && (steady_clock::now() - last_measured_at >= INTERVAL);
 }
 
 //
 Sensor::MeasuredValue Sensor::Bme280Device::read() {
-  if (!active()) {
+  if (!available()) {
     M5_LOGE("BME280 sensor inactived.");
     return std::monostate{};
   }
@@ -127,11 +127,11 @@ bool Sensor::Sgp30Device::init() {
 }
 //
 bool Sensor::Sgp30Device::readyToRead() noexcept {
-  return active() && (steady_clock::now() - last_measured_at >= INTERVAL);
+  return available() && (steady_clock::now() - last_measured_at >= INTERVAL);
 }
 //
 Sensor::MeasuredValue Sensor::Sgp30Device::read() {
-  if (!active()) {
+  if (!available()) {
     M5_LOGE("SGP30 sensor inactived.");
     return std::monostate{};
   }
@@ -232,12 +232,12 @@ bool Sensor::Scd30Device::init() {
 
 //
 bool Sensor::Scd30Device::readyToRead() noexcept {
-  return active() && (steady_clock::now() - last_measured_at >= INTERVAL) &&
+  return available() && (steady_clock::now() - last_measured_at >= INTERVAL) &&
          scd30.dataReady();
 }
 //
 Sensor::MeasuredValue Sensor::Scd30Device::read() {
-  if (!active()) {
+  if (!available()) {
     M5_LOGE("SCD30 sensor inactived.");
     return std::monostate{};
   }
@@ -358,13 +358,13 @@ Sensor::Scd41Device::getSensorStatus() noexcept {
 
 //
 bool Sensor::Scd41Device::readyToRead() noexcept {
-  return active() && (steady_clock::now() - last_measured_at >= INTERVAL) &&
+  return available() && (steady_clock::now() - last_measured_at >= INTERVAL) &&
          getSensorStatus() == SensorStatus::DataReady;
 }
 
 //
 Sensor::MeasuredValue Sensor::Scd41Device::read() {
-  if (!active()) {
+  if (!available()) {
     M5_LOGE("SCD41 sensor inactived.");
     return std::monostate{};
   }
@@ -439,12 +439,12 @@ bool Sensor::M5Env3Device::init() {
 
 //
 bool Sensor::M5Env3Device::readyToRead() noexcept {
-  return active() && (steady_clock::now() - last_measured_at >= INTERVAL);
+  return available() && (steady_clock::now() - last_measured_at >= INTERVAL);
 }
 
 //
 Sensor::MeasuredValue Sensor::M5Env3Device::read() {
-  if (!active()) {
+  if (!available()) {
     M5_LOGE("M5Env3 sensor inactived.");
     return std::monostate{};
   }

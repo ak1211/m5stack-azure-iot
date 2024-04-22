@@ -35,27 +35,19 @@ public:
   template <typename T>
   using ReadCallback = std::function<bool(size_t counter, T)>;
 
-  using Order = enum { OrderAsc, OrderDesc };
+  using Order = enum { OrderAsc = 0, OrderDesc = 1 };
 
   constexpr static const uint_fast8_t RETRY_COUNT = 100;
   //
-  RowId rowid_temperature{-1};
-  RowId rowid_relative_humidity{-1};
-  RowId rowid_pressure{-1};
-  RowId rowid_carbon_dioxide{-1};
-  RowId rowid_total_voc{-1};
+  std::optional<RowId> rowid_temperature{};
+  std::optional<RowId> rowid_relative_humidity{};
+  std::optional<RowId> rowid_pressure{};
+  std::optional<RowId> rowid_carbon_dioxide{};
+  std::optional<RowId> rowid_total_voc{};
   //
   //  Table::Temperature table_temperature;
   //
-  Database(std::string_view filename) noexcept
-      : rowid_temperature{-1},
-        rowid_relative_humidity{-1},
-        rowid_pressure{-1},
-        rowid_carbon_dioxide{-1},
-        rowid_total_voc{-1},
-        _available{false},
-        sqlite3_filename{filename},
-        sqlite3_db{nullptr} {}
+  Database(std::string_view filename) noexcept : sqlite3_filename{filename} {}
   ~Database() noexcept { terminate(); }
   //
   bool available() const noexcept { return _available; }
@@ -72,16 +64,21 @@ public:
 
 public:
   //
-  RowId insert_temperature(SensorId sensor_id, system_clock::time_point at,
-                           DegC degc);
-  RowId insert_relative_humidity(SensorId sensor_id,
-                                 system_clock::time_point at, PctRH rh);
-  RowId insert_pressure(SensorId sensor_id, system_clock::time_point at,
-                        HectoPa hpa);
-  RowId insert_carbon_dioxide(SensorId sensor_id, system_clock::time_point at,
-                              Ppm ppm, std::optional<uint16_t> baseline);
-  RowId insert_total_voc(SensorId sensor_id, system_clock::time_point at,
-                         Ppb ppb, std::optional<uint16_t> baseline);
+  std::optional<RowId> insert_temperature(SensorId sensor_id,
+                                          system_clock::time_point at,
+                                          DegC degc);
+  std::optional<RowId> insert_relative_humidity(SensorId sensor_id,
+                                                system_clock::time_point at,
+                                                PctRH rh);
+  std::optional<RowId>
+  insert_pressure(SensorId sensor_id, system_clock::time_point at, HectoPa hpa);
+  std::optional<RowId> insert_carbon_dioxide(SensorId sensor_id,
+                                             system_clock::time_point at,
+                                             Ppm ppm,
+                                             std::optional<uint16_t> baseline);
+  std::optional<RowId> insert_total_voc(SensorId sensor_id,
+                                        system_clock::time_point at, Ppb ppb,
+                                        std::optional<uint16_t> baseline);
   //
   size_t read_temperatures(Order order, SensorId sensor_id, size_t limit,
                            ReadCallback<TimePointAndDouble> callback);
@@ -94,11 +91,11 @@ public:
   size_t read_total_vocs(Order order, SensorId sensor_id, size_t limit,
                          ReadCallback<TimePointAndIntAndOptInt> callback);
   //
-  std::vector<TimePointAndDouble>
-  read_temperatures(Order order, SensorId sensor_id, size_t limit);
+  std::vector<TimePointAndDouble> read_temperatures(Order order, SensorId sensor_id, size_t limit);
   std::vector<TimePointAndDouble>
   read_relative_humidities(Order order, SensorId sensor_id, size_t limit);
-  std::vector<TimePointAndDouble> read_pressures(Order order, SensorId sensor_id, size_t limit);
+  std::vector<TimePointAndDouble>
+  read_pressures(Order order, SensorId sensor_id, size_t limit);
   std::vector<TimePointAndIntAndOptInt>
   read_carbon_deoxides(Order order, SensorId sensor_id, size_t limit);
   std::vector<TimePointAndIntAndOptInt>
@@ -113,11 +110,11 @@ public:
 private:
   void retry_failed() { _available = false; }
   //
-  RowId insert_values(std::string_view query,
-                      TimePointAndDouble values_to_insert);
+  std::optional<RowId> insert_values(std::string_view query,
+                                     TimePointAndDouble values_to_insert);
   //
-  RowId insert_values(std::string_view query,
-                      TimePointAndIntAndOptInt values_to_insert);
+  std::optional<RowId> insert_values(std::string_view query,
+                                     TimePointAndIntAndOptInt values_to_insert);
   //
   size_t read_values(std::string_view query,
                      std::tuple<std::nullopt_t, SensorId, size_t> placeholder,
