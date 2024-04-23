@@ -3,20 +3,8 @@
 // See LICENSE file in the project root for full license information.
 //
 #pragma once
-#include "Sensor.hpp"
-#include <memory>
-
-// 測定時間と測定値のペア
-using MeasurementBme280 =
-    std::pair<std::chrono::system_clock::time_point, Sensor::Bme280>;
-using MeasurementSgp30 =
-    std::pair<std::chrono::system_clock::time_point, Sensor::Sgp30>;
-using MeasurementScd30 =
-    std::pair<std::chrono::system_clock::time_point, Sensor::Scd30>;
-using MeasurementScd41 =
-    std::pair<std::chrono::system_clock::time_point, Sensor::Scd41>;
-using MeasurementM5Env3 =
-    std::pair<std::chrono::system_clock::time_point, Sensor::M5Env3>;
+#include "Database.hpp"
+#include <algorithm>
 
 //
 namespace Application {
@@ -39,16 +27,15 @@ public:
   //
   size_t size() const noexcept { return message_cstring.size(); }
 };
+
 extern BootLog boot_log;
 
 //
-// 各センサーの測定値の記録用
-// 現在のところ1分毎の記録なので HISTORY_BUFFER_SIZE 分の記録をする
-//
-constexpr static auto HISTORY_BUFFER_SIZE = 180;
-//
 // constexpr static auto sqlite3_file_name =
 // std::string_view{"/sd/measurements.sqlite3"};
-constexpr static auto sqlite3_file_name = std::string_view{":memory:"};
+extern Database measurements_database;
+
+// 各センサーの測定値の記録数
+constexpr static auto HISTORY_BUFFER_SIZE = 180;
 
 } // namespace Application

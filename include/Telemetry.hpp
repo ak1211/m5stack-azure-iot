@@ -14,8 +14,9 @@ constexpr static auto MAXIMUM_QUEUE_SIZE = 100;
 using MessageId = uint32_t;
 // 送信用
 using Payload =
-    std::variant<MeasurementBme280, MeasurementSgp30, MeasurementScd30,
-                 MeasurementScd41, MeasurementM5Env3>;
+    std::variant<Sensor::MeasurementBme280, Sensor::MeasurementSgp30,
+                 Sensor::MeasurementScd30, Sensor::MeasurementScd41,
+                 Sensor::MeasurementM5Env3>;
 // 送信用メッセージに変換する
 template <typename T>
 std::string to_json_message(MessageId messageId, const T &in);

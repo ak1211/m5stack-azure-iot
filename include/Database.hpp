@@ -3,7 +3,7 @@
 // See LICENSE file in the project root for full license information.
 //
 #pragma once
-#include "Application.hpp"
+#include "Sensor.hpp"
 #include "value_types.hpp"
 #include <chrono>
 #include <ctime>
@@ -18,7 +18,6 @@
 //
 class Database final {
   bool _available{false};
-  std::string_view sqlite3_filename{};
   sqlite3 *sqlite3_db{nullptr};
 
 public:
@@ -35,7 +34,7 @@ public:
   template <typename T>
   using ReadCallback = std::function<bool(size_t counter, T)>;
 
-  using Order = enum { OrderAsc = 0, OrderDesc = 1 };
+  using OrderBy = enum { OrderByAtAsc = 0, OrderByAtDesc = 1 };
 
   constexpr static const uint_fast8_t RETRY_COUNT = 100;
   //
@@ -47,7 +46,7 @@ public:
   //
   //  Table::Temperature table_temperature;
   //
-  Database(std::string_view filename) noexcept : sqlite3_filename{filename} {}
+  Database() noexcept {}
   ~Database() noexcept { terminate(); }
   //
   bool available() const noexcept { return _available; }
@@ -56,11 +55,11 @@ public:
   //
   void terminate() noexcept;
   //
-  bool insert(const MeasurementBme280 &in);
-  bool insert(const MeasurementSgp30 &in);
-  bool insert(const MeasurementScd30 &in);
-  bool insert(const MeasurementScd41 &in);
-  bool insert(const MeasurementM5Env3 &in);
+  bool insert(const Sensor::MeasurementBme280 &m);
+  bool insert(const Sensor::MeasurementSgp30 &m);
+  bool insert(const Sensor::MeasurementScd30 &m);
+  bool insert(const Sensor::MeasurementScd41 &m);
+  bool insert(const Sensor::MeasurementM5Env3 &m);
 
 public:
   //
@@ -80,32 +79,28 @@ public:
                                         system_clock::time_point at, Ppb ppb,
                                         std::optional<uint16_t> baseline);
   //
-  size_t read_temperatures(Order order, SensorId sensor_id, size_t limit,
+  size_t read_temperatures(OrderBy order, SensorId sensor_id, size_t limit,
                            ReadCallback<TimePointAndDouble> callback);
-  size_t read_relative_humidities(Order order, SensorId sensor_id, size_t limit,
+  size_t read_relative_humidities(OrderBy order, SensorId sensor_id,
+                                  size_t limit,
                                   ReadCallback<TimePointAndDouble> callback);
-  size_t read_pressures(Order order, SensorId sensor_id, size_t limit,
+  size_t read_pressures(OrderBy order, SensorId sensor_id, size_t limit,
                         ReadCallback<TimePointAndDouble> callback);
-  size_t read_carbon_deoxides(Order order, SensorId sensor_id, size_t limit,
+  size_t read_carbon_deoxides(OrderBy order, SensorId sensor_id, size_t limit,
                               ReadCallback<TimePointAndIntAndOptInt> callback);
-  size_t read_total_vocs(Order order, SensorId sensor_id, size_t limit,
+  size_t read_total_vocs(OrderBy order, SensorId sensor_id, size_t limit,
                          ReadCallback<TimePointAndIntAndOptInt> callback);
   //
-  std::vector<TimePointAndDouble> read_temperatures(Order order, SensorId sensor_id, size_t limit);
   std::vector<TimePointAndDouble>
-  read_relative_humidities(Order order, SensorId sensor_id, size_t limit);
+  read_temperatures(OrderBy order, SensorId sensor_id, size_t limit);
   std::vector<TimePointAndDouble>
-  read_pressures(Order order, SensorId sensor_id, size_t limit);
+  read_relative_humidities(OrderBy order, SensorId sensor_id, size_t limit);
+  std::vector<TimePointAndDouble>
+  read_pressures(OrderBy order, SensorId sensor_id, size_t limit);
   std::vector<TimePointAndIntAndOptInt>
-  read_carbon_deoxides(Order order, SensorId sensor_id, size_t limit);
+  read_carbon_deoxides(OrderBy order, SensorId sensor_id, size_t limit);
   std::vector<TimePointAndIntAndOptInt>
-  read_total_vocs(Order order, SensorId sensor_id, size_t limit);
-  //
-  std::optional<std::pair<std::time_t, BaselineECo2>>
-  get_latest_baseline_eco2(SensorId sensor_id);
-  //
-  std::optional<std::pair<std::time_t, BaselineTotalVoc>>
-  get_latest_baseline_total_voc(SensorId sensor_id);
+  read_total_vocs(OrderBy order, SensorId sensor_id, size_t limit);
 
 private:
   void retry_failed() { _available = false; }
@@ -116,14 +111,13 @@ private:
   std::optional<RowId> insert_values(std::string_view query,
                                      TimePointAndIntAndOptInt values_to_insert);
   //
-  size_t read_values(std::string_view query,
-                     std::tuple<std::nullopt_t, SensorId, size_t> placeholder,
-                     ReadCallback<TimePointAndDouble> callback);
+  size_t
+  read_values(std::string_view query,
+              std::tuple<std::nullopt_t, SensorId, OrderBy, size_t> placeholder,
+              ReadCallback<TimePointAndDouble> callback);
   //
-  size_t read_values(std::string_view query,
-                     std::tuple<std::nullopt_t, SensorId, size_t> placeholder,
-                     ReadCallback<TimePointAndIntAndOptInt> callback);
-  //
-  std::optional<std::pair<std::time_t, BaselineSGP30T>>
-  raw_get_latest_baseline(std::string_view query, uint64_t sensor_id);
+  size_t
+  read_values(std::string_view query,
+              std::tuple<std::nullopt_t, SensorId, OrderBy, size_t> placeholder,
+              ReadCallback<TimePointAndIntAndOptInt> callback);
 };

@@ -36,9 +36,8 @@ static std::string to_absolute_sensor_id(SensorDescriptor descriptor) {
 }
 // 送信用メッセージに変換する
 template <>
-std::string
-Telemetry::to_json_message<MeasurementBme280>(MessageId messageId,
-                                              const MeasurementBme280 &in) {
+std::string Telemetry::to_json_message<Sensor::MeasurementBme280>(
+    MessageId messageId, const Sensor::MeasurementBme280 &in) {
   JsonDocument doc;
   doc["messageId"] = messageId;
   doc["sensorId"] = to_absolute_sensor_id(in.second.sensor_descriptor);
@@ -51,9 +50,8 @@ Telemetry::to_json_message<MeasurementBme280>(MessageId messageId,
   return output;
 }
 template <>
-std::string
-Telemetry::to_json_message<MeasurementM5Env3>(MessageId messageId,
-                                              const MeasurementM5Env3 &in) {
+std::string Telemetry::to_json_message<Sensor::MeasurementM5Env3>(
+    MessageId messageId, const Sensor::MeasurementM5Env3 &in) {
   JsonDocument doc;
   doc["messageId"] = messageId;
   doc["sensorId"] = to_absolute_sensor_id(in.second.sensor_descriptor);
@@ -66,9 +64,8 @@ Telemetry::to_json_message<MeasurementM5Env3>(MessageId messageId,
   return output;
 }
 template <>
-std::string
-Telemetry::to_json_message<MeasurementSgp30>(MessageId messageId,
-                                             const MeasurementSgp30 &in) {
+std::string Telemetry::to_json_message<Sensor::MeasurementSgp30>(
+    MessageId messageId, const Sensor::MeasurementSgp30 &in) {
   JsonDocument doc;
   doc["messageId"] = messageId;
   doc["sensorId"] = to_absolute_sensor_id(in.second.sensor_descriptor);
@@ -86,9 +83,8 @@ Telemetry::to_json_message<MeasurementSgp30>(MessageId messageId,
   return output;
 }
 template <>
-std::string
-Telemetry::to_json_message<MeasurementScd30>(MessageId messageId,
-                                             const MeasurementScd30 &in) {
+std::string Telemetry::to_json_message<Sensor::MeasurementScd30>(
+    MessageId messageId, const Sensor::MeasurementScd30 &in) {
   JsonDocument doc;
   doc["messageId"] = messageId;
   doc["sensorId"] = to_absolute_sensor_id(in.second.sensor_descriptor);
@@ -101,9 +97,8 @@ Telemetry::to_json_message<MeasurementScd30>(MessageId messageId,
   return output;
 }
 template <>
-std::string
-Telemetry::to_json_message<MeasurementScd41>(MessageId messageId,
-                                             const MeasurementScd41 &in) {
+std::string Telemetry::to_json_message<Sensor::MeasurementScd41>(
+    MessageId messageId, const Sensor::MeasurementScd41 &in) {
   JsonDocument doc;
   doc["messageId"] = messageId;
   doc["sensorId"] = to_absolute_sensor_id(in.second.sensor_descriptor);
