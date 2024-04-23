@@ -32,7 +32,7 @@ Database::insert_temperature(SensorId sensor_id, system_clock::time_point at,
   constexpr static std::string_view query{
       "INSERT INTO"
       " temperature(sensor_id,at,degc)"
-      " VALUES(?,?,?);" // values#0, values#1, values#2
+      " VALUES(?,?,?);" // values#1, values#2, values#3
   };
   TimePointAndDouble values{sensor_id, at, degc.count()};
   if (auto rowid = insert_values(query, values); rowid) {
@@ -54,8 +54,7 @@ size_t Database::read_temperatures(
       " ORDER BY ?"        // placeholder#2
       " LIMIT ?;"          // placeholder#3
   };
-  return read_values(
-      query, std::make_tuple(std::nullopt, sensor_id, order, limit), callback);
+  return read_values(query, std::make_tuple(sensor_id, order, limit), callback);
 }
 
 //
@@ -90,7 +89,7 @@ Database::insert_relative_humidity(SensorId sensor_id,
   constexpr static std::string_view query{
       "INSERT INTO"
       " relative_humidity(sensor_id,at,rh)"
-      " VALUES(?,?,?);" // values#0, values#1, values#2
+      " VALUES(?,?,?);" // values#1, values#2, values#3
   };
   TimePointAndDouble values{sensor_id, at, rh.count()};
   if (auto rowid = insert_values(query, values); rowid) {
@@ -112,8 +111,7 @@ size_t Database::read_relative_humidities(
       " ORDER BY ?"        // placeholder#2
       " LIMIT ?;"          // placeholder#3
   };
-  return read_values(
-      query, std::make_tuple(std::nullopt, sensor_id, order, limit), callback);
+  return read_values(query, std::make_tuple(sensor_id, order, limit), callback);
 }
 
 //
@@ -150,7 +148,7 @@ Database::insert_pressure(SensorId sensor_id, system_clock::time_point at,
   static const std::string_view query{
       "INSERT INTO"
       " pressure(sensor_id,at,hpa)"
-      " VALUES(?,?,?);" // values#0, values#1, values#2
+      " VALUES(?,?,?);" // values#1, values#2, values#3
   };
   TimePointAndDouble values{sensor_id, at, hpa.count()};
   if (auto rowid = insert_values(query, values); rowid) {
@@ -172,8 +170,7 @@ Database::read_pressures(OrderBy order, SensorId sensor_id, size_t limit,
       " ORDER BY ?"        // placeholder#2
       " LIMIT ?;"          // placeholder#3
   };
-  return read_values(
-      query, std::make_tuple(std::nullopt, sensor_id, order, limit), callback);
+  return read_values(query, std::make_tuple(sensor_id, order, limit), callback);
 }
 
 //
@@ -209,7 +206,7 @@ Database::insert_carbon_dioxide(SensorId sensor_id, system_clock::time_point at,
   constexpr static std::string_view query{
       "INSERT INTO"
       " carbon_dioxide(sensor_id,at,ppm,baseline)"
-      " VALUES(?,?,?,?);" // values#0, values#1, values#2, values#3
+      " VALUES(?,?,?,?);" // values#1, values#2, values#3, values#4
   };
   TimePointAndIntAndOptInt values{sensor_id, at, ppm.value, baseline};
   if (auto rowid = insert_values(query, values); rowid) {
@@ -231,8 +228,7 @@ size_t Database::read_carbon_deoxides(
       " ORDER BY ?"        // placeholder#2
       " LIMIT ?;"          // placeholder#3
   };
-  return read_values(
-      query, std::make_tuple(std::nullopt, sensor_id, order, limit), callback);
+  return read_values(query, std::make_tuple(sensor_id, order, limit), callback);
 }
 
 //
@@ -270,7 +266,7 @@ Database::insert_total_voc(SensorId sensor_id, system_clock::time_point at,
   constexpr static std::string_view query{
       "INSERT INTO"
       " total_voc(sensor_id,at,ppb,baseline)"
-      " VALUES(?,?,?,?);" // values#0, values#1, values#2, values#3
+      " VALUES(?,?,?,?);" // values#1, values#2, values#3, values#4
   };
   TimePointAndIntAndOptInt values{sensor_id, at, ppb.value, baseline};
   if (auto rowid = insert_values(query, values); rowid) {
@@ -292,8 +288,7 @@ size_t Database::read_total_vocs(
       " ORDER BY ?"        // placeholder#2
       " LIMIT ?;"          // placeholder#3
   };
-  return read_values(
-      query, std::make_tuple(std::nullopt, sensor_id, order, limit), callback);
+  return read_values(query, std::make_tuple(sensor_id, order, limit), callback);
 }
 
 //
@@ -706,12 +701,11 @@ error_exit:
 }
 
 //
-size_t Database::read_values(
-    std::string_view query,
-    std::tuple<std::nullopt_t, SensorId, OrderBy, size_t> placeholder,
-    ReadCallback<TimePointAndDouble> callback) {
+size_t Database::read_values(std::string_view query,
+                             std::tuple<SensorId, OrderBy, size_t> placeholder,
+                             ReadCallback<TimePointAndDouble> callback) {
   sqlite3_stmt *stmt{nullptr};
-  auto [_, sensorid, orderby, limits] = placeholder;
+  auto [sensorid, orderby, limits] = placeholder;
 
   if (!sqlite3_db) {
     M5_LOGE("sqlite3_db is null");
@@ -782,12 +776,11 @@ error_exit:
 }
 
 //
-size_t Database::read_values(
-    std::string_view query,
-    std::tuple<std::nullopt_t, SensorId, OrderBy, size_t> placeholder,
-    ReadCallback<TimePointAndIntAndOptInt> callback) {
+size_t Database::read_values(std::string_view query,
+                             std::tuple<SensorId, OrderBy, size_t> placeholder,
+                             ReadCallback<TimePointAndIntAndOptInt> callback) {
   sqlite3_stmt *stmt{nullptr};
-  auto [_, sensorid, orderby, limits] = placeholder;
+  auto [sensorid, orderby, limits] = placeholder;
 
   if (!sqlite3_db) {
     M5_LOGE("sqlite3 sqlite3_db is null");

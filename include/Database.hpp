@@ -111,13 +111,11 @@ private:
   std::optional<RowId> insert_values(std::string_view query,
                                      TimePointAndIntAndOptInt values_to_insert);
   //
-  size_t
-  read_values(std::string_view query,
-              std::tuple<std::nullopt_t, SensorId, OrderBy, size_t> placeholder,
-              ReadCallback<TimePointAndDouble> callback);
+  size_t read_values(std::string_view query,
+                     std::tuple<SensorId, OrderBy, size_t> placeholder,
+                     ReadCallback<TimePointAndDouble> callback);
   //
-  size_t
-  read_values(std::string_view query,
-              std::tuple<std::nullopt_t, SensorId, OrderBy, size_t> placeholder,
-              ReadCallback<TimePointAndIntAndOptInt> callback);
+  size_t read_values(std::string_view query,
+                     std::tuple<SensorId, OrderBy, size_t> placeholder,
+                     ReadCallback<TimePointAndIntAndOptInt> callback);
 };
