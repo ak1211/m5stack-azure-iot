@@ -711,6 +711,7 @@ size_t Database::read_values(
     std::tuple<std::nullopt_t, SensorId, OrderBy, size_t> placeholder,
     ReadCallback<TimePointAndDouble> callback) {
   sqlite3_stmt *stmt{nullptr};
+  auto [_, sensorid, orderby, limits] = placeholder;
 
   if (!sqlite3_db) {
     M5_LOGE("sqlite3_db is null");
@@ -726,14 +727,14 @@ size_t Database::read_values(
     goto error_exit;
   }
   //
-  if (auto result = sqlite3_bind_int64(stmt, 1, std::get<1>(placeholder));
+  if (auto result = sqlite3_bind_int64(stmt, 1, sensorid);
       result != SQLITE_OK) {
     M5_LOGE("%s", sqlite3_errmsg(sqlite3_db));
     goto error_exit;
   }
   {
-    std::string_view order_text{
-        std::get<2>(placeholder) == OrderByAtDesc ? "at DESC" : "at ASC"};
+    std::string_view order_text{orderby == OrderByAtDesc ? "at DESC"
+                                                         : "at ASC"};
     if (auto result =
             sqlite3_bind_text(stmt, 2, order_text.data(), -1, SQLITE_STATIC);
         result != SQLITE_OK) {
@@ -741,8 +742,7 @@ size_t Database::read_values(
       goto error_exit;
     }
   }
-  if (auto result = sqlite3_bind_int(stmt, 3, std::get<3>(placeholder));
-      result != SQLITE_OK) {
+  if (auto result = sqlite3_bind_int(stmt, 3, limits); result != SQLITE_OK) {
     M5_LOGE("%s", sqlite3_errmsg(sqlite3_db));
     goto error_exit;
   }
@@ -787,6 +787,7 @@ size_t Database::read_values(
     std::tuple<std::nullopt_t, SensorId, OrderBy, size_t> placeholder,
     ReadCallback<TimePointAndIntAndOptInt> callback) {
   sqlite3_stmt *stmt{nullptr};
+  auto [_, sensorid, orderby, limits] = placeholder;
 
   if (!sqlite3_db) {
     M5_LOGE("sqlite3 sqlite3_db is null");
@@ -802,14 +803,14 @@ size_t Database::read_values(
     goto error_exit;
   }
   //
-  if (auto result = sqlite3_bind_int64(stmt, 1, std::get<1>(placeholder));
+  if (auto result = sqlite3_bind_int64(stmt, 1, sensorid);
       result != SQLITE_OK) {
     M5_LOGE("%s", sqlite3_errmsg(sqlite3_db));
     goto error_exit;
   }
   {
-    std::string_view order_text{
-        std::get<2>(placeholder) == OrderByAtDesc ? "at DESC" : "at ASC"};
+    std::string_view order_text{orderby == OrderByAtDesc ? "at DESC"
+                                                         : "at ASC"};
     if (auto result =
             sqlite3_bind_text(stmt, 2, order_text.data(), -1, SQLITE_STATIC);
         result != SQLITE_OK) {
@@ -817,8 +818,7 @@ size_t Database::read_values(
       goto error_exit;
     }
   }
-  if (auto result = sqlite3_bind_int(stmt, 3, std::get<3>(placeholder));
-      result != SQLITE_OK) {
+  if (auto result = sqlite3_bind_int(stmt, 3, limits); result != SQLITE_OK) {
     M5_LOGE("%s", sqlite3_errmsg(sqlite3_db));
     goto error_exit;
   }
