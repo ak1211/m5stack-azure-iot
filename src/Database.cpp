@@ -335,7 +335,26 @@ bool Database::begin() noexcept {
         .xShutdown = [](void *appData) {},
         .pAppData = nullptr,
     };
-    sqlite3_config(SQLITE_CONFIG_MALLOC, &psram_mem_methods);
+    if (auto result = sqlite3_config(SQLITE_CONFIG_MALLOC, &psram_mem_methods);
+        result != SQLITE_OK) {
+      M5_LOGE("sqlite3_config() failure: %d", result);
+      goto error_exit;
+    }
+    // データーベース用メモリは事前にヒープから確保しておく
+    free(_heap_memory_for_database);
+    _heap_memory_for_database = ps_malloc(SIZE_OF_HEAP_MEMORY);
+    if (_heap_memory_for_database) {
+      if (auto result =
+              sqlite3_config(SQLITE_CONFIG_HEAP, _heap_memory_for_database,
+                             SIZE_OF_HEAP_MEMORY, SIZE_OF_MINIMUM_HEAP_REQUEST);
+          result != SQLITE_OK) {
+        M5_LOGE("sqlite3_config() failure: %d", result);
+        goto error_exit;
+      }
+    } else {
+      M5_LOGE("sqlite3 memory allocation failure");
+      goto error_exit;
+    }
   }
   //
   if (auto result = sqlite3_initialize(); result != SQLITE_OK) {

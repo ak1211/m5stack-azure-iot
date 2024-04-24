@@ -18,6 +18,9 @@
 //
 class Database final {
   bool _available{false};
+  constexpr static size_t SIZE_OF_HEAP_MEMORY = 2 * 1024 * 1024;
+  constexpr static size_t SIZE_OF_MINIMUM_HEAP_REQUEST = 256;
+  void *_heap_memory_for_database{nullptr};
   sqlite3 *sqlite3_db{nullptr};
 
 public:
@@ -47,7 +50,10 @@ public:
   //  Table::Temperature table_temperature;
   //
   Database() noexcept {}
-  ~Database() noexcept { terminate(); }
+  ~Database() noexcept {
+    terminate();
+    free(_heap_memory_for_database);
+  }
   //
   bool available() const noexcept { return _available; }
   //
