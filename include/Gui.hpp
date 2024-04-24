@@ -113,7 +113,7 @@ public:
 //
 //
 //
-class SystemHealth final : public TileBase {
+class SystemHealthy final : public TileBase {
   lv_obj_t *tile_obj{nullptr};
   lv_obj_t *cont_col_obj{nullptr};
   //
@@ -128,10 +128,10 @@ class SystemHealth final : public TileBase {
   lv_obj_t *minimum_free_heap_label_obj{nullptr};
 
 public:
-  SystemHealth(InitArg init) noexcept;
-  SystemHealth(SystemHealth &&) = delete;
-  SystemHealth &operator=(const SystemHealth &) = delete;
-  virtual ~SystemHealth() noexcept;
+  SystemHealthy(InitArg init) noexcept;
+  SystemHealthy(SystemHealthy &&) = delete;
+  SystemHealthy &operator=(const SystemHealthy &) = delete;
+  virtual ~SystemHealthy() noexcept;
   virtual void setActiveTile(lv_obj_t *tileview_obj) noexcept override {
     lv_obj_set_tile(tileview_obj, tile_obj, LV_ANIM_ON);
   }

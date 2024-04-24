@@ -66,7 +66,7 @@ bool Gui::begin() noexcept {
   // LVGL init
   lv_init();
   // LVGL draw buffer
-  const int32_t DRAW_BUFFER_SIZE = gfx.width() * (gfx.height() / 10);
+  const int32_t DRAW_BUFFER_SIZE = gfx.width() * (gfx.height() / 2);
   lvgl_use.draw_buf_1 = std::make_unique<lv_color_t[]>(DRAW_BUFFER_SIZE);
   lvgl_use.draw_buf_2 = std::make_unique<lv_color_t[]>(DRAW_BUFFER_SIZE);
   if (lvgl_use.draw_buf_1 == nullptr || lvgl_use.draw_buf_2 == nullptr) {
@@ -139,9 +139,9 @@ void Gui::startUi() noexcept {
       add_tile<Widget::Clock>({tv, col, 0, dir});
     };
   }
-  // SystemHealth
-  Fn addSystemHealth = [this](lv_obj_t *tv, int16_t col, uint8_t dir) {
-    add_tile<Widget::SystemHealth>({tv, col, 0, dir});
+  // SystemHealthy
+  Fn addSystemHealthy = [this](lv_obj_t *tv, int16_t col, uint8_t dir) {
+    add_tile<Widget::SystemHealthy>({tv, col, 0, dir});
   };
   // Summary
   Fn addSummary = [this](lv_obj_t *tv, int16_t col, uint8_t dir) {
@@ -203,7 +203,7 @@ void Gui::startUi() noexcept {
   std::vector<Fn> functions;
   // TileWidget::BootMessageの次からこの並び順
   //  functions.push_back(addClock);
-  functions.push_back(addSystemHealth);
+  functions.push_back(addSystemHealthy);
   functions.push_back(addSummary);
   for (const auto &p : Peripherals::sensors) {
     if (p.get() == nullptr) {
@@ -321,7 +321,7 @@ void Widget::BootMessage::timerHook() noexcept {
 //
 //
 //
-Widget::SystemHealth::SystemHealth(Widget::InitArg init) noexcept {
+Widget::SystemHealthy::SystemHealthy(Widget::InitArg init) noexcept {
   tile_obj = std::apply(lv_tileview_add_tile, init);
   lv_style_init(&label_style);
   lv_style_set_text_font(&label_style, &lv_font_montserrat_16);
@@ -354,15 +354,15 @@ Widget::SystemHealth::SystemHealth(Widget::InitArg init) noexcept {
   render();
 }
 
-Widget::SystemHealth::~SystemHealth() { lv_obj_del(tile_obj); }
+Widget::SystemHealthy::~SystemHealthy() { lv_obj_del(tile_obj); }
 
-void Widget::SystemHealth::valueChangedEventHook(lv_event_t *) noexcept {
+void Widget::SystemHealthy::valueChangedEventHook(lv_event_t *) noexcept {
   render();
 }
 
-void Widget::SystemHealth::timerHook() noexcept { render(); }
+void Widget::SystemHealthy::timerHook() noexcept { render(); }
 
-void Widget::SystemHealth::render() noexcept {
+void Widget::SystemHealthy::render() noexcept {
   const seconds uptime = Time::uptime();
   const int16_t sec = uptime.count() % 60;
   const int16_t min = uptime.count() / 60 % 60;
