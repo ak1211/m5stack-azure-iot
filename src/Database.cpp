@@ -26,20 +26,29 @@ constexpr static std::string_view schema_temperature{
     ");"};
 
 //
-std::optional<Database::RowId>
-Database::insert_temperature(SensorId sensor_id, system_clock::time_point at,
-                             DegC degc) {
+bool Database::insert_temperature(SensorId sensor_id,
+                                  system_clock::time_point at, DegC degc) {
   constexpr static std::string_view query{
       "INSERT INTO"
       " temperature(sensor_id,at,degc)"
       " VALUES(?,?,?);" // values#1, values#2, values#3
   };
   TimePointAndDouble values{sensor_id, at, degc.count()};
-  if (auto rowid = insert_values(query, values); rowid) {
-    return (rowid_temperature = rowid);
-  } else {
-    return std::nullopt;
-  }
+  return insert_values(query, values);
+}
+
+//
+size_t Database::read_temperatures(OrderBy order,
+                                   system_clock::time_point at_greater,
+                                   ReadCallback<TimePointAndDouble> callback) {
+  constexpr static std::string_view query{
+      "SELECT"
+      " sensor_id,at,degc"
+      " FROM temperature"
+      " WHERE at >= :at_greater" // placeholder
+      " ORDER BY :order_by;"     // placeholder
+  };
+  return read_values(query, std::make_tuple(at_greater, order), callback);
 }
 
 //
@@ -50,9 +59,9 @@ size_t Database::read_temperatures(
       "SELECT"
       " sensor_id,at,degc"
       " FROM temperature"
-      " WHERE sensor_id=?" // placeholder#1
-      " ORDER BY ?"        // placeholder#2
-      " LIMIT ?;"          // placeholder#3
+      " WHERE sensor_id=:sensor_id" // placeholder
+      " ORDER BY :order_by"         // placeholder
+      " LIMIT :limit;"              // placeholder
   };
   return read_values(query, std::make_tuple(sensor_id, order, limit), callback);
 }
@@ -83,20 +92,15 @@ constexpr static std::string_view schema_relative_humidity{
     ");"};
 
 //
-std::optional<Database::RowId>
-Database::insert_relative_humidity(SensorId sensor_id,
-                                   system_clock::time_point at, PctRH rh) {
+bool Database::insert_relative_humidity(SensorId sensor_id,
+                                        system_clock::time_point at, PctRH rh) {
   constexpr static std::string_view query{
       "INSERT INTO"
       " relative_humidity(sensor_id,at,rh)"
       " VALUES(?,?,?);" // values#1, values#2, values#3
   };
   TimePointAndDouble values{sensor_id, at, rh.count()};
-  if (auto rowid = insert_values(query, values); rowid) {
-    return (rowid_relative_humidity = rowid);
-  } else {
-    return std::nullopt;
-  }
+  return insert_values(query, values);
 }
 
 //
@@ -107,9 +111,9 @@ size_t Database::read_relative_humidities(
       "SELECT"
       " sensor_id,at,rh"
       " FROM relative_humidity"
-      " WHERE sensor_id=?" // placeholder#1
-      " ORDER BY ?"        // placeholder#2
-      " LIMIT ?;"          // placeholder#3
+      " WHERE sensor_id=:sensor_id" // placeholder
+      " ORDER BY :order_by"         // placeholder
+      " LIMIT :limit;"              // placeholder
   };
   return read_values(query, std::make_tuple(sensor_id, order, limit), callback);
 }
@@ -142,20 +146,15 @@ constexpr static std::string_view schema_pressure{
     ");"};
 
 //
-std::optional<Database::RowId>
-Database::insert_pressure(SensorId sensor_id, system_clock::time_point at,
-                          HectoPa hpa) {
+bool Database::insert_pressure(SensorId sensor_id, system_clock::time_point at,
+                               HectoPa hpa) {
   static const std::string_view query{
       "INSERT INTO"
       " pressure(sensor_id,at,hpa)"
       " VALUES(?,?,?);" // values#1, values#2, values#3
   };
   TimePointAndDouble values{sensor_id, at, hpa.count()};
-  if (auto rowid = insert_values(query, values); rowid) {
-    return (rowid_pressure = rowid);
-  } else {
-    return std::nullopt;
-  }
+  return insert_values(query, values);
 }
 
 //
@@ -166,9 +165,9 @@ Database::read_pressures(OrderBy order, SensorId sensor_id, size_t limit,
       "SELECT"
       " sensor_id,at,hpa"
       " FROM pressure"
-      " WHERE sensor_id=?" // placeholder#1
-      " ORDER BY ?"        // placeholder#2
-      " LIMIT ?;"          // placeholder#3
+      " WHERE sensor_id=:sensor_id" // placeholder
+      " ORDER BY :order_by"         // placeholder
+      " LIMIT :limit;"              // placeholder
   };
   return read_values(query, std::make_tuple(sensor_id, order, limit), callback);
 }
@@ -200,20 +199,16 @@ constexpr static std::string_view schema_carbon_dioxide{
     ");"};
 
 //
-std::optional<Database::RowId>
-Database::insert_carbon_dioxide(SensorId sensor_id, system_clock::time_point at,
-                                Ppm ppm, std::optional<uint16_t> baseline) {
+bool Database::insert_carbon_dioxide(SensorId sensor_id,
+                                     system_clock::time_point at, Ppm ppm,
+                                     std::optional<uint16_t> baseline) {
   constexpr static std::string_view query{
       "INSERT INTO"
       " carbon_dioxide(sensor_id,at,ppm,baseline)"
       " VALUES(?,?,?,?);" // values#1, values#2, values#3, values#4
   };
   TimePointAndIntAndOptInt values{sensor_id, at, ppm.value, baseline};
-  if (auto rowid = insert_values(query, values); rowid) {
-    return (rowid_carbon_dioxide = rowid);
-  } else {
-    return std::nullopt;
-  }
+  return insert_values(query, values);
 }
 
 //
@@ -224,9 +219,9 @@ size_t Database::read_carbon_deoxides(
       "SELECT"
       " sensor_id,at,ppm,baseline"
       " FROM carbon_dioxide"
-      " WHERE sensor_id=?" // placeholder#1
-      " ORDER BY ?"        // placeholder#2
-      " LIMIT ?;"          // placeholder#3
+      " WHERE sensor_id=:sensor_id" // placeholder
+      " ORDER BY :order_by"         // placeholder
+      " LIMIT :limit;"              // placeholder
   };
   return read_values(query, std::make_tuple(sensor_id, order, limit), callback);
 }
@@ -260,20 +255,15 @@ constexpr static std::string_view schema_total_voc{
     ");"};
 
 //
-std::optional<Database::RowId>
-Database::insert_total_voc(SensorId sensor_id, system_clock::time_point at,
-                           Ppb ppb, std::optional<uint16_t> baseline) {
+bool Database::insert_total_voc(SensorId sensor_id, system_clock::time_point at,
+                                Ppb ppb, std::optional<uint16_t> baseline) {
   constexpr static std::string_view query{
       "INSERT INTO"
       " total_voc(sensor_id,at,ppb,baseline)"
       " VALUES(?,?,?,?);" // values#1, values#2, values#3, values#4
   };
   TimePointAndIntAndOptInt values{sensor_id, at, ppb.value, baseline};
-  if (auto rowid = insert_values(query, values); rowid) {
-    return (rowid_total_voc = rowid);
-  } else {
-    return std::nullopt;
-  }
+  return insert_values(query, values);
 }
 
 //
@@ -284,9 +274,9 @@ size_t Database::read_total_vocs(
       "SELECT"
       " sensor_id,at,ppb,baseline"
       " FROM total_voc"
-      " WHERE sensor_id=?" // placeholder#1
-      " ORDER BY ?"        // placeholder#2
-      " LIMIT ?;"          // placeholder#3
+      " WHERE sensor_id=:sensor_id" // placeholder
+      " ORDER BY :order_by"         // placeholder
+      " LIMIT :limit;"              // placeholder
   };
   return read_values(query, std::make_tuple(sensor_id, order, limit), callback);
 }
@@ -313,10 +303,13 @@ bool Database::begin() noexcept {
   if (sqlite3_db) {
     terminate();
   }
+  //
+  // sqlite configuration
+  //
   if (psramFound()) {
     M5_LOGI("Database is used on PSRAM");
     // PSRAMメモリアロケータ
-    sqlite3_mem_methods psram_mem_methods{
+    static sqlite3_mem_methods psram_mem_methods{
         .xMalloc = [](int size) -> void * { return ps_malloc(size); },
         .xFree = free,
         .xRealloc = [](void *p, int size) -> void * {
@@ -332,7 +325,7 @@ bool Database::begin() noexcept {
           // return psramInit() == true ? 0 : -1;
           return 0; // always OK
         },
-        .xShutdown = [](void *appData) {},
+        .xShutdown = [](void *appData) -> void {},
         .pAppData = nullptr,
     };
     if (auto result = sqlite3_config(SQLITE_CONFIG_MALLOC, &psram_mem_methods);
@@ -340,21 +333,22 @@ bool Database::begin() noexcept {
       M5_LOGE("sqlite3_config() failure: %d", result);
       goto error_exit;
     }
-    // データーベース用メモリは事前にヒープから確保しておく
+    // データーベース用メモリは事前にPSRAM領域から確保しておく
+#if defined(SQLITE_ENABLE_MEMSYS5)
     free(_heap_memory_for_database);
-    _heap_memory_for_database = ps_malloc(SIZE_OF_HEAP_MEMORY);
-    if (_heap_memory_for_database) {
-      if (auto result =
-              sqlite3_config(SQLITE_CONFIG_HEAP, _heap_memory_for_database,
-                             SIZE_OF_HEAP_MEMORY, SIZE_OF_MINIMUM_HEAP_REQUEST);
-          result != SQLITE_OK) {
-        M5_LOGE("sqlite3_config() failure: %d", result);
-        goto error_exit;
-      }
-    } else {
+    _heap_memory_for_database = ps_malloc(ALLOCATE_DATABASE_HEAP_OF_BYTES);
+    if (_heap_memory_for_database == nullptr) {
       M5_LOGE("sqlite3 memory allocation failure");
       goto error_exit;
     }
+    if (auto result = sqlite3_config(
+            SQLITE_CONFIG_HEAP, _heap_memory_for_database,
+            ALLOCATE_DATABASE_HEAP_OF_BYTES, SIZE_OF_MINIMUM_HEAP_REQUEST);
+        result != SQLITE_OK) {
+      M5_LOGE("sqlite3_config() failure: %d", result);
+      goto error_exit;
+    }
+#endif
   }
   //
   if (auto result = sqlite3_initialize(); result != SQLITE_OK) {
@@ -373,6 +367,15 @@ bool Database::begin() noexcept {
     goto error_exit;
   }
 
+  if (char *error_msg{nullptr};
+      sqlite3_exec(sqlite3_db, "BEGIN;", nullptr, nullptr, &error_msg) !=
+      SQLITE_OK) {
+    if (error_msg) {
+      M5_LOGE("%s", error_msg);
+    }
+    sqlite3_free(error_msg);
+    goto error_exit;
+  }
   // create tables
   // temperature
   // relative humidity
@@ -382,12 +385,10 @@ bool Database::begin() noexcept {
   for (auto &query :
        {schema_temperature, schema_relative_humidity, schema_pressure,
         schema_carbon_dioxide, schema_total_voc}) {
-    char *error_msg{nullptr};
-    M5_LOGV("exec query");
     M5_LOGV("%s", query.data());
-    if (auto result = sqlite3_exec(sqlite3_db, query.data(), nullptr, nullptr,
-                                   &error_msg);
-        result != SQLITE_OK) {
+    if (char *error_msg{nullptr};
+        sqlite3_exec(sqlite3_db, query.data(), nullptr, nullptr, &error_msg) !=
+        SQLITE_OK) {
       M5_LOGE("create table error");
       if (error_msg) {
         M5_LOGE("%s", error_msg);
@@ -395,6 +396,16 @@ bool Database::begin() noexcept {
       sqlite3_free(error_msg);
       goto error_exit;
     }
+  }
+
+  if (char *error_msg{nullptr};
+      sqlite3_exec(sqlite3_db, "COMMIT;", nullptr, nullptr, &error_msg) !=
+      SQLITE_OK) {
+    if (error_msg) {
+      M5_LOGE("%s", error_msg);
+    }
+    sqlite3_free(error_msg);
+    goto error_exit;
   }
 
   // succsessfully exit
@@ -415,8 +426,67 @@ void Database::terminate() noexcept {
       M5_LOGE("sqlite3_close() failure: %d", result);
     }
   }
+  sqlite3_shutdown();
   sqlite3_db = nullptr;
   _available = false;
+}
+
+//
+//
+//
+bool Database::delete_old_measurements_from_database(
+    system_clock::time_point delete_of_older_than_tp) {
+  constexpr static std::string_view queries[] = {
+      {"DELETE FROM temperature WHERE at < ?;"},       // placeholder#1
+      {"DELETE FROM relative_humidity WHERE at < ?;"}, // placeholder#1
+      {"DELETE FROM carbon_dioxide WHERE at < ?;"},    // placeholder#1
+      {"DELETE FROM total_voc WHERE at < ?;"},         // placeholder#1
+  };
+
+  if (!available()) {
+    M5_LOGI("sqlite3_db is not available.");
+    return false;
+  }
+
+  // remove tables
+  for (auto &query : queries) {
+    sqlite3_stmt *stmt{nullptr};
+    if (sqlite3_prepare_v2(sqlite3_db, query.data(), -1, &stmt, nullptr) !=
+        SQLITE_OK) {
+      M5_LOGE("%s", sqlite3_errmsg(sqlite3_db));
+      M5_LOGE("%s", query.data());
+      sqlite3_finalize(stmt);
+      return false;
+    }
+    if (sqlite3_bind_int64(stmt, 1,
+                           static_cast<int64_t>(system_clock::to_time_t(
+                               delete_of_older_than_tp))) != SQLITE_OK) {
+      M5_LOGE("%s", sqlite3_errmsg(sqlite3_db));
+      sqlite3_finalize(stmt);
+      return false;
+    }
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+    }
+    if (sqlite3_finalize(stmt) != SQLITE_OK) {
+      M5_LOGE("%s", sqlite3_errmsg(sqlite3_db));
+      return false;
+    }
+  }
+
+  //
+  // vacuum後はrowidが変化する。
+  //
+  if (char *error_msg{nullptr};
+      sqlite3_exec(sqlite3_db, "VACUUM;", nullptr, nullptr, &error_msg) !=
+      SQLITE_OK) {
+    if (error_msg) {
+      M5_LOGE("%s", error_msg);
+    }
+    sqlite3_free(error_msg);
+    return false;
+  }
+
+  return true;
 }
 
 //
@@ -427,6 +497,17 @@ bool Database::insert(const Sensor::MeasurementBme280 &m) {
     M5_LOGI("sqlite3_db is not available.");
     return false;
   }
+
+  if (char *error_msg{nullptr};
+      sqlite3_exec(sqlite3_db, "BEGIN;", nullptr, nullptr, &error_msg) !=
+      SQLITE_OK) {
+    if (error_msg) {
+      M5_LOGE("%s", error_msg);
+    }
+    sqlite3_free(error_msg);
+    return false;
+  }
+
   const auto &[timepoint, it] = m;
   const auto sensorid = SensorId{it.sensor_descriptor};
 
@@ -445,6 +526,17 @@ bool Database::insert(const Sensor::MeasurementBme280 &m) {
     return false;
   }
 
+  if (char *error_msg{nullptr};
+      sqlite3_exec(sqlite3_db, "COMMIT;", nullptr, nullptr, &error_msg) !=
+      SQLITE_OK) {
+    if (error_msg) {
+      M5_LOGE("%s", error_msg);
+    }
+    sqlite3_free(error_msg);
+    return false;
+  }
+
+  _latestMeasurementBme280 = m;
   M5_LOGD("insert Bme280 is success.");
   return true;
 }
@@ -457,6 +549,17 @@ bool Database::insert(const Sensor::MeasurementSgp30 &m) {
     M5_LOGI("sqlite3_db is not available.");
     return false;
   }
+
+  if (char *error_msg{nullptr};
+      sqlite3_exec(sqlite3_db, "BEGIN;", nullptr, nullptr, &error_msg) !=
+      SQLITE_OK) {
+    if (error_msg) {
+      M5_LOGE("%s", error_msg);
+    }
+    sqlite3_free(error_msg);
+    return false;
+  }
+
   const auto &[timepoint, it] = m;
   const auto sensorid = SensorId{it.sensor_descriptor};
 
@@ -479,6 +582,17 @@ bool Database::insert(const Sensor::MeasurementSgp30 &m) {
     }
   }
 
+  if (char *error_msg{nullptr};
+      sqlite3_exec(sqlite3_db, "COMMIT;", nullptr, nullptr, &error_msg) !=
+      SQLITE_OK) {
+    if (error_msg) {
+      M5_LOGE("%s", error_msg);
+    }
+    sqlite3_free(error_msg);
+    return false;
+  }
+
+  _latestMeasurementSgp30 = m;
   M5_LOGI("insert Sgp30 is success.");
   return true;
 }
@@ -491,6 +605,17 @@ bool Database::insert(const Sensor::MeasurementScd30 &m) {
     M5_LOGI("sqlite3_db is not available.");
     return false;
   }
+
+  if (char *error_msg{nullptr};
+      sqlite3_exec(sqlite3_db, "BEGIN;", nullptr, nullptr, &error_msg) !=
+      SQLITE_OK) {
+    if (error_msg) {
+      M5_LOGE("%s", error_msg);
+    }
+    sqlite3_free(error_msg);
+    return false;
+  }
+
   const auto &[timepoint, it] = m;
   const auto sensorid = SensorId{it.sensor_descriptor};
 
@@ -509,6 +634,17 @@ bool Database::insert(const Sensor::MeasurementScd30 &m) {
     return false;
   }
 
+  if (char *error_msg{nullptr};
+      sqlite3_exec(sqlite3_db, "COMMIT;", nullptr, nullptr, &error_msg) !=
+      SQLITE_OK) {
+    if (error_msg) {
+      M5_LOGE("%s", error_msg);
+    }
+    sqlite3_free(error_msg);
+    return false;
+  }
+
+  _latestMeasurementScd30 = m;
   M5_LOGI("insert Scd30 is success.");
   return true;
 }
@@ -521,6 +657,17 @@ bool Database::insert(const Sensor::MeasurementScd41 &m) {
     M5_LOGI("sqlite3_db is not available.");
     return false;
   }
+
+  if (char *error_msg{nullptr};
+      sqlite3_exec(sqlite3_db, "BEGIN;", nullptr, nullptr, &error_msg) !=
+      SQLITE_OK) {
+    if (error_msg) {
+      M5_LOGE("%s", error_msg);
+    }
+    sqlite3_free(error_msg);
+    return false;
+  }
+
   const auto &[timepoint, it] = m;
   const auto sensorid = SensorId{it.sensor_descriptor};
 
@@ -539,6 +686,17 @@ bool Database::insert(const Sensor::MeasurementScd41 &m) {
     return false;
   }
 
+  if (char *error_msg{nullptr};
+      sqlite3_exec(sqlite3_db, "COMMIT;", nullptr, nullptr, &error_msg) !=
+      SQLITE_OK) {
+    if (error_msg) {
+      M5_LOGE("%s", error_msg);
+    }
+    sqlite3_free(error_msg);
+    return false;
+  }
+
+  _latestMeasurementScd41 = m;
   M5_LOGI("insert Scd41 is success.");
   return true;
 }
@@ -551,6 +709,17 @@ bool Database::insert(const Sensor::MeasurementM5Env3 &m) {
     M5_LOGI("sqlite3_db is not available.");
     return false;
   }
+
+  if (char *error_msg{nullptr};
+      sqlite3_exec(sqlite3_db, "BEGIN;", nullptr, nullptr, &error_msg) !=
+      SQLITE_OK) {
+    if (error_msg) {
+      M5_LOGE("%s", error_msg);
+    }
+    sqlite3_free(error_msg);
+    return false;
+  }
+
   const auto &[timepoint, it] = m;
   const auto sensorid = SensorId{it.sensor_descriptor};
 
@@ -569,14 +738,24 @@ bool Database::insert(const Sensor::MeasurementM5Env3 &m) {
     return false;
   }
 
+  if (char *error_msg{nullptr};
+      sqlite3_exec(sqlite3_db, "COMMIT;", nullptr, nullptr, &error_msg) !=
+      SQLITE_OK) {
+    if (error_msg) {
+      M5_LOGE("%s", error_msg);
+    }
+    sqlite3_free(error_msg);
+    return false;
+  }
+
+  _latestMeasurementM5Env3 = m;
   M5_LOGD("insert M5Env3 is success.");
   return true;
 }
 
 //
-std::optional<Database::RowId>
-Database::insert_values(std::string_view query,
-                        TimePointAndDouble values_to_insert) {
+bool Database::insert_values(std::string_view query,
+                             TimePointAndDouble values_to_insert) {
   auto [sensor_id_to_insert, tp_to_insert, fp_value_to_insert] =
       values_to_insert;
   sqlite3_stmt *stmt{nullptr};
@@ -611,9 +790,12 @@ Database::insert_values(std::string_view query,
     M5_LOGE("%s", sqlite3_errmsg(sqlite3_db));
     goto error_exit;
   }
-  if (auto p = sqlite3_expanded_sql(stmt); p) {
-    M5_LOGV("%s", p);
-    sqlite3_free(p);
+  // SQL表示(デバッグ用r
+  if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_VERBOSE) {
+    if (auto p = sqlite3_expanded_sql(stmt); p) {
+      M5_LOGV("%s", p);
+      sqlite3_free(p);
+    }
   }
   //
   for (int32_t retry = 0; sqlite3_step(stmt) != SQLITE_DONE; ++retry) {
@@ -633,17 +815,17 @@ Database::insert_values(std::string_view query,
     goto error_exit;
   }
 
-  return sqlite3_last_insert_rowid(sqlite3_db);
+  // sqlite3_last_insert_rowid(sqlite3_db);
+  return true;
 
 error_exit:
   sqlite3_finalize(stmt);
-  return -1;
+  return false;
 }
 
 //
-std::optional<Database::RowId>
-Database::insert_values(std::string_view query,
-                        TimePointAndIntAndOptInt values_to_insert) {
+bool Database::insert_values(std::string_view query,
+                             TimePointAndIntAndOptInt values_to_insert) {
   auto [sensor_id_to_insert, tp_to_insert, u16_value_to_insert,
         optional_u16_value_to_insert] = values_to_insert;
   sqlite3_stmt *stmt{nullptr};
@@ -690,9 +872,12 @@ Database::insert_values(std::string_view query,
       goto error_exit;
     }
   }
-  if (auto p = sqlite3_expanded_sql(stmt); p) {
-    M5_LOGV("%s", p);
-    sqlite3_free(p);
+  // SQL表示(デバッグ用)
+  if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_VERBOSE) {
+    if (auto p = sqlite3_expanded_sql(stmt); p) {
+      M5_LOGV("%s", p);
+      sqlite3_free(p);
+    }
   }
   //
   for (int32_t retry = 0; sqlite3_step(stmt) != SQLITE_DONE; ++retry) {
@@ -712,19 +897,21 @@ Database::insert_values(std::string_view query,
     goto error_exit;
   }
 
-  return std::make_optional(sqlite3_last_insert_rowid(sqlite3_db));
+  // sqlite3_last_insert_rowid(sqlite3_db);
+  return true;
 
 error_exit:
   sqlite3_finalize(stmt);
-  return std::nullopt;
+  return false;
 }
 
 //
-size_t Database::read_values(std::string_view query,
-                             std::tuple<SensorId, OrderBy, size_t> placeholder,
-                             ReadCallback<TimePointAndDouble> callback) {
+size_t
+Database::read_values(std::string_view query,
+                      std::tuple<system_clock::time_point, OrderBy> placeholder,
+                      ReadCallback<TimePointAndDouble> callback) {
   sqlite3_stmt *stmt{nullptr};
-  auto [sensorid, orderby, limits] = placeholder;
+  auto [at_greater, orderby] = placeholder;
 
   if (!sqlite3_db) {
     M5_LOGE("sqlite3_db is null");
@@ -740,7 +927,9 @@ size_t Database::read_values(std::string_view query,
     goto error_exit;
   }
   //
-  if (auto result = sqlite3_bind_int64(stmt, 1, sensorid);
+  if (auto result = sqlite3_bind_int64(
+          stmt, sqlite3_bind_parameter_index(stmt, ":at_greater"),
+          static_cast<int64_t>(system_clock::to_time_t(at_greater)));
       result != SQLITE_OK) {
     M5_LOGE("%s", sqlite3_errmsg(sqlite3_db));
     goto error_exit;
@@ -748,24 +937,106 @@ size_t Database::read_values(std::string_view query,
   {
     std::string_view order_text{orderby == OrderByAtDesc ? "at DESC"
                                                          : "at ASC"};
-    if (auto result =
-            sqlite3_bind_text(stmt, 2, order_text.data(), -1, SQLITE_STATIC);
+    if (auto result = sqlite3_bind_text(
+            stmt, sqlite3_bind_parameter_index(stmt, ":order_by"),
+            order_text.data(), -1, SQLITE_STATIC);
         result != SQLITE_OK) {
       M5_LOGE("%s", sqlite3_errmsg(sqlite3_db));
       goto error_exit;
     }
   }
-  if (auto result = sqlite3_bind_int(stmt, 3, limits); result != SQLITE_OK) {
-    M5_LOGE("%s", sqlite3_errmsg(sqlite3_db));
-    goto error_exit;
-  }
-  if (auto p = sqlite3_expanded_sql(stmt); p) {
-    M5_LOGV("%s", p);
-    sqlite3_free(p);
+  // SQL表示(デバッグ用)
+  if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_VERBOSE) {
+    if (auto p = sqlite3_expanded_sql(stmt); p) {
+      M5_LOGV("%s", p);
+      sqlite3_free(p);
+    }
   }
   //
   {
-    size_t counter{0};
+    size_t counter{1}; // 1 start
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+      M5_LOGV("sqlite3_step()");
+      // number 0 is sensor_id
+      int64_t sensor_id = sqlite3_column_int64(stmt, 0);
+      int64_t at = sqlite3_column_int64(stmt, 1);
+      double fp_value = sqlite3_column_double(stmt, 2);
+      TimePointAndDouble values{sensor_id, system_clock::from_time_t(at),
+                                fp_value};
+      if (bool _continue = callback(counter, values); _continue == false) {
+        break;
+      }
+      counter++;
+    }
+
+    if (auto result = sqlite3_finalize(stmt); result != SQLITE_OK) {
+      M5_LOGE("%s", sqlite3_errmsg(sqlite3_db));
+      stmt = nullptr; // omit double finalize
+      goto error_exit;
+    }
+
+    return counter;
+  }
+
+error_exit:
+  sqlite3_finalize(stmt);
+  return 0;
+}
+
+//
+size_t Database::read_values(std::string_view query,
+                             std::tuple<SensorId, OrderBy, size_t> placeholder,
+                             ReadCallback<TimePointAndDouble> callback) {
+  sqlite3_stmt *stmt{nullptr};
+  auto [sensorid, orderby, limit] = placeholder;
+
+  if (!sqlite3_db) {
+    M5_LOGE("sqlite3_db is null");
+    goto error_exit;
+  }
+
+  if (auto result =
+          sqlite3_prepare_v2(sqlite3_db, query.data(), -1, &stmt, nullptr);
+      result != SQLITE_OK) {
+    M5_LOGE("%s", sqlite3_errmsg(sqlite3_db));
+    M5_LOGE("query");
+    M5_LOGE("%s", query.data());
+    goto error_exit;
+  }
+  //
+  if (auto result = sqlite3_bind_int64(
+          stmt, sqlite3_bind_parameter_index(stmt, ":sensor_id"), sensorid);
+      result != SQLITE_OK) {
+    M5_LOGE("%s", sqlite3_errmsg(sqlite3_db));
+    goto error_exit;
+  }
+  {
+    std::string_view order_text{orderby == OrderByAtDesc ? "at DESC"
+                                                         : "at ASC"};
+    if (auto result = sqlite3_bind_text(
+            stmt, sqlite3_bind_parameter_index(stmt, ":order_by"),
+            order_text.data(), -1, SQLITE_STATIC);
+        result != SQLITE_OK) {
+      M5_LOGE("%s", sqlite3_errmsg(sqlite3_db));
+      goto error_exit;
+    }
+  }
+  if (auto result = sqlite3_bind_int(
+          stmt, sqlite3_bind_parameter_index(stmt, ":limit"), limit);
+      result != SQLITE_OK) {
+    M5_LOGE("%s", sqlite3_errmsg(sqlite3_db));
+    goto error_exit;
+  }
+  // SQL表示(デバッグ用)
+  if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_VERBOSE) {
+    if (auto p = sqlite3_expanded_sql(stmt); p) {
+      M5_LOGV("%s", p);
+      sqlite3_free(p);
+    }
+  }
+  //
+  {
+    size_t counter{1}; // 1 start
     while (sqlite3_step(stmt) == SQLITE_ROW) {
       M5_LOGV("sqlite3_step()");
       // number 0 is sensor_id
@@ -799,7 +1070,7 @@ size_t Database::read_values(std::string_view query,
                              std::tuple<SensorId, OrderBy, size_t> placeholder,
                              ReadCallback<TimePointAndIntAndOptInt> callback) {
   sqlite3_stmt *stmt{nullptr};
-  auto [sensorid, orderby, limits] = placeholder;
+  auto [sensorid, orderby, limit] = placeholder;
 
   if (!sqlite3_db) {
     M5_LOGE("sqlite3 sqlite3_db is null");
@@ -815,7 +1086,8 @@ size_t Database::read_values(std::string_view query,
     goto error_exit;
   }
   //
-  if (auto result = sqlite3_bind_int64(stmt, 1, sensorid);
+  if (auto result = sqlite3_bind_int64(
+          stmt, sqlite3_bind_parameter_index(stmt, ":sensor_id"), sensorid);
       result != SQLITE_OK) {
     M5_LOGE("%s", sqlite3_errmsg(sqlite3_db));
     goto error_exit;
@@ -823,24 +1095,30 @@ size_t Database::read_values(std::string_view query,
   {
     std::string_view order_text{orderby == OrderByAtDesc ? "at DESC"
                                                          : "at ASC"};
-    if (auto result =
-            sqlite3_bind_text(stmt, 2, order_text.data(), -1, SQLITE_STATIC);
+    if (auto result = sqlite3_bind_text(
+            stmt, sqlite3_bind_parameter_index(stmt, ":order_by"),
+            order_text.data(), -1, SQLITE_STATIC);
         result != SQLITE_OK) {
       M5_LOGE("%s", sqlite3_errmsg(sqlite3_db));
       goto error_exit;
     }
   }
-  if (auto result = sqlite3_bind_int(stmt, 3, limits); result != SQLITE_OK) {
+  if (auto result = sqlite3_bind_int(
+          stmt, sqlite3_bind_parameter_index(stmt, ":limit"), limit);
+      result != SQLITE_OK) {
     M5_LOGE("%s", sqlite3_errmsg(sqlite3_db));
     goto error_exit;
   }
-  if (auto p = sqlite3_expanded_sql(stmt); p) {
-    M5_LOGV("%s", p);
-    sqlite3_free(p);
+  // SQL表示(デバッグ用)
+  if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_VERBOSE) {
+    if (auto p = sqlite3_expanded_sql(stmt); p) {
+      M5_LOGV("%s", p);
+      sqlite3_free(p);
+    }
   }
   //
   {
-    size_t counter = 0;
+    size_t counter{1}; // 1 start
     while (sqlite3_step(stmt) == SQLITE_ROW) {
       M5_LOGV("sqlite3_step()");
       // number 0 is sensor_id

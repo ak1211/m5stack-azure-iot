@@ -35,7 +35,4 @@ extern BootLog boot_log;
 // std::string_view{"/sd/measurements.sqlite3"};
 extern Database measurements_database;
 
-// 各センサーの測定値の記録数
-constexpr static auto HISTORY_BUFFER_SIZE = 180;
-
 } // namespace Application

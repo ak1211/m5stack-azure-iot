@@ -135,7 +135,7 @@ void setup() {
       p->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
     }
   };
-  constexpr auto TIMEOUT{5s};
+  constexpr auto TIMEOUT{3s};
   // initializing M5Stack Core2 with M5Unified
   auto cfg = M5.config();
   M5.begin(cfg);
@@ -146,9 +146,7 @@ void setup() {
   }
   // Display
   M5.Display.setColorDepth(LV_COLOR_DEPTH);
-  M5.Display.setBrightness(200);
-  //
-  M5.Power.setChargeCurrent(280);
+  M5.Display.setBrightness(160);
   // stop the vibration
   M5.Power.setVibration(0);
 
@@ -165,7 +163,7 @@ void setup() {
   // init RGB LEDS
   if (auto rgbled = new RgbLed(); rgbled) {
     rgbled->begin();
-    rgbled->setBrightness(80);
+    rgbled->setBrightness(50);
     rgbled->fill(CRGB::White);
   }
   // init peripherals
@@ -186,11 +184,11 @@ void setup() {
   xTaskCreatePinnedToCore(
       [](void *arg) -> void {
         while (true) {
-          lv_timer_handler_run_in_period(10);
-          delay(10);
+          lv_timer_handler();
+          std::this_thread::sleep_for(6ms);
         }
       },
-      "Task:LVGL", 8192, nullptr, 10, &rtos_task_handle, ARDUINO_RUNNING_CORE);
+      "Task:LVGL", 16384, nullptr, 5, &rtos_task_handle, ARDUINO_RUNNING_CORE);
 
   logging("System Start.");
   // init WiFi
@@ -230,13 +228,12 @@ void setup() {
       bool ok{false};
       auto timeover{steady_clock::now() + TIMEOUT};
       while (steady_clock::now() < timeover) {
-        //
+        std::this_thread::sleep_for(100ms);
         if (ok = sensor_device->init(); ok) {
           M5_LOGI("%s init success.", desc.str().c_str());
           break;
         }
         M5_LOGI("%s init failed, retry", desc.str().c_str());
-        std::this_thread::sleep_for(100ms);
       }
       if (!ok) {
         oss.str("");
@@ -282,13 +279,15 @@ inline void high_speed_loop() {
 }
 
 //
-// 低速度loop()関数
+// 測定用loop関数
 //
-inline void low_speed_loop(system_clock::time_point nowtp) {
+inline void measurements_loop(system_clock::time_point nowtp) {
   // 測定
   for (auto &sensor_device : Peripherals::sensors) {
-    auto measured =
-        sensor_device->readyToRead() ? sensor_device->read() : std::monostate{};
+    auto ready = sensor_device->readyToRead();
+    std::this_thread::sleep_for(10ms);
+    auto measured = ready ? sensor_device->read() : std::monostate{};
+    std::this_thread::sleep_for(10ms);
   }
   //
   if (duration_cast<seconds>(nowtp.time_since_epoch()).count() % 60 == 0) {
@@ -348,7 +347,14 @@ inline void low_speed_loop(system_clock::time_point nowtp) {
       bool result = std::visit(Visitor{nowtp}, sensor_device->calculateSMA());
       success = success && result;
     }
-  } else if (WiFi.status() != WL_CONNECTED) {
+  }
+}
+
+//
+// 低速度loop()関数
+//
+inline void low_speed_loop() {
+  if (WiFi.status() != WL_CONNECTED) {
     // WiFiが接続されていない場合は接続する。
     if (!waitingForWiFiConnection(30s)) {
       M5_LOGE("WiFi connect failed.");
@@ -370,14 +376,27 @@ inline void low_speed_loop(system_clock::time_point nowtp) {
 void loop() {
   high_speed_loop();
   //
-  using namespace std::chrono;
-  static system_clock::time_point before{};
-  if (Time::sync_completed()) {
-    auto nowtp = system_clock::now();
-    //
-    if (nowtp - before >= 1s) {
-      low_speed_loop(nowtp);
-      before = nowtp;
+  static steady_clock::time_point before_epoch{};
+  auto now_epoch = steady_clock::now();
+  if (now_epoch - before_epoch >= 1s) {
+    low_speed_loop();
+    before_epoch = now_epoch;
+  } else if (Time::sync_completed()) {
+    static system_clock::time_point before_meas_tp{};
+    static system_clock::time_point before_db_tp{};
+    auto now_tp = system_clock::now();
+    if (now_tp - before_meas_tp >= 1s) {
+      measurements_loop(now_tp);
+      before_meas_tp = now_tp;
+    } else if (now_tp - before_db_tp >= 1s) {
+      // データベースの整理
+      system_clock::time_point tp = now_tp - minutes(Gui::CHART_X_POINT_COUNT);
+      if (Application::measurements_database
+              .delete_old_measurements_from_database(
+                  std::chrono::floor<minutes>(tp)) == false) {
+        M5_LOGE("delete old measurements failed.");
+      }
+      before_db_tp = now_tp;
     }
   }
 }

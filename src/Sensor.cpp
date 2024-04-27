@@ -449,16 +449,14 @@ Sensor::MeasuredValue Sensor::M5Env3Device::read() {
     return std::monostate{};
   }
   //
-  if (!sht31.update()) {
-    if (sht31.begin(&two_wire, ENV3_I2C_ADDRESS_SHT31, sda_pin, scl_pin)) {
-      M5_LOGD("SHT31 sensor: error to re-initialize.");
-    }
+  if (sht31.update() == false) {
+    sht31.begin(&two_wire, ENV3_I2C_ADDRESS_SHT31, sda_pin, scl_pin);
+    M5_LOGD("SHT31 sensor: error to re-initialize.");
     return std::monostate{};
   }
-  if (!qmp6988.update()) {
-    if (qmp6988.begin(&two_wire, ENV3_I2C_ADDRESS_QMP6988, sda_pin, scl_pin)) {
-      M5_LOGD("QMP6988 sensor: error to re-initialize.");
-    }
+  if (qmp6988.update() == false) {
+    qmp6988.begin(&two_wire, ENV3_I2C_ADDRESS_QMP6988, sda_pin, scl_pin);
+    M5_LOGD("QMP6988 sensor: error to re-initialize.");
     return std::monostate{};
   }
   //
