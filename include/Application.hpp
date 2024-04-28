@@ -31,8 +31,7 @@ public:
 extern BootLog boot_log;
 
 //
-// constexpr static auto sqlite3_file_name =
-// std::string_view{"/sd/measurements.sqlite3"};
+extern const std::string_view MEASUREMENTS_DATABASE_FILE_NAME;
 extern Database measurements_database;
 
 } // namespace Application

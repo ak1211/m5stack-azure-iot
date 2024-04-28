@@ -12,6 +12,7 @@
 #include "credentials.h"
 
 #include <ArduinoOTA.h>
+#include <LITTLEFS.h>
 #include <WiFi.h>
 #include <Wire.h>
 #include <chrono>
@@ -30,6 +31,8 @@
 // 起動時のログ
 Application::BootLog Application::boot_log{};
 //
+const std::string_view Application::MEASUREMENTS_DATABASE_FILE_NAME{
+    "/littlefs/measurements.sqlite3"};
 Database Application::measurements_database{};
 
 using namespace std::literals::string_literals;
@@ -139,11 +142,21 @@ void setup() {
   // initializing M5Stack Core2 with M5Unified
   auto cfg = M5.config();
   M5.begin(cfg);
+
   // PSRAM init
   if (!psramInit()) {
     M5_LOGE("PSRAM inititalize failed.");
+    M5.Display.print("PSRAM inititalize failed.");
     goto fatal_error;
   }
+
+  // file system init
+  if (LittleFS.begin(true, "/littlefs") == false) {
+    M5_LOGE("filesystem inititalize failed.");
+    M5.Display.print("filesystem inititalize failed.");
+    goto fatal_error;
+  }
+
   // Display
   M5.Display.setColorDepth(LV_COLOR_DEPTH);
   M5.Display.setBrightness(160);
@@ -152,8 +165,8 @@ void setup() {
 
   // initialize the 'arduino Wire class'
   Wire.end();
-  delay(1000);
   Wire.begin(M5.Ex_I2C.getSDA(), M5.Ex_I2C.getSCL());
+  std::this_thread::sleep_for(1000ms);
 
   // init WiFi with Station mode
   WiFi.onEvent(gotWiFiEvent);
@@ -166,16 +179,20 @@ void setup() {
     rgbled->setBrightness(50);
     rgbled->fill(CRGB::White);
   }
+
   // init peripherals
   Peripherals::init(Wire, M5.Ex_I2C.getSDA(), M5.Ex_I2C.getSCL());
+
   // init GUI
   if (auto gui = new Gui(M5.Display); gui) {
     if (gui->begin()) {
       void();
     } else {
+      M5.Display.print("GUI inititalize failed.");
       goto fatal_error;
     }
   } else {
+    M5.Display.print("GUI inititalize failed.");
     goto fatal_error;
   }
 
@@ -191,6 +208,7 @@ void setup() {
       "Task:LVGL", 16384, nullptr, 5, &rtos_task_handle, ARDUINO_RUNNING_CORE);
 
   logging("System Start.");
+
   // init WiFi
   if constexpr (true) {
     logging("connect to WiFi AP. SSID:\""s + Credentials.wifi_ssid + "\""s);
@@ -198,24 +216,40 @@ void setup() {
       logging("connect failed.");
     }
   }
+
   // init Time
   if constexpr (true) {
     logging("init time.");
     // initialize Time
     Time::init();
   }
+
   // init OTA update
   if constexpr (true) {
     logging("setup OTA update.");
     setupOTA();
   }
+
   // init Database
-  if constexpr (true) {
-    logging("init Database.");
+  logging("init Database.");
+  if (Application::measurements_database.begin() == false) {
+    // 失敗したらデータベースファイルを消去して再度初期化
+    auto s = std::string(Application::MEASUREMENTS_DATABASE_FILE_NAME);
+    if (!LittleFS.remove(s.c_str())) {
+      // ファイルの消去に失敗したらフォーマットする
+      M5_LOGI("format filesystem.");
+      if (LittleFS.format() == false) {
+        M5_LOGE("format failed.");
+      }
+    } else {
+      M5_LOGI("file %s removed.", s.c_str());
+    }
+    //
     if (!Application::measurements_database.begin()) {
       logging("Database is not available.");
     }
   }
+
   // init sensors
   if constexpr (true) {
     M5_LOGI("init sensors");
@@ -257,8 +291,6 @@ void setup() {
   return; // Successfully exit.
   //
 fatal_error:
-  M5.Display.clear();
-  M5.Display.print("fatal error.");
   delay(300 * 1000);
   esp_system_abort("fatal");
 }
@@ -388,7 +420,7 @@ void loop() {
     if (now_tp - before_meas_tp >= 1s) {
       measurements_loop(now_tp);
       before_meas_tp = now_tp;
-    } else if (now_tp - before_db_tp >= 1s) {
+    } else if (now_tp - before_db_tp >= 333s) {
       // データベースの整理
       system_clock::time_point tp = now_tp - minutes(Gui::CHART_X_POINT_COUNT);
       if (Application::measurements_database

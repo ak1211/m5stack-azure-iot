@@ -125,7 +125,7 @@ bool Gui::begin() noexcept {
           found->timerHook();
         }
       },
-      MILLISECONDS_OF_PERIODIC_TIMER, nullptr);
+      duration_cast<milliseconds>(PERIODIC_TIMER_INTERVAL).count(), nullptr);
 
   return true;
 }
@@ -230,12 +230,12 @@ void Widget::BootMessage::timerHook() noexcept {
 //
 Widget::SystemHealthy::SystemHealthy(Widget::InitArg init) noexcept {
   tile_obj = std::apply(lv_tileview_add_tile, init);
+  //
   lv_style_init(&label_style);
   lv_style_set_text_font(&label_style, &lv_font_montserrat_16);
   //
   cont_col_obj = lv_obj_create(tile_obj);
-  lv_obj_set_size(cont_col_obj, lv_obj_get_content_width(tile_obj),
-                  lv_obj_get_content_height(tile_obj));
+  lv_obj_set_size(cont_col_obj, LV_PCT(100), LV_PCT(100));
   lv_obj_align(cont_col_obj, LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_flex_flow(cont_col_obj, LV_FLEX_FLOW_COLUMN);
   //
@@ -898,8 +898,9 @@ void Widget::TemperatureChart::valueChangedEventHook(lv_event_t *) noexcept {
         found_itr != sensorid_and_index_map.end()) {
       lv_chart_series_t *target_series = chart_series_vect[std::distance(
           sensorid_and_index_map.begin(), found_itr)];
+      auto index = found_itr->second++;
       lv_coord_t y_coord = mapper(item);
-      target_series->y_points[found_itr->second++] = y_coord;
+      lv_chart_set_value_by_id(chart_obj, target_series, index, y_coord);
       //
       y_min = std::min(y_min, y_coord);
       y_max = std::max(y_max, y_coord);

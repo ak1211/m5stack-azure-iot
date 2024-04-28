@@ -17,11 +17,9 @@
 //
 //
 class Database final {
-#if defined(SQLITE_ENABLE_MEMSYS5)
-  constexpr static size_t ALLOCATE_DATABASE_HEAP_OF_BYTES = 2 * 1024 * 1024;
-  constexpr static size_t SIZE_OF_MINIMUM_HEAP_REQUEST = 32;
-  void *_heap_memory_for_database{nullptr};
-#endif
+  struct Transaction;
+
+private:
   bool _available{false};
   sqlite3 *sqlite3_db{nullptr};
   //
@@ -49,12 +47,7 @@ public:
   constexpr static const uint_fast8_t RETRY_COUNT = 100;
   //
   Database() noexcept {}
-  ~Database() noexcept {
-    terminate();
-#if defined(SQLITE_ENABLE_MEMSYS5)
-    free(_heap_memory_for_database);
-#endif
-  }
+  ~Database() noexcept { terminate(); }
   //
   bool available() const noexcept { return _available; }
   //
@@ -137,14 +130,17 @@ private:
   bool insert_values(std::string_view query,
                      TimePointAndIntAndOptInt values_to_insert);
   //
-  size_t read_values(std::string_view query,
-                     std::tuple<system_clock::time_point, OrderBy> placeholder,
-                     ReadCallback<TimePointAndDouble> callback);
-  size_t read_values(std::string_view query,
-                     std::tuple<SensorId, OrderBy, size_t> placeholder,
-                     ReadCallback<TimePointAndDouble> callback);
+  std::optional<size_t>
+  read_values(std::string_view query,
+              std::tuple<system_clock::time_point, OrderBy> placeholder,
+              ReadCallback<TimePointAndDouble> callback);
+  std::optional<size_t>
+  read_values(std::string_view query,
+              std::tuple<SensorId, OrderBy, size_t> placeholder,
+              ReadCallback<TimePointAndDouble> callback);
   //
-  size_t read_values(std::string_view query,
-                     std::tuple<SensorId, OrderBy, size_t> placeholder,
-                     ReadCallback<TimePointAndIntAndOptInt> callback);
+  std::optional<size_t>
+  read_values(std::string_view query,
+              std::tuple<SensorId, OrderBy, size_t> placeholder,
+              ReadCallback<TimePointAndIntAndOptInt> callback);
 };
