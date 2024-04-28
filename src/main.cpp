@@ -32,7 +32,7 @@
 Application::BootLog Application::boot_log{};
 //
 const std::string_view Application::MEASUREMENTS_DATABASE_FILE_NAME{
-    "/littlefs/measurements.sqlite3"};
+    "/littlefs/measurements.db"};
 Database Application::measurements_database{};
 
 using namespace std::literals::string_literals;
@@ -143,15 +143,11 @@ void setup() {
   auto cfg = M5.config();
   M5.begin(cfg);
 
-  // PSRAM init
-  if (!psramInit()) {
-    M5_LOGE("PSRAM inititalize failed.");
-    M5.Display.print("PSRAM inititalize failed.");
-    goto fatal_error;
-  }
-
   // file system init
-  if (LittleFS.begin(true, "/littlefs") == false) {
+  if (LittleFS.begin(true)) {
+    M5_LOGI("filesystem status : %lu / %lu.", LittleFS.usedBytes(),
+            LittleFS.totalBytes());
+  } else {
     M5_LOGE("filesystem inititalize failed.");
     M5.Display.print("filesystem inititalize failed.");
     goto fatal_error;
@@ -165,7 +161,7 @@ void setup() {
 
   // initialize the 'arduino Wire class'
   Wire.end();
-  Wire.begin(M5.Ex_I2C.getSDA(), M5.Ex_I2C.getSCL());
+  Wire.begin(M5.Ex_I2C.getSDA(), M5.Ex_I2C.getSCL(), 100000);
   std::this_thread::sleep_for(1000ms);
 
   // init WiFi with Station mode
@@ -410,7 +406,7 @@ void loop() {
   //
   static steady_clock::time_point before_epoch{};
   auto now_epoch = steady_clock::now();
-  if (now_epoch - before_epoch >= 1s) {
+  if (now_epoch - before_epoch >= 29s) {
     low_speed_loop();
     before_epoch = now_epoch;
   } else if (Time::sync_completed()) {

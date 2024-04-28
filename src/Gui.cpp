@@ -22,6 +22,8 @@
 
 #include <M5Unified.h>
 
+Gui *Gui::_instance{nullptr};
+
 using namespace std::chrono;
 using namespace std::literals::string_literals;
 using namespace std::literals::string_view_literals;

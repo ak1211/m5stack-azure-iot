@@ -423,8 +423,13 @@ Database::read_total_vocs(OrderBy order, SensorId sensor_id, size_t limit) {
 //
 //
 struct Database::Transaction {
-  sqlite3 *db{nullptr};
-  Transaction(sqlite3 *p) : db{p} {}
+  bool flag{false};
+  sqlite3 *db{};
+  Transaction(sqlite3 *p) : db{p} {
+    if (p == nullptr) {
+      M5_LOGE("sqlite3 handle is null");
+    }
+  }
   bool begin() {
     if (db) {
       char *errmsg{nullptr};
@@ -433,14 +438,13 @@ struct Database::Transaction {
           M5_LOGE("%s", errmsg);
         }
         sqlite3_free(errmsg);
-        db = nullptr;
-        return false;
+        return (flag = false);
       }
     }
-    return true;
+    return (flag = true);
   }
   ~Transaction() {
-    if (db) {
+    if (flag) {
       char *errmsg{nullptr};
       if (sqlite3_exec(db, "COMMIT;", nullptr, nullptr, &errmsg) != SQLITE_OK) {
         if (errmsg) {
@@ -477,6 +481,10 @@ bool Database::begin() noexcept {
     M5_LOGE("sqlite3_open_v2() failure: %d", result);
     terminate();
     return false;
+  }
+
+  if (sqlite3_db == nullptr) {
+    M5_LOGE("sqlite3_db is null");
   }
 
   //
@@ -789,7 +797,7 @@ bool Database::insert_values(std::string_view query,
   auto [sensor_id_to_insert, tp_to_insert, fp_value_to_insert] =
       values_to_insert;
 
-  if (!sqlite3_db) {
+  if (sqlite3_db == nullptr) {
     M5_LOGE("sqlite3_db is null");
     return false;
   }
@@ -799,6 +807,7 @@ bool Database::insert_values(std::string_view query,
     sqlite3_stmt *stmt{nullptr};
     Finalizer(sqlite3 *p) : db{p} {}
     ~Finalizer() {
+      sqlite3_finalize(stmt);
       switch (auto code = sqlite3_errcode(db); code) {
       case SQLITE_DONE:
         [[fallthrough]];
@@ -809,7 +818,6 @@ bool Database::insert_values(std::string_view query,
         M5_LOGE("%s", sqlite3_errstr(code));
         break;
       }
-      sqlite3_finalize(stmt);
     }
   } fin{sqlite3_db};
 
@@ -861,7 +869,7 @@ bool Database::insert_values(std::string_view query,
   auto [sensor_id_to_insert, tp_to_insert, u16_value_to_insert,
         optional_u16_value_to_insert] = values_to_insert;
 
-  if (!sqlite3_db) {
+  if (sqlite3_db == nullptr) {
     M5_LOGE("sqlite3_db is null");
     return false;
   }
@@ -871,6 +879,7 @@ bool Database::insert_values(std::string_view query,
     sqlite3_stmt *stmt{nullptr};
     Finalizer(sqlite3 *p) : db{p} {}
     ~Finalizer() {
+      sqlite3_finalize(stmt);
       switch (auto code = sqlite3_errcode(db); code) {
       case SQLITE_DONE:
         [[fallthrough]];
@@ -881,7 +890,6 @@ bool Database::insert_values(std::string_view query,
         M5_LOGE("%s", sqlite3_errstr(code));
         break;
       }
-      sqlite3_finalize(stmt);
     }
   } fin{sqlite3_db};
 
@@ -943,7 +951,7 @@ Database::read_values(std::string_view query,
                       ReadCallback<TimePointAndDouble> callback) {
   auto [at_greater, orderby] = placeholder;
 
-  if (!sqlite3_db) {
+  if (sqlite3_db == nullptr) {
     M5_LOGE("sqlite3_db is null");
     return std::nullopt;
   }
@@ -953,6 +961,7 @@ Database::read_values(std::string_view query,
     sqlite3_stmt *stmt{nullptr};
     Finalizer(sqlite3 *p) : db{p} {}
     ~Finalizer() {
+      sqlite3_finalize(stmt);
       switch (auto code = sqlite3_errcode(db); code) {
       case SQLITE_DONE:
         [[fallthrough]];
@@ -963,7 +972,6 @@ Database::read_values(std::string_view query,
         M5_LOGE("%s", sqlite3_errstr(code));
         break;
       }
-      sqlite3_finalize(stmt);
     }
   } fin{sqlite3_db};
 
@@ -1022,7 +1030,7 @@ Database::read_values(std::string_view query,
                       ReadCallback<TimePointAndDouble> callback) {
   auto [sensorid, orderby, limit] = placeholder;
 
-  if (!sqlite3_db) {
+  if (sqlite3_db == nullptr) {
     M5_LOGE("sqlite3_db is null");
     return std::nullopt;
   }
@@ -1032,6 +1040,7 @@ Database::read_values(std::string_view query,
     sqlite3_stmt *stmt{nullptr};
     Finalizer(sqlite3 *p) : db{p} {}
     ~Finalizer() {
+      sqlite3_finalize(stmt);
       switch (auto code = sqlite3_errcode(db); code) {
       case SQLITE_DONE:
         [[fallthrough]];
@@ -1042,7 +1051,6 @@ Database::read_values(std::string_view query,
         M5_LOGE("%s", sqlite3_errstr(code));
         break;
       }
-      sqlite3_finalize(stmt);
     }
   } fin{sqlite3_db};
 
@@ -1104,7 +1112,7 @@ Database::read_values(std::string_view query,
                       ReadCallback<TimePointAndIntAndOptInt> callback) {
   auto [sensorid, orderby, limit] = placeholder;
 
-  if (!sqlite3_db) {
+  if (sqlite3_db == nullptr) {
     M5_LOGE("sqlite3 sqlite3_db is null");
     return std::nullopt;
   }
@@ -1114,6 +1122,7 @@ Database::read_values(std::string_view query,
     sqlite3_stmt *stmt{nullptr};
     Finalizer(sqlite3 *p) : db{p} {}
     ~Finalizer() {
+      sqlite3_finalize(stmt);
       switch (auto code = sqlite3_errcode(db); code) {
       case SQLITE_DONE:
         [[fallthrough]];
@@ -1124,7 +1133,6 @@ Database::read_values(std::string_view query,
         M5_LOGE("%s", sqlite3_errstr(code));
         break;
       }
-      sqlite3_finalize(stmt);
     }
   } fin{sqlite3_db};
 
