@@ -27,6 +27,9 @@ extern "C" {
 #include <az_iot.h>
 #include <azure_ca.h>
 }
+
+Telemetry *Telemetry ::_instance{nullptr};
+
 using namespace std::chrono;
 using namespace std::string_literals;
 
@@ -116,39 +119,11 @@ std::string Telemetry::to_json_message<Sensor::MeasurementScd41>(
 #define AZURE_SDK_CLIENT_USER_AGENT "c%2F" AZ_SDK_VERSION_STRING "(ard;esp32)"
 
 //
-// globals
-//
-static uint32_t message_id = 0;
-// 送信用バッファ
-std::queue<Telemetry::Payload> Telemetry::sending_fifo_queue{};
-//
-static az_iot_hub_client client{};
-static az_iot_hub_client_options client_options{
-    az_iot_hub_client_options_default()};
-static std::string config_iothub_fqdn{};
-static std::string config_device_id{};
-static std::string config_device_key{};
-//
-constexpr static int MQTT_QOS1{1};
-constexpr static int DO_NOT_RETAIN_MSG{0};
-constexpr static int mqtt_port{AZ_IOT_DEFAULT_MQTT_CONNECT_PORT};
-static esp_mqtt_client_handle_t mqtt_client{};
-static std::string mqtt_broker_uri{};
-static std::string mqtt_client_id{};
-static std::string mqtt_username{};
-static std::array<char, 128> telemetry_topic{};
-//
-static std::array<uint8_t, 200> mqtt_password{};
-static std::array<char, 128> incoming_data{};
-//
-constexpr static int SAS_TOKEN_DURATION_IN_MINUTES{60};
-static std::array<uint8_t, 256> sas_signature_buffer{};
-static std::optional<AzIoTSasToken> optSasToken{};
-
 //
 //
-//
-esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event) {
+esp_err_t Telemetry::mqtt_event_handler(esp_mqtt_event_handle_t event) {
+  Telemetry *telemetry = static_cast<Telemetry *>(event->user_context);
+  //
   switch (event->event_id) {
     int i, r;
 
@@ -157,34 +132,33 @@ esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event) {
     break;
   case MQTT_EVENT_CONNECTED:
     M5_LOGI("MQTT event MQTT_EVENT_CONNECTED");
-    r = esp_mqtt_client_subscribe(mqtt_client,
-                                  AZ_IOT_HUB_CLIENT_C2D_SUBSCRIBE_TOPIC, 1);
-    if (r == -1) {
-      M5_LOGE("Could not subscribe for cloud-to-device messages.");
-    } else {
-      M5_LOGI("Subscribed for cloud-to-device messages; message id:%d", r);
-    }
+    telemetry->mqtt_connected = true;
     break;
   case MQTT_EVENT_DISCONNECTED:
     M5_LOGI("MQTT event MQTT_EVENT_DISCONNECTED");
+    telemetry->mqtt_connected = false;
+    telemetry->mqtt_topic_subscribed = false;
     break;
   case MQTT_EVENT_SUBSCRIBED:
     M5_LOGI("MQTT event MQTT_EVENT_SUBSCRIBED");
+    telemetry->mqtt_topic_subscribed = true;
     break;
   case MQTT_EVENT_UNSUBSCRIBED:
     M5_LOGI("MQTT event MQTT_EVENT_UNSUBSCRIBED");
+    telemetry->mqtt_topic_subscribed = false;
     break;
   case MQTT_EVENT_PUBLISHED:
     M5_LOGI("MQTT event MQTT_EVENT_PUBLISHED");
     break;
   case MQTT_EVENT_DATA:
     M5_LOGI("MQTT event MQTT_EVENT_DATA");
-    incoming_data.fill('\0');
-    std::copy_n(event->topic, event->topic_len, incoming_data.begin());
-    M5_LOGI("[RECEIVE] Topic: %s", incoming_data.data());
-    incoming_data.fill('\0');
-    std::copy_n(event->data, event->data_len, incoming_data.begin());
-    M5_LOGI("[RECEIVE] Data: %s", incoming_data.data());
+    telemetry->incoming_data.fill('\0');
+    std::copy_n(event->topic, event->topic_len,
+                telemetry->incoming_data.begin());
+    M5_LOGI("[RECEIVE] Topic: %s", telemetry->incoming_data.data());
+    telemetry->incoming_data.fill('\0');
+    std::copy_n(event->data, event->data_len, telemetry->incoming_data.begin());
+    M5_LOGI("[RECEIVE] Data: %s", telemetry->incoming_data.data());
     break;
   case MQTT_EVENT_BEFORE_CONNECT:
     M5_LOGI("MQTT event MQTT_EVENT_BEFORE_CONNECT");
@@ -200,7 +174,7 @@ esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event) {
 //
 //
 //
-static bool initializeIoTHubClient() {
+bool Telemetry::initializeIoTHubClient() {
   if (az_result_failed(az_iot_hub_client_init(
           &client,
           az_span_create((uint8_t *)config_iothub_fqdn.c_str(),
@@ -209,8 +183,9 @@ static bool initializeIoTHubClient() {
                          config_device_id.length()),
           &client_options))) {
     M5_LOGE("Failed initializing Azure IoT Hub client");
-    return false;
+    return (iot_hub_client_started = false);
   }
+  iot_hub_client_started = true;
 
   {
     std::array<char, 128> buffer{};
@@ -240,9 +215,10 @@ static bool initializeIoTHubClient() {
 //
 //
 //
-static bool initializeMqttClient() {
+bool Telemetry::initializeMqttClient() {
   // Using SAS
-  optSasToken = []() -> std::optional<AzIoTSasToken> {
+  optSasToken = std::nullopt;
+  {
     AzIoTSasToken azIoTSasToken = AzIoTSasToken(
         &client,
         az_span_create((uint8_t *)(config_device_key.c_str()),
@@ -252,12 +228,9 @@ static bool initializeMqttClient() {
         az_span_create(mqtt_password.data(), mqtt_password.size()));
     if (azIoTSasToken.Generate(SAS_TOKEN_DURATION_IN_MINUTES) != 0) {
       M5_LOGE("Failed generating SAS token");
-      return std::nullopt;
+      return false;
     }
-    return std::make_optional(azIoTSasToken);
-  }();
-  if (!optSasToken) {
-    return false;
+    optSasToken = std::make_optional(azIoTSasToken);
   }
 
   esp_mqtt_client_config_t mqtt_config{0};
@@ -275,7 +248,7 @@ static bool initializeMqttClient() {
   mqtt_config.disable_clean_session = 0;
   mqtt_config.disable_auto_reconnect = false;
   mqtt_config.event_handle = mqtt_event_handler;
-  mqtt_config.user_context = nullptr;
+  mqtt_config.user_context = static_cast<void *>(this);
   mqtt_config.cert_pem = reinterpret_cast<const char *>(ca_pem);
 
   mqtt_client = esp_mqtt_client_init(&mqtt_config);
@@ -289,9 +262,11 @@ static bool initializeMqttClient() {
 
   if (start_result != ESP_OK) {
     M5_LOGE("Could not start mqtt client; error code:%d", start_result);
+    iot_hub_client_started = false;
     return false;
   } else {
     M5_LOGI("MQTT client started");
+    iot_hub_client_started = true;
     return true;
   }
 }
@@ -299,8 +274,8 @@ static bool initializeMqttClient() {
 //
 //
 //
-bool Telemetry::init(std::string_view iothub_fqdn, std::string_view device_id,
-                     std::string_view device_key) {
+bool Telemetry::begin(std::string_view iothub_fqdn, std::string_view device_id,
+                      std::string_view device_key) {
   //
   client_options = az_iot_hub_client_options_default();
   client_options.user_agent = AZ_SPAN_FROM_STR(AZURE_SDK_CLIENT_USER_AGENT);
@@ -317,10 +292,33 @@ bool Telemetry::init(std::string_view iothub_fqdn, std::string_view device_id,
 //
 //
 bool Telemetry::loopMqtt() {
+  if (!isIotHubClientStarted()) {
+    return initializeIoTHubClient();
+  }
+  if (!isMqttClientStarted()) {
+    return initializeMqttClient();
+  }
+  //
   if (optSasToken.has_value() && optSasToken->IsExpired()) {
     M5_LOGI("SAS token expired; reconnecting with a new one.");
-    (void)esp_mqtt_client_destroy(mqtt_client);
-    return initializeMqttClient();
+    if (mqtt_client) {
+      (void)esp_mqtt_client_destroy(mqtt_client);
+      mqtt_client = nullptr;
+    }
+    return false;
+  }
+  //
+  if (!isMqttTopicSubscribed()) {
+    //
+    if (auto message_id = esp_mqtt_client_subscribe(
+            mqtt_client, AZ_IOT_HUB_CLIENT_C2D_SUBSCRIBE_TOPIC, 1);
+        message_id == -1) {
+      M5_LOGE("Could not subscribe for cloud-to-device messages.");
+      return false;
+    } else {
+      M5_LOGI("Subscribed for cloud-to-device messages; message id:%d",
+              message_id);
+    }
   }
   // The topic could be obtained just once during setup,
   // however if properties are used the topic need to be generated again to
@@ -334,7 +332,7 @@ bool Telemetry::loopMqtt() {
   // 送信するべき測定値があれば送信する
   if (!sending_fifo_queue.empty()) {
     std::string payload = std::visit(
-        [](const auto &x) { return Telemetry::to_json_message(message_id, x); },
+        [this](const auto &x) { return to_json_message(message_id, x); },
         sending_fifo_queue.front());
     M5_LOGD("[SEND] %s", payload.c_str());
     auto count = esp_mqtt_client_publish(mqtt_client, telemetry_topic.data(),

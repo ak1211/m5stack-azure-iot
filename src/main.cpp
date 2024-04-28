@@ -100,7 +100,6 @@ static void gotWiFiEvent(WiFiEvent_t event) {
   } break;
   case SYSTEM_EVENT_STA_DISCONNECTED:
     M5_LOGI("STA Disconnected");
-    //    WiFi.begin();
     break;
   case SYSTEM_EVENT_STA_STOP:
     M5_LOGI("STA Stopped");
@@ -188,7 +187,7 @@ void setup() {
       goto fatal_error;
     }
   } else {
-    M5.Display.print("GUI inititalize failed.");
+    M5.Display.print("insufficient memory.");
     goto fatal_error;
   }
 
@@ -208,6 +207,7 @@ void setup() {
   // init WiFi
   if constexpr (true) {
     logging("connect to WiFi AP. SSID:\""s + Credentials.wifi_ssid + "\""s);
+    WiFi.begin(Credentials.wifi_ssid, Credentials.wifi_password);
     if (!waitingForWiFiConnection(30s)) {
       logging("connect failed.");
     }
@@ -224,6 +224,17 @@ void setup() {
   if constexpr (true) {
     logging("setup OTA update.");
     setupOTA();
+  }
+
+  // init Telemetry
+  if (auto p = new Telemetry(); p) {
+    if (!p->begin(Credentials.iothub_fqdn, Credentials.device_id,
+                  Credentials.device_key)) {
+      M5_LOGE("MQTT subscribe failed.");
+    }
+  } else {
+    M5.Display.print("insufficient memory.");
+    goto fatal_error;
   }
 
   // init Database
@@ -280,6 +291,7 @@ void setup() {
                        });
     Peripherals::sensors.erase(result, Peripherals::sensors.end());
   }
+
   //
   logging("setup done.");
   Gui::getInstance()->startUi();
@@ -318,7 +330,8 @@ inline void measurements_loop(system_clock::time_point nowtp) {
     std::this_thread::sleep_for(10ms);
   }
   //
-  if (duration_cast<seconds>(nowtp.time_since_epoch()).count() % 60 == 0) {
+  if (auto s = duration_cast<seconds>(nowtp.time_since_epoch()).count() % 60;
+      s == 0) {
     //
     // それぞれのセンサーによる記録値(ValueObject)を対応する記録インスタンスに入れる
     //
@@ -330,14 +343,14 @@ inline void measurements_loop(system_clock::time_point nowtp) {
       // Bosch BME280: Temperature and Humidity and Pressure Sensor
       bool operator()(const Sensor::Bme280 &in) {
         Sensor::MeasurementBme280 m = {time_point, in};
-        Telemetry::pushMessage(m);
+        Telemetry::getInstance()->pushMessage(m);
         Application::measurements_database.insert(m);
         return true;
       }
       // Sensirion SGP30: Air Quality Sensor
       bool operator()(const Sensor::Sgp30 &in) {
         Sensor::MeasurementSgp30 m = {time_point, in};
-        Telemetry::pushMessage(m);
+        Telemetry::getInstance()->pushMessage(m);
         Application::measurements_database.insert(m);
         return true;
       }
@@ -348,21 +361,21 @@ inline void measurements_loop(system_clock::time_point nowtp) {
         RgbLed::getInstance()->fill(
             RgbLed::colorFromCarbonDioxide(in.co2.value));
         //
-        Telemetry::pushMessage(m);
+        Telemetry::getInstance()->pushMessage(m);
         Application::measurements_database.insert(m);
         return true;
       }
       // Sensirion SCD41: PASens CO2 and Temperature and Humidity Sensor
       bool operator()(const Sensor::Scd41 &in) {
         Sensor::MeasurementScd41 m = {time_point, in};
-        Telemetry::pushMessage(m);
+        Telemetry::getInstance()->pushMessage(m);
         Application::measurements_database.insert(m);
         return true;
       }
       // M5Stack ENV.iii unit: Temperature and Humidity and Pressure Sensor
       bool operator()(const Sensor::M5Env3 &in) {
         Sensor::MeasurementM5Env3 m = {time_point, in};
-        Telemetry::pushMessage(m);
+        Telemetry::getInstance()->pushMessage(m);
         Application::measurements_database.insert(m);
         return true;
       }
@@ -384,16 +397,18 @@ inline void measurements_loop(system_clock::time_point nowtp) {
 inline void low_speed_loop() {
   if (WiFi.status() != WL_CONNECTED) {
     // WiFiが接続されていない場合は接続する。
-    if (!waitingForWiFiConnection(30s)) {
-      M5_LOGE("WiFi connect failed.");
-    }
-  }
-
-  if (!Telemetry::loopMqtt()) {
+    WiFi.begin(Credentials.wifi_ssid, Credentials.wifi_password);
+  } else if (!Telemetry::getInstance()->loopMqtt()) {
+    static steady_clock::time_point before{};
     // 再接続
-    if (!Telemetry::init(Credentials.iothub_fqdn, Credentials.device_id,
-                         Credentials.device_key)) {
-      M5_LOGE("MQTT subscribe failed.");
+    if (steady_clock::now() - before > 1min) {
+      before = steady_clock::now();
+      //
+      if (!Telemetry::getInstance()->begin(Credentials.iothub_fqdn,
+                                           Credentials.device_id,
+                                           Credentials.device_key)) {
+        M5_LOGE("MQTT subscribe failed.");
+      }
     }
   }
 }
@@ -406,7 +421,7 @@ void loop() {
   //
   static steady_clock::time_point before_epoch{};
   auto now_epoch = steady_clock::now();
-  if (now_epoch - before_epoch >= 29s) {
+  if (now_epoch - before_epoch >= 3s) {
     low_speed_loop();
     before_epoch = now_epoch;
   } else if (Time::sync_completed()) {
