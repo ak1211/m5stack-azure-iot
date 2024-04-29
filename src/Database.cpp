@@ -39,17 +39,17 @@ bool Database::insert_temperature(SensorId sensor_id,
 
 //
 size_t Database::read_temperatures(OrderBy order,
-                                   system_clock::time_point at_greater,
+                                   system_clock::time_point at_begin,
                                    ReadCallback<TimePointAndDouble> callback) {
   constexpr static std::string_view query{
       "SELECT"
       " sensor_id,at,degc"
       " FROM temperature"
-      " WHERE at >= :at_greater" // placeholder
-      " ORDER BY :order_by;"     // placeholder
+      " WHERE at >= :at_begin" // placeholder
+      " ORDER BY :order_by;"   // placeholder
   };
   if (auto count =
-          read_values(query, std::make_tuple(at_greater, order), callback);
+          read_values(query, std::make_tuple(at_begin, order), callback);
       count) {
     return *count;
   } else {
@@ -131,6 +131,27 @@ bool Database::insert_relative_humidity(SensorId sensor_id,
 }
 
 //
+size_t
+Database::read_relative_humidities(OrderBy order,
+                                   system_clock::time_point at_begin,
+                                   ReadCallback<TimePointAndDouble> callback) {
+  constexpr static std::string_view query{
+      "SELECT"
+      " sensor_id,at,rh"
+      " FROM relative_humidity"
+      " WHERE at >= :at_begin" // placeholder
+      " ORDER BY :order_by;"   // placeholder
+  };
+  if (auto count =
+          read_values(query, std::make_tuple(at_begin, order), callback);
+      count) {
+    return *count;
+  } else {
+    return 0;
+  }
+}
+
+//
 size_t Database::read_relative_humidities(
     OrderBy order, SensorId sensor_id, size_t limit,
     Database::ReadCallback<TimePointAndDouble> callback) {
@@ -206,6 +227,26 @@ bool Database::insert_pressure(SensorId sensor_id, system_clock::time_point at,
 }
 
 //
+size_t Database::read_pressures(OrderBy order,
+                                system_clock::time_point at_begin,
+                                ReadCallback<TimePointAndDouble> callback) {
+  constexpr static std::string_view query{
+      "SELECT"
+      " sensor_id,at,hpa"
+      " FROM pressure"
+      " WHERE at >= :at_begin" // placeholder
+      " ORDER BY :order_by;"   // placeholder
+  };
+  if (auto count =
+          read_values(query, std::make_tuple(at_begin, order), callback);
+      count) {
+    return *count;
+  } else {
+    return 0;
+  }
+}
+
+//
 size_t
 Database::read_pressures(OrderBy order, SensorId sensor_id, size_t limit,
                          Database::ReadCallback<TimePointAndDouble> callback) {
@@ -278,6 +319,46 @@ bool Database::insert_carbon_dioxide(SensorId sensor_id,
   };
   TimePointAndIntAndOptInt values{sensor_id, at, ppm.value, baseline};
   return insert_values(query, values);
+}
+
+//
+size_t
+Database::read_carbon_deoxides(OrderBy order, system_clock::time_point at_begin,
+                               ReadCallback<TimePointAndUInt16> callback) {
+  constexpr static std::string_view query{
+      "SELECT"
+      " sensor_id,at,ppm"
+      " FROM carbon_dioxide"
+      " WHERE at >= :at_begin" // placeholder
+      " ORDER BY :order_by;"   // placeholder
+  };
+  if (auto count =
+          read_values(query, std::make_tuple(at_begin, order), callback);
+      count) {
+    return *count;
+  } else {
+    return 0;
+  }
+}
+
+//
+size_t Database::read_carbon_deoxides(
+    OrderBy order, system_clock::time_point at_begin,
+    ReadCallback<TimePointAndIntAndOptInt> callback) {
+  constexpr static std::string_view query{
+      "SELECT"
+      " sensor_id,at,ppm,baseline"
+      " FROM carbon_dioxide"
+      " WHERE at >= :at_begin" // placeholder
+      " ORDER BY :order_by;"   // placeholder
+  };
+  if (auto count =
+          read_values(query, std::make_tuple(at_begin, order), callback);
+      count) {
+    return *count;
+  } else {
+    return 0;
+  }
 }
 
 //
@@ -360,6 +441,46 @@ bool Database::insert_total_voc(SensorId sensor_id, system_clock::time_point at,
   };
   TimePointAndIntAndOptInt values{sensor_id, at, ppb.value, baseline};
   return insert_values(query, values);
+}
+
+//
+size_t Database::read_total_vocs(OrderBy order,
+                                 system_clock::time_point at_begin,
+                                 ReadCallback<TimePointAndUInt16> callback) {
+  constexpr static std::string_view query{
+      "SELECT"
+      " sensor_id,at,ppb"
+      " FROM total_voc"
+      " WHERE at >= :at_begin" // placeholder
+      " ORDER BY :order_by;"   // placeholder
+  };
+  if (auto count =
+          read_values(query, std::make_tuple(at_begin, order), callback);
+      count) {
+    return *count;
+  } else {
+    return 0;
+  }
+}
+
+//
+size_t
+Database::read_total_vocs(OrderBy order, system_clock::time_point at_begin,
+                          ReadCallback<TimePointAndIntAndOptInt> callback) {
+  constexpr static std::string_view query{
+      "SELECT"
+      " sensor_id,at,ppb,baseline"
+      " FROM total_voc"
+      " WHERE at >= :at_begin" // placeholder
+      " ORDER BY :order_by;"   // placeholder
+  };
+  if (auto count =
+          read_values(query, std::make_tuple(at_begin, order), callback);
+      count) {
+    return *count;
+  } else {
+    return 0;
+  }
 }
 
 //
@@ -509,9 +630,9 @@ bool Database::begin() noexcept {
   }
 
   //
-  if (char *error_msg{nullptr};
-      sqlite3_exec(sqlite3_db, "VACUUM;", nullptr, nullptr, &error_msg) !=
-      SQLITE_OK) {
+  if (char *error_msg{};
+      sqlite3_exec(sqlite3_db, "PRAGMA temp_store = 2;", nullptr, nullptr,
+                   &error_msg) != SQLITE_OK) {
     if (error_msg) {
       M5_LOGE("%s", error_msg);
     }
@@ -583,26 +704,55 @@ bool Database::delete_old_measurements_from_database(
     return false;
   }
 
-  // remove old rows
+  // delete old rows
   for (auto &query : queries) {
-    sqlite3_stmt *stmt{nullptr};
-    if (sqlite3_prepare_v2(sqlite3_db, query.data(), -1, &stmt, nullptr) !=
+    struct Finalizer {
+      sqlite3 *db{nullptr};
+      sqlite3_stmt *stmt{nullptr};
+      Finalizer(sqlite3 *p) : db{p} {}
+      ~Finalizer() {
+        sqlite3_finalize(stmt);
+        switch (auto code = sqlite3_errcode(db); code) {
+        case SQLITE_DONE:
+          [[fallthrough]];
+        case SQLITE_OK:
+          /* No error exit */
+          break;
+        default:
+          M5_LOGE("%s", sqlite3_errstr(code));
+          break;
+        }
+      }
+    } fin{sqlite3_db};
+    //
+    if (sqlite3_prepare_v2(sqlite3_db, query.data(), -1, &fin.stmt, nullptr) !=
         SQLITE_OK) {
       M5_LOGE("%s", sqlite3_errmsg(sqlite3_db));
       M5_LOGE("%s", query.data());
-      sqlite3_finalize(stmt);
       return false;
     }
-    if (sqlite3_bind_int64(stmt, 1,
+    if (sqlite3_bind_int64(fin.stmt, 1,
                            static_cast<int64_t>(system_clock::to_time_t(
                                delete_of_older_than_tp))) != SQLITE_OK) {
       M5_LOGE("%s", sqlite3_errmsg(sqlite3_db));
-      sqlite3_finalize(stmt);
       return false;
     }
-    while (sqlite3_step(stmt) == SQLITE_ROW) {
+    // SQL表示(デバッグ用)
+    if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_VERBOSE) {
+      if (auto p = sqlite3_expanded_sql(fin.stmt); p) {
+        M5_LOGV("%s", p);
+        sqlite3_free(p);
+      }
     }
-    if (sqlite3_finalize(stmt) != SQLITE_OK) {
+    //
+    auto timeover{steady_clock::now() + RETRY_TIMEOUT};
+    while (steady_clock::now() < timeover &&
+           sqlite3_step(fin.stmt) != SQLITE_DONE) {
+      /**/
+    }
+    if (steady_clock::now() > timeover) {
+      M5_LOGE("sqlite3_step() timeover");
+      M5_LOGE("query is \"%s\"", query.data());
       M5_LOGE("%s", sqlite3_errmsg(sqlite3_db));
       return false;
     }
@@ -850,6 +1000,7 @@ bool Database::insert_values(std::string_view query,
   if (sqlite3_bind_double(fin.stmt, 3, fp_value_to_insert) != SQLITE_OK) {
     return false;
   }
+
   // SQL表示(デバッグ用)
   if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_VERBOSE) {
     if (auto p = sqlite3_expanded_sql(fin.stmt); p) {
@@ -857,15 +1008,18 @@ bool Database::insert_values(std::string_view query,
       sqlite3_free(p);
     }
   }
+
   //
-  for (int32_t retry = 0; sqlite3_step(fin.stmt) != SQLITE_DONE; ++retry) {
-    if (retry >= RETRY_COUNT) {
-      M5_LOGE("sqlite3_step() over");
-      M5_LOGE("query is \"%s\"", query.data());
-      M5_LOGE("%s", sqlite3_errmsg(sqlite3_db));
-      retry_failed();
-      return false;
-    }
+  auto timeover{steady_clock::now() + RETRY_TIMEOUT};
+  while (steady_clock::now() < timeover &&
+         sqlite3_step(fin.stmt) != SQLITE_DONE) {
+    /**/
+  }
+  if (steady_clock::now() > timeover) {
+    M5_LOGE("sqlite3_step() timeover");
+    M5_LOGE("query is \"%s\"", query.data());
+    M5_LOGE("%s", sqlite3_errmsg(sqlite3_db));
+    return false;
   }
 
   // sqlite3_last_insert_rowid(sqlite3_db);
@@ -938,15 +1092,18 @@ bool Database::insert_values(std::string_view query,
       sqlite3_free(p);
     }
   }
+
   //
-  for (int32_t retry = 0; sqlite3_step(fin.stmt) != SQLITE_DONE; ++retry) {
-    if (retry >= RETRY_COUNT) {
-      M5_LOGE("sqlite3_step() over");
-      M5_LOGE("query is \"%s\"", query.data());
-      M5_LOGE("%s", sqlite3_errmsg(sqlite3_db));
-      retry_failed();
-      return false;
-    }
+  auto timeover{steady_clock::now() + RETRY_TIMEOUT};
+  while (steady_clock::now() < timeover &&
+         sqlite3_step(fin.stmt) != SQLITE_DONE) {
+    /**/
+  }
+  if (steady_clock::now() > timeover) {
+    M5_LOGE("sqlite3_step() timeover");
+    M5_LOGE("query is \"%s\"", query.data());
+    M5_LOGE("%s", sqlite3_errmsg(sqlite3_db));
+    return false;
   }
 
   // sqlite3_last_insert_rowid(sqlite3_db);
@@ -958,7 +1115,7 @@ std::optional<size_t>
 Database::read_values(std::string_view query,
                       std::tuple<system_clock::time_point, OrderBy> placeholder,
                       ReadCallback<TimePointAndDouble> callback) {
-  auto [at_greater, orderby] = placeholder;
+  auto [at_begin, orderby] = placeholder;
 
   if (sqlite3_db == nullptr) {
     M5_LOGE("sqlite3_db is null");
@@ -993,8 +1150,8 @@ Database::read_values(std::string_view query,
   }
   //
   if (sqlite3_bind_int64(
-          fin.stmt, sqlite3_bind_parameter_index(fin.stmt, ":at_greater"),
-          static_cast<int64_t>(system_clock::to_time_t(at_greater))) !=
+          fin.stmt, sqlite3_bind_parameter_index(fin.stmt, ":at_begin"),
+          static_cast<int64_t>(system_clock::to_time_t(at_begin))) !=
       SQLITE_OK) {
     return std::nullopt;
   }
@@ -1105,6 +1262,168 @@ Database::read_values(std::string_view query,
     double fp_value = sqlite3_column_double(fin.stmt, 2);
     TimePointAndDouble values{sensor_id, system_clock::from_time_t(at),
                               fp_value};
+    if (bool _continue = callback(counter, values); _continue == false) {
+      break;
+    }
+    counter++;
+  }
+
+  return std::make_optional(counter);
+}
+
+//
+std::optional<size_t>
+Database::read_values(std::string_view query,
+                      std::tuple<system_clock::time_point, OrderBy> placeholder,
+                      ReadCallback<TimePointAndUInt16> callback) {
+  auto [at_begin, orderby] = placeholder;
+
+  if (sqlite3_db == nullptr) {
+    M5_LOGE("sqlite3_db is null");
+    return std::nullopt;
+  }
+
+  struct Finalizer {
+    sqlite3 *db{nullptr};
+    sqlite3_stmt *stmt{nullptr};
+    Finalizer(sqlite3 *p) : db{p} {}
+    ~Finalizer() {
+      sqlite3_finalize(stmt);
+      switch (auto code = sqlite3_errcode(db); code) {
+      case SQLITE_DONE:
+        [[fallthrough]];
+      case SQLITE_OK:
+        /* No error exit */
+        break;
+      default:
+        M5_LOGE("%s", sqlite3_errstr(code));
+        break;
+      }
+    }
+  } fin{sqlite3_db};
+
+  //
+  if (sqlite3_prepare_v2(sqlite3_db, query.data(), -1, &fin.stmt, nullptr) !=
+      SQLITE_OK) {
+    M5_LOGE("query");
+    M5_LOGE("%s", query.data());
+    return std::nullopt;
+  }
+  //
+  if (sqlite3_bind_int64(
+          fin.stmt, sqlite3_bind_parameter_index(fin.stmt, ":at_begin"),
+          static_cast<int64_t>(system_clock::to_time_t(at_begin))) !=
+      SQLITE_OK) {
+    return std::nullopt;
+  }
+  {
+    std::string_view order_text{orderby == OrderByAtDesc ? "at DESC"
+                                                         : "at ASC"};
+    if (sqlite3_bind_text(fin.stmt,
+                          sqlite3_bind_parameter_index(fin.stmt, ":order_by"),
+                          order_text.data(), -1, SQLITE_STATIC) != SQLITE_OK) {
+      return std::nullopt;
+    }
+  }
+  // SQL表示(デバッグ用)
+  if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_VERBOSE) {
+    if (auto p = sqlite3_expanded_sql(fin.stmt); p) {
+      M5_LOGV("%s", p);
+      sqlite3_free(p);
+    }
+  }
+  //
+  size_t counter{1}; // 1 start
+  while (sqlite3_step(fin.stmt) == SQLITE_ROW) {
+    // number 0 is sensor_id
+    int64_t sensor_id = sqlite3_column_int64(fin.stmt, 0);
+    int64_t at = sqlite3_column_int64(fin.stmt, 1);
+    int int_value = sqlite3_column_int(fin.stmt, 2);
+    TimePointAndUInt16 values{sensor_id, system_clock::from_time_t(at),
+                              int_value};
+    if (bool _continue = callback(counter, values); _continue == false) {
+      break;
+    }
+    counter++;
+  }
+
+  return std::make_optional(counter);
+}
+
+//
+std::optional<size_t>
+Database::read_values(std::string_view query,
+                      std::tuple<system_clock::time_point, OrderBy> placeholder,
+                      ReadCallback<TimePointAndIntAndOptInt> callback) {
+  auto [at_begin, orderby] = placeholder;
+
+  if (sqlite3_db == nullptr) {
+    M5_LOGE("sqlite3_db is null");
+    return std::nullopt;
+  }
+
+  struct Finalizer {
+    sqlite3 *db{nullptr};
+    sqlite3_stmt *stmt{nullptr};
+    Finalizer(sqlite3 *p) : db{p} {}
+    ~Finalizer() {
+      sqlite3_finalize(stmt);
+      switch (auto code = sqlite3_errcode(db); code) {
+      case SQLITE_DONE:
+        [[fallthrough]];
+      case SQLITE_OK:
+        /* No error exit */
+        break;
+      default:
+        M5_LOGE("%s", sqlite3_errstr(code));
+        break;
+      }
+    }
+  } fin{sqlite3_db};
+
+  //
+  if (sqlite3_prepare_v2(sqlite3_db, query.data(), -1, &fin.stmt, nullptr) !=
+      SQLITE_OK) {
+    M5_LOGE("query");
+    M5_LOGE("%s", query.data());
+    return std::nullopt;
+  }
+  //
+  if (sqlite3_bind_int64(
+          fin.stmt, sqlite3_bind_parameter_index(fin.stmt, ":at_begin"),
+          static_cast<int64_t>(system_clock::to_time_t(at_begin))) !=
+      SQLITE_OK) {
+    return std::nullopt;
+  }
+  {
+    std::string_view order_text{orderby == OrderByAtDesc ? "at DESC"
+                                                         : "at ASC"};
+    if (sqlite3_bind_text(fin.stmt,
+                          sqlite3_bind_parameter_index(fin.stmt, ":order_by"),
+                          order_text.data(), -1, SQLITE_STATIC) != SQLITE_OK) {
+      return std::nullopt;
+    }
+  }
+  // SQL表示(デバッグ用)
+  if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_VERBOSE) {
+    if (auto p = sqlite3_expanded_sql(fin.stmt); p) {
+      M5_LOGV("%s", p);
+      sqlite3_free(p);
+    }
+  }
+  //
+  size_t counter{1}; // 1 start
+  while (sqlite3_step(fin.stmt) == SQLITE_ROW) {
+    // number 0 is sensor_id
+    int64_t sensor_id = sqlite3_column_int64(fin.stmt, 0);
+    int64_t at = sqlite3_column_int64(fin.stmt, 1);
+    int int_value = sqlite3_column_int(fin.stmt, 2);
+    std::optional<uint16_t> optional_int_value{
+        sqlite3_column_type(fin.stmt, 3) == SQLITE_INTEGER
+            ? std::make_optional(sqlite3_column_int(fin.stmt, 3))
+            : std::nullopt};
+    TimePointAndIntAndOptInt values{sensor_id, system_clock::from_time_t(at),
+                                    int_value, optional_int_value};
     if (bool _continue = callback(counter, values); _continue == false) {
       break;
     }

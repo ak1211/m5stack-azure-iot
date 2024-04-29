@@ -123,7 +123,7 @@ std::string Telemetry::to_json_message<Sensor::MeasurementScd41>(
 esp_err_t Telemetry::mqtt_event_handler(esp_mqtt_event_handle_t event) {
   Telemetry *telemetry = static_cast<Telemetry *>(event->user_context);
   if (telemetry == nullptr) {
-    M5_LOGE("user context has null");
+    M5_LOGE("user context had null");
     return ESP_OK;
   }
   int r;
@@ -243,7 +243,7 @@ bool Telemetry::initializeMqttClient() {
   mqtt_config.password =
       reinterpret_cast<char *>(az_span_ptr(optSasToken->Get()));
 
-  mqtt_config.keepalive = 30;
+  mqtt_config.keepalive = 120;
   mqtt_config.disable_clean_session = 0;
   mqtt_config.disable_auto_reconnect = false;
   mqtt_config.event_handle = mqtt_event_handler;
@@ -290,7 +290,7 @@ bool Telemetry::begin(std::string_view iothub_fqdn, std::string_view device_id,
 //
 bool Telemetry::loopMqtt() {
   if (mqtt_client == nullptr) {
-    M5_LOGE("mqtt client has null");
+    M5_LOGE("mqtt client had null");
     return false;
   }
   if (optSasToken.has_value() && optSasToken->IsExpired()) {

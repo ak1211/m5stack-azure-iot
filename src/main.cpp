@@ -32,7 +32,7 @@
 Application::BootLog Application::boot_log{};
 //
 const std::string_view Application::MEASUREMENTS_DATABASE_FILE_NAME{
-    "file:/littlefs/measurements.db?mode=memory"};
+    "file:/littlefs/measurements.db?pow=0&mode=memory"};
 Database Application::measurements_database{};
 
 using namespace std::literals::string_literals;
@@ -249,6 +249,7 @@ void setup() {
     //
     if (!Application::measurements_database.begin()) {
       logging("Database is not available.");
+      M5_LOGE("Database is not available.");
     }
   }
 
@@ -321,16 +322,15 @@ inline void measurements_loop(system_clock::time_point nowtp) {
   // 測定
   for (auto &sensor_device : Peripherals::sensors) {
     auto ready = sensor_device->readyToRead();
-    std::this_thread::sleep_for(100ms);
+    std::this_thread::sleep_for(2ms);
     auto measured = ready ? sensor_device->read() : std::monostate{};
-    std::this_thread::sleep_for(100ms);
+    std::this_thread::sleep_for(2ms);
   }
   // 測定値キュー
   static std::queue<std::pair<system_clock::time_point, Sensor::MeasuredValue>>
       queue{};
   //
-  if (auto s = duration_cast<seconds>(nowtp.time_since_epoch()).count() % 60;
-      s == 0) {
+  if (auto s = floor<seconds>(nowtp.time_since_epoch()).count() % 60; s == 0) {
     //
     // 毎分0秒時点の値を取り込む
     //
@@ -433,7 +433,9 @@ void loop() {
     if (now_tp - before_meas_tp >= 1s) {
       measurements_loop(now_tp);
       before_meas_tp = now_tp;
-    } else if (now_tp - before_db_tp >= 333s) {
+    } else if (auto sec =
+                   floor<seconds>(now_tp.time_since_epoch()).count() % 60;
+               (now_tp - before_db_tp >= 333s) && (3 <= sec && sec <= 15)) {
       // データベースの整理
       system_clock::time_point tp = now_tp - minutes(Gui::CHART_X_POINT_COUNT);
       if (Application::measurements_database

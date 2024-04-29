@@ -34,6 +34,8 @@ public:
   //
   using TimePointAndDouble =
       std::tuple<SensorId, system_clock::time_point, double>;
+  using TimePointAndUInt16 =
+      std::tuple<SensorId, system_clock::time_point, uint16_t>;
   using TimePointAndIntAndOptInt =
       std::tuple<SensorId, system_clock::time_point, uint16_t,
                  std::optional<uint16_t>>;
@@ -44,7 +46,8 @@ public:
 
   using OrderBy = enum { OrderByAtAsc = 0, OrderByAtDesc = 1 };
 
-  constexpr static const uint_fast8_t RETRY_COUNT = 100;
+  constexpr static std::chrono::seconds RETRY_TIMEOUT{60};
+
   //
   Database() noexcept {}
   ~Database() noexcept { terminate(); }
@@ -103,26 +106,42 @@ public:
                            ReadCallback<TimePointAndDouble> callback);
   std::vector<TimePointAndDouble>
   read_temperatures(OrderBy order, SensorId sensor_id, size_t limit);
+  //
+  size_t read_relative_humidities(OrderBy order,
+                                  system_clock::time_point at_begin,
+                                  ReadCallback<TimePointAndDouble> callback);
   size_t read_relative_humidities(OrderBy order, SensorId sensor_id,
                                   size_t limit,
                                   ReadCallback<TimePointAndDouble> callback);
   std::vector<TimePointAndDouble>
   read_relative_humidities(OrderBy order, SensorId sensor_id, size_t limit);
+  //
+  size_t read_pressures(OrderBy order, system_clock::time_point at_begin,
+                        ReadCallback<TimePointAndDouble> callback);
   size_t read_pressures(OrderBy order, SensorId sensor_id, size_t limit,
                         ReadCallback<TimePointAndDouble> callback);
   std::vector<TimePointAndDouble>
   read_pressures(OrderBy order, SensorId sensor_id, size_t limit);
+  //
+  size_t read_carbon_deoxides(OrderBy order, system_clock::time_point at_begin,
+                              ReadCallback<TimePointAndUInt16> callback);
+  size_t read_carbon_deoxides(OrderBy order, system_clock::time_point at_begin,
+                              ReadCallback<TimePointAndIntAndOptInt> callback);
   size_t read_carbon_deoxides(OrderBy order, SensorId sensor_id, size_t limit,
                               ReadCallback<TimePointAndIntAndOptInt> callback);
   std::vector<TimePointAndIntAndOptInt>
   read_carbon_deoxides(OrderBy order, SensorId sensor_id, size_t limit);
+  //
+  size_t read_total_vocs(OrderBy order, system_clock::time_point at_begin,
+                         ReadCallback<TimePointAndUInt16> callback);
+  size_t read_total_vocs(OrderBy order, system_clock::time_point at_begin,
+                         ReadCallback<TimePointAndIntAndOptInt> callback);
   size_t read_total_vocs(OrderBy order, SensorId sensor_id, size_t limit,
                          ReadCallback<TimePointAndIntAndOptInt> callback);
   std::vector<TimePointAndIntAndOptInt>
   read_total_vocs(OrderBy order, SensorId sensor_id, size_t limit);
 
 private:
-  void retry_failed() { _available = false; }
   //
   bool insert_values(std::string_view query,
                      TimePointAndDouble values_to_insert);
@@ -138,6 +157,16 @@ private:
   read_values(std::string_view query,
               std::tuple<SensorId, OrderBy, size_t> placeholder,
               ReadCallback<TimePointAndDouble> callback);
+  //
+  std::optional<size_t>
+  read_values(std::string_view query,
+              std::tuple<system_clock::time_point, OrderBy> placeholder,
+              ReadCallback<TimePointAndUInt16> callback);
+  //
+  std::optional<size_t>
+  read_values(std::string_view query,
+              std::tuple<system_clock::time_point, OrderBy> placeholder,
+              ReadCallback<TimePointAndIntAndOptInt> callback);
   //
   std::optional<size_t>
   read_values(std::string_view query,
