@@ -32,7 +32,7 @@
 Application::BootLog Application::boot_log{};
 //
 const std::string_view Application::MEASUREMENTS_DATABASE_FILE_NAME{
-    "/littlefs/measurements.db"};
+    "file:/littlefs/measurements.db?mode=memory"};
 Database Application::measurements_database{};
 
 using namespace std::literals::string_literals;

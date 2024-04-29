@@ -423,7 +423,7 @@ Database::read_total_vocs(OrderBy order, SensorId sensor_id, size_t limit) {
 //
 //
 struct Database::Transaction {
-  bool flag{false};
+  bool onTransaction{false};
   sqlite3 *db{};
   Transaction(sqlite3 *p) : db{p} {
     if (p == nullptr) {
@@ -438,13 +438,13 @@ struct Database::Transaction {
           M5_LOGE("%s", errmsg);
         }
         sqlite3_free(errmsg);
-        return (flag = false);
+        return (onTransaction = false);
       }
     }
-    return (flag = true);
+    return (onTransaction = true);
   }
   ~Transaction() {
-    if (flag) {
+    if (onTransaction) {
       char *errmsg{nullptr};
       if (sqlite3_exec(db, "COMMIT;", nullptr, nullptr, &errmsg) != SQLITE_OK) {
         if (errmsg) {
@@ -465,6 +465,14 @@ bool Database::begin() noexcept {
   }
 
   //
+  if (auto result = sqlite3_config(SQLITE_CONFIG_URI, true);
+      result != SQLITE_OK) {
+    M5_LOGE("sqlite3_config() failure: %d", result);
+    terminate();
+    return false;
+  }
+
+  //
   if (auto result = sqlite3_initialize(); result != SQLITE_OK) {
     M5_LOGE("sqlite3_initialize() failure: %d", result);
     terminate();
@@ -476,7 +484,8 @@ bool Database::begin() noexcept {
           Application::MEASUREMENTS_DATABASE_FILE_NAME.data());
   if (auto result = sqlite3_open_v2(
           Application::MEASUREMENTS_DATABASE_FILE_NAME.data(), &sqlite3_db,
-          SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE, nullptr);
+          SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_URI,
+          nullptr);
       result != SQLITE_OK) {
     M5_LOGE("sqlite3_open_v2() failure: %d", result);
     terminate();
