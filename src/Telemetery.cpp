@@ -136,6 +136,15 @@ esp_err_t Telemetry::mqtt_event_handler(esp_mqtt_event_handle_t event) {
   case MQTT_EVENT_CONNECTED:
     M5_LOGI("MQTT event MQTT_EVENT_CONNECTED");
     telemetry->mqtt_connected = true;
+    if (auto message_id = esp_mqtt_client_subscribe(
+            telemetry->mqtt_client, AZ_IOT_HUB_CLIENT_C2D_SUBSCRIBE_TOPIC, 1);
+        message_id == -1) {
+      M5_LOGE("Could not subscribe for cloud-to-device messages.");
+      return false;
+    } else {
+      M5_LOGI("Subscribed for cloud-to-device messages; message id:%d",
+              message_id);
+    }
     break;
   case MQTT_EVENT_DISCONNECTED:
     M5_LOGI("MQTT event MQTT_EVENT_DISCONNECTED");
@@ -307,20 +316,14 @@ bool Telemetry::loopMqtt() {
       (void)esp_mqtt_client_destroy(mqtt_client);
       mqtt_client = nullptr;
     }
-    return false;
+    return initializeMqttClient();
   }
   //
+  if (!isMqttConnected()) {
+    return false;
+  }
   if (!isMqttTopicSubscribed()) {
-    //
-    if (auto message_id = esp_mqtt_client_subscribe(
-            mqtt_client, AZ_IOT_HUB_CLIENT_C2D_SUBSCRIBE_TOPIC, 1);
-        message_id == -1) {
-      M5_LOGE("Could not subscribe for cloud-to-device messages.");
-      return false;
-    } else {
-      M5_LOGI("Subscribed for cloud-to-device messages; message id:%d",
-              message_id);
-    }
+    return false;
   }
   // The topic could be obtained just once during setup,
   // however if properties are used the topic need to be generated again to
