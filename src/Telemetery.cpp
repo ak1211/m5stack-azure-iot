@@ -41,13 +41,14 @@ static std::string to_absolute_sensor_id(SensorDescriptor descriptor) {
 template <>
 std::string Telemetry::to_json_message<Sensor::MeasurementBme280>(
     MessageId messageId, const Sensor::MeasurementBme280 &in) {
+  auto &[time_point, bme280] = in;
   JsonDocument doc;
   doc["messageId"] = messageId;
-  doc["sensorId"] = to_absolute_sensor_id(in.second.sensor_descriptor);
-  doc["measuredAt"] = Time::isoformatUTC(in.first);
-  doc["temperature"] = DegC(in.second.temperature).count();
-  doc["humidity"] = PctRH(in.second.relative_humidity).count();
-  doc["pressure"] = HectoPa(in.second.pressure).count();
+  doc["sensorId"] = to_absolute_sensor_id(bme280.sensor_descriptor);
+  doc["measuredAt"] = Time::isoformatUTC(time_point);
+  doc["temperature"] = DegC(bme280.temperature).count();
+  doc["humidity"] = PctRH(bme280.relative_humidity).count();
+  doc["pressure"] = HectoPa(bme280.pressure).count();
   std::string output;
   serializeJson(doc, output);
   return output;
@@ -55,13 +56,14 @@ std::string Telemetry::to_json_message<Sensor::MeasurementBme280>(
 template <>
 std::string Telemetry::to_json_message<Sensor::MeasurementM5Env3>(
     MessageId messageId, const Sensor::MeasurementM5Env3 &in) {
+  auto &[time_point, m5env3] = in;
   JsonDocument doc;
   doc["messageId"] = messageId;
-  doc["sensorId"] = to_absolute_sensor_id(in.second.sensor_descriptor);
-  doc["measuredAt"] = Time::isoformatUTC(in.first);
-  doc["temperature"] = DegC(in.second.temperature).count();
-  doc["humidity"] = PctRH(in.second.relative_humidity).count();
-  doc["pressure"] = HectoPa(in.second.pressure).count();
+  doc["sensorId"] = to_absolute_sensor_id(m5env3.sensor_descriptor);
+  doc["measuredAt"] = Time::isoformatUTC(time_point);
+  doc["temperature"] = DegC(m5env3.temperature).count();
+  doc["humidity"] = PctRH(m5env3.relative_humidity).count();
+  doc["pressure"] = HectoPa(m5env3.pressure).count();
   std::string output;
   serializeJson(doc, output);
   return output;
@@ -69,17 +71,18 @@ std::string Telemetry::to_json_message<Sensor::MeasurementM5Env3>(
 template <>
 std::string Telemetry::to_json_message<Sensor::MeasurementSgp30>(
     MessageId messageId, const Sensor::MeasurementSgp30 &in) {
+  auto &[time_point, sgp30] = in;
   JsonDocument doc;
   doc["messageId"] = messageId;
-  doc["sensorId"] = to_absolute_sensor_id(in.second.sensor_descriptor);
-  doc["measuredAt"] = Time::isoformatUTC(in.first);
-  doc["tvoc"] = in.second.tvoc.value;
-  doc["eCo2"] = in.second.eCo2.value;
-  if (in.second.tvoc_baseline.has_value()) {
-    doc["tvoc_baseline"] = in.second.tvoc_baseline->value;
+  doc["sensorId"] = to_absolute_sensor_id(sgp30.sensor_descriptor);
+  doc["measuredAt"] = Time::isoformatUTC(time_point);
+  doc["tvoc"] = sgp30.tvoc.value;
+  doc["eCo2"] = sgp30.eCo2.value;
+  if (sgp30.tvoc_baseline.has_value()) {
+    doc["tvoc_baseline"] = sgp30.tvoc_baseline->value;
   }
-  if (in.second.eCo2_baseline.has_value()) {
-    doc["eCo2_baseline"] = in.second.eCo2_baseline->value;
+  if (sgp30.eCo2_baseline.has_value()) {
+    doc["eCo2_baseline"] = sgp30.eCo2_baseline->value;
   }
   std::string output;
   serializeJson(doc, output);
@@ -88,13 +91,14 @@ std::string Telemetry::to_json_message<Sensor::MeasurementSgp30>(
 template <>
 std::string Telemetry::to_json_message<Sensor::MeasurementScd30>(
     MessageId messageId, const Sensor::MeasurementScd30 &in) {
+  auto &[time_point, scd30] = in;
   JsonDocument doc;
   doc["messageId"] = messageId;
-  doc["sensorId"] = to_absolute_sensor_id(in.second.sensor_descriptor);
-  doc["measuredAt"] = Time::isoformatUTC(in.first);
-  doc["co2"] = in.second.co2.value;
-  doc["temperature"] = DegC(in.second.temperature).count();
-  doc["humidity"] = PctRH(in.second.relative_humidity).count();
+  doc["sensorId"] = to_absolute_sensor_id(scd30.sensor_descriptor);
+  doc["measuredAt"] = Time::isoformatUTC(time_point);
+  doc["co2"] = scd30.co2.value;
+  doc["temperature"] = DegC(scd30.temperature).count();
+  doc["humidity"] = PctRH(scd30.relative_humidity).count();
   std::string output;
   serializeJson(doc, output);
   return output;
@@ -102,13 +106,14 @@ std::string Telemetry::to_json_message<Sensor::MeasurementScd30>(
 template <>
 std::string Telemetry::to_json_message<Sensor::MeasurementScd41>(
     MessageId messageId, const Sensor::MeasurementScd41 &in) {
+  auto &[time_point, scd41] = in;
   JsonDocument doc;
   doc["messageId"] = messageId;
-  doc["sensorId"] = to_absolute_sensor_id(in.second.sensor_descriptor);
-  doc["measuredAt"] = Time::isoformatUTC(in.first);
-  doc["co2"] = in.second.co2.value;
-  doc["temperature"] = DegC(in.second.temperature).count();
-  doc["humidity"] = PctRH(in.second.relative_humidity).count();
+  doc["sensorId"] = to_absolute_sensor_id(scd41.sensor_descriptor);
+  doc["measuredAt"] = Time::isoformatUTC(time_point);
+  doc["co2"] = scd41.co2.value;
+  doc["temperature"] = DegC(scd41.temperature).count();
+  doc["humidity"] = PctRH(scd41.relative_humidity).count();
   std::string output;
   serializeJson(doc, output);
   return output;
@@ -125,8 +130,6 @@ esp_err_t Telemetry::mqtt_event_handler(esp_mqtt_event_handle_t event) {
   Telemetry *telemetry = static_cast<Telemetry *>(event->user_context);
   //
   switch (event->event_id) {
-    int i, r;
-
   case MQTT_EVENT_ERROR:
     M5_LOGI("MQTT event MQTT_EVENT_ERROR");
     break;
@@ -258,16 +261,15 @@ bool Telemetry::initializeMqttClient() {
     return false;
   }
 
-  esp_err_t start_result = esp_mqtt_client_start(mqtt_client);
-
-  if (start_result != ESP_OK) {
-    M5_LOGE("Could not start mqtt client; error code:%d", start_result);
-    iot_hub_client_started = false;
-    return false;
-  } else {
+  if (esp_err_t start_result = esp_mqtt_client_start(mqtt_client);
+      start_result == ESP_OK) {
     M5_LOGI("MQTT client started");
     iot_hub_client_started = true;
     return true;
+  } else {
+    M5_LOGE("Could not start mqtt client; error code:%d", start_result);
+    iot_hub_client_started = false;
+    return false;
   }
 }
 

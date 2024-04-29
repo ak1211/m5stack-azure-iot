@@ -158,11 +158,6 @@ void setup() {
   // stop the vibration
   M5.Power.setVibration(0);
 
-  // initialize the 'arduino Wire class'
-  Wire.end();
-  Wire.begin(M5.Ex_I2C.getSDA(), M5.Ex_I2C.getSCL(), 100000);
-  std::this_thread::sleep_for(1000ms);
-
   // init WiFi with Station mode
   WiFi.onEvent(gotWiFiEvent);
   WiFi.mode(WIFI_STA);
@@ -269,7 +264,7 @@ void setup() {
       bool ok{false};
       auto timeover{steady_clock::now() + TIMEOUT};
       while (steady_clock::now() < timeover) {
-        std::this_thread::sleep_for(100ms);
+        std::this_thread::sleep_for(500ms);
         if (ok = sensor_device->init(); ok) {
           M5_LOGI("%s init success.", desc.str().c_str());
           break;
@@ -281,6 +276,7 @@ void setup() {
         oss << desc.str() << " sensor not found.";
         logging(oss.str().c_str());
       }
+      std::this_thread::sleep_for(500ms);
     }
     // 初期化に失敗した(つまり接続されていない)センサーをsensorsベクタから削除する
     auto result =
@@ -325,9 +321,9 @@ inline void measurements_loop(system_clock::time_point nowtp) {
   // 測定
   for (auto &sensor_device : Peripherals::sensors) {
     auto ready = sensor_device->readyToRead();
-    std::this_thread::sleep_for(10ms);
+    std::this_thread::sleep_for(100ms);
     auto measured = ready ? sensor_device->read() : std::monostate{};
-    std::this_thread::sleep_for(10ms);
+    std::this_thread::sleep_for(100ms);
   }
   //
   if (auto s = duration_cast<seconds>(nowtp.time_since_epoch()).count() % 60;
