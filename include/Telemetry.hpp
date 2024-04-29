@@ -24,10 +24,6 @@ class Telemetry {
                    Sensor::MeasurementScd30, Sensor::MeasurementScd41,
                    Sensor::MeasurementM5Env3>;
   //
-  bool iot_hub_client_started{false};
-  bool mqtt_connected{false};
-  bool mqtt_topic_subscribed{false};
-  //
   uint32_t message_id{0};
   //
   az_iot_hub_client client{};
@@ -85,10 +81,6 @@ public:
   }
 
 private:
-  bool isIotHubClientStarted() const { return iot_hub_client_started; }
-  bool isMqttClientStarted() const { return mqtt_client != nullptr; }
-  bool isMqttConnected() const { return mqtt_connected; }
-  bool isMqttTopicSubscribed() const { return mqtt_topic_subscribed; }
   //
   bool initializeIoTHubClient();
   bool initializeMqttClient();

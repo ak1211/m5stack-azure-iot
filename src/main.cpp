@@ -208,6 +208,17 @@ void setup() {
     }
   }
 
+  // init Telemetry
+  if (auto telemetry = new Telemetry(); telemetry) {
+    if (!telemetry->begin(Credentials.iothub_fqdn, Credentials.device_id,
+                          Credentials.device_key)) {
+      M5_LOGE("MQTT subscribe failed.");
+    }
+  } else {
+    M5.Display.print("insufficient memory.");
+    goto fatal_error;
+  }
+
   // init Time
   if constexpr (true) {
     logging("init time.");
@@ -219,17 +230,6 @@ void setup() {
   if constexpr (true) {
     logging("setup OTA update.");
     setupOTA();
-  }
-
-  // init Telemetry
-  if (auto p = new Telemetry(); p) {
-    if (!p->begin(Credentials.iothub_fqdn, Credentials.device_id,
-                  Credentials.device_key)) {
-      M5_LOGE("MQTT subscribe failed.");
-    }
-  } else {
-    M5.Display.print("insufficient memory.");
-    goto fatal_error;
   }
 
   // init Database
@@ -325,12 +325,20 @@ inline void measurements_loop(system_clock::time_point nowtp) {
     auto measured = ready ? sensor_device->read() : std::monostate{};
     std::this_thread::sleep_for(100ms);
   }
+  // 測定値キュー
+  static std::queue<std::pair<system_clock::time_point, Sensor::MeasuredValue>>
+      queue{};
   //
   if (auto s = duration_cast<seconds>(nowtp.time_since_epoch()).count() % 60;
       s == 0) {
     //
-    // それぞれのセンサーによる記録値(ValueObject)を対応する記録インスタンスに入れる
+    // 毎分0秒時点の値を取り込む
     //
+    for (auto &sensor_device : Peripherals::sensors) {
+      queue.emplace(std::make_pair(nowtp, sensor_device->calculateSMA()));
+    }
+  } else {
+    // それぞれの測定値毎にIoTHubに送信＆データーベースに入れる
     struct Visitor {
       system_clock::time_point time_point;
       Visitor(system_clock::time_point arg) : time_point{arg} {}
@@ -376,13 +384,11 @@ inline void measurements_loop(system_clock::time_point nowtp) {
         return true;
       }
     };
-    //
-    // 毎分0秒時点の値を取り込む
-    //
-    bool success = true;
-    for (auto &sensor_device : Peripherals::sensors) {
-      bool result = std::visit(Visitor{nowtp}, sensor_device->calculateSMA());
-      success = success && result;
+    // キューに値があれば, IoTHubに送信＆データーベースに入れる
+    if (!queue.empty()) {
+      auto &[tp, m] = queue.front();
+      std::visit(Visitor{tp}, m);
+      queue.pop();
     }
   }
 }
