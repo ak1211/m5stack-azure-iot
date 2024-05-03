@@ -326,7 +326,6 @@ bool Telemetry::loopMqtt() {
       M5_LOGE("Failed publishing");
       return false;
     } else {
-      M5_LOGI("Message published successfully");
       //  Count up message_id
       message_id = message_id + 1;
       // IoT Coreへ送信した測定値をFIFOから消す
