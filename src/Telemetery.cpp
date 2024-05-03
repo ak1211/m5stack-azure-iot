@@ -219,17 +219,21 @@ bool Telemetry::initializeIoTHubClient() {
 //
 bool Telemetry::initializeMqttClient() {
   // Using SAS
-  optSasToken = std::nullopt;
-
-  AzIoTSasToken azIoTSasToken = AzIoTSasToken(
-      &client,
-      az_span_create(reinterpret_cast<uint8_t *>(config_device_key.data()),
-                     config_device_key.length()),
-      az_span_create(sas_signature_buffer.data(), sas_signature_buffer.size()),
-      az_span_create(mqtt_password.data(), mqtt_password.size()));
-  if (azIoTSasToken.Generate(SAS_TOKEN_DURATION_IN_MINUTES) != 0) {
+  if (auto azIoTSasToken =
+          AzIoTSasToken{
+              &client,
+              az_span_create(
+                  reinterpret_cast<uint8_t *>(config_device_key.data()),
+                  config_device_key.length()),
+              az_span_create(sas_signature_buffer.data(),
+                             sas_signature_buffer.size()),
+              az_span_create(mqtt_password.data(), mqtt_password.size())};
+      azIoTSasToken.Generate(SAS_TOKEN_DURATION_IN_MINUTES) != 0) {
     M5_LOGE("Failed generating SAS token");
+    optAzIoTSasToken = std::nullopt;
     return false;
+  } else {
+    optAzIoTSasToken = std::make_optional(azIoTSasToken);
   }
 
   esp_mqtt_client_config_t mqtt_config{0};
@@ -241,9 +245,9 @@ bool Telemetry::initializeMqttClient() {
 
   // Using SAS key
   mqtt_config.password =
-      reinterpret_cast<char *>(az_span_ptr(optSasToken->Get()));
+      reinterpret_cast<char *>(az_span_ptr(optAzIoTSasToken->Get()));
 
-  mqtt_config.keepalive = 120;
+  mqtt_config.keepalive = 60;
   mqtt_config.disable_clean_session = 0;
   mqtt_config.disable_auto_reconnect = false;
   mqtt_config.event_handle = mqtt_event_handler;
@@ -293,7 +297,7 @@ bool Telemetry::loopMqtt() {
     M5_LOGE("mqtt client had null");
     return false;
   }
-  if (optSasToken.has_value() && optSasToken->IsExpired()) {
+  if (optAzIoTSasToken.has_value() && optAzIoTSasToken->IsExpired()) {
     M5_LOGI("SAS token expired; reconnecting with a new one.");
     (void)esp_mqtt_client_destroy(mqtt_client);
     return initializeMqttClient();
