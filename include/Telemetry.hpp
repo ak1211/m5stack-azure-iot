@@ -46,7 +46,7 @@ class Telemetry {
   //
   constexpr static int SAS_TOKEN_DURATION_IN_MINUTES{60};
   std::array<uint8_t, 256> sas_signature_buffer{};
-  std::optional<AzIoTSasToken> optSasToken{};
+  std::optional<AzIoTSasToken> optAzIoTSasToken{};
   // 送信用バッファ
   std::queue<Payload> sending_fifo_queue{};
   //
