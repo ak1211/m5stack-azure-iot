@@ -126,16 +126,20 @@ esp_err_t Telemetry::mqtt_event_handler(esp_mqtt_event_handle_t event) {
     M5_LOGE("user context had null");
     return ESP_OK;
   }
-  int r;
   switch (event->event_id) {
   case MQTT_EVENT_ERROR:
     M5_LOGI("MQTT event MQTT_EVENT_ERROR");
     break;
   case MQTT_EVENT_CONNECTED:
     M5_LOGI("MQTT event MQTT_EVENT_CONNECTED");
-    r = esp_mqtt_client_subscribe(telemetry->mqtt_client,
-                                  AZ_IOT_HUB_CLIENT_C2D_SUBSCRIBE_TOPIC, 1);
-    if (r == -1) {
+    telemetry->mqtt_connected = true;
+    if (telemetry->mqtt_client == nullptr) {
+      M5_LOGE("mqtt_client had null.");
+      break;
+    }
+    if (auto r = esp_mqtt_client_subscribe(
+            telemetry->mqtt_client, AZ_IOT_HUB_CLIENT_C2D_SUBSCRIBE_TOPIC, 1);
+        r == -1) {
       M5_LOGE("Could not subscribe for cloud-to-device messages.");
     } else {
       M5_LOGI("Subscribed for cloud-to-device messages; message id:%d", r);
@@ -143,6 +147,7 @@ esp_err_t Telemetry::mqtt_event_handler(esp_mqtt_event_handle_t event) {
     break;
   case MQTT_EVENT_DISCONNECTED:
     M5_LOGI("MQTT event MQTT_EVENT_DISCONNECTED");
+    telemetry->mqtt_connected = false;
     break;
   case MQTT_EVENT_SUBSCRIBED:
     M5_LOGI("MQTT event MQTT_EVENT_SUBSCRIBED");
@@ -294,12 +299,21 @@ bool Telemetry::begin(std::string_view iothub_fqdn, std::string_view device_id,
 //
 bool Telemetry::loopMqtt() {
   if (mqtt_client == nullptr) {
-    M5_LOGE("mqtt client had null");
+    return false;
+  }
+  if (mqtt_connected == false) {
+    if (esp_mqtt_client_destroy(mqtt_client) != ESP_OK) {
+      M5_LOGE("esp_mqtt_client_destroy failure.");
+    }
+    mqtt_client = nullptr;
     return false;
   }
   if (optAzIoTSasToken.has_value() && optAzIoTSasToken->IsExpired()) {
     M5_LOGI("SAS token expired; reconnecting with a new one.");
-    (void)esp_mqtt_client_destroy(mqtt_client);
+    if (mqtt_client && esp_mqtt_client_destroy(mqtt_client) != ESP_OK) {
+      M5_LOGE("esp_mqtt_client_destroy failure.");
+    }
+    mqtt_client = nullptr;
     return initializeMqttClient();
   }
   // The topic could be obtained just once during setup,
@@ -326,7 +340,6 @@ bool Telemetry::loopMqtt() {
       M5_LOGE("Failed publishing");
       return false;
     } else {
-      M5_LOGI("Message published successfully");
       //  Count up message_id
       message_id = message_id + 1;
       // IoT Coreへ送信した測定値をFIFOから消す
