@@ -133,6 +133,10 @@ esp_err_t Telemetry::mqtt_event_handler(esp_mqtt_event_handle_t event) {
     break;
   case MQTT_EVENT_CONNECTED:
     M5_LOGI("MQTT event MQTT_EVENT_CONNECTED");
+    if (telemetry->mqtt_client == nullptr) {
+      M5_LOGE("mqtt_client had null.");
+      break;
+    }
     r = esp_mqtt_client_subscribe(telemetry->mqtt_client,
                                   AZ_IOT_HUB_CLIENT_C2D_SUBSCRIBE_TOPIC, 1);
     if (r == -1) {
@@ -143,6 +147,13 @@ esp_err_t Telemetry::mqtt_event_handler(esp_mqtt_event_handle_t event) {
     break;
   case MQTT_EVENT_DISCONNECTED:
     M5_LOGI("MQTT event MQTT_EVENT_DISCONNECTED");
+    if (telemetry->mqtt_client == nullptr) {
+      M5_LOGE("mqtt_client had null.");
+      break;
+    }
+    if (esp_mqtt_client_reconnect(telemetry->mqtt_client) != ESP_OK) {
+      M5_LOGE("esp_mqtt_client_reconnect failed.");
+    }
     break;
   case MQTT_EVENT_SUBSCRIBED:
     M5_LOGI("MQTT event MQTT_EVENT_SUBSCRIBED");
@@ -299,7 +310,10 @@ bool Telemetry::loopMqtt() {
   }
   if (optAzIoTSasToken.has_value() && optAzIoTSasToken->IsExpired()) {
     M5_LOGI("SAS token expired; reconnecting with a new one.");
-    (void)esp_mqtt_client_destroy(mqtt_client);
+    if (esp_mqtt_client_destroy(mqtt_client) != ESP_OK) {
+      M5_LOGE("esp_mqtt_client_destroy failure.");
+    }
+    mqtt_client = nullptr;
     return initializeMqttClient();
   }
   // The topic could be obtained just once during setup,
