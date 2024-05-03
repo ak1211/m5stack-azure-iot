@@ -132,6 +132,7 @@ esp_err_t Telemetry::mqtt_event_handler(esp_mqtt_event_handle_t event) {
     break;
   case MQTT_EVENT_CONNECTED:
     M5_LOGI("MQTT event MQTT_EVENT_CONNECTED");
+    telemetry->mqtt_connected = true;
     if (telemetry->mqtt_client == nullptr) {
       M5_LOGE("mqtt_client had null.");
       break;
@@ -146,13 +147,7 @@ esp_err_t Telemetry::mqtt_event_handler(esp_mqtt_event_handle_t event) {
     break;
   case MQTT_EVENT_DISCONNECTED:
     M5_LOGI("MQTT event MQTT_EVENT_DISCONNECTED");
-    if (telemetry->mqtt_client == nullptr) {
-      M5_LOGE("mqtt_client had null.");
-      break;
-    }
-    if (esp_mqtt_client_reconnect(telemetry->mqtt_client) != ESP_OK) {
-      M5_LOGE("esp_mqtt_client_reconnect failed.");
-    }
+    telemetry->mqtt_connected = false;
     break;
   case MQTT_EVENT_SUBSCRIBED:
     M5_LOGI("MQTT event MQTT_EVENT_SUBSCRIBED");
@@ -304,12 +299,18 @@ bool Telemetry::begin(std::string_view iothub_fqdn, std::string_view device_id,
 //
 bool Telemetry::loopMqtt() {
   if (mqtt_client == nullptr) {
-    M5_LOGE("mqtt client had null");
+    return false;
+  }
+  if (mqtt_connected == false) {
+    if (esp_mqtt_client_destroy(mqtt_client) != ESP_OK) {
+      M5_LOGE("esp_mqtt_client_destroy failure.");
+    }
+    mqtt_client = nullptr;
     return false;
   }
   if (optAzIoTSasToken.has_value() && optAzIoTSasToken->IsExpired()) {
     M5_LOGI("SAS token expired; reconnecting with a new one.");
-    if (esp_mqtt_client_destroy(mqtt_client) != ESP_OK) {
+    if (mqtt_client && esp_mqtt_client_destroy(mqtt_client) != ESP_OK) {
       M5_LOGE("esp_mqtt_client_destroy failure.");
     }
     mqtt_client = nullptr;

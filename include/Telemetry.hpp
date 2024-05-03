@@ -50,6 +50,8 @@ class Telemetry {
   // 送信用バッファ
   std::queue<Payload> sending_fifo_queue{};
   //
+  bool mqtt_connected{false};
+  //
   static Telemetry *_instance;
 
 public:
