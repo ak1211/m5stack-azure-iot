@@ -4,12 +4,14 @@
 //
 #pragma once
 #include "Application.hpp"
+#include "Database.hpp"
 #include "Sensor.hpp"
 #include <algorithm>
 #include <chrono>
 #include <lvgl.h>
 #include <memory>
 #include <tuple>
+#include <vector>
 
 #include <M5Unified.h>
 
@@ -25,8 +27,8 @@ using InitArg = std::tuple<lv_obj_t *, uint8_t, uint8_t, lv_dir_t>;
 //
 //
 struct TileBase {
-  virtual void setActiveTile(lv_obj_t *tileview) noexcept = 0;
-  virtual bool isActiveTile(lv_obj_t *tileview) const noexcept = 0;
+  virtual void setActiveTile(lv_obj_t *tileview_obj) noexcept = 0;
+  virtual bool isActiveTile(lv_obj_t *tileview_obj) const noexcept = 0;
   virtual void valueChangedEventHook(lv_event_t *event) noexcept = 0;
   virtual void timerHook() noexcept = 0;
 };
@@ -35,8 +37,8 @@ struct TileBase {
 //
 //
 class BootMessage final : public TileBase {
-  lv_obj_t *tile{nullptr};
-  lv_obj_t *message_label{nullptr};
+  lv_obj_t *tile_obj{nullptr};
+  lv_obj_t *message_label_obj{nullptr};
   size_t count{0};
 
 public:
@@ -44,11 +46,11 @@ public:
   BootMessage(BootMessage &&) = delete;
   BootMessage &operator=(const BootMessage &) = delete;
   virtual ~BootMessage() noexcept;
-  virtual void setActiveTile(lv_obj_t *tileview) noexcept override {
-    lv_obj_set_tile(tileview, tile, LV_ANIM_ON);
+  virtual void setActiveTile(lv_obj_t *tileview_obj) noexcept override {
+    lv_obj_set_tile(tileview_obj, tile_obj, LV_ANIM_ON);
   }
-  virtual bool isActiveTile(lv_obj_t *tileview) const noexcept override {
-    return tile == lv_tileview_get_tile_act(tileview);
+  virtual bool isActiveTile(lv_obj_t *tileview_obj) const noexcept override {
+    return tile_obj == lv_tileview_get_tile_act(tileview_obj);
   }
   virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
   virtual void timerHook() noexcept override;
@@ -59,24 +61,26 @@ public:
 //
 //
 class Summary final : public TileBase {
-  lv_obj_t *tile{nullptr};
-  lv_obj_t *table{nullptr};
+  lv_obj_t *tile_obj{nullptr};
+  lv_obj_t *table_obj{nullptr};
   //
-  using Measurements = std::tuple<
-      std::optional<MeasurementBme280>, std::optional<MeasurementSgp30>,
-      std::optional<MeasurementScd30>, std::optional<MeasurementM5Env3>>;
-  Measurements latest;
+  using Measurements = std::tuple<std::optional<Sensor::MeasurementBme280>,
+                                  std::optional<Sensor::MeasurementSgp30>,
+                                  std::optional<Sensor::MeasurementScd30>,
+                                  std::optional<Sensor::MeasurementScd41>,
+                                  std::optional<Sensor::MeasurementM5Env3>>;
+  Measurements latest{};
 
 public:
   Summary(InitArg init) noexcept;
   Summary(Summary &&) = delete;
   Summary &operator=(const Summary &) = delete;
   virtual ~Summary() noexcept;
-  virtual void setActiveTile(lv_obj_t *tileview) noexcept override {
-    lv_obj_set_tile(tileview, tile, LV_ANIM_ON);
+  virtual void setActiveTile(lv_obj_t *tileview_obj) noexcept override {
+    lv_obj_set_tile(tileview_obj, tile_obj, LV_ANIM_ON);
   }
-  virtual bool isActiveTile(lv_obj_t *tileview) const noexcept override {
-    return tile == lv_tileview_get_tile_act(tileview);
+  virtual bool isActiveTile(lv_obj_t *tileview_obj) const noexcept override {
+    return tile_obj == lv_tileview_get_tile_act(tileview_obj);
   }
   virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
   virtual void timerHook() noexcept override;
@@ -87,8 +91,8 @@ public:
 //
 //
 class Clock final : public TileBase {
-  lv_obj_t *tile{nullptr};
-  lv_obj_t *meter{nullptr};
+  lv_obj_t *tile_obj{nullptr};
+  lv_obj_t *meter_obj{nullptr};
   lv_meter_scale_t *sec_scale{nullptr};
   lv_meter_scale_t *min_scale{nullptr};
   lv_meter_scale_t *hour_scale{nullptr};
@@ -101,11 +105,11 @@ public:
   Clock(Clock &&) = delete;
   Clock &operator=(const Clock &) = delete;
   virtual ~Clock() noexcept;
-  virtual void setActiveTile(lv_obj_t *tileview) noexcept override {
-    lv_obj_set_tile(tileview, tile, LV_ANIM_ON);
+  virtual void setActiveTile(lv_obj_t *tileview_obj) noexcept override {
+    lv_obj_set_tile(tileview_obj, tile_obj, LV_ANIM_ON);
   }
-  virtual bool isActiveTile(lv_obj_t *tileview) const noexcept override {
-    return tile == lv_tileview_get_tile_act(tileview);
+  virtual bool isActiveTile(lv_obj_t *tileview_obj) const noexcept override {
+    return tile_obj == lv_tileview_get_tile_act(tileview_obj);
   }
   virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
   virtual void timerHook() noexcept override;
@@ -115,30 +119,30 @@ public:
 //
 //
 //
-class SystemHealth final : public TileBase {
-  lv_obj_t *tile{nullptr};
-  lv_obj_t *cont_col{nullptr};
+class SystemHealthy final : public TileBase {
+  lv_obj_t *tile_obj{nullptr};
+  lv_obj_t *cont_col_obj{nullptr};
   //
-  lv_style_t style_label;
+  lv_style_t label_style;
   //
-  lv_obj_t *time_label{nullptr};
-  lv_obj_t *status_label{nullptr};
-  lv_obj_t *battery_label{nullptr};
-  lv_obj_t *battery_charging_label{nullptr};
-  lv_obj_t *available_heap_label{nullptr};
-  lv_obj_t *available_internal_heap_label{nullptr};
-  lv_obj_t *minimum_free_heap_label{nullptr};
+  lv_obj_t *time_label_obj{nullptr};
+  lv_obj_t *status_label_obj{nullptr};
+  lv_obj_t *battery_label_obj{nullptr};
+  lv_obj_t *battery_charging_label_obj{nullptr};
+  lv_obj_t *available_heap_label_obj{nullptr};
+  lv_obj_t *available_internal_heap_label_obj{nullptr};
+  lv_obj_t *minimum_free_heap_label_obj{nullptr};
 
 public:
-  SystemHealth(InitArg init) noexcept;
-  SystemHealth(SystemHealth &&) = delete;
-  SystemHealth &operator=(const SystemHealth &) = delete;
-  virtual ~SystemHealth() noexcept;
-  virtual void setActiveTile(lv_obj_t *tileview) noexcept override {
-    lv_obj_set_tile(tileview, tile, LV_ANIM_ON);
+  SystemHealthy(InitArg init) noexcept;
+  SystemHealthy(SystemHealthy &&) = delete;
+  SystemHealthy &operator=(const SystemHealthy &) = delete;
+  virtual ~SystemHealthy() noexcept;
+  virtual void setActiveTile(lv_obj_t *tileview_obj) noexcept override {
+    lv_obj_set_tile(tileview_obj, tile_obj, LV_ANIM_ON);
   }
-  virtual bool isActiveTile(lv_obj_t *tileview) const noexcept override {
-    return tile == lv_tileview_get_tile_act(tileview);
+  virtual bool isActiveTile(lv_obj_t *tileview_obj) const noexcept override {
+    return tile_obj == lv_tileview_get_tile_act(tileview_obj);
   }
   virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
   virtual void timerHook() noexcept override;
@@ -149,259 +153,219 @@ public:
 //
 //
 template <typename T> class BasicChart : public TileBase {
+public:
+  using DataType = std::tuple<SensorId, system_clock::time_point, T>;
+
 protected:
-  lv_obj_t *tile{nullptr};
-  lv_obj_t *container{nullptr};
-  lv_obj_t *chart{nullptr};
-  lv_obj_t *title{nullptr};
-  lv_obj_t *label{nullptr};
-  lv_chart_series_t *ser_one{nullptr};
+  lv_obj_t *tile_obj{nullptr};
+  lv_obj_t *title_obj{nullptr};
+  lv_style_t label_style{};
+  lv_obj_t *label_obj{nullptr};
+  lv_obj_t *chart_obj{nullptr};
   //
-  using ValueT = T;
-  using ValuePair = std::pair<system_clock::time_point, ValueT>;
+  const std::vector<lv_color_t> LINE_COLOR_TABLE;
+  //
+  std::vector<std::pair<SensorId, lv_chart_series_t *>> chart_series_vect{};
+  //
+  system_clock::time_point begin_x_tick{};
+  //
   std::string subheading{};
-  std::optional<ValuePair> latest{};
 
 public:
   BasicChart(InitArg init, const std::string &inSubheading) noexcept;
   BasicChart(BasicChart &&) = delete;
   BasicChart &operator=(const BasicChart &) = delete;
   virtual ~BasicChart() noexcept;
-  virtual void setActiveTile(lv_obj_t *tileview) noexcept override {
-    lv_obj_set_tile(tileview, tile, LV_ANIM_ON);
+  virtual void setActiveTile(lv_obj_t *tileview_obj) noexcept override {
+    lv_obj_set_tile(tileview_obj, tile_obj, LV_ANIM_ON);
   }
-  virtual bool isActiveTile(lv_obj_t *tileview) const noexcept override {
-    return tile == lv_tileview_get_tile_act(tileview);
+  virtual bool isActiveTile(lv_obj_t *tileview_obj) const noexcept override {
+    return tile_obj == lv_tileview_get_tile_act(tileview_obj);
   }
-  template <typename U>
-  void setHeading(std::string_view strUnit,
-                  std::optional<system_clock::time_point> optTP,
-                  std::optional<U> optValue) noexcept;
-  void
-  setChartValue(const std::vector<ValuePair> &histories,
-                std::function<lv_coord_t(const ValueT &)> mapping) noexcept;
+  //
+  virtual size_t read_measurements_from_database(
+      Database::OrderBy order, system_clock::time_point at_begin,
+      Database::ReadCallback<DataType> callback) = 0;
+  // データを座標に変換する関数
+  virtual lv_point_t coordinateXY(system_clock::time_point begin_x,
+                                  const DataType &in) noexcept = 0;
+  //
+  virtual void render() noexcept;
 };
 
 //
+template <typename T> struct ShowMeasured {
+  lv_color32_t color;
+  std::string name;
+  std::string_view unit;
+  T meas;
+};
+template <typename T>
+std::ostream &operator<<(std::ostream &os, const ShowMeasured<T> &rhs);
+
 //
+// 気温
 //
-class M5Env3TemperatureChart final : public BasicChart<Sensor::M5Env3> {
+class TemperatureChart final : public BasicChart<double> {
+private:
+  using Measurements = std::tuple<std::optional<Sensor::MeasurementBme280>,
+                                  std::optional<Sensor::MeasurementScd30>,
+                                  std::optional<Sensor::MeasurementScd41>,
+                                  std::optional<Sensor::MeasurementM5Env3>>;
+  Measurements latest{};
+
 public:
-  M5Env3TemperatureChart(InitArg init) noexcept;
-  M5Env3TemperatureChart(M5Env3TemperatureChart &&) = delete;
-  M5Env3TemperatureChart &operator=(const M5Env3TemperatureChart &) = delete;
+  TemperatureChart(InitArg init) noexcept;
+  TemperatureChart(TemperatureChart &&) = delete;
+  TemperatureChart &operator=(const TemperatureChart &) = delete;
   virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
   virtual void timerHook() noexcept override;
+  // データを座標に変換する関数
+  virtual lv_point_t
+  coordinateXY(system_clock::time_point begin_x,
+               const Database::TimePointAndDouble &in) noexcept override;
   //
-  static lv_coord_t map_to_coord_t(const ValueT &in) noexcept;
+  virtual size_t read_measurements_from_database(
+      Database::OrderBy order, system_clock::time_point at_begin,
+      Database::ReadCallback<Database::TimePointAndDouble> callback) override {
+    return Application::measurements_database.read_temperatures(order, at_begin,
+                                                                callback);
+  }
+
+  //
   static void drawEventHook(lv_event_t *event) noexcept;
 };
 
 //
+// 相対湿度
 //
-//
-class Bme280TemperatureChart final : public BasicChart<Sensor::Bme280> {
+class RelativeHumidityChart final : public BasicChart<double> {
+private:
+  using Measurements = std::tuple<std::optional<Sensor::MeasurementBme280>,
+                                  std::optional<Sensor::MeasurementScd30>,
+                                  std::optional<Sensor::MeasurementScd41>,
+                                  std::optional<Sensor::MeasurementM5Env3>>;
+  Measurements latest{};
+
 public:
-  Bme280TemperatureChart(InitArg init) noexcept;
-  Bme280TemperatureChart(Bme280TemperatureChart &&) = delete;
-  Bme280TemperatureChart &operator=(const Bme280TemperatureChart &) = delete;
+  RelativeHumidityChart(InitArg init) noexcept;
+  RelativeHumidityChart(RelativeHumidityChart &&) = delete;
+  RelativeHumidityChart &operator=(const RelativeHumidityChart &) = delete;
   virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
   virtual void timerHook() noexcept override;
+  // データを座標に変換する関数
+  virtual lv_point_t
+  coordinateXY(system_clock::time_point begin_x,
+               const Database::TimePointAndDouble &in) noexcept override;
   //
-  static lv_coord_t map_to_coord_t(const ValueT &in) noexcept;
+  virtual size_t read_measurements_from_database(
+      Database::OrderBy order, system_clock::time_point at_begin,
+      Database::ReadCallback<Database::TimePointAndDouble> callback) override {
+    return Application::measurements_database.read_relative_humidities(
+        order, at_begin, callback);
+  }
+  //
   static void drawEventHook(lv_event_t *event) noexcept;
 };
 
 //
+// 気圧
 //
-//
-class Scd30TemperatureChart final : public BasicChart<Sensor::Scd30> {
-public:
-  Scd30TemperatureChart(InitArg init) noexcept;
-  Scd30TemperatureChart(Scd30TemperatureChart &&) = delete;
-  Scd30TemperatureChart &operator=(const Scd30TemperatureChart &) = delete;
-  virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
-  virtual void timerHook() noexcept override;
-  //
-  static lv_coord_t map_to_coord_t(const ValueT &in) noexcept;
-  static void drawEventHook(lv_event_t *event) noexcept;
-};
+class PressureChart final : public BasicChart<double> {
+private:
+  using Measurements = std::tuple<std::optional<Sensor::MeasurementBme280>,
+                                  std::optional<Sensor::MeasurementM5Env3>>;
+  Measurements latest{};
 
-//
-//
-//
-class Scd41TemperatureChart final : public BasicChart<Sensor::Scd41> {
 public:
-  Scd41TemperatureChart(InitArg init) noexcept;
-  Scd41TemperatureChart(Scd41TemperatureChart &&) = delete;
-  Scd41TemperatureChart &operator=(const Scd30TemperatureChart &) = delete;
-  virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
-  virtual void timerHook() noexcept override;
-  //
-  static lv_coord_t map_to_coord_t(const ValueT &in) noexcept;
-  static void drawEventHook(lv_event_t *event) noexcept;
-};
-
-//
-//
-//
-class M5Env3RelativeHumidityChart final : public BasicChart<Sensor::M5Env3> {
-public:
-  M5Env3RelativeHumidityChart(InitArg init) noexcept;
-  M5Env3RelativeHumidityChart(M5Env3RelativeHumidityChart &&) = delete;
-  M5Env3RelativeHumidityChart &
-  operator=(const M5Env3RelativeHumidityChart &) = delete;
-  virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
-  virtual void timerHook() noexcept override;
-  //
-  static lv_coord_t map_to_coord_t(const ValueT &in) noexcept;
-  static void drawEventHook(lv_event_t *event) noexcept;
-};
-
-//
-//
-//
-class Bme280RelativeHumidityChart final : public BasicChart<Sensor::Bme280> {
-public:
-  Bme280RelativeHumidityChart(InitArg init) noexcept;
-  Bme280RelativeHumidityChart(Bme280RelativeHumidityChart &&) = delete;
-  Bme280RelativeHumidityChart &
-  operator=(const Bme280RelativeHumidityChart &) = delete;
-  virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
-  virtual void timerHook() noexcept override;
-  //
-  static lv_coord_t map_to_coord_t(const ValueT &in) noexcept;
-  static void drawEventHook(lv_event_t *event) noexcept;
-};
-
-//
-//
-//
-class Scd30RelativeHumidityChart final : public BasicChart<Sensor::Scd30> {
-public:
-  Scd30RelativeHumidityChart(InitArg init) noexcept;
-  Scd30RelativeHumidityChart(Scd30RelativeHumidityChart &&) = delete;
-  Scd30RelativeHumidityChart &
-  operator=(const Scd30RelativeHumidityChart &) = delete;
-  virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
-  //
-  virtual void timerHook() noexcept override;
-  static lv_coord_t map_to_coord_t(const ValueT &in) noexcept;
-  static void drawEventHook(lv_event_t *event) noexcept;
-};
-
-//
-//
-//
-class Scd41RelativeHumidityChart final : public BasicChart<Sensor::Scd41> {
-public:
-  Scd41RelativeHumidityChart(InitArg init) noexcept;
-  Scd41RelativeHumidityChart(Scd41RelativeHumidityChart &&) = delete;
-  Scd41RelativeHumidityChart &
-  operator=(const Scd41RelativeHumidityChart &) = delete;
-  virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
-  //
-  virtual void timerHook() noexcept override;
-  static lv_coord_t map_to_coord_t(const ValueT &in) noexcept;
-  static void drawEventHook(lv_event_t *event) noexcept;
-};
-
-//
-//
-//
-class M5Env3PressureChart final : public BasicChart<Sensor::M5Env3> {
-public:
-  M5Env3PressureChart(InitArg init) noexcept;
-  M5Env3PressureChart(M5Env3PressureChart &&) = delete;
-  M5Env3PressureChart &operator=(const M5Env3PressureChart &) = delete;
+  PressureChart(InitArg init) noexcept;
+  PressureChart(PressureChart &&) = delete;
+  PressureChart &operator=(const PressureChart &) = delete;
   virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
   virtual void timerHook() noexcept override;
   //
   constexpr static DeciPa BIAS = round<DeciPa>(HectoPa{1000});
-  static lv_coord_t map_to_coord_t(const ValueT &in) noexcept;
-  static void drawEventHook(lv_event_t *event) noexcept;
-};
-
-//
-//
-//
-class Bme280PressureChart final : public BasicChart<Sensor::Bme280> {
-public:
-  Bme280PressureChart(InitArg init) noexcept;
-  Bme280PressureChart(Bme280PressureChart &&) = delete;
-  Bme280PressureChart &operator=(const Bme280PressureChart &) = delete;
-  virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
-  virtual void timerHook() noexcept override;
+  // データを座標に変換する関数
+  virtual lv_point_t
+  coordinateXY(system_clock::time_point begin_x,
+               const Database::TimePointAndDouble &in) noexcept override;
   //
-  constexpr static DeciPa BIAS = round<DeciPa>(HectoPa{1000});
-  static lv_coord_t map_to_coord_t(const ValueT &in) noexcept;
+  virtual size_t read_measurements_from_database(
+      Database::OrderBy order, system_clock::time_point at_begin,
+      Database::ReadCallback<Database::TimePointAndDouble> callback) override {
+    return Application::measurements_database.read_pressures(order, at_begin,
+                                                             callback);
+  }
   static void drawEventHook(lv_event_t *event) noexcept;
 };
 
 //
+// Co2 / ECo2
 //
-//
-class Sgp30TotalVocChart final : public BasicChart<Sensor::Sgp30> {
+class CarbonDeoxidesChart final : public BasicChart<uint16_t> {
+private:
+  using Measurements = std::tuple<std::optional<Sensor::MeasurementSgp30>,
+                                  std::optional<Sensor::MeasurementScd30>,
+                                  std::optional<Sensor::MeasurementScd41>>;
+  Measurements latest{};
+
 public:
-  Sgp30TotalVocChart(InitArg init) noexcept;
-  Sgp30TotalVocChart(Sgp30TotalVocChart &&) = delete;
-  Sgp30TotalVocChart &operator=(const Sgp30TotalVocChart &) = delete;
+  CarbonDeoxidesChart(InitArg init) noexcept;
+  CarbonDeoxidesChart(CarbonDeoxidesChart &&) = delete;
+  CarbonDeoxidesChart &operator=(const CarbonDeoxidesChart &) = delete;
   virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
   virtual void timerHook() noexcept override;
+  // データを座標に変換する関数
+  virtual lv_point_t
+  coordinateXY(system_clock::time_point begin_x,
+               const Database::TimePointAndUInt16 &in) noexcept override;
   //
-  static lv_coord_t map_to_coord_t(const ValueT &in) noexcept;
-  static void drawEventHook(lv_event_t *event) noexcept;
+  virtual size_t read_measurements_from_database(
+      Database::OrderBy order, system_clock::time_point at_begin,
+      Database::ReadCallback<Database::TimePointAndUInt16> callback) override {
+    return Application::measurements_database.read_carbon_deoxides(
+        order, at_begin, callback);
+  }
 };
 
 //
+// Total VOC
 //
-//
-class Sgp30Eco2Chart final : public BasicChart<Sensor::Sgp30> {
+class TotalVocChart final : public BasicChart<uint16_t> {
+private:
+  std::optional<Sensor::MeasurementSgp30> latest{};
+
 public:
-  Sgp30Eco2Chart(InitArg init) noexcept;
-  Sgp30Eco2Chart(Sgp30Eco2Chart &&) = delete;
-  Sgp30Eco2Chart &operator=(const Sgp30Eco2Chart &) = delete;
+  TotalVocChart(InitArg init) noexcept;
+  TotalVocChart(TotalVocChart &&) = delete;
+  TotalVocChart &operator=(const TotalVocChart &) = delete;
   virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
   virtual void timerHook() noexcept override;
+  // データを座標に変換する関数
+  virtual lv_point_t
+  coordinateXY(system_clock::time_point begin_x,
+               const Database::TimePointAndUInt16 &in) noexcept override;
   //
-  static lv_coord_t map_to_coord_t(const ValueT &in) noexcept;
+  virtual size_t read_measurements_from_database(
+      Database::OrderBy order, system_clock::time_point at_begin,
+      Database::ReadCallback<Database::TimePointAndUInt16> callback) override {
+    return Application::measurements_database.read_total_vocs(order, at_begin,
+                                                              callback);
+  }
+  //
   static void drawEventHook(lv_event_t *event) noexcept;
 };
-
-//
-//
-//
-class Scd30Co2Chart final : public BasicChart<Sensor::Scd30> {
-public:
-  Scd30Co2Chart(InitArg init) noexcept;
-  Scd30Co2Chart(Scd30Co2Chart &&) = delete;
-  Scd30Co2Chart &operator=(const Scd30Co2Chart &) = delete;
-  virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
-  virtual void timerHook() noexcept override;
-};
-
-//
-//
-//
-class Scd41Co2Chart final : public BasicChart<Sensor::Scd41> {
-public:
-  Scd41Co2Chart(InitArg init) noexcept;
-  Scd41Co2Chart(Scd41Co2Chart &&) = delete;
-  Scd41Co2Chart &operator=(const Scd41Co2Chart &) = delete;
-  virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
-  virtual void timerHook() noexcept override;
-};
-
 } // namespace Widget
 
 //
 //
 //
 class Gui {
-  inline static Gui *_instance{nullptr};
-  constexpr static uint16_t MILLISECONDS_OF_PERIODIC_TIMER = 250;
+  static Gui *_instance;
 
 public:
+  constexpr static auto PERIODIC_TIMER_INTERVAL = std::chrono::milliseconds{60};
+  constexpr static uint16_t CHART_X_POINT_COUNT = 60;
   Gui(M5GFX &gfx) : gfx{gfx} {
     if (_instance) {
       delete _instance;
@@ -409,15 +373,13 @@ public:
     _instance = this;
   }
   //
-  virtual ~Gui() {}
-  //
   static Gui *getInstance() noexcept { return _instance; }
 
 public:
   //
   bool begin() noexcept;
   //
-  void startUI() noexcept;
+  void startUi() noexcept;
   //
   void home() noexcept;
   //
@@ -428,7 +390,7 @@ public:
   void vibrate() noexcept;
   //
   lv_res_t send_event_to_tileview(lv_event_code_t event_code, void *param) {
-    return lv_event_send(_instance->tileview, event_code, param);
+    return lv_event_send(_instance->tileview_obj, event_code, param);
   }
 
 private:
@@ -445,7 +407,7 @@ private:
   // LVGL timer
   lv_timer_t *periodic_timer{nullptr};
   // LVGL tileview object
-  lv_obj_t *tileview{nullptr};
+  lv_obj_t *tileview_obj{nullptr};
   // tile widget
   using TileVector = std::vector<std::unique_ptr<Widget::TileBase>>;
   TileVector tiles{};
@@ -460,7 +422,7 @@ private:
   static bool check_if_active_tile(
       const std::unique_ptr<Widget::TileBase> &tile_to_test) noexcept {
     if (auto p = tile_to_test.get(); p) {
-      return p->isActiveTile(_instance->tileview);
+      return p->isActiveTile(_instance->tileview_obj);
     } else {
       return false;
     }

@@ -33,6 +33,18 @@ struct M5Env3;
 using MeasuredValue =
     std::variant<std::monostate, Bme280, Sgp30, Scd30, Scd41, M5Env3>;
 
+// 測定時間と測定値のペア
+using MeasurementBme280 =
+    std::pair<std::chrono::system_clock::time_point, Bme280>;
+using MeasurementSgp30 =
+    std::pair<std::chrono::system_clock::time_point, Sgp30>;
+using MeasurementScd30 =
+    std::pair<std::chrono::system_clock::time_point, Scd30>;
+using MeasurementScd41 =
+    std::pair<std::chrono::system_clock::time_point, Scd41>;
+using MeasurementM5Env3 =
+    std::pair<std::chrono::system_clock::time_point, M5Env3>;
+
 // Value Objects
 struct Bme280 {
   SensorDescriptor sensor_descriptor;
@@ -116,7 +128,7 @@ struct Device {
   virtual SensorDescriptor getSensorDescriptor() const noexcept = 0;
   virtual void printSensorDetails() = 0;
   virtual bool init() = 0;
-  virtual bool active() const noexcept = 0;
+  virtual bool available() const noexcept = 0;
   virtual bool readyToRead() noexcept = 0;
   virtual MeasuredValue read() = 0;
   virtual MeasuredValue calculateSMA() noexcept = 0;
@@ -156,7 +168,7 @@ public:
   }
   void printSensorDetails() override;
   bool init() override;
-  bool active() const noexcept override { return initialized; }
+  bool available() const noexcept override { return initialized; }
   bool readyToRead() noexcept override;
   MeasuredValue read() override;
   MeasuredValue calculateSMA() noexcept override;
@@ -203,7 +215,7 @@ public:
   }
   void printSensorDetails() override;
   bool init() override;
-  bool active() const noexcept override { return initialized; }
+  bool available() const noexcept override { return initialized; }
   bool readyToRead() noexcept override;
   MeasuredValue read() override;
   MeasuredValue calculateSMA() noexcept override;
@@ -243,7 +255,7 @@ public:
   }
   void printSensorDetails() override;
   bool init() override;
-  bool active() const noexcept override { return initialized; }
+  bool available() const noexcept override { return initialized; }
   bool readyToRead() noexcept override;
   MeasuredValue read() override;
   MeasuredValue calculateSMA() noexcept override;
@@ -279,7 +291,7 @@ public:
   }
   void printSensorDetails() override;
   bool init() override;
-  bool active() const noexcept override { return initialized; }
+  bool available() const noexcept override { return initialized; }
   bool readyToRead() noexcept override;
   enum class SensorStatus { DataNotReady, DataReady };
   SensorStatus getSensorStatus() noexcept;
@@ -327,7 +339,7 @@ public:
   }
   void printSensorDetails() override;
   bool init() override;
-  bool active() const noexcept override { return initialized; }
+  bool available() const noexcept override { return initialized; }
   bool readyToRead() noexcept override;
   MeasuredValue read() override;
   MeasuredValue calculateSMA() noexcept override;

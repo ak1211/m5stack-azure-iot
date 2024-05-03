@@ -4,7 +4,8 @@
 //
 #include "Gui.hpp"
 #include "Application.hpp"
-#include "LocalDatabase.hpp"
+#include "Database.hpp"
+#include "Peripherals.hpp"
 #include "Time.hpp"
 #include <WiFi.h>
 #include <esp_system.h>
@@ -20,6 +21,8 @@
 #include <tuple>
 
 #include <M5Unified.h>
+
+Gui *Gui::_instance{nullptr};
 
 using namespace std::chrono;
 using namespace std::literals::string_literals;
@@ -65,11 +68,11 @@ bool Gui::begin() noexcept {
   // LVGL init
   lv_init();
   // LVGL draw buffer
-  const int32_t DRAW_BUFFER_SIZE = gfx.width() * (gfx.height() / 10);
+  const int32_t DRAW_BUFFER_SIZE = gfx.width() * (gfx.height() / 2);
   lvgl_use.draw_buf_1 = std::make_unique<lv_color_t[]>(DRAW_BUFFER_SIZE);
   lvgl_use.draw_buf_2 = std::make_unique<lv_color_t[]>(DRAW_BUFFER_SIZE);
   if (lvgl_use.draw_buf_1 == nullptr || lvgl_use.draw_buf_2 == nullptr) {
-    ESP_LOGE(MAIN, "memory allocation error");
+    M5_LOGE("memory allocation error");
     return false;
   }
   lv_disp_draw_buf_init(&lvgl_use.draw_buf_dsc, lvgl_use.draw_buf_1.get(),
@@ -94,147 +97,70 @@ bool Gui::begin() noexcept {
   lv_indev_drv_register(&lvgl_use.indev_drv);
 
   // tileview init
-  tileview = lv_tileview_create(lv_scr_act());
+  tileview_obj = lv_tileview_create(lv_scr_act());
   // make the first tile
-  add_tile<Widget::BootMessage>({tileview, 0, 0, LV_DIR_RIGHT});
-  tiles.front()->setActiveTile(tileview);
+  add_tile<Widget::BootMessage>({tileview_obj, 0, 0, LV_DIR_RIGHT});
+  // move to first tile
+  tiles.front()->setActiveTile(tileview_obj);
+
   // set value changed callback
   lv_obj_add_event_cb(
-      tileview,
+      tileview_obj,
       [](lv_event_t *event) noexcept -> void {
-        auto itr = std::find_if(_instance->tiles.cbegin(),
-                                _instance->tiles.cend(), check_if_active_tile);
-        if (itr == _instance->tiles.cend()) {
+        Gui *gui = static_cast<Gui *>(event->user_data);
+        if (gui == nullptr) {
+          M5_LOGE("user_data had null");
+          return;
+        }
+        auto itr = std::find_if(gui->tiles.cbegin(), gui->tiles.cend(),
+                                check_if_active_tile);
+        if (itr == gui->tiles.cend()) {
           return;
         }
         if (auto found = itr->get(); found) {
           found->valueChangedEventHook(event);
         }
       },
-      LV_EVENT_VALUE_CHANGED, nullptr);
+      LV_EVENT_VALUE_CHANGED, this);
   // set timer callback
   periodic_timer = lv_timer_create(
-      [](lv_timer_t *) noexcept -> void {
-        auto itr = std::find_if(_instance->tiles.cbegin(),
-                                _instance->tiles.cend(), check_if_active_tile);
-        if (itr == _instance->tiles.cend()) {
+      [](lv_timer_t *timer) noexcept -> void {
+        Gui *gui = static_cast<Gui *>(timer->user_data);
+        if (gui == nullptr) {
+          M5_LOGE("user_data had null");
+          return;
+        }
+        auto itr = std::find_if(gui->tiles.cbegin(), gui->tiles.cend(),
+                                check_if_active_tile);
+        if (itr == gui->tiles.cend()) {
           return;
         }
         if (auto found = itr->get(); found) {
           found->timerHook();
         }
       },
-      MILLISECONDS_OF_PERIODIC_TIMER, nullptr);
-  //
-  lv_task_handler();
+      duration_cast<milliseconds>(PERIODIC_TIMER_INTERVAL).count(), this);
 
   return true;
 }
 
 //
-void Gui::startUI() noexcept {
-  using Fn = std::function<void(lv_obj_t * tv, int16_t col, uint8_t dir)>;
-  // Clock
-  if constexpr (false) {
-    Fn addClock = [this](lv_obj_t *tv, int16_t col, uint8_t dir) {
-      add_tile<Widget::Clock>({tv, col, 0, dir});
-    };
-  }
-  // SystemHealth
-  Fn addSystemHealth = [this](lv_obj_t *tv, int16_t col, uint8_t dir) {
-    add_tile<Widget::SystemHealth>({tv, col, 0, dir});
-  };
-  // Summary
-  Fn addSummary = [this](lv_obj_t *tv, int16_t col, uint8_t dir) {
-    add_tile<Widget::Summary>({tv, col, 0, dir});
-  };
-  // M5 unit ENV3
-  Fn addM5Env3 = [this](lv_obj_t *tv, int16_t col, uint8_t dir) {
-    auto row = 0;
-    dir = dir | LV_DIR_BOTTOM;
-    add_tile<Widget::M5Env3TemperatureChart>({tv, col, row++, dir});
-    dir = dir | LV_DIR_TOP;
-    add_tile<Widget::M5Env3RelativeHumidityChart>({tv, col, row++, dir});
-    dir = dir & ~LV_DIR_BOTTOM;
-    add_tile<Widget::M5Env3PressureChart>({tv, col, row++, dir});
-  };
-  // BME280
-  Fn addBme280 = [this](lv_obj_t *tv, int16_t col, uint8_t dir) {
-    auto row = 0;
-    dir = dir | LV_DIR_BOTTOM;
-    add_tile<Widget::Bme280TemperatureChart>({tv, col, row++, dir});
-    dir = dir | LV_DIR_TOP;
-    add_tile<Widget::Bme280RelativeHumidityChart>({tv, col, row++, dir});
-    dir = dir & ~LV_DIR_BOTTOM;
-    add_tile<Widget::Bme280PressureChart>({tv, col, row++, dir});
-  };
-  // SCD30
-  Fn addScd30 = [this](lv_obj_t *tv, int16_t col, uint8_t dir) {
-    auto row = 0;
-    dir = dir | LV_DIR_BOTTOM;
-    add_tile<Widget::Scd30TemperatureChart>({tv, col, row++, dir});
-    dir = dir | LV_DIR_TOP;
-    add_tile<Widget::Scd30RelativeHumidityChart>({tv, col, row++, dir});
-    dir = dir & ~LV_DIR_BOTTOM;
-    add_tile<Widget::Scd30Co2Chart>({tv, col, row++, dir});
-  };
-  // SCD41
-  Fn addScd41 = [this](lv_obj_t *tv, int16_t col, uint8_t dir) {
-    auto row = 0;
-    dir = dir | LV_DIR_BOTTOM;
-    add_tile<Widget::Scd41TemperatureChart>({tv, col, row++, dir});
-    dir = dir | LV_DIR_TOP;
-    add_tile<Widget::Scd41RelativeHumidityChart>({tv, col, row++, dir});
-    dir = dir & ~LV_DIR_BOTTOM;
-    add_tile<Widget::Scd41Co2Chart>({tv, col, row++, dir});
-  };
-  // SGP30
-  Fn addSgp30 = [this](lv_obj_t *tv, int16_t col, uint8_t dir) {
-    auto row = 0;
-    dir = dir | LV_DIR_BOTTOM;
-    add_tile<Widget::Sgp30Eco2Chart>({tv, col, row++, dir});
-    dir = dir | LV_DIR_TOP;
-    //
-    dir = dir & ~LV_DIR_BOTTOM;
-    add_tile<Widget::Sgp30TotalVocChart>({tv, col, row++, dir});
-  };
-  //
-  // ここでタイルを用意する
-  //
-  std::vector<Fn> functions;
+void Gui::startUi() noexcept {
   // TileWidget::BootMessageの次からこの並び順
-  //  functions.push_back(addClock);
-  functions.push_back(addSystemHealth);
-  functions.push_back(addSummary);
-  if (Application::historiesM5Env3) {
-    functions.push_back(addM5Env3);
-  }
-  if (Application::historiesBme280) {
-    functions.push_back(addBme280);
-  }
-  if (Application::historiesScd30) {
-    functions.push_back(addScd30);
-  }
-  if (Application::historiesScd41) {
-    functions.push_back(addScd41);
-  }
-  if (Application::historiesSgp30) {
-    functions.push_back(addSgp30);
-  }
-  //
   auto col = 1;
-  for (auto it = functions.begin(); it != functions.end(); ++it) {
-    Fn &f = *it;
-    uint8_t dir = LV_DIR_HOR;
-    if (std::next(it) == functions.end()) {
-      // 最後のタイルだけ右移動を禁止する
-      dir = dir & ~LV_DIR_RIGHT;
-    }
-    f(tileview, col++, dir);
+  if constexpr (false) {
+    add_tile<Widget::Clock>({tileview_obj, col++, 0, LV_DIR_HOR});
   }
-  //
+  add_tile<Widget::SystemHealthy>({tileview_obj, col++, 0, LV_DIR_HOR});
+  add_tile<Widget::Summary>({tileview_obj, col++, 0, LV_DIR_HOR});
+  add_tile<Widget::TemperatureChart>({tileview_obj, col++, 0, LV_DIR_HOR});
+  add_tile<Widget::RelativeHumidityChart>({tileview_obj, col++, 0, LV_DIR_HOR});
+  add_tile<Widget::PressureChart>({tileview_obj, col++, 0, LV_DIR_HOR});
+  add_tile<Widget::CarbonDeoxidesChart>({tileview_obj, col++, 0, LV_DIR_HOR});
+  // 最後のタイルだけ右移動を禁止する
+  add_tile<Widget::TotalVocChart>({tileview_obj, col++, 0, LV_DIR_LEFT});
+
   home();
-  lv_task_handler();
 }
 
 //
@@ -245,7 +171,7 @@ void Gui::home() noexcept {
   }
   constexpr auto COL_ID = 2;
   constexpr auto ROW_ID = 0;
-  lv_obj_set_tile_id(tileview, COL_ID, ROW_ID, LV_ANIM_OFF);
+  lv_obj_set_tile_id(tileview_obj, COL_ID, ROW_ID, LV_ANIM_OFF);
 }
 
 //
@@ -259,7 +185,7 @@ void Gui::movePrev() noexcept {
     if (periodic_timer) {
       lv_timer_reset(periodic_timer);
     }
-    p->setActiveTile(tileview);
+    p->setActiveTile(tileview_obj);
   }
 }
 
@@ -274,7 +200,7 @@ void Gui::moveNext() noexcept {
     if (periodic_timer) {
       lv_timer_reset(periodic_timer);
     }
-    p->setActiveTile(tileview);
+    p->setActiveTile(tileview_obj);
   }
 }
 
@@ -292,45 +218,44 @@ void Gui::vibrate() noexcept {
 //
 //
 Widget::BootMessage::BootMessage(Widget::InitArg init) noexcept {
-  tile = std::apply(lv_tileview_add_tile, init);
-  message_label = lv_label_create(tile);
-  lv_label_set_long_mode(message_label, LV_LABEL_LONG_WRAP);
-  lv_label_set_text_static(message_label, Application::boot_log.c_str());
+  tile_obj = std::apply(lv_tileview_add_tile, init);
+  message_label_obj = lv_label_create(tile_obj);
+  lv_label_set_long_mode(message_label_obj, LV_LABEL_LONG_WRAP);
+  lv_label_set_text_static(message_label_obj, Application::boot_log.c_str());
 }
 
-Widget::BootMessage::~BootMessage() {
-  lv_obj_clean(tile);
-  lv_obj_del(tile);
-}
+Widget::BootMessage::~BootMessage() { lv_obj_del(tile_obj); }
 
-void Widget::BootMessage::valueChangedEventHook(lv_event_t *) noexcept {
-  lv_label_set_text_static(message_label, Application::boot_log.c_str());
-}
+void Widget::BootMessage::valueChangedEventHook(lv_event_t *) noexcept {}
 
 void Widget::BootMessage::timerHook() noexcept {
   if (auto x = Application::boot_log.size(); x != count) {
-    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
+    render();
     count = x;
   }
 }
 
+void Widget::BootMessage::render() noexcept {
+  lv_label_set_text_static(message_label_obj, Application::boot_log.c_str());
+}
+
 //
 //
 //
-Widget::SystemHealth::SystemHealth(Widget::InitArg init) noexcept {
-  tile = std::apply(lv_tileview_add_tile, init);
-  lv_style_init(&style_label);
-  lv_style_set_text_font(&style_label, &lv_font_montserrat_16);
+Widget::SystemHealthy::SystemHealthy(Widget::InitArg init) noexcept {
+  tile_obj = std::apply(lv_tileview_add_tile, init);
   //
-  cont_col = lv_obj_create(tile);
-  lv_obj_set_size(cont_col, lv_obj_get_content_width(tile),
-                  lv_obj_get_content_height(tile));
-  lv_obj_align(cont_col, LV_ALIGN_CENTER, 0, 0);
-  lv_obj_set_flex_flow(cont_col, LV_FLEX_FLOW_COLUMN);
+  lv_style_init(&label_style);
+  lv_style_set_text_font(&label_style, &lv_font_montserrat_16);
+  //
+  cont_col_obj = lv_obj_create(tile_obj);
+  lv_obj_set_size(cont_col_obj, LV_PCT(100), LV_PCT(100));
+  lv_obj_align(cont_col_obj, LV_ALIGN_CENTER, 0, 0);
+  lv_obj_set_flex_flow(cont_col_obj, LV_FLEX_FLOW_COLUMN);
   //
   auto create = [&](lv_style_t *style,
                     lv_text_align_t align = LV_TEXT_ALIGN_LEFT) -> lv_obj_t * {
-    lv_obj_t *label = lv_label_create(cont_col);
+    lv_obj_t *label = lv_label_create(cont_col_obj);
     lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_text_align(label, align, 0);
     lv_obj_add_style(label, style, 0);
@@ -339,29 +264,26 @@ Widget::SystemHealth::SystemHealth(Widget::InitArg init) noexcept {
     return label;
   };
   //
-  time_label = create(&style_label);
-  status_label = create(&style_label);
-  battery_label = create(&style_label);
-  battery_charging_label = create(&style_label);
-  available_heap_label = create(&style_label);
-  available_internal_heap_label = create(&style_label);
-  minimum_free_heap_label = create(&style_label);
+  time_label_obj = create(&label_style);
+  status_label_obj = create(&label_style);
+  battery_label_obj = create(&label_style);
+  battery_charging_label_obj = create(&label_style);
+  available_heap_label_obj = create(&label_style);
+  available_internal_heap_label_obj = create(&label_style);
+  minimum_free_heap_label_obj = create(&label_style);
   //
   render();
 }
 
-Widget::SystemHealth::~SystemHealth() {
-  lv_obj_clean(tile);
-  lv_obj_del(tile);
-}
+Widget::SystemHealthy::~SystemHealthy() { lv_obj_del(tile_obj); }
 
-void Widget::SystemHealth::valueChangedEventHook(lv_event_t *) noexcept {
+void Widget::SystemHealthy::valueChangedEventHook(lv_event_t *) noexcept {
   render();
 }
 
-void Widget::SystemHealth::timerHook() noexcept { render(); }
+void Widget::SystemHealthy::timerHook() noexcept { render(); }
 
-void Widget::SystemHealth::render() noexcept {
+void Widget::SystemHealthy::render() noexcept {
   const seconds uptime = Time::uptime();
   const int16_t sec = uptime.count() % 60;
   const int16_t min = uptime.count() / 60 % 60;
@@ -390,7 +312,7 @@ void Widget::SystemHealth::render() noexcept {
     } else {
       oss << "Time is not synced";
     }
-    lv_label_set_text(time_label, oss.str().c_str());
+    lv_label_set_text(time_label_obj, oss.str().c_str());
   }
   { // status
     std::ostringstream oss;
@@ -407,7 +329,7 @@ void Widget::SystemHealth::render() noexcept {
         << std::setw(2) << hour << ":"   //
         << std::setw(2) << min << ":"    //
         << std::setw(2) << sec;          //
-    lv_label_set_text(status_label, oss.str().c_str());
+    lv_label_set_text(status_label_obj, oss.str().c_str());
   }
   { // battery status
     auto battery_level = M5.Power.getBatteryLevel();
@@ -421,7 +343,7 @@ void Widget::SystemHealth::render() noexcept {
         << battery_voltage << "mV "                                    //
         << std::setw(5) << std::setprecision(3)                        //
         << battery_current << "mA ";                                   //
-    lv_label_set_text(battery_label, oss.str().c_str());
+    lv_label_set_text(battery_label_obj, oss.str().c_str());
   }
   { // battery charging
     std::ostringstream oss;
@@ -435,25 +357,25 @@ void Widget::SystemHealth::render() noexcept {
     default: {
     } break;
     }
-    lv_label_set_text(battery_charging_label, oss.str().c_str());
+    lv_label_set_text(battery_charging_label_obj, oss.str().c_str());
   }
   { // available heap memory
     uint32_t memfree = esp_get_free_heap_size();
     std::ostringstream oss;
     oss << "available heap size: " << memfree;
-    lv_label_set_text(available_heap_label, oss.str().c_str());
+    lv_label_set_text(available_heap_label_obj, oss.str().c_str());
   }
   { // available internal heap memory
     uint32_t memfree = esp_get_free_internal_heap_size();
     std::ostringstream oss;
     oss << "available internal heap size: " << memfree;
-    lv_label_set_text(available_internal_heap_label, oss.str().c_str());
+    lv_label_set_text(available_internal_heap_label_obj, oss.str().c_str());
   }
   { // minumum free heap memory
     uint32_t memfree = esp_get_minimum_free_heap_size();
     std::ostringstream oss;
     oss << "minimum free heap size: " << memfree;
-    lv_label_set_text(minimum_free_heap_label, oss.str().c_str());
+    lv_label_set_text(minimum_free_heap_label_obj, oss.str().c_str());
   }
 }
 
@@ -461,44 +383,41 @@ void Widget::SystemHealth::render() noexcept {
 //
 //
 Widget::Clock::Clock(Widget::InitArg init) noexcept {
-  tile = std::apply(lv_tileview_add_tile, init);
-  meter = lv_meter_create(tile);
-  auto size =
-      std::min(lv_obj_get_content_width(tile), lv_obj_get_content_height(tile));
-  lv_obj_set_size(meter, size * 0.9, size * 0.9);
-  lv_obj_center(meter);
+  tile_obj = std::apply(lv_tileview_add_tile, init);
+  meter_obj = lv_meter_create(tile_obj);
+  auto size = std::min(lv_obj_get_content_width(tile_obj),
+                       lv_obj_get_content_height(tile_obj));
+  lv_obj_set_size(meter_obj, size * 0.9, size * 0.9);
+  lv_obj_center(meter_obj);
   //
-  sec_scale = lv_meter_add_scale(meter);
-  lv_meter_set_scale_ticks(meter, sec_scale, 61, 1, 10,
+  sec_scale = lv_meter_add_scale(meter_obj);
+  lv_meter_set_scale_ticks(meter_obj, sec_scale, 61, 1, 10,
                            lv_palette_main(LV_PALETTE_GREY));
-  lv_meter_set_scale_range(meter, sec_scale, 0, 60, 360, 270);
+  lv_meter_set_scale_range(meter_obj, sec_scale, 0, 60, 360, 270);
   //
-  min_scale = lv_meter_add_scale(meter);
-  lv_meter_set_scale_ticks(meter, min_scale, 61, 1, 10,
+  min_scale = lv_meter_add_scale(meter_obj);
+  lv_meter_set_scale_ticks(meter_obj, min_scale, 61, 1, 10,
                            lv_palette_main(LV_PALETTE_GREY));
-  lv_meter_set_scale_range(meter, min_scale, 0, 60, 360, 270);
+  lv_meter_set_scale_range(meter_obj, min_scale, 0, 60, 360, 270);
   //
-  hour_scale = lv_meter_add_scale(meter);
-  lv_meter_set_scale_ticks(meter, hour_scale, 12, 0, 0,
+  hour_scale = lv_meter_add_scale(meter_obj);
+  lv_meter_set_scale_ticks(meter_obj, hour_scale, 12, 0, 0,
                            lv_palette_main(LV_PALETTE_GREY));
-  lv_meter_set_scale_major_ticks(meter, hour_scale, 1, 2, 20, lv_color_black(),
-                                 10);
-  lv_meter_set_scale_range(meter, hour_scale, 1, 12, 330, 300);
+  lv_meter_set_scale_major_ticks(meter_obj, hour_scale, 1, 2, 20,
+                                 lv_color_black(), 10);
+  lv_meter_set_scale_range(meter_obj, hour_scale, 1, 12, 330, 300);
   //
   hour_indic = lv_meter_add_needle_line(
-      meter, min_scale, 9, lv_palette_darken(LV_PALETTE_INDIGO, 2), -50);
+      meter_obj, min_scale, 9, lv_palette_darken(LV_PALETTE_INDIGO, 2), -50);
   min_indic = lv_meter_add_needle_line(
-      meter, min_scale, 4, lv_palette_darken(LV_PALETTE_INDIGO, 2), -25);
-  sec_indic = lv_meter_add_needle_line(meter, sec_scale, 2,
+      meter_obj, min_scale, 4, lv_palette_darken(LV_PALETTE_INDIGO, 2), -25);
+  sec_indic = lv_meter_add_needle_line(meter_obj, sec_scale, 2,
                                        lv_palette_main(LV_PALETTE_RED), -10);
   //
   timerHook();
 }
 
-Widget::Clock::~Clock() {
-  lv_obj_clean(tile);
-  lv_obj_del(tile);
-}
+Widget::Clock::~Clock() { lv_obj_del(tile_obj); }
 
 void Widget::Clock::valueChangedEventHook(lv_event_t *) noexcept {
   timerHook();
@@ -518,50 +437,39 @@ void Widget::Clock::timerHook() noexcept {
   }
 }
 void Widget::Clock::render(const std::tm &tm) noexcept {
-  lv_meter_set_indicator_value(meter, sec_indic, tm.tm_sec);
-  lv_meter_set_indicator_value(meter, min_indic, tm.tm_min);
+  lv_meter_set_indicator_value(meter_obj, sec_indic, tm.tm_sec);
+  lv_meter_set_indicator_value(meter_obj, min_indic, tm.tm_min);
   const float h = (60.0f / 12.0f) * (tm.tm_hour % 12);
   const float m = (60.0f / 12.0f) * tm.tm_min / 60.0f;
-  lv_meter_set_indicator_value(meter, hour_indic, std::floor(h + m));
+  lv_meter_set_indicator_value(meter_obj, hour_indic, std::floor(h + m));
 }
 
 //
 //
 //
 Widget::Summary::Summary(Widget::InitArg init) noexcept {
-  tile = std::apply(lv_tileview_add_tile, init);
-  table = lv_table_create(tile);
-  //
-  latest = Measurements{};
+  tile_obj = std::apply(lv_tileview_add_tile, init);
+  table_obj = lv_table_create(tile_obj);
   //
   render();
 }
 
-Widget::Summary::~Summary() {
-  lv_obj_clean(tile);
-  lv_obj_del(tile);
-}
+Widget::Summary::~Summary() { lv_obj_del(tile_obj); }
 
 void Widget::Summary::valueChangedEventHook(lv_event_t *) noexcept { render(); }
 
 void Widget::Summary::timerHook() noexcept {
-  auto bme = Application::historiesBme280
-                 ? Application::historiesBme280->getLatestValue()
-                 : std::nullopt;
-  auto sgp = Application::historiesSgp30
-                 ? Application::historiesSgp30->getLatestValue()
-                 : std::nullopt;
-  auto scd = Application::historiesScd30
-                 ? Application::historiesScd30->getLatestValue()
-                 : std::nullopt;
-  auto m5env3 = Application::historiesM5Env3
-                    ? Application::historiesM5Env3->getLatestValue()
-                    : std::nullopt;
-  auto now = Measurements{std::move(bme), std::move(sgp), std::move(scd),
-                          std::move(m5env3)};
-  if (now != latest) {
-    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
-    latest = now;
+  auto present = Measurements{
+      Application::measurements_database.getLatestMeasurementBme280(),
+      Application::measurements_database.getLatestMeasurementSgp30(),
+      Application::measurements_database.getLatestMeasurementScd30(),
+      Application::measurements_database.getLatestMeasurementScd41(),
+      Application::measurements_database.getLatestMeasurementM5Env3()};
+  if (present != latest) {
+    //    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED,
+    //    nullptr);
+    render();
+    latest = present;
   }
 }
 
@@ -569,221 +477,244 @@ void Widget::Summary::render() noexcept {
   std::ostringstream oss;
   oss << std::fixed << std::setprecision(2);
   auto row = 0;
-  // M5 unit ENV3
-  if (Application::historiesM5Env3) {
-    auto history = Application::historiesM5Env3->getLatestValue();
-    {
-      lv_table_set_cell_value(table, row, 0, "ENV3 Temp");
-      if (history.has_value()) {
-        const DegC t = history->second.temperature;
+  for (const auto &p : Peripherals::sensors) {
+    if (p.get() == nullptr) {
+      continue;
+    }
+    switch (p->getSensorDescriptor()) {
+    case Peripherals::SENSOR_DESCRIPTOR_M5ENV3: { // M5 unit ENV3
+      auto m5env3 =
+          Application::measurements_database.getLatestMeasurementM5Env3();
+      lv_table_set_cell_value(table_obj, row, 0, "ENV3 Temp");
+      if (auto temp = m5env3 ? std::make_optional(m5env3->second.temperature)
+                             : std::nullopt;
+          temp) {
+        const DegC t = static_cast<DegC>(*temp);
         oss.str("");
         oss << +t.count();
-        lv_table_set_cell_value(table, row, 1, oss.str().c_str());
+        lv_table_set_cell_value(table_obj, row, 1, oss.str().c_str());
       } else {
-        lv_table_set_cell_value(table, row, 1, "-");
+        lv_table_set_cell_value(table_obj, row, 1, "-");
       }
-      lv_table_set_cell_value(table, row, 2, "C");
+      lv_table_set_cell_value(table_obj, row, 2, "C");
       row++;
-    }
-    {
-      lv_table_set_cell_value(table, row, 0, "ENV3 Humi");
-      if (history.has_value()) {
-        const PctRH rh = history->second.relative_humidity;
+      //
+      lv_table_set_cell_value(table_obj, row, 0, "ENV3 Humi");
+      if (auto humi = m5env3
+                          ? std::make_optional(m5env3->second.relative_humidity)
+                          : std::nullopt;
+          humi) {
+        const PctRH rh = *humi;
         oss.str("");
         oss << +rh.count();
-        lv_table_set_cell_value(table, row, 1, oss.str().c_str());
+        lv_table_set_cell_value(table_obj, row, 1, oss.str().c_str());
       } else {
-        lv_table_set_cell_value(table, row, 1, "-");
+        lv_table_set_cell_value(table_obj, row, 1, "-");
       }
-      lv_table_set_cell_value(table, row, 2, "%RH");
+      lv_table_set_cell_value(table_obj, row, 2, "%RH");
       row++;
-    }
-    {
-      lv_table_set_cell_value(table, row, 0, "ENV3 Pres");
-      if (history.has_value()) {
-        const HectoPa hpa = history->second.pressure;
+      //
+      lv_table_set_cell_value(table_obj, row, 0, "ENV3 Pres");
+      if (auto pres = m5env3 ? std::make_optional(m5env3->second.pressure)
+                             : std::nullopt;
+          pres) {
+        const HectoPa hpa = *pres;
         oss.str("");
         oss << +hpa.count();
-        lv_table_set_cell_value(table, row, 1, oss.str().c_str());
+        lv_table_set_cell_value(table_obj, row, 1, oss.str().c_str());
       } else {
-        lv_table_set_cell_value(table, row, 1, "-");
+        lv_table_set_cell_value(table_obj, row, 1, "-");
       }
-      lv_table_set_cell_value(table, row, 2, "hPa");
+      lv_table_set_cell_value(table_obj, row, 2, "hPa");
       row++;
-    }
-  }
-  // BME280
-  if (Application::historiesBme280) {
-    auto history = Application::historiesBme280->getLatestValue();
-    {
-      lv_table_set_cell_value(table, row, 0, "BME280 Temp");
-      if (history.has_value()) {
-        const DegC t = history->second.temperature;
+    } break;
+    case Peripherals::SENSOR_DESCRIPTOR_BME280: { // BME280
+      auto bme280 =
+          Application::measurements_database.getLatestMeasurementBme280();
+      lv_table_set_cell_value(table_obj, row, 0, "BME280 Temp");
+      if (auto temp = bme280 ? std::make_optional(bme280->second.temperature)
+                             : std::nullopt;
+          temp) {
+        const DegC t{*temp};
         oss.str("");
         oss << +t.count();
-        lv_table_set_cell_value(table, row, 1, oss.str().c_str());
+        lv_table_set_cell_value(table_obj, row, 1, oss.str().c_str());
       } else {
-        lv_table_set_cell_value(table, row, 1, "-");
+        lv_table_set_cell_value(table_obj, row, 1, "-");
       }
-      lv_table_set_cell_value(table, row, 2, "C");
+      lv_table_set_cell_value(table_obj, row, 2, "C");
       row++;
-    }
-    {
-      lv_table_set_cell_value(table, row, 0, "BME280 Humi");
-      if (history.has_value()) {
-        const PctRH rh = history->second.relative_humidity;
+      //
+      lv_table_set_cell_value(table_obj, row, 0, "BME280 Humi");
+      if (auto humi = bme280
+                          ? std::make_optional(bme280->second.relative_humidity)
+                          : std::nullopt;
+          humi) {
+        const PctRH rh{*humi};
         oss.str("");
         oss << +rh.count();
-        lv_table_set_cell_value(table, row, 1, oss.str().c_str());
+        lv_table_set_cell_value(table_obj, row, 1, oss.str().c_str());
       } else {
-        lv_table_set_cell_value(table, row, 1, "-");
+        lv_table_set_cell_value(table_obj, row, 1, "-");
       }
-      lv_table_set_cell_value(table, row, 2, "%RH");
+      lv_table_set_cell_value(table_obj, row, 2, "%RH");
       row++;
-    }
-    {
-      lv_table_set_cell_value(table, row, 0, "BME280 Pres");
-      if (history.has_value()) {
-        const HectoPa hpa = history->second.pressure;
+      //
+      lv_table_set_cell_value(table_obj, row, 0, "BME280 Pres");
+      if (auto pres = bme280 ? std::make_optional(bme280->second.pressure)
+                             : std::nullopt;
+          pres) {
+        const HectoPa hpa{*pres};
         oss.str("");
         oss << +hpa.count();
-        lv_table_set_cell_value(table, row, 1, oss.str().c_str());
+        lv_table_set_cell_value(table_obj, row, 1, oss.str().c_str());
       } else {
-        lv_table_set_cell_value(table, row, 1, "-");
+        lv_table_set_cell_value(table_obj, row, 1, "-");
       }
-      lv_table_set_cell_value(table, row, 2, "hPa");
+      lv_table_set_cell_value(table_obj, row, 2, "hPa");
       row++;
-    }
-  }
-  // SCD30
-  if (Application::historiesScd30) {
-    auto history = Application::historiesScd30->getLatestValue();
-    {
-      lv_table_set_cell_value(table, row, 0, "SCD30 Temp");
-      if (history.has_value()) {
-        const DegC t = history->second.temperature;
+    } break;
+    case Peripherals::SENSOR_DESCRIPTOR_SCD30: { // SCD30
+      auto scd30 =
+          Application::measurements_database.getLatestMeasurementScd30();
+      lv_table_set_cell_value(table_obj, row, 0, "SCD30 Temp");
+      if (auto temp = scd30 ? std::make_optional(scd30->second.temperature)
+                            : std::nullopt;
+          temp) {
+        const DegC t{*temp};
         oss.str("");
         oss << +t.count();
-        lv_table_set_cell_value(table, row, 1, oss.str().c_str());
+        lv_table_set_cell_value(table_obj, row, 1, oss.str().c_str());
       } else {
-        lv_table_set_cell_value(table, row, 1, "-");
+        lv_table_set_cell_value(table_obj, row, 1, "-");
       }
-      lv_table_set_cell_value(table, row, 2, "C");
+      lv_table_set_cell_value(table_obj, row, 2, "C");
       row++;
-    }
-    {
-      lv_table_set_cell_value(table, row, 0, "SCD30 Humi");
-      if (history.has_value()) {
-        const PctRH rh = history->second.relative_humidity;
+      //
+      lv_table_set_cell_value(table_obj, row, 0, "SCD30 Humi");
+      if (auto humi = scd30
+                          ? std::make_optional(scd30->second.relative_humidity)
+                          : std::nullopt;
+          humi) {
+        const PctRH rh{*humi};
         oss.str("");
         oss << +rh.count();
-        lv_table_set_cell_value(table, row, 1, oss.str().c_str());
+        lv_table_set_cell_value(table_obj, row, 1, oss.str().c_str());
       } else {
-        lv_table_set_cell_value(table, row, 1, "-");
+        lv_table_set_cell_value(table_obj, row, 1, "-");
       }
-      lv_table_set_cell_value(table, row, 2, "%RH");
+      lv_table_set_cell_value(table_obj, row, 2, "%RH");
       row++;
-    }
-    {
-      lv_table_set_cell_value(table, row, 0, "SCD30 CO2");
-      if (history.has_value()) {
-        const Ppm co2 = history->second.co2;
+      //
+      lv_table_set_cell_value(table_obj, row, 0, "SCD30 CO2");
+      if (auto carbon_dioxide =
+              scd30 ? std::make_optional(scd30->second.co2) : std::nullopt;
+          carbon_dioxide) {
+        const Ppm co2{*carbon_dioxide};
         oss.str("");
         oss << +co2.value;
-        lv_table_set_cell_value(table, row, 1, oss.str().c_str());
+        lv_table_set_cell_value(table_obj, row, 1, oss.str().c_str());
       } else {
-        lv_table_set_cell_value(table, row, 1, "-");
+        lv_table_set_cell_value(table_obj, row, 1, "-");
       }
-      lv_table_set_cell_value(table, row, 2, "ppm");
+      lv_table_set_cell_value(table_obj, row, 2, "ppm");
       row++;
-    }
-  }
-  // SCD41
-  if (Application::historiesScd41) {
-    auto history = Application::historiesScd41->getLatestValue();
-    {
-      lv_table_set_cell_value(table, row, 0, "SCD41 Temp");
-      if (history.has_value()) {
-        const DegC t = history->second.temperature;
+    } break;
+    case Peripherals::SENSOR_DESCRIPTOR_SCD41: { // SCD41
+      auto scd41 =
+          Application::measurements_database.getLatestMeasurementScd41();
+      lv_table_set_cell_value(table_obj, row, 0, "SCD41 Temp");
+      if (auto temp = scd41 ? std::make_optional(scd41->second.temperature)
+                            : std::nullopt;
+          temp) {
+        const DegC t{*temp};
         oss.str("");
         oss << +t.count();
-        lv_table_set_cell_value(table, row, 1, oss.str().c_str());
+        lv_table_set_cell_value(table_obj, row, 1, oss.str().c_str());
       } else {
-        lv_table_set_cell_value(table, row, 1, "-");
+        lv_table_set_cell_value(table_obj, row, 1, "-");
       }
-      lv_table_set_cell_value(table, row, 2, "C");
+      lv_table_set_cell_value(table_obj, row, 2, "C");
       row++;
-    }
-    {
-      lv_table_set_cell_value(table, row, 0, "SCD41 Humi");
-      if (history.has_value()) {
-        const PctRH rh = history->second.relative_humidity;
+      //
+      lv_table_set_cell_value(table_obj, row, 0, "SCD41 Humi");
+      if (auto humi = scd41
+                          ? std::make_optional(scd41->second.relative_humidity)
+                          : std::nullopt;
+          humi) {
+        const PctRH rh{*humi};
         oss.str("");
         oss << +rh.count();
-        lv_table_set_cell_value(table, row, 1, oss.str().c_str());
+        lv_table_set_cell_value(table_obj, row, 1, oss.str().c_str());
       } else {
-        lv_table_set_cell_value(table, row, 1, "-");
+        lv_table_set_cell_value(table_obj, row, 1, "-");
       }
-      lv_table_set_cell_value(table, row, 2, "%RH");
+      lv_table_set_cell_value(table_obj, row, 2, "%RH");
       row++;
-    }
-    {
-      lv_table_set_cell_value(table, row, 0, "SCD41 CO2");
-      if (history.has_value()) {
-        const Ppm co2 = history->second.co2;
+      //
+      lv_table_set_cell_value(table_obj, row, 0, "SCD41 CO2");
+      if (auto carbon_dioxide =
+              scd41 ? std::make_optional(scd41->second.co2) : std::nullopt;
+          carbon_dioxide) {
+        const Ppm co2{*carbon_dioxide};
         oss.str("");
         oss << +co2.value;
-        lv_table_set_cell_value(table, row, 1, oss.str().c_str());
+        lv_table_set_cell_value(table_obj, row, 1, oss.str().c_str());
       } else {
-        lv_table_set_cell_value(table, row, 1, "-");
+        lv_table_set_cell_value(table_obj, row, 1, "-");
       }
-      lv_table_set_cell_value(table, row, 2, "ppm");
+      lv_table_set_cell_value(table_obj, row, 2, "ppm");
       row++;
-    }
-  }
-  // SGP30
-  if (Application::historiesSgp30) {
-    auto history = Application::historiesSgp30->getLatestValue();
-    {
-      lv_table_set_cell_value(table, row, 0, "SGP30 eCO2");
-      if (history.has_value()) {
-        const Ppm eco2 = history->second.eCo2;
+    } break;
+    case Peripherals::SENSOR_DESCRIPTOR_SGP30: { // SGP30
+      auto sgp30 =
+          Application::measurements_database.getLatestMeasurementSgp30();
+      lv_table_set_cell_value(table_obj, row, 0, "SGP30 eCO2");
+      if (auto equivalent_carbon_dioxide =
+              sgp30 ? std::make_optional(sgp30->second.eCo2) : std::nullopt;
+          equivalent_carbon_dioxide) {
+        const Ppm eco2{*equivalent_carbon_dioxide};
         oss.str("");
         oss << +eco2.value;
-        lv_table_set_cell_value(table, row, 1, oss.str().c_str());
+        lv_table_set_cell_value(table_obj, row, 1, oss.str().c_str());
       } else {
-        lv_table_set_cell_value(table, row, 1, "-");
+        lv_table_set_cell_value(table_obj, row, 1, "-");
       }
-      lv_table_set_cell_value(table, row, 2, "ppm");
+      lv_table_set_cell_value(table_obj, row, 2, "ppm");
       row++;
-    }
-    {
-      lv_table_set_cell_value(table, row, 0, "SGP30 TVOC");
-      if (history.has_value()) {
-        const Ppb tvoc = history->second.tvoc;
+      //
+      lv_table_set_cell_value(table_obj, row, 0, "SGP30 TVOC");
+      if (auto total_voc =
+              sgp30 ? std::make_optional(sgp30->second.tvoc) : std::nullopt;
+          total_voc) {
+        const Ppb tvoc{*total_voc};
         oss.str("");
         oss << +tvoc.value;
-        lv_table_set_cell_value(table, row, 1, oss.str().c_str());
+        lv_table_set_cell_value(table_obj, row, 1, oss.str().c_str());
       } else {
-        lv_table_set_cell_value(table, row, 1, "-");
+        lv_table_set_cell_value(table_obj, row, 1, "-");
       }
-      lv_table_set_cell_value(table, row, 2, "ppb");
+      lv_table_set_cell_value(table_obj, row, 2, "ppb");
       row++;
+    } break;
+    //
+    default:
+      break;
     }
   }
   //
-  auto w = lv_obj_get_content_width(tile);
-  lv_table_set_col_width(table, 0, w * 6 / 12);
-  lv_table_set_col_width(table, 1, w * 3 / 12);
-  lv_table_set_col_width(table, 2, w * 3 / 12);
-  lv_obj_set_width(table, w);
-  lv_obj_set_height(table, lv_obj_get_content_height(tile));
-  lv_obj_center(table);
-  lv_obj_set_style_text_font(table, &lv_font_montserrat_18,
+  auto w = lv_obj_get_content_width(tile_obj);
+  lv_table_set_col_width(table_obj, 0, w * 6 / 12);
+  lv_table_set_col_width(table_obj, 1, w * 3 / 12);
+  lv_table_set_col_width(table_obj, 2, w * 3 / 12);
+  lv_obj_set_width(table_obj, w);
+  lv_obj_set_height(table_obj, lv_obj_get_content_height(tile_obj));
+  lv_obj_center(table_obj);
+  lv_obj_set_style_text_font(table_obj, &lv_font_montserrat_18,
                              LV_PART_ITEMS | LV_STATE_DEFAULT);
   //
   lv_obj_add_event_cb(
-      table,
+      table_obj,
       [](lv_event_t *event) -> void {
         lv_obj_t *obj = lv_event_get_target(event);
         lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
@@ -821,138 +752,321 @@ void Widget::Summary::render() noexcept {
 //
 template <typename T>
 Widget::BasicChart<T>::BasicChart(InitArg init,
-                                  const std::string &inSubheading) noexcept {
-  tile = std::apply(lv_tileview_add_tile, init);
+                                  const std::string &inSubheading) noexcept
+    : LINE_COLOR_TABLE{lv_palette_lighten(LV_PALETTE_RED, 1),
+                       lv_palette_lighten(LV_PALETTE_ORANGE, 1),
+                       lv_palette_lighten(LV_PALETTE_INDIGO, 1),
+                       lv_palette_lighten(LV_PALETTE_PURPLE, 1),
+                       lv_palette_lighten(LV_PALETTE_BROWN, 1),
+                       lv_palette_lighten(LV_PALETTE_BLUE, 1)} {
+  constexpr auto MARGIN{8};
   subheading = inSubheading;
+  tile_obj = std::apply(lv_tileview_add_tile, init);
   //
-  container = lv_obj_create(tile);
-  lv_obj_set_size(container, LV_PCT(100), LV_PCT(100));
-  lv_obj_center(container);
-  lv_obj_set_flex_flow(container, LV_FLEX_FLOW_COLUMN);
+  title_obj = lv_label_create(tile_obj);
+  lv_obj_set_style_text_align(title_obj, LV_TEXT_ALIGN_LEFT, LV_STATE_DEFAULT);
+  lv_obj_set_style_text_font(title_obj, &lv_font_montserrat_16,
+                             LV_STATE_DEFAULT);
+  lv_obj_set_size(title_obj, LV_PCT(100), lv_font_montserrat_16.line_height);
+  lv_obj_align(title_obj, LV_ALIGN_TOP_LEFT, MARGIN, MARGIN);
+  lv_label_set_text(title_obj, subheading.c_str());
   //
-  title = lv_label_create(container);
-  lv_obj_set_size(title, LV_PCT(100), LV_SIZE_CONTENT);
-  lv_obj_set_style_text_align(title, LV_TEXT_ALIGN_LEFT, LV_STATE_DEFAULT);
-  lv_obj_set_style_text_font(title, &lv_font_montserrat_16, LV_STATE_DEFAULT);
-  lv_obj_center(title);
-  lv_label_set_text(title, subheading.c_str());
+  label_obj = lv_label_create(tile_obj);
+  lv_obj_set_size(label_obj, lv_obj_get_content_width(tile_obj) - MARGIN * 2,
+                  lv_font_montserrat_18.line_height);
+  lv_obj_align_to(label_obj, title_obj, LV_ALIGN_OUT_BOTTOM_LEFT, 0, MARGIN);
+  lv_label_set_long_mode(label_obj, LV_LABEL_LONG_SCROLL_CIRCULAR);
+  lv_label_set_recolor(label_obj, true);
+  lv_obj_set_style_text_font(label_obj, &lv_font_montserrat_18,
+                             LV_STATE_DEFAULT);
+  lv_style_init(&label_style);
+  lv_style_set_bg_opa(&label_style, LV_OPA_COVER);
+  lv_style_set_bg_color(&label_style, lv_palette_darken(LV_PALETTE_BROWN, 4));
+  lv_style_set_text_color(&label_style,
+                          lv_palette_lighten(LV_PALETTE_BROWN, 4));
+  lv_obj_add_style(label_obj, &label_style, LV_PART_MAIN);
+  lv_label_set_text(label_obj, "");
   //
-  label = lv_label_create(container);
-  lv_obj_set_size(label, LV_PCT(100), LV_SIZE_CONTENT);
-  lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_RIGHT, LV_STATE_DEFAULT);
-  lv_obj_set_style_text_font(label, &lv_font_montserrat_30, LV_STATE_DEFAULT);
-  lv_obj_center(label);
+  chart_obj = lv_chart_create(tile_obj);
+  lv_obj_set_style_bg_color(
+      chart_obj, lv_palette_lighten(LV_PALETTE_LIGHT_GREEN, 2), LV_PART_MAIN);
   //
-  chart = lv_chart_create(container);
+  constexpr auto X_TICK_LABEL_LEN = 10;
+  constexpr auto Y_TICK_LABEL_LEN = 75;
+  lv_obj_set_size(chart_obj,
+                  lv_obj_get_content_width(tile_obj) //
+                      - MARGIN - Y_TICK_LABEL_LEN,
+                  lv_obj_get_content_height(tile_obj)             //
+                      - MARGIN * 2 - lv_obj_get_height(title_obj) //
+                      - MARGIN * 2 - lv_obj_get_height(label_obj) //
+                      - MARGIN - X_TICK_LABEL_LEN);
+  lv_obj_align_to(chart_obj, label_obj, LV_ALIGN_OUT_BOTTOM_LEFT, 0, MARGIN);
+  if constexpr (true) {
+    // Do not display points on the data
+    lv_obj_set_style_size(chart_obj, 0, LV_PART_INDICATOR);
+  }
+  lv_chart_set_update_mode(chart_obj, LV_CHART_UPDATE_MODE_SHIFT);
+  lv_chart_set_type(chart_obj, LV_CHART_TYPE_LINE);
+  lv_chart_set_range(chart_obj, LV_CHART_AXIS_PRIMARY_X, 0,
+                     Gui::CHART_X_POINT_COUNT);
+  lv_chart_set_range(chart_obj, LV_CHART_AXIS_SECONDARY_Y, 0, 1);
   //
-  // lv_obj_set_size(chart, 220, 140);
-  lv_obj_update_layout(tile);
-  lv_obj_set_size(chart, lv_obj_get_width(container) - 100, 140);
-  lv_obj_center(chart);
-  // Do not display points on the data
-  //  lv_obj_set_style_size(chart, 0, LV_PART_INDICATOR);
-  //
-  //  lv_chart_set_update_mode(chart, LV_CHART_UPDATE_MODE_SHIFT);
-  lv_chart_set_type(chart, LV_CHART_TYPE_LINE);
-  lv_chart_set_range(chart, LV_CHART_AXIS_SECONDARY_Y, 0, 1);
-  //
-  lv_chart_set_axis_tick(chart, LV_CHART_AXIS_SECONDARY_Y, 16, 9, 9, 2, true,
-                         100);
-  //
-  ser_one = lv_chart_add_series(chart, lv_palette_main(LV_PALETTE_RED),
-                                LV_CHART_AXIS_SECONDARY_Y);
+  lv_chart_set_axis_tick(chart_obj, LV_CHART_AXIS_PRIMARY_X, 10, 5, 10, 2,
+                         false, X_TICK_LABEL_LEN);
+  lv_chart_set_axis_tick(chart_obj, LV_CHART_AXIS_SECONDARY_Y, 10, 5, 10, 5,
+                         true, Y_TICK_LABEL_LEN);
+
+  // センサーIDとchart seriesをペアにする。
+  auto line_color_itr = LINE_COLOR_TABLE.begin();
+  for (const auto &sensor : Peripherals::sensors) {
+    if (const auto p = sensor.get(); p) {
+      if (line_color_itr == LINE_COLOR_TABLE.end()) {
+        line_color_itr = LINE_COLOR_TABLE.begin();
+      }
+      chart_series_vect.push_back(
+          std::make_pair(p->getSensorDescriptor(),
+                         lv_chart_add_series(chart_obj, *line_color_itr++,
+                                             LV_CHART_AXIS_SECONDARY_Y)));
+    }
+  }
+
+  // 初期化
+  lv_chart_set_point_count(chart_obj, Gui::CHART_X_POINT_COUNT);
 }
 
 template <typename T> Widget::BasicChart<T>::~BasicChart() noexcept {
-  lv_obj_clean(tile);
-  lv_obj_del(tile);
+  lv_obj_del(tile_obj);
 }
 
-template <typename T>
-template <typename U>
-void Widget::BasicChart<T>::setHeading(
-    std::string_view strUnit, std::optional<system_clock::time_point> optTP,
-    std::optional<U> optValue) noexcept {
-  lv_label_set_text(title, subheading.c_str());
-  std::ostringstream oss;
-  oss << std::fixed << std::setprecision(2);
-  if (optValue.has_value()) {
-    oss << *optValue << " " << strUnit;
-  } else {
-    oss << "- " << strUnit;
+//
+template <typename T> void Widget::BasicChart<T>::render() noexcept {
+  // 初期化
+  for (auto &[_, p] : chart_series_vect) {
+    lv_chart_set_all_value(chart_obj, p, LV_CHART_POINT_NONE);
+    lv_chart_set_x_start_point(chart_obj, p, 0);
   }
-  // time
-  if (optTP.has_value()) {
-    std::time_t time = system_clock::to_time_t(*optTP);
-    std::tm local_time;
-    localtime_r(&time, &local_time);
-    oss << std::put_time(&local_time, "(%R)");
-  }
-  lv_label_set_text(label, oss.str().c_str());
-}
-
-template <typename T>
-void Widget::BasicChart<T>::setChartValue(
-    const std::vector<ValuePair> &histories,
-    std::function<lv_coord_t(const ValueT &)> mapping) noexcept {
   //
-  if (histories.size() > 0) {
-    auto min = std::numeric_limits<lv_coord_t>::max();
-    auto max = std::numeric_limits<lv_coord_t>::min();
-    lv_chart_set_point_count(chart, histories.size());
-    for (auto idx = 0; idx < histories.size(); ++idx) {
-      auto value = mapping(histories[idx].second);
-      min = std::min(min, value);
-      max = std::max(max, value);
-      lv_chart_set_value_by_id(chart, ser_one, idx, value);
+  system_clock::time_point now_min = floor<minutes>(system_clock::now());
+  begin_x_tick = now_min - minutes(Gui::CHART_X_POINT_COUNT);
+
+  // データーベースより測定データーを得て
+  // 各々のsensoridのchart seriesにセットする関数
+  auto setChartSeries = [this](size_t counter, DataType item) -> bool {
+    auto &[sensorid, tp, value] = item;
+    // 各々のsensoridのchart seriesにセットする。
+    if (auto found_itr = std::find_if(
+            chart_series_vect.begin(), chart_series_vect.end(),
+            [&sensorid](auto &item) { return item.first == sensorid; });
+        found_itr != chart_series_vect.end()) {
+      lv_chart_series_t *target_series = found_itr->second;
+      auto coord = coordinateXY(begin_x_tick, item);
+      lv_chart_set_value_by_id(chart_obj, target_series, coord.x, coord.y);
     }
-    lv_chart_set_range(chart, LV_CHART_AXIS_SECONDARY_Y, std::floor(min),
-                       std::ceil(max));
+    // データー表示(デバッグ用)
+    if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_VERBOSE) {
+      //
+      std::time_t time = system_clock::to_time_t(tp);
+      std::tm local_time;
+      localtime_r(&time, &local_time);
+      std::ostringstream oss;
+      //
+      oss << "(" << +counter << ") ";
+      oss << SensorDescriptor(sensorid).str() << ", ";
+      oss << std::put_time(&local_time, "%F %T %Z");
+      oss << ", " << +value;
+      M5_LOGV("%s", oss.str().c_str());
+    }
+    return true; // always true
+  };
+
+  // データーベースより測定データーを得る
+  read_measurements_from_database(Database::OrderByAtAsc, begin_x_tick,
+                                  setChartSeries);
+
+  // 下限、上限
+  {
+    auto y_min = std::numeric_limits<lv_coord_t>::max();
+    auto y_max = std::numeric_limits<lv_coord_t>::min();
+    for (auto &item : chart_series_vect) {
+      lv_chart_series_t *series = item.second;
+      if (series == nullptr) {
+        M5_LOGE("lv_chart_series had null");
+        break;
+      }
+      for (auto i = 0; i < Gui::CHART_X_POINT_COUNT; ++i) {
+        if (series->y_points[i] != LV_CHART_POINT_NONE) {
+          y_min = std::min(y_min, series->y_points[i]);
+          y_max = std::max(y_max, series->y_points[i]);
+        }
+      }
+    }
     //
-    lv_chart_refresh(chart);
+    if (y_min == std::numeric_limits<lv_coord_t>::max() &&
+        y_max == std::numeric_limits<lv_coord_t>::min()) {
+      lv_chart_set_range(chart_obj, LV_CHART_AXIS_SECONDARY_Y, 0, 1);
+    } else {
+      DegC degc_min = std::chrono::duration_cast<DegC>(CentiDegC(y_min));
+      DegC degc_max = std::chrono::duration_cast<DegC>(CentiDegC(y_max));
+      DegC floor = std::chrono::floor<DegC>(degc_min);
+      DegC ceil = std::chrono::ceil<DegC>(degc_max);
+      lv_chart_set_range(chart_obj, LV_CHART_AXIS_SECONDARY_Y,
+                         std::chrono::duration_cast<CentiDegC>(floor).count(),
+                         std::chrono::duration_cast<CentiDegC>(ceil).count());
+      M5_LOGV("y_min:%d, y_max:%d", y_min, y_max);
+    }
+  }
+  lv_chart_refresh(chart_obj);
+}
+
+//
+template <>
+std::ostream &Widget::operator<<(std::ostream &os,
+                                 const Widget::ShowMeasured<DegC> &rhs) {
+  os << "#";
+  os << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.red
+     << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.green
+     << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.blue
+     << " ";
+  os << rhs.name << " " << std::dec << std::fixed << std::setprecision(2)
+     << rhs.meas.count() << rhs.unit;
+  os << "#";
+  return os;
+}
+
+//
+template <>
+std::ostream &Widget::operator<<(std::ostream &os,
+                                 const Widget::ShowMeasured<HectoPa> &rhs) {
+  os << "#";
+  os << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.red
+     << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.green
+     << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.blue
+     << " ";
+  os << rhs.name << " " << std::dec << std::fixed << std::setprecision(2)
+     << rhs.meas.count() << rhs.unit;
+  os << "#";
+  return os;
+}
+
+//
+template <>
+std::ostream &Widget::operator<<(std::ostream &os,
+                                 const Widget::ShowMeasured<Ppm> &rhs) {
+  os << "#";
+  os << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.red
+     << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.green
+     << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.blue
+     << " ";
+  os << rhs.name << " " << std::dec << +rhs.meas.value << rhs.unit;
+  os << "#";
+  return os;
+}
+
+//
+template <>
+std::ostream &Widget::operator<<(std::ostream &os,
+                                 const Widget::ShowMeasured<Ppb> &rhs) {
+  os << "#";
+  os << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.red
+     << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.green
+     << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.blue
+     << " ";
+  os << rhs.name << " " << std::dec << +rhs.meas.value << rhs.unit;
+  os << "#";
+  return os;
+}
+
+//
+// 気温
+//
+Widget::TemperatureChart::TemperatureChart(InitArg init) noexcept
+    : BasicChart(init, "Temperature") {
+  lv_obj_add_event_cb(chart_obj, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
+}
+
+void Widget::TemperatureChart::valueChangedEventHook(lv_event_t *) noexcept {
+  render();
+}
+
+void Widget::TemperatureChart::timerHook() noexcept {
+  auto bme280 = Application::measurements_database.getLatestMeasurementBme280();
+  auto scd30 = Application::measurements_database.getLatestMeasurementScd30();
+  auto scd41 = Application::measurements_database.getLatestMeasurementScd41();
+  auto m5env3 = Application::measurements_database.getLatestMeasurementM5Env3();
+  auto present = Measurements{bme280, scd30, scd41, m5env3};
+
+  auto get_color = [this](SensorId sensorid) -> lv_color32_t {
+    if (auto found_itr = std::find_if(
+            chart_series_vect.begin(), chart_series_vect.end(),
+            [&sensorid](const auto &item) { return item.first == sensorid; });
+        found_itr != chart_series_vect.end()) {
+      lv_chart_series_t *ptr = found_itr->second;
+      if (ptr == nullptr) {
+        M5_LOGE("lv_chart_series_t had null");
+      } else {
+        return lv_color32_t{.full = lv_color_to32(ptr->color)};
+      }
+    }
+    return LV_COLOR_MAKE(255, 255, 255);
+  };
+
+  if (present != latest) {
+    latest = present;
+    //
+    std::ostringstream oss;
+    if (bme280.has_value()) {
+      ShowMeasured<DegC> s{.color = get_color(bme280->second.sensor_descriptor),
+                           .name = "BME280",
+                           .unit = "C",
+                           .meas = bme280->second.temperature};
+      oss << s << " ";
+    }
+    if (scd30.has_value()) {
+      ShowMeasured<DegC> s{.color = get_color(scd30->second.sensor_descriptor),
+                           .name = "SCD30",
+                           .unit = "C",
+                           .meas = scd30->second.temperature};
+      oss << s << " ";
+    }
+    if (scd41.has_value()) {
+      ShowMeasured<DegC> s{.color = get_color(scd41->second.sensor_descriptor),
+                           .name = "SCD41",
+                           .unit = "C",
+                           .meas = scd41->second.temperature};
+      oss << s << " ";
+    }
+    if (m5env3.has_value()) {
+      ShowMeasured<DegC> s{.color = get_color(m5env3->second.sensor_descriptor),
+                           .name = "ENViii",
+                           .unit = "C",
+                           .meas = m5env3->second.temperature};
+      oss << s << " ";
+    }
+    lv_label_set_text(label_obj, oss.str().c_str());
+    //
+    render();
   }
 }
 
-//
-//
-//
-Widget::M5Env3TemperatureChart::M5Env3TemperatureChart(InitArg init) noexcept
-    : BasicChart(init, "ENV.III unit Temperature") {
-  lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
-}
+// データを座標に変換する関数
+lv_point_t Widget::TemperatureChart::coordinateXY(
+    system_clock::time_point begin_x,
+    const Database::TimePointAndDouble &in) noexcept {
+  auto [sensorid, timepoint, fp_value] = in;
+  auto degc = DegC(fp_value);
+  auto centi_degc = std::chrono::duration_cast<CentiDegC>(degc);
+  uint32_t timediff =
+      duration_cast<minutes>(floor<minutes>(timepoint) - begin_x).count();
+  lv_coord_t x = std::clamp(timediff, 0U, uint32_t(Gui::CHART_X_POINT_COUNT));
+  lv_coord_t y = static_cast<lv_coord_t>(centi_degc.count());
+  return lv_point_t{.x = x, .y = y};
+};
 
-void Widget::M5Env3TemperatureChart::valueChangedEventHook(
-    lv_event_t *) noexcept {
-  auto optTP =
-      latest.has_value() ? std::make_optional(latest->first) : std::nullopt;
-  auto optValue =
-      latest.has_value()
-          ? std::make_optional(DegC(latest->second.temperature).count())
-          : std::nullopt;
-  setHeading("C", optTP, optValue);
-  //
-  auto histories = Application::historiesM5Env3
-                       ? Application::historiesM5Env3->getHistories()
-                       : std::vector<MeasurementM5Env3>{};
-  setChartValue(histories, map_to_coord_t);
-}
-
-void Widget::M5Env3TemperatureChart::timerHook() noexcept {
-  auto now = Application::historiesM5Env3
-                 ? Application::historiesM5Env3->getLatestValue()
-                 : std::nullopt;
-  if (now != latest) {
-    latest = now;
-    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
+void Widget::TemperatureChart::drawEventHook(lv_event_t *event) noexcept {
+  auto it = static_cast<Widget::TemperatureChart *>(event->user_data);
+  if (it == nullptr) {
+    M5_LOGE("user_data had null");
   }
-}
-
-lv_coord_t
-Widget::M5Env3TemperatureChart::map_to_coord_t(const ValueT &in) noexcept {
-  return in.temperature.count();
-}
-
-void Widget::M5Env3TemperatureChart::drawEventHook(lv_event_t *event) noexcept {
   lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
   if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
                                   LV_CHART_DRAW_PART_TICK_LABEL)) {
@@ -964,197 +1078,95 @@ void Widget::M5Env3TemperatureChart::drawEventHook(lv_event_t *event) noexcept {
 }
 
 //
+// 相対湿度
 //
-//
-Widget::Bme280TemperatureChart::Bme280TemperatureChart(InitArg init) noexcept
-    : BasicChart(init, "BME280 Temperature") {
-  lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
+Widget::RelativeHumidityChart::RelativeHumidityChart(InitArg init) noexcept
+    : BasicChart(init, "Relative Humidity") {
+  lv_obj_add_event_cb(chart_obj, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
 }
 
-void Widget::Bme280TemperatureChart::valueChangedEventHook(
+void Widget::RelativeHumidityChart::valueChangedEventHook(
     lv_event_t *) noexcept {
-  auto optTP =
-      latest.has_value() ? std::make_optional(latest->first) : std::nullopt;
-  auto optValue =
-      latest.has_value()
-          ? std::make_optional(DegC(latest->second.temperature).count())
-          : std::nullopt;
-  setHeading("C", optTP, optValue);
-  //
-  auto histories = Application::historiesBme280
-                       ? Application::historiesBme280->getHistories()
-                       : std::vector<MeasurementBme280>{};
-  setChartValue(histories, map_to_coord_t);
+  render();
 }
 
-void Widget::Bme280TemperatureChart::timerHook() noexcept {
-  auto now = Application::historiesBme280
-                 ? Application::historiesBme280->getLatestValue()
-                 : std::nullopt;
-  if (now != latest) {
-    latest = now;
-    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
-  }
-}
+void Widget::RelativeHumidityChart::timerHook() noexcept {
+  auto bme280 = Application::measurements_database.getLatestMeasurementBme280();
+  auto scd30 = Application::measurements_database.getLatestMeasurementScd30();
+  auto scd41 = Application::measurements_database.getLatestMeasurementScd41();
+  auto m5env3 = Application::measurements_database.getLatestMeasurementM5Env3();
+  auto present = Measurements{bme280, scd30, scd41, m5env3};
 
-lv_coord_t
-Widget::Bme280TemperatureChart::map_to_coord_t(const ValueT &in) noexcept {
-  return in.temperature.count();
-}
-
-void Widget::Bme280TemperatureChart::drawEventHook(lv_event_t *event) noexcept {
-  lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
-  if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
-                                  LV_CHART_DRAW_PART_TICK_LABEL)) {
-    if (dsc->id == LV_CHART_AXIS_SECONDARY_Y && dsc->text) {
-      auto centiC = CentiDegC(dsc->value);
-      lv_snprintf(dsc->text, dsc->text_length, "%.2f", DegC(centiC).count());
+  auto get_color = [this](SensorId sensorid) -> lv_color32_t {
+    if (auto found_itr = std::find_if(
+            chart_series_vect.begin(), chart_series_vect.end(),
+            [&sensorid](const auto &item) { return item.first == sensorid; });
+        found_itr != chart_series_vect.end()) {
+      lv_chart_series_t *ptr = found_itr->second;
+      if (ptr == nullptr) {
+        M5_LOGE("lv_chart_series_t had null");
+      } else {
+        return lv_color32_t{.full = lv_color_to32(ptr->color)};
+      }
     }
-  }
-}
+    return LV_COLOR_MAKE(255, 255, 255);
+  };
 
-//
-//
-//
-Widget::Scd30TemperatureChart::Scd30TemperatureChart(InitArg init) noexcept
-    : BasicChart(init, "SCD30 Temperature") {
-  lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
-}
-
-void Widget::Scd30TemperatureChart::valueChangedEventHook(
-    lv_event_t *) noexcept {
-  auto optTP =
-      latest.has_value() ? std::make_optional(latest->first) : std::nullopt;
-  auto optValue =
-      latest.has_value()
-          ? std::make_optional(DegC(latest->second.temperature).count())
-          : std::nullopt;
-  setHeading("C", optTP, optValue);
-  //
-  auto histories = Application::historiesScd30
-                       ? Application::historiesScd30->getHistories()
-                       : std::vector<MeasurementScd30>{};
-  setChartValue(histories, map_to_coord_t);
-}
-
-void Widget::Scd30TemperatureChart::timerHook() noexcept {
-  auto now = Application::historiesScd30
-                 ? Application::historiesScd30->getLatestValue()
-                 : std::nullopt;
-  if (now != latest) {
-    latest = now;
-    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
-  }
-}
-
-lv_coord_t
-Widget::Scd30TemperatureChart::map_to_coord_t(const ValueT &in) noexcept {
-  return in.temperature.count();
-}
-
-void Widget::Scd30TemperatureChart::drawEventHook(lv_event_t *event) noexcept {
-  lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
-  if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
-                                  LV_CHART_DRAW_PART_TICK_LABEL)) {
-    if (dsc->id == LV_CHART_AXIS_SECONDARY_Y && dsc->text) {
-      auto centiC = CentiDegC(dsc->value);
-      lv_snprintf(dsc->text, dsc->text_length, "%.2f", DegC(centiC).count());
+  if (present != latest) {
+    latest = present;
+    //
+    std::ostringstream oss;
+    if (bme280.has_value()) {
+      ShowMeasured<PctRH> s{.color =
+                                get_color(bme280->second.sensor_descriptor),
+                            .name = "BME280",
+                            .unit = "%",
+                            .meas = bme280->second.relative_humidity};
+      oss << s << " ";
     }
-  }
-}
-
-//
-//
-//
-Widget::Scd41TemperatureChart::Scd41TemperatureChart(InitArg init) noexcept
-    : BasicChart(init, "SCD41 Temperature") {
-  lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
-}
-
-void Widget::Scd41TemperatureChart::valueChangedEventHook(
-    lv_event_t *) noexcept {
-  auto optTP =
-      latest.has_value() ? std::make_optional(latest->first) : std::nullopt;
-  auto optValue =
-      latest.has_value()
-          ? std::make_optional(DegC(latest->second.temperature).count())
-          : std::nullopt;
-  setHeading("C", optTP, optValue);
-  //
-  auto histories = Application::historiesScd41
-                       ? Application::historiesScd41->getHistories()
-                       : std::vector<MeasurementScd41>{};
-  setChartValue(histories, map_to_coord_t);
-}
-
-void Widget::Scd41TemperatureChart::timerHook() noexcept {
-  auto now = Application::historiesScd41
-                 ? Application::historiesScd41->getLatestValue()
-                 : std::nullopt;
-  if (now != latest) {
-    latest = now;
-    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
-  }
-}
-
-lv_coord_t
-Widget::Scd41TemperatureChart::map_to_coord_t(const ValueT &in) noexcept {
-  return in.temperature.count();
-}
-
-void Widget::Scd41TemperatureChart::drawEventHook(lv_event_t *event) noexcept {
-  lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
-  if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
-                                  LV_CHART_DRAW_PART_TICK_LABEL)) {
-    if (dsc->id == LV_CHART_AXIS_SECONDARY_Y && dsc->text) {
-      auto centiC = CentiDegC(dsc->value);
-      lv_snprintf(dsc->text, dsc->text_length, "%.2f", DegC(centiC).count());
+    if (scd30.has_value()) {
+      ShowMeasured<PctRH> s{.color = get_color(scd30->second.sensor_descriptor),
+                            .name = "SCD30",
+                            .unit = "%",
+                            .meas = scd30->second.relative_humidity};
+      oss << s << " ";
     }
+    if (scd41.has_value()) {
+      ShowMeasured<PctRH> s{.color = get_color(scd41->second.sensor_descriptor),
+                            .name = "SCD41",
+                            .unit = "%",
+                            .meas = scd41->second.relative_humidity};
+      oss << s << " ";
+    }
+    if (m5env3.has_value()) {
+      ShowMeasured<PctRH> s{.color =
+                                get_color(m5env3->second.sensor_descriptor),
+                            .name = "ENViii",
+                            .unit = "%",
+                            .meas = m5env3->second.relative_humidity};
+      oss << s << " ";
+    }
+    lv_label_set_text(label_obj, oss.str().c_str());
+    //
+    render();
   }
 }
 
-//
-//
-//
-Widget::M5Env3RelativeHumidityChart::M5Env3RelativeHumidityChart(
-    InitArg init) noexcept
-    : BasicChart(init, "ENV.III unit Relative Humidity") {
-  lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
-}
+// データを座標に変換する関数
+lv_point_t Widget::RelativeHumidityChart::coordinateXY(
+    system_clock::time_point begin_x,
+    const Database::TimePointAndDouble &in) noexcept {
+  auto [sensorid, timepoint, fp_value] = in;
+  auto percentRelativeHumidity = PctRH(fp_value);
+  auto rh = std::chrono::duration_cast<CentiRH>(percentRelativeHumidity);
+  uint32_t timediff =
+      duration_cast<minutes>(floor<minutes>(timepoint) - begin_x).count();
+  lv_coord_t x = std::clamp(timediff, 0U, uint32_t(Gui::CHART_X_POINT_COUNT));
+  lv_coord_t y = static_cast<lv_coord_t>(rh.count());
+  return lv_point_t{.x = x, .y = y};
+};
 
-void Widget::M5Env3RelativeHumidityChart::valueChangedEventHook(
-    lv_event_t *) noexcept {
-  auto optTP =
-      latest.has_value() ? std::make_optional(latest->first) : std::nullopt;
-  auto optValue =
-      latest.has_value()
-          ? std::make_optional(PctRH(latest->second.relative_humidity).count())
-          : std::nullopt;
-  setHeading("%RH", optTP, optValue);
-  //
-  auto histories = Application::historiesM5Env3
-                       ? Application::historiesM5Env3->getHistories()
-                       : std::vector<MeasurementM5Env3>{};
-  setChartValue(histories, map_to_coord_t);
-}
-
-void Widget::M5Env3RelativeHumidityChart::timerHook() noexcept {
-  auto now = Application::historiesM5Env3
-                 ? Application::historiesM5Env3->getLatestValue()
-                 : std::nullopt;
-  if (now != latest) {
-    latest = now;
-    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
-  }
-}
-
-lv_coord_t
-Widget::M5Env3RelativeHumidityChart::map_to_coord_t(const ValueT &in) noexcept {
-  return in.relative_humidity.count();
-}
-
-void Widget::M5Env3RelativeHumidityChart::drawEventHook(
-    lv_event_t *event) noexcept {
+void Widget::RelativeHumidityChart::drawEventHook(lv_event_t *event) noexcept {
   lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
   if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
                                   LV_CHART_DRAW_PART_TICK_LABEL)) {
@@ -1166,200 +1178,78 @@ void Widget::M5Env3RelativeHumidityChart::drawEventHook(
 }
 
 //
+// 気圧
 //
-//
-Widget::Bme280RelativeHumidityChart::Bme280RelativeHumidityChart(
-    InitArg init) noexcept
-    : BasicChart(init, "BME280 Relative Humidity") {
-  lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
+Widget::PressureChart::PressureChart(InitArg init) noexcept
+    : BasicChart(init, "Pressure") {
+  lv_obj_add_event_cb(chart_obj, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
 }
 
-void Widget::Bme280RelativeHumidityChart::valueChangedEventHook(
-    lv_event_t *) noexcept {
-  auto optTP =
-      latest.has_value() ? std::make_optional(latest->first) : std::nullopt;
-  auto optValue =
-      latest.has_value()
-          ? std::make_optional(PctRH(latest->second.relative_humidity).count())
-          : std::nullopt;
-  setHeading("%RH", optTP, optValue);
-  //
-  auto histories = Application::historiesBme280
-                       ? Application::historiesBme280->getHistories()
-                       : std::vector<MeasurementBme280>{};
-  setChartValue(histories, map_to_coord_t);
+void Widget::PressureChart::valueChangedEventHook(lv_event_t *) noexcept {
+  render();
 }
 
-void Widget::Bme280RelativeHumidityChart::timerHook() noexcept {
-  auto now = Application::historiesBme280
-                 ? Application::historiesBme280->getLatestValue()
-                 : std::nullopt;
-  if (now != latest) {
-    latest = now;
-    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
-  }
-}
+void Widget::PressureChart::timerHook() noexcept {
+  auto bme280 = Application::measurements_database.getLatestMeasurementBme280();
+  auto m5env3 = Application::measurements_database.getLatestMeasurementM5Env3();
+  auto present = Measurements{bme280, m5env3};
 
-lv_coord_t
-Widget::Bme280RelativeHumidityChart::map_to_coord_t(const ValueT &in) noexcept {
-  return in.relative_humidity.count();
-}
-
-void Widget::Bme280RelativeHumidityChart::drawEventHook(
-    lv_event_t *event) noexcept {
-  lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
-  if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
-                                  LV_CHART_DRAW_PART_TICK_LABEL)) {
-    if (dsc->id == LV_CHART_AXIS_SECONDARY_Y && dsc->text) {
-      auto centiRH = CentiRH(dsc->value);
-      lv_snprintf(dsc->text, dsc->text_length, "%.2f", PctRH(centiRH).count());
+  auto get_color = [this](SensorId sensorid) -> lv_color32_t {
+    if (auto found_itr = std::find_if(
+            chart_series_vect.begin(), chart_series_vect.end(),
+            [&sensorid](const auto &item) { return item.first == sensorid; });
+        found_itr != chart_series_vect.end()) {
+      lv_chart_series_t *ptr = found_itr->second;
+      if (ptr == nullptr) {
+        M5_LOGE("lv_chart_series_t had null");
+      } else {
+        return lv_color32_t{.full = lv_color_to32(ptr->color)};
+      }
     }
-  }
-}
+    return LV_COLOR_MAKE(255, 255, 255);
+  };
 
-//
-//
-//
-Widget::Scd30RelativeHumidityChart::Scd30RelativeHumidityChart(
-    InitArg init) noexcept
-    : BasicChart(init, "SCD30 Relative Humidity") {
-  lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
-}
-
-void Widget::Scd30RelativeHumidityChart::valueChangedEventHook(
-    lv_event_t *) noexcept {
-  auto optTP =
-      latest.has_value() ? std::make_optional(latest->first) : std::nullopt;
-  auto optValue =
-      latest.has_value()
-          ? std::make_optional(PctRH(latest->second.relative_humidity).count())
-          : std::nullopt;
-  setHeading("%RH", optTP, optValue);
-  //
-  auto histories = Application::historiesScd30
-                       ? Application::historiesScd30->getHistories()
-                       : std::vector<MeasurementScd30>{};
-  setChartValue(histories, map_to_coord_t);
-}
-
-void Widget::Scd30RelativeHumidityChart::timerHook() noexcept {
-  auto now = Application::historiesScd30
-                 ? Application::historiesScd30->getLatestValue()
-                 : std::nullopt;
-  if (now != latest) {
-    latest = now;
-    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
-  }
-}
-
-lv_coord_t
-Widget::Scd30RelativeHumidityChart::map_to_coord_t(const ValueT &in) noexcept {
-  return in.relative_humidity.count();
-}
-
-void Widget::Scd30RelativeHumidityChart::drawEventHook(
-    lv_event_t *event) noexcept {
-  lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
-  if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
-                                  LV_CHART_DRAW_PART_TICK_LABEL)) {
-    if (dsc->id == LV_CHART_AXIS_SECONDARY_Y && dsc->text) {
-      auto centiRH = CentiRH(dsc->value);
-      lv_snprintf(dsc->text, dsc->text_length, "%.2f", PctRH(centiRH).count());
+  if (present != latest) {
+    latest = present;
+    //
+    std::ostringstream oss;
+    if (bme280.has_value()) {
+      ShowMeasured<HectoPa> s{.color =
+                                  get_color(bme280->second.sensor_descriptor),
+                              .name = "BME280",
+                              .unit = "hpa",
+                              .meas = bme280->second.pressure};
+      oss << s << " ";
     }
-  }
-}
-
-//
-//
-//
-Widget::Scd41RelativeHumidityChart::Scd41RelativeHumidityChart(
-    InitArg init) noexcept
-    : BasicChart(init, "SCD41 Relative Humidity") {
-  lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
-}
-
-void Widget::Scd41RelativeHumidityChart::valueChangedEventHook(
-    lv_event_t *) noexcept {
-  auto optTP =
-      latest.has_value() ? std::make_optional(latest->first) : std::nullopt;
-  auto optValue =
-      latest.has_value()
-          ? std::make_optional(PctRH(latest->second.relative_humidity).count())
-          : std::nullopt;
-  setHeading("%RH", optTP, optValue);
-  //
-  auto histories = Application::historiesScd41
-                       ? Application::historiesScd41->getHistories()
-                       : std::vector<MeasurementScd41>{};
-  setChartValue(histories, map_to_coord_t);
-}
-
-void Widget::Scd41RelativeHumidityChart::timerHook() noexcept {
-  auto now = Application::historiesScd41
-                 ? Application::historiesScd41->getLatestValue()
-                 : std::nullopt;
-  if (now != latest) {
-    latest = now;
-    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
-  }
-}
-
-lv_coord_t
-Widget::Scd41RelativeHumidityChart::map_to_coord_t(const ValueT &in) noexcept {
-  return in.relative_humidity.count();
-}
-
-void Widget::Scd41RelativeHumidityChart::drawEventHook(
-    lv_event_t *event) noexcept {
-  lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
-  if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
-                                  LV_CHART_DRAW_PART_TICK_LABEL)) {
-    if (dsc->id == LV_CHART_AXIS_SECONDARY_Y && dsc->text) {
-      auto centiRH = CentiRH(dsc->value);
-      lv_snprintf(dsc->text, dsc->text_length, "%.2f", PctRH(centiRH).count());
+    if (m5env3.has_value()) {
+      ShowMeasured<HectoPa> s{.color =
+                                  get_color(m5env3->second.sensor_descriptor),
+                              .name = "ENViii",
+                              .unit = "hpa",
+                              .meas = m5env3->second.pressure};
+      oss << s << " ";
     }
+    lv_label_set_text(label_obj, oss.str().c_str());
+    //
+    render();
   }
 }
 
-//
-//
-//
-Widget::M5Env3PressureChart::M5Env3PressureChart(InitArg init) noexcept
-    : BasicChart(init, "ENV.III unit Pressure") {
-  lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
-}
+// データを座標に変換する関数
+lv_point_t Widget::PressureChart::coordinateXY(
+    system_clock::time_point begin_x,
+    const Database::TimePointAndDouble &in) noexcept {
+  auto [sensorid, timepoint, fp_value] = in;
+  auto hpa = HectoPa(fp_value);
+  auto pascal = std::chrono::duration_cast<Pascal>(hpa - BIAS);
+  uint32_t timediff =
+      duration_cast<minutes>(floor<minutes>(timepoint) - begin_x).count();
+  lv_coord_t x = std::clamp(timediff, 0U, uint32_t(Gui::CHART_X_POINT_COUNT));
+  lv_coord_t y = static_cast<lv_coord_t>(pascal.count());
+  return lv_point_t{.x = x, .y = y};
+};
 
-void Widget::M5Env3PressureChart::valueChangedEventHook(lv_event_t *) noexcept {
-  auto optTP =
-      latest.has_value() ? std::make_optional(latest->first) : std::nullopt;
-  auto optValue =
-      latest.has_value()
-          ? std::make_optional(HectoPa(latest->second.pressure).count())
-          : std::nullopt;
-  setHeading("hPa", optTP, optValue);
-  //
-  auto histories = Application::historiesM5Env3
-                       ? Application::historiesM5Env3->getHistories()
-                       : std::vector<MeasurementM5Env3>{};
-  setChartValue(histories, map_to_coord_t);
-}
-
-void Widget::M5Env3PressureChart::timerHook() noexcept {
-  auto now = Application::historiesM5Env3
-                 ? Application::historiesM5Env3->getLatestValue()
-                 : std::nullopt;
-  if (now != latest) {
-    latest = now;
-    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
-  }
-}
-
-lv_coord_t
-Widget::M5Env3PressureChart::map_to_coord_t(const ValueT &in) noexcept {
-  return (in.pressure - BIAS).count();
-}
-
-void Widget::M5Env3PressureChart::drawEventHook(lv_event_t *event) noexcept {
+void Widget::PressureChart::drawEventHook(lv_event_t *event) noexcept {
   lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
   if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
                                   LV_CHART_DRAW_PART_TICK_LABEL)) {
@@ -1371,92 +1261,140 @@ void Widget::M5Env3PressureChart::drawEventHook(lv_event_t *event) noexcept {
 }
 
 //
+// Co2 / ECo2
 //
-//
-Widget::Bme280PressureChart::Bme280PressureChart(InitArg init) noexcept
-    : BasicChart(init, "BME280 Pressure") {
-  lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
+Widget::CarbonDeoxidesChart::CarbonDeoxidesChart(InitArg init) noexcept
+    : BasicChart(init, "CO2") {}
+
+void Widget::CarbonDeoxidesChart::valueChangedEventHook(lv_event_t *) noexcept {
+  render();
 }
 
-void Widget::Bme280PressureChart::valueChangedEventHook(lv_event_t *) noexcept {
-  auto optTP =
-      latest.has_value() ? std::make_optional(latest->first) : std::nullopt;
-  auto optValue =
-      latest.has_value()
-          ? std::make_optional(HectoPa(latest->second.pressure).count())
-          : std::nullopt;
-  setHeading("hPa", optTP, optValue);
-  //
-  auto histories = Application::historiesBme280
-                       ? Application::historiesBme280->getHistories()
-                       : std::vector<MeasurementBme280>{};
-  setChartValue(histories, map_to_coord_t);
-}
+void Widget::CarbonDeoxidesChart::timerHook() noexcept {
+  auto sgp30 = Application::measurements_database.getLatestMeasurementSgp30();
+  auto scd30 = Application::measurements_database.getLatestMeasurementScd30();
+  auto scd41 = Application::measurements_database.getLatestMeasurementScd41();
+  auto present = Measurements{sgp30, scd30, scd41};
 
-void Widget::Bme280PressureChart::timerHook() noexcept {
-  auto now = Application::historiesBme280
-                 ? Application::historiesBme280->getLatestValue()
-                 : std::nullopt;
-  if (now != latest) {
-    latest = now;
-    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
-  }
-}
-
-lv_coord_t
-Widget::Bme280PressureChart::map_to_coord_t(const ValueT &in) noexcept {
-  return (in.pressure - BIAS).count();
-}
-
-void Widget::Bme280PressureChart::drawEventHook(lv_event_t *event) noexcept {
-  lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
-  if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
-                                  LV_CHART_DRAW_PART_TICK_LABEL)) {
-    if (dsc->id == LV_CHART_AXIS_SECONDARY_Y && dsc->text) {
-      auto pascal = Pascal(dsc->value) + BIAS;
-      lv_snprintf(dsc->text, dsc->text_length, "%.2f", HectoPa(pascal).count());
+  auto get_color = [this](SensorId sensorid) -> lv_color32_t {
+    if (auto found_itr = std::find_if(
+            chart_series_vect.begin(), chart_series_vect.end(),
+            [&sensorid](const auto &item) { return item.first == sensorid; });
+        found_itr != chart_series_vect.end()) {
+      lv_chart_series_t *ptr = found_itr->second;
+      if (ptr == nullptr) {
+        M5_LOGE("lv_chart_series_t had null");
+      } else {
+        return lv_color32_t{.full = lv_color_to32(ptr->color)};
+      }
     }
+    return LV_COLOR_MAKE(255, 255, 255);
+  };
+
+  if (present != latest) {
+    latest = present;
+    //
+    std::ostringstream oss;
+    if (sgp30.has_value()) {
+      ShowMeasured<Ppm> s{.color = get_color(sgp30->second.sensor_descriptor),
+                          .name = "SGP30",
+                          .unit = "ppm",
+                          .meas = sgp30->second.eCo2};
+      oss << s << " ";
+    }
+    if (scd30.has_value()) {
+      ShowMeasured<Ppm> s{.color = get_color(scd30->second.sensor_descriptor),
+                          .name = "SCD30",
+                          .unit = "ppm",
+                          .meas = scd30->second.co2};
+      oss << s << " ";
+    }
+    if (scd41.has_value()) {
+      ShowMeasured<Ppm> s{.color = get_color(scd41->second.sensor_descriptor),
+                          .name = "SCD41",
+                          .unit = "ppm",
+                          .meas = scd41->second.co2};
+      oss << s << " ";
+    }
+    lv_label_set_text(label_obj, oss.str().c_str());
+    //
+    render();
   }
 }
 
+// データを座標に変換する関数
+lv_point_t Widget::CarbonDeoxidesChart::coordinateXY(
+    system_clock::time_point begin_x,
+    const Database::TimePointAndUInt16 &in) noexcept {
+  auto [sensorid, timepoint, int_value] = in;
+  uint32_t timediff =
+      duration_cast<minutes>(floor<minutes>(timepoint) - begin_x).count();
+  lv_coord_t x = std::clamp(timediff, 0U, uint32_t(Gui::CHART_X_POINT_COUNT));
+  lv_coord_t y = static_cast<lv_coord_t>(int_value);
+  return lv_point_t{.x = x, .y = y};
+};
+
 //
+// Total VOC
 //
-//
-Widget::Sgp30TotalVocChart::Sgp30TotalVocChart(InitArg init) noexcept
-    : BasicChart(init, "SGP30 Total VOC") {
-  lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
+Widget::TotalVocChart::TotalVocChart(InitArg init) noexcept
+    : BasicChart(init, "Total VOC") {
+  lv_obj_add_event_cb(chart_obj, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
 }
 
-void Widget::Sgp30TotalVocChart::valueChangedEventHook(lv_event_t *) noexcept {
-  auto optTP =
-      latest.has_value() ? std::make_optional(latest->first) : std::nullopt;
-  auto optValue = latest.has_value()
-                      ? std::make_optional(Ppb(latest->second.tvoc).value)
-                      : std::nullopt;
-  setHeading("ppb", optTP, optValue);
-  //
-  auto histories = Application::historiesSgp30
-                       ? Application::historiesSgp30->getHistories()
-                       : std::vector<MeasurementSgp30>{};
-  setChartValue(histories, map_to_coord_t);
+void Widget::TotalVocChart::valueChangedEventHook(lv_event_t *) noexcept {
+  render();
 }
 
-void Widget::Sgp30TotalVocChart::timerHook() noexcept {
-  auto now = Application::historiesSgp30
-                 ? Application::historiesSgp30->getLatestValue()
-                 : std::nullopt;
-  if (now != latest) {
-    latest = now;
-    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
+void Widget::TotalVocChart::timerHook() noexcept {
+  auto sgp30 = Application::measurements_database.getLatestMeasurementSgp30();
+  auto present = sgp30;
+
+  auto get_color = [this](SensorId sensorid) -> lv_color32_t {
+    if (auto found_itr = std::find_if(
+            chart_series_vect.begin(), chart_series_vect.end(),
+            [&sensorid](const auto &item) { return item.first == sensorid; });
+        found_itr != chart_series_vect.end()) {
+      lv_chart_series_t *ptr = found_itr->second;
+      if (ptr == nullptr) {
+        M5_LOGE("lv_chart_series_t had null");
+      } else {
+        return lv_color32_t{.full = lv_color_to32(ptr->color)};
+      }
+    }
+    return LV_COLOR_MAKE(255, 255, 255);
+  };
+
+  if (present != latest) {
+    latest = present;
+    //
+    std::ostringstream oss;
+    if (sgp30.has_value()) {
+      ShowMeasured<Ppb> s{.color = get_color(sgp30->second.sensor_descriptor),
+                          .name = "SGP30",
+                          .unit = "ppb",
+                          .meas = sgp30->second.tvoc};
+      oss << s << " ";
+    }
+    lv_label_set_text(label_obj, oss.str().c_str());
+    //
+    render();
   }
 }
 
-lv_coord_t
-Widget::Sgp30TotalVocChart::map_to_coord_t(const ValueT &in) noexcept {
-  return Ppb(in.tvoc).value / 2;
-}
+// データを座標に変換する関数
+lv_point_t Widget::TotalVocChart::coordinateXY(
+    system_clock::time_point begin_x,
+    const Database::TimePointAndUInt16 &in) noexcept {
+  auto [sensorid, timepoint, int_value] = in;
+  uint32_t timediff =
+      duration_cast<minutes>(floor<minutes>(timepoint) - begin_x).count();
+  lv_coord_t x = std::clamp(timediff, 0U, uint32_t(Gui::CHART_X_POINT_COUNT));
+  lv_coord_t y = static_cast<lv_coord_t>(int_value / 2);
+  return lv_point_t{.x = x, .y = y};
+};
 
-void Widget::Sgp30TotalVocChart::drawEventHook(lv_event_t *event) noexcept {
+void Widget::TotalVocChart::drawEventHook(lv_event_t *event) noexcept {
   lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
   if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
                                   LV_CHART_DRAW_PART_TICK_LABEL)) {
@@ -1464,112 +1402,5 @@ void Widget::Sgp30TotalVocChart::drawEventHook(lv_event_t *event) noexcept {
       auto tvoc = dsc->value * 2;
       lv_snprintf(dsc->text, dsc->text_length, "%d", tvoc);
     }
-  }
-}
-
-//
-//
-//
-Widget::Sgp30Eco2Chart::Sgp30Eco2Chart(InitArg init) noexcept
-    : BasicChart(init, "SGP30 equivalent CO2") {
-  lv_obj_add_event_cb(chart, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
-}
-
-void Widget::Sgp30Eco2Chart::valueChangedEventHook(lv_event_t *) noexcept {
-  auto optTP =
-      latest.has_value() ? std::make_optional(latest->first) : std::nullopt;
-  auto optValue = latest.has_value()
-                      ? std::make_optional(Ppm(latest->second.eCo2).value)
-                      : std::nullopt;
-  setHeading("ppm", optTP, optValue);
-  //
-  auto histories = Application::historiesSgp30
-                       ? Application::historiesSgp30->getHistories()
-                       : std::vector<MeasurementSgp30>{};
-  setChartValue(histories, map_to_coord_t);
-}
-
-void Widget::Sgp30Eco2Chart::timerHook() noexcept {
-  auto now = Application::historiesSgp30
-                 ? Application::historiesSgp30->getLatestValue()
-                 : std::nullopt;
-  if (now != latest) {
-    latest = now;
-    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
-  }
-}
-
-lv_coord_t Widget::Sgp30Eco2Chart::map_to_coord_t(const ValueT &in) noexcept {
-  return Ppm(in.eCo2).value / 2;
-}
-
-void Widget::Sgp30Eco2Chart::drawEventHook(lv_event_t *event) noexcept {
-  lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
-  if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
-                                  LV_CHART_DRAW_PART_TICK_LABEL)) {
-    if (dsc->id == LV_CHART_AXIS_SECONDARY_Y && dsc->text) {
-      auto eco2 = dsc->value * 2;
-      lv_snprintf(dsc->text, dsc->text_length, "%d", eco2);
-    }
-  }
-}
-
-//
-//
-//
-Widget::Scd30Co2Chart::Scd30Co2Chart(InitArg init) noexcept
-    : BasicChart(init, "SCD30 CO2") {}
-
-void Widget::Scd30Co2Chart::valueChangedEventHook(lv_event_t *) noexcept {
-  auto optTP =
-      latest.has_value() ? std::make_optional(latest->first) : std::nullopt;
-  auto optValue = latest.has_value()
-                      ? std::make_optional(Ppm(latest->second.co2).value)
-                      : std::nullopt;
-  setHeading("ppm", optTP, optValue);
-  //
-  auto histories = Application::historiesScd30
-                       ? Application::historiesScd30->getHistories()
-                       : std::vector<MeasurementScd30>{};
-  setChartValue(histories, [](auto x) { return Ppm(x.co2).value; });
-}
-
-void Widget::Scd30Co2Chart::timerHook() noexcept {
-  auto now = Application::historiesScd30
-                 ? Application::historiesScd30->getLatestValue()
-                 : std::nullopt;
-  if (now != latest) {
-    latest = now;
-    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
-  }
-}
-
-//
-//
-//
-Widget::Scd41Co2Chart::Scd41Co2Chart(InitArg init) noexcept
-    : BasicChart(init, "SCD41 CO2") {}
-
-void Widget::Scd41Co2Chart::valueChangedEventHook(lv_event_t *) noexcept {
-  auto optTP =
-      latest.has_value() ? std::make_optional(latest->first) : std::nullopt;
-  auto optValue = latest.has_value()
-                      ? std::make_optional(Ppm(latest->second.co2).value)
-                      : std::nullopt;
-  setHeading("ppm", optTP, optValue);
-  //
-  auto histories = Application::historiesScd41
-                       ? Application::historiesScd41->getHistories()
-                       : std::vector<MeasurementScd41>{};
-  setChartValue(histories, [](auto x) { return Ppm(x.co2).value; });
-}
-
-void Widget::Scd41Co2Chart::timerHook() noexcept {
-  auto now = Application::historiesScd41
-                 ? Application::historiesScd41->getLatestValue()
-                 : std::nullopt;
-  if (now != latest) {
-    latest = now;
-    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED, nullptr);
   }
 }
