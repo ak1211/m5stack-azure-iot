@@ -259,6 +259,10 @@ bool Telemetry::initializeMqttClient() {
   mqtt_config.user_context = this;
   mqtt_config.cert_pem = reinterpret_cast<const char *>(ca_pem);
 
+  if (mqtt_client) {
+    esp_mqtt_client_destroy(mqtt_client);
+    mqtt_client = nullptr;
+  }
   mqtt_client = esp_mqtt_client_init(&mqtt_config);
 
   if (mqtt_client == nullptr) {

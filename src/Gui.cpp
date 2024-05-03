@@ -926,7 +926,7 @@ std::ostream &Widget::operator<<(std::ostream &os,
   os << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.red
      << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.green
      << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.blue
-     << " ";
+     << "  ";
   os << rhs.name << " " << std::dec << std::fixed << std::setprecision(2)
      << rhs.meas.count() << rhs.unit;
   os << "#";
@@ -941,7 +941,7 @@ std::ostream &Widget::operator<<(std::ostream &os,
   os << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.red
      << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.green
      << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.blue
-     << " ";
+     << "  ";
   os << rhs.name << " " << std::dec << std::fixed << std::setprecision(2)
      << rhs.meas.count() << rhs.unit;
   os << "#";
@@ -956,7 +956,7 @@ std::ostream &Widget::operator<<(std::ostream &os,
   os << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.red
      << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.green
      << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.blue
-     << " ";
+     << "  ";
   os << rhs.name << " " << std::dec << +rhs.meas.value << rhs.unit;
   os << "#";
   return os;
@@ -970,7 +970,7 @@ std::ostream &Widget::operator<<(std::ostream &os,
   os << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.red
      << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.green
      << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.blue
-     << " ";
+     << "  ";
   os << rhs.name << " " << std::dec << +rhs.meas.value << rhs.unit;
   os << "#";
   return os;
