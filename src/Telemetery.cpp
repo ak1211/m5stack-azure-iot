@@ -126,7 +126,6 @@ esp_err_t Telemetry::mqtt_event_handler(esp_mqtt_event_handle_t event) {
     M5_LOGE("user context had null");
     return ESP_OK;
   }
-  int r;
   switch (event->event_id) {
   case MQTT_EVENT_ERROR:
     M5_LOGI("MQTT event MQTT_EVENT_ERROR");
@@ -137,9 +136,9 @@ esp_err_t Telemetry::mqtt_event_handler(esp_mqtt_event_handle_t event) {
       M5_LOGE("mqtt_client had null.");
       break;
     }
-    r = esp_mqtt_client_subscribe(telemetry->mqtt_client,
-                                  AZ_IOT_HUB_CLIENT_C2D_SUBSCRIBE_TOPIC, 1);
-    if (r == -1) {
+    if (auto r = esp_mqtt_client_subscribe(
+            telemetry->mqtt_client, AZ_IOT_HUB_CLIENT_C2D_SUBSCRIBE_TOPIC, 1);
+        r == -1) {
       M5_LOGE("Could not subscribe for cloud-to-device messages.");
     } else {
       M5_LOGI("Subscribed for cloud-to-device messages; message id:%d", r);
