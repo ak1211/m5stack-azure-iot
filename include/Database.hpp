@@ -49,14 +49,13 @@ public:
   constexpr static std::chrono::seconds RETRY_TIMEOUT{60};
 
   //
-  Database() noexcept {}
-  ~Database() noexcept { terminate(); }
+  virtual ~Database() { terminate(); }
   //
-  bool available() const noexcept { return _available; }
+  bool available() const { return _available; }
   //
-  bool begin() noexcept;
+  bool begin();
   //
-  void terminate() noexcept;
+  void terminate();
   //
   bool delete_old_measurements_from_database(
       system_clock::time_point delete_of_older_than_tp);

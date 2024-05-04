@@ -51,13 +51,11 @@ public:
     }
   };
   //
-  bool isActiveTile() const noexcept {
+  bool isActiveTile() const {
     return tile_obj == lv_tileview_get_tile_act(tileview_obj);
   }
   //
-  void setActiveTile() noexcept {
-    lv_obj_set_tile(tileview_obj, tile_obj, LV_ANIM_ON);
-  }
+  void setActiveTile() { lv_obj_set_tile(tileview_obj, tile_obj, LV_ANIM_ON); }
   //
   bool createTimer() {
     if (timer_callback) {
@@ -78,7 +76,7 @@ public:
     periodic_timer = nullptr;
   }
   //
-  static void timer_callback(lv_timer_t *timer) noexcept {
+  static void timer_callback(lv_timer_t *timer) {
     if (timer) {
       if (auto *it = static_cast<TileBase *>(timer->user_data); it) {
         it->update();
@@ -86,7 +84,7 @@ public:
     }
   }
   //
-  static void event_value_changed_callback(lv_event_t *event) noexcept {
+  static void event_value_changed_callback(lv_event_t *event) {
     if (event) {
       if (auto it = static_cast<TileBase *>(event->user_data); it) {
         if (lv_tileview_get_tile_act(it->tileview_obj) == it->tile_obj) {
@@ -102,7 +100,7 @@ public:
     }
   }
   //
-  virtual void update() noexcept = 0;
+  virtual void update() = 0;
 };
 
 //
@@ -115,11 +113,11 @@ class BootMessage final : public TileBase {
 public:
   BootMessage(BootMessage &&) = delete;
   BootMessage &operator=(const BootMessage &) = delete;
-  BootMessage(InitArg init) noexcept;
+  BootMessage(InitArg init);
   //
-  virtual void update() noexcept override;
+  virtual void update() override;
   //
-  void render() noexcept;
+  void render();
 };
 
 //
@@ -138,11 +136,11 @@ class Summary final : public TileBase {
 public:
   Summary(Summary &&) = delete;
   Summary &operator=(const Summary &) = delete;
-  Summary(InitArg init) noexcept;
+  Summary(InitArg init);
   //
-  virtual void update() noexcept override;
+  virtual void update() override;
   //
-  void render() noexcept;
+  void render();
 };
 
 //
@@ -160,11 +158,11 @@ class Clock final : public TileBase {
 public:
   Clock(Clock &&) = delete;
   Clock &operator=(const Clock &) = delete;
-  Clock(InitArg init) noexcept;
+  Clock(InitArg init);
   //
-  virtual void update() noexcept override;
+  virtual void update() override;
   //
-  void render(const std::tm &tm) noexcept;
+  void render(const std::tm &tm);
 };
 
 //
@@ -186,10 +184,10 @@ class SystemHealthy final : public TileBase {
 public:
   SystemHealthy(SystemHealthy &&) = delete;
   SystemHealthy &operator=(const SystemHealthy &) = delete;
-  SystemHealthy(InitArg init) noexcept;
+  SystemHealthy(InitArg init);
   //
-  virtual void update() noexcept override { render(); }
-  void render() noexcept;
+  virtual void update() override { render(); }
+  void render();
 };
 
 //
@@ -228,16 +226,16 @@ protected:
 public:
   BasicChart(BasicChart &&) = delete;
   BasicChart &operator=(const BasicChart &) = delete;
-  BasicChart(InitArg init, const std::string &inSubheading) noexcept;
+  BasicChart(InitArg init, const std::string &inSubheading);
   //
   virtual size_t read_measurements_from_database(
       Database::OrderBy order, system_clock::time_point at_begin,
       Database::ReadCallback<DataType> callback) = 0;
   // データを座標に変換する関数
   virtual lv_point_t coordinateXY(system_clock::time_point begin_x,
-                                  const DataType &in) noexcept = 0;
+                                  const DataType &in) = 0;
   //
-  void render() noexcept;
+  void render();
 };
 
 //
@@ -254,13 +252,13 @@ private:
 public:
   TemperatureChart(TemperatureChart &&) = delete;
   TemperatureChart &operator=(const TemperatureChart &) = delete;
-  TemperatureChart(InitArg init) noexcept;
+  TemperatureChart(InitArg init);
   //
-  virtual void update() noexcept override;
+  virtual void update() override;
   // データを座標に変換する関数
   virtual lv_point_t
   coordinateXY(system_clock::time_point begin_x,
-               const Database::TimePointAndDouble &in) noexcept override;
+               const Database::TimePointAndDouble &in) override;
   //
   virtual size_t read_measurements_from_database(
       Database::OrderBy order, system_clock::time_point at_begin,
@@ -269,7 +267,7 @@ public:
                                                                 callback);
   }
   //
-  static void event_draw_part_begin_callback(lv_event_t *event) noexcept;
+  static void event_draw_part_begin_callback(lv_event_t *event);
 };
 
 //
@@ -286,13 +284,13 @@ private:
 public:
   RelativeHumidityChart(RelativeHumidityChart &&) = delete;
   RelativeHumidityChart &operator=(const RelativeHumidityChart &) = delete;
-  RelativeHumidityChart(InitArg init) noexcept;
+  RelativeHumidityChart(InitArg init);
   //
-  virtual void update() noexcept override;
+  virtual void update() override;
   // データを座標に変換する関数
   virtual lv_point_t
   coordinateXY(system_clock::time_point begin_x,
-               const Database::TimePointAndDouble &in) noexcept override;
+               const Database::TimePointAndDouble &in) override;
   //
   virtual size_t read_measurements_from_database(
       Database::OrderBy order, system_clock::time_point at_begin,
@@ -301,7 +299,7 @@ public:
         order, at_begin, callback);
   }
   //
-  static void event_draw_part_begin_callback(lv_event_t *event) noexcept;
+  static void event_draw_part_begin_callback(lv_event_t *event);
 };
 
 //
@@ -316,15 +314,15 @@ private:
 public:
   PressureChart(PressureChart &&) = delete;
   PressureChart &operator=(const PressureChart &) = delete;
-  PressureChart(InitArg init) noexcept;
+  PressureChart(InitArg init);
   //
-  virtual void update() noexcept override;
+  virtual void update() override;
   //
   constexpr static DeciPa BIAS = round<DeciPa>(HectoPa{1000});
   // データを座標に変換する関数
   virtual lv_point_t
   coordinateXY(system_clock::time_point begin_x,
-               const Database::TimePointAndDouble &in) noexcept override;
+               const Database::TimePointAndDouble &in) override;
   //
   virtual size_t read_measurements_from_database(
       Database::OrderBy order, system_clock::time_point at_begin,
@@ -332,7 +330,7 @@ public:
     return Application::measurements_database.read_pressures(order, at_begin,
                                                              callback);
   }
-  static void event_draw_part_begin_callback(lv_event_t *event) noexcept;
+  static void event_draw_part_begin_callback(lv_event_t *event);
 };
 
 //
@@ -348,13 +346,13 @@ private:
 public:
   CarbonDeoxidesChart(CarbonDeoxidesChart &&) = delete;
   CarbonDeoxidesChart &operator=(const CarbonDeoxidesChart &) = delete;
-  CarbonDeoxidesChart(InitArg init) noexcept;
+  CarbonDeoxidesChart(InitArg init);
   //
-  virtual void update() noexcept override;
+  virtual void update() override;
   // データを座標に変換する関数
   virtual lv_point_t
   coordinateXY(system_clock::time_point begin_x,
-               const Database::TimePointAndUInt16 &in) noexcept override;
+               const Database::TimePointAndUInt16 &in) override;
   //
   virtual size_t read_measurements_from_database(
       Database::OrderBy order, system_clock::time_point at_begin,
@@ -374,13 +372,13 @@ private:
 public:
   TotalVocChart(TotalVocChart &&) = delete;
   TotalVocChart &operator=(const TotalVocChart &) = delete;
-  TotalVocChart(InitArg init) noexcept;
+  TotalVocChart(InitArg init);
   //
-  virtual void update() noexcept override;
+  virtual void update() override;
   // データを座標に変換する関数
   virtual lv_point_t
   coordinateXY(system_clock::time_point begin_x,
-               const Database::TimePointAndUInt16 &in) noexcept override;
+               const Database::TimePointAndUInt16 &in) override;
   //
   virtual size_t read_measurements_from_database(
       Database::OrderBy order, system_clock::time_point at_begin,
@@ -389,7 +387,7 @@ public:
                                                               callback);
   }
   //
-  static void event_draw_part_begin_callback(lv_event_t *event) noexcept;
+  static void event_draw_part_begin_callback(lv_event_t *event);
 };
 } // namespace Widget
 
@@ -409,19 +407,19 @@ public:
     _instance = this;
   }
   //
-  static Gui *getInstance() noexcept { return _instance; }
+  static Gui *getInstance() { return _instance; }
   //
-  bool begin() noexcept;
+  bool begin();
   //
-  void startUi() noexcept;
+  void startUi();
   //
-  void home() noexcept;
+  void home();
   //
-  void movePrev() noexcept;
+  void movePrev();
   //
-  void moveNext() noexcept;
+  void moveNext();
   //
-  void vibrate() noexcept;
+  void vibrate();
   //
   lv_res_t send_event_to_tileview(lv_event_code_t event_code, void *param) {
     return lv_event_send(_instance->tileview_obj, event_code, param);
@@ -434,8 +432,8 @@ private:
   // tile widget
   std::vector<std::unique_ptr<Widget::TileBase>> tile_vector{};
   //
-  static bool check_if_active_tile(
-      const std::unique_ptr<Widget::TileBase> &tile_to_test) noexcept {
+  static bool
+  check_if_active_tile(const std::unique_ptr<Widget::TileBase> &tile_to_test) {
     if (auto tile = tile_to_test.get(); tile) {
       return tile->isActiveTile();
     } else {
@@ -443,8 +441,7 @@ private:
     }
   }
   //
-  template <typename T>
-  inline void add_tile(const Widget::InitArg &arg) noexcept {
+  template <typename T> inline void add_tile(const Widget::InitArg &arg) {
     tile_vector.emplace_back(std::make_unique<T>(arg));
   }
 
@@ -461,8 +458,8 @@ private:
   //
   static void lvgl_use_display_flush_callback(lv_disp_drv_t *disp_drv,
                                               const lv_area_t *area,
-                                              lv_color_t *color_p) noexcept;
+                                              lv_color_t *color_p);
   //
   static void lvgl_use_touchpad_read_callback(lv_indev_drv_t *indev_drv,
-                                              lv_indev_data_t *data) noexcept;
+                                              lv_indev_data_t *data);
 };

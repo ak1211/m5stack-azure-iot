@@ -25,7 +25,7 @@ static void sntp_sync_time_callback(struct timeval *) {
 //
 // NTPと同期する
 //
-void Time::init() noexcept {
+void Time::init() {
   time_is_synced = false;
   auto status = sntp_get_sync_status();
   if (status == SNTP_SYNC_STATUS_RESET) {
@@ -36,13 +36,13 @@ void Time::init() noexcept {
 }
 
 //
-seconds Time::uptime() noexcept {
+seconds Time::uptime() {
   auto elapsed = steady_clock::now() - startup_time;
   return duration_cast<seconds>(elapsed);
 }
 
 // iso8601 format.
-std::string Time::isoformatUTC(std::time_t utctime) noexcept {
+std::string Time::isoformatUTC(std::time_t utctime) {
   struct tm tm;
   gmtime_r(&utctime, &tm);
   std::ostringstream oss;

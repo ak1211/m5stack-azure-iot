@@ -9,20 +9,20 @@
 #include <cmath>
 
 //
-void RgbLed::begin() noexcept {
+void RgbLed::begin() {
   FastLED.addLeds<SK6812, GPIO_PIN_SK6815, GRB>(leds.data(), leds.size());
   FastLED.setBrightness(255);
   clear();
 }
 
 //
-void RgbLed::fill(CRGB color) noexcept {
+void RgbLed::fill(CRGB color) {
   std::fill(leds.begin(), leds.end(), color);
   FastLED.show();
 }
 
 //
-CRGB RgbLed::colorFromCarbonDioxide(uint16_t ppm) noexcept {
+CRGB RgbLed::colorFromCarbonDioxide(uint16_t ppm) {
   constexpr float_t start = 360.0 + 180.0;     // 540 degrees == CYAN
   constexpr float_t end = 300.0;               // 300 degrees == PURPLE
   constexpr float_t L = std::abs(start - end); //
@@ -41,7 +41,7 @@ CRGB RgbLed::colorFromCarbonDioxide(uint16_t ppm) noexcept {
 
 //
 CRGB RgbLed::hslToRgb(float_t hue /* 0 < 360*/, float_t saturation /* 0 < 1 */,
-                      float_t lightness /* 0 < 1 */) noexcept {
+                      float_t lightness /* 0 < 1 */) {
   float_t C = saturation * (1.0 - std::abs(2.0 * lightness - 1.0));
   float_t Max = lightness + (C / 2.0); /* 0 <= 1.0*/
   float_t Min = lightness - (C / 2.0); /* 0 <= 1.0*/

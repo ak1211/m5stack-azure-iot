@@ -13,27 +13,27 @@ class RgbLed {
   inline static RgbLed *_instance{nullptr};
 
 public:
-  RgbLed() noexcept {
+  RgbLed() {
     if (_instance) {
       delete _instance;
     }
     _instance = this;
   }
-  virtual ~RgbLed() noexcept {}
-  static RgbLed *getInstance() noexcept { return _instance; }
+  virtual ~RgbLed() {}
+  static RgbLed *getInstance() { return _instance; }
   //
-  void begin() noexcept;
+  void begin();
   //
-  void setBrightness(uint8_t scale) noexcept { FastLED.setBrightness(scale); }
+  void setBrightness(uint8_t scale) { FastLED.setBrightness(scale); }
   //
-  void clear() noexcept { fill(CRGB::Black); }
+  void clear() { fill(CRGB::Black); }
   //
-  void fill(CRGB color) noexcept;
+  void fill(CRGB color);
   //
-  static CRGB colorFromCarbonDioxide(uint16_t ppm) noexcept;
+  static CRGB colorFromCarbonDioxide(uint16_t ppm);
   //
   static CRGB hslToRgb(float_t hue /* 0 < 360*/, float_t saturation /* 0 < 1 */,
-                       float_t lightness /* 0 < 1 */) noexcept;
+                       float_t lightness /* 0 < 1 */);
 
 private:
   constexpr static auto NUM_OF_LEDS = uint8_t{10};

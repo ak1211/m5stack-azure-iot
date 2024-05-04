@@ -31,7 +31,7 @@ using namespace std::literals::string_view_literals;
 //
 void Gui::lvgl_use_display_flush_callback(lv_disp_drv_t *disp_drv,
                                           const lv_area_t *area,
-                                          lv_color_t *color_p) noexcept {
+                                          lv_color_t *color_p) {
   M5GFX &gfx = *static_cast<M5GFX *>(disp_drv->user_data);
 
   int32_t width = area->x2 - area->x1 + 1;
@@ -49,7 +49,7 @@ void Gui::lvgl_use_display_flush_callback(lv_disp_drv_t *disp_drv,
 
 //
 void Gui::lvgl_use_touchpad_read_callback(lv_indev_drv_t *indev_drv,
-                                          lv_indev_data_t *data) noexcept {
+                                          lv_indev_data_t *data) {
   M5GFX &gfx = *static_cast<M5GFX *>(indev_drv->user_data);
 
   lgfx::touch_point_t tp;
@@ -65,7 +65,7 @@ void Gui::lvgl_use_touchpad_read_callback(lv_indev_drv_t *indev_drv,
 }
 
 //
-bool Gui::begin() noexcept {
+bool Gui::begin() {
   // LVGL init
   lv_init();
   // LVGL draw buffer
@@ -112,7 +112,7 @@ bool Gui::begin() noexcept {
 }
 
 //
-void Gui::startUi() noexcept {
+void Gui::startUi() {
   if (tileview_obj == nullptr) {
     M5_LOGE("tileview had null");
     return;
@@ -135,7 +135,7 @@ void Gui::startUi() noexcept {
 }
 
 //
-void Gui::home() noexcept {
+void Gui::home() {
   if (tileview_obj == nullptr) {
     M5_LOGE("tileview had null");
     return;
@@ -147,7 +147,7 @@ void Gui::home() noexcept {
 }
 
 //
-void Gui::movePrev() noexcept {
+void Gui::movePrev() {
   vibrate();
   if (auto found = std::find_if(tile_vector.begin(), tile_vector.end(),
                                 check_if_active_tile);
@@ -161,7 +161,7 @@ void Gui::movePrev() noexcept {
 }
 
 //
-void Gui::moveNext() noexcept {
+void Gui::moveNext() {
   vibrate();
   if (auto found = std::find_if(tile_vector.begin(), tile_vector.end(),
                                 check_if_active_tile);
@@ -175,9 +175,9 @@ void Gui::moveNext() noexcept {
 }
 
 //
-void Gui::vibrate() noexcept {
+void Gui::vibrate() {
   constexpr auto MILLISECONDS = 100;
-  auto stop_the_vibration = [](lv_timer_t *) noexcept -> void {
+  auto stop_the_vibration = [](lv_timer_t *) -> void {
     M5.Power.setVibration(0);
   };
   if (lv_timer_t *timer =
@@ -191,8 +191,7 @@ void Gui::vibrate() noexcept {
 //
 //
 //
-Widget::BootMessage::BootMessage(Widget::InitArg init) noexcept
-    : TileBase{init} {
+Widget::BootMessage::BootMessage(Widget::InitArg init) : TileBase{init} {
   if (tileview_obj == nullptr) {
     M5_LOGE("tileview had null");
     return;
@@ -209,21 +208,21 @@ Widget::BootMessage::BootMessage(Widget::InitArg init) noexcept
   }
 }
 
-void Widget::BootMessage::update() noexcept {
+void Widget::BootMessage::update() {
   if (auto x = Application::boot_log.size(); x != count) {
     render();
     count = x;
   }
 }
 
-void Widget::BootMessage::render() noexcept {
+void Widget::BootMessage::render() {
   lv_label_set_text_static(message_label_obj, Application::boot_log.c_str());
 }
 
 //
 //
 //
-Widget::Summary::Summary(Widget::InitArg init) noexcept : TileBase{init} {
+Widget::Summary::Summary(Widget::InitArg init) : TileBase{init} {
   if (tileview_obj == nullptr) {
     M5_LOGE("tileview had null");
     return;
@@ -238,7 +237,7 @@ Widget::Summary::Summary(Widget::InitArg init) noexcept : TileBase{init} {
   }
 }
 
-void Widget::Summary::update() noexcept {
+void Widget::Summary::update() {
   auto present = Measurements{
       Application::measurements_database.getLatestMeasurementBme280(),
       Application::measurements_database.getLatestMeasurementSgp30(),
@@ -251,7 +250,7 @@ void Widget::Summary::update() noexcept {
   }
 }
 
-void Widget::Summary::render() noexcept {
+void Widget::Summary::render() {
   std::ostringstream oss;
   oss << std::fixed << std::setprecision(2);
   auto row = 0;
@@ -528,7 +527,7 @@ void Widget::Summary::render() noexcept {
 //
 //
 //
-Widget::Clock::Clock(Widget::InitArg init) noexcept : TileBase{init} {
+Widget::Clock::Clock(Widget::InitArg init) : TileBase{init} {
   if (tileview_obj == nullptr) {
     M5_LOGE("tileview had null");
     return;
@@ -572,7 +571,7 @@ Widget::Clock::Clock(Widget::InitArg init) noexcept : TileBase{init} {
   }
 }
 
-void Widget::Clock::update() noexcept {
+void Widget::Clock::update() {
   if (Time::sync_completed()) {
     std::time_t now = system_clock::to_time_t(system_clock::now());
     std::tm local;
@@ -586,7 +585,7 @@ void Widget::Clock::update() noexcept {
   }
 }
 
-void Widget::Clock::render(const std::tm &tm) noexcept {
+void Widget::Clock::render(const std::tm &tm) {
   lv_meter_set_indicator_value(meter_obj, sec_indic, tm.tm_sec);
   lv_meter_set_indicator_value(meter_obj, min_indic, tm.tm_min);
   const float h = (60.0f / 12.0f) * (tm.tm_hour % 12);
@@ -597,8 +596,7 @@ void Widget::Clock::render(const std::tm &tm) noexcept {
 //
 //
 //
-Widget::SystemHealthy::SystemHealthy(Widget::InitArg init) noexcept
-    : TileBase{init} {
+Widget::SystemHealthy::SystemHealthy(Widget::InitArg init) : TileBase{init} {
   if (tileview_obj == nullptr) {
     M5_LOGE("tileview had null");
     return;
@@ -642,7 +640,7 @@ Widget::SystemHealthy::SystemHealthy(Widget::InitArg init) noexcept
   }
 }
 
-void Widget::SystemHealthy::render() noexcept {
+void Widget::SystemHealthy::render() {
   const seconds uptime = Time::uptime();
   const int16_t sec = uptime.count() % 60;
   const int16_t min = uptime.count() / 60 % 60;
@@ -746,8 +744,8 @@ std::ostream &Widget::operator<<(std::ostream &os,
   os << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.red
      << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.green
      << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.blue
-     << "  ";
-  os << rhs.name << " " << std::dec << std::fixed << std::setprecision(2)
+     << " ";
+  os << rhs.name << "  " << std::dec << std::fixed << std::setprecision(2)
      << rhs.meas.count() << rhs.unit;
   os << "#";
   return os;
@@ -761,8 +759,8 @@ std::ostream &Widget::operator<<(std::ostream &os,
   os << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.red
      << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.green
      << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.blue
-     << "  ";
-  os << rhs.name << " " << std::dec << std::fixed << std::setprecision(2)
+     << " ";
+  os << rhs.name << "  " << std::dec << std::fixed << std::setprecision(2)
      << rhs.meas.count() << rhs.unit;
   os << "#";
   return os;
@@ -776,8 +774,8 @@ std::ostream &Widget::operator<<(std::ostream &os,
   os << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.red
      << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.green
      << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.blue
-     << "  ";
-  os << rhs.name << " " << std::dec << +rhs.meas.value << rhs.unit;
+     << " ";
+  os << rhs.name << "  " << std::dec << +rhs.meas.value << rhs.unit;
   os << "#";
   return os;
 }
@@ -790,8 +788,8 @@ std::ostream &Widget::operator<<(std::ostream &os,
   os << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.red
      << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.green
      << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.blue
-     << "  ";
-  os << rhs.name << " " << std::dec << +rhs.meas.value << rhs.unit;
+     << " ";
+  os << rhs.name << "  " << std::dec << +rhs.meas.value << rhs.unit;
   os << "#";
   return os;
 }
@@ -800,8 +798,7 @@ std::ostream &Widget::operator<<(std::ostream &os,
 //
 //
 template <typename T>
-Widget::BasicChart<T>::BasicChart(InitArg init,
-                                  const std::string &inSubheading) noexcept
+Widget::BasicChart<T>::BasicChart(InitArg init, const std::string &inSubheading)
     : TileBase{init},
       LINE_COLOR_TABLE{lv_palette_lighten(LV_PALETTE_RED, 1),
                        lv_palette_lighten(LV_PALETTE_ORANGE, 1),
@@ -835,13 +832,13 @@ Widget::BasicChart<T>::BasicChart(InitArg init,
     M5_LOGE("chart had null");
     return;
   }
+  const lv_font_t *FONT{&lv_font_montserrat_24};
   lv_obj_set_size(label_obj, lv_obj_get_content_width(tile_obj) - MARGIN * 2,
-                  lv_font_montserrat_18.line_height);
+                  FONT->line_height);
   lv_obj_align_to(label_obj, title_obj, LV_ALIGN_OUT_BOTTOM_LEFT, 0, MARGIN);
   lv_label_set_long_mode(label_obj, LV_LABEL_LONG_SCROLL_CIRCULAR);
   lv_label_set_recolor(label_obj, true);
-  lv_obj_set_style_text_font(label_obj, &lv_font_montserrat_18,
-                             LV_STATE_DEFAULT);
+  lv_obj_set_style_text_font(label_obj, FONT, LV_STATE_DEFAULT);
   lv_style_init(&label_style);
   lv_style_set_bg_opa(&label_style, LV_OPA_COVER);
   lv_style_set_bg_color(&label_style, lv_palette_darken(LV_PALETTE_BROWN, 4));
@@ -901,7 +898,7 @@ Widget::BasicChart<T>::BasicChart(InitArg init,
 }
 
 //
-template <typename T> void Widget::BasicChart<T>::render() noexcept {
+template <typename T> void Widget::BasicChart<T>::render() {
   if (chart_obj == nullptr) {
     M5_LOGE("chart had null");
     return;
@@ -987,7 +984,7 @@ template <typename T> void Widget::BasicChart<T>::render() noexcept {
 //
 // 気温
 //
-Widget::TemperatureChart::TemperatureChart(InitArg init) noexcept
+Widget::TemperatureChart::TemperatureChart(InitArg init)
     : BasicChart{init, "Temperature"} {
   if (tileview_obj == nullptr) {
     M5_LOGE("tileview had null");
@@ -1006,7 +1003,7 @@ Widget::TemperatureChart::TemperatureChart(InitArg init) noexcept
                       LV_EVENT_DRAW_PART_BEGIN, this);
 }
 
-void Widget::TemperatureChart::update() noexcept {
+void Widget::TemperatureChart::update() {
   auto bme280 = Application::measurements_database.getLatestMeasurementBme280();
   auto scd30 = Application::measurements_database.getLatestMeasurementScd30();
   auto scd41 = Application::measurements_database.getLatestMeasurementScd41();
@@ -1037,28 +1034,28 @@ void Widget::TemperatureChart::update() noexcept {
                            .name = "BME280",
                            .unit = "C",
                            .meas = bme280->second.temperature};
-      oss << s << " ";
+      oss << s << "  ";
     }
     if (scd30.has_value()) {
       ShowMeasured<DegC> s{.color = get_color(scd30->second.sensor_descriptor),
                            .name = "SCD30",
                            .unit = "C",
                            .meas = scd30->second.temperature};
-      oss << s << " ";
+      oss << s << "  ";
     }
     if (scd41.has_value()) {
       ShowMeasured<DegC> s{.color = get_color(scd41->second.sensor_descriptor),
                            .name = "SCD41",
                            .unit = "C",
                            .meas = scd41->second.temperature};
-      oss << s << " ";
+      oss << s << "  ";
     }
     if (m5env3.has_value()) {
       ShowMeasured<DegC> s{.color = get_color(m5env3->second.sensor_descriptor),
-                           .name = "ENViii",
+                           .name = "ENV.III",
                            .unit = "C",
                            .meas = m5env3->second.temperature};
-      oss << s << " ";
+      oss << s << "  ";
     }
     lv_label_set_text(label_obj, oss.str().c_str());
     //
@@ -1067,9 +1064,9 @@ void Widget::TemperatureChart::update() noexcept {
 }
 
 // データを座標に変換する関数
-lv_point_t Widget::TemperatureChart::coordinateXY(
-    system_clock::time_point begin_x,
-    const Database::TimePointAndDouble &in) noexcept {
+lv_point_t
+Widget::TemperatureChart::coordinateXY(system_clock::time_point begin_x,
+                                       const Database::TimePointAndDouble &in) {
   auto [sensorid, timepoint, fp_value] = in;
   auto degc = DegC(fp_value);
   auto centi_degc = std::chrono::duration_cast<CentiDegC>(degc);
@@ -1081,7 +1078,7 @@ lv_point_t Widget::TemperatureChart::coordinateXY(
 };
 
 void Widget::TemperatureChart::event_draw_part_begin_callback(
-    lv_event_t *event) noexcept {
+    lv_event_t *event) {
   auto it = static_cast<Widget::TemperatureChart *>(event->user_data);
   if (it == nullptr) {
     M5_LOGE("user_data had null");
@@ -1099,13 +1096,13 @@ void Widget::TemperatureChart::event_draw_part_begin_callback(
 //
 // 相対湿度
 //
-Widget::RelativeHumidityChart::RelativeHumidityChart(InitArg init) noexcept
+Widget::RelativeHumidityChart::RelativeHumidityChart(InitArg init)
     : BasicChart{init, "Relative Humidity"} {
   lv_obj_add_event_cb(chart_obj, event_draw_part_begin_callback,
                       LV_EVENT_DRAW_PART_BEGIN, this);
 }
 
-void Widget::RelativeHumidityChart::update() noexcept {
+void Widget::RelativeHumidityChart::update() {
   auto bme280 = Application::measurements_database.getLatestMeasurementBme280();
   auto scd30 = Application::measurements_database.getLatestMeasurementScd30();
   auto scd41 = Application::measurements_database.getLatestMeasurementScd41();
@@ -1137,29 +1134,29 @@ void Widget::RelativeHumidityChart::update() noexcept {
                             .name = "BME280",
                             .unit = "%",
                             .meas = bme280->second.relative_humidity};
-      oss << s << " ";
+      oss << s << "  ";
     }
     if (scd30.has_value()) {
       ShowMeasured<PctRH> s{.color = get_color(scd30->second.sensor_descriptor),
                             .name = "SCD30",
                             .unit = "%",
                             .meas = scd30->second.relative_humidity};
-      oss << s << " ";
+      oss << s << "  ";
     }
     if (scd41.has_value()) {
       ShowMeasured<PctRH> s{.color = get_color(scd41->second.sensor_descriptor),
                             .name = "SCD41",
                             .unit = "%",
                             .meas = scd41->second.relative_humidity};
-      oss << s << " ";
+      oss << s << "  ";
     }
     if (m5env3.has_value()) {
       ShowMeasured<PctRH> s{.color =
                                 get_color(m5env3->second.sensor_descriptor),
-                            .name = "ENViii",
+                            .name = "ENV.III",
                             .unit = "%",
                             .meas = m5env3->second.relative_humidity};
-      oss << s << " ";
+      oss << s << "  ";
     }
     lv_label_set_text(label_obj, oss.str().c_str());
     //
@@ -1169,8 +1166,7 @@ void Widget::RelativeHumidityChart::update() noexcept {
 
 // データを座標に変換する関数
 lv_point_t Widget::RelativeHumidityChart::coordinateXY(
-    system_clock::time_point begin_x,
-    const Database::TimePointAndDouble &in) noexcept {
+    system_clock::time_point begin_x, const Database::TimePointAndDouble &in) {
   auto [sensorid, timepoint, fp_value] = in;
   auto percentRelativeHumidity = PctRH(fp_value);
   auto rh = std::chrono::duration_cast<CentiRH>(percentRelativeHumidity);
@@ -1182,7 +1178,7 @@ lv_point_t Widget::RelativeHumidityChart::coordinateXY(
 };
 
 void Widget::RelativeHumidityChart::event_draw_part_begin_callback(
-    lv_event_t *event) noexcept {
+    lv_event_t *event) {
   lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
   if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
                                   LV_CHART_DRAW_PART_TICK_LABEL)) {
@@ -1196,13 +1192,13 @@ void Widget::RelativeHumidityChart::event_draw_part_begin_callback(
 //
 // 気圧
 //
-Widget::PressureChart::PressureChart(InitArg init) noexcept
+Widget::PressureChart::PressureChart(InitArg init)
     : BasicChart{init, "Pressure"} {
   lv_obj_add_event_cb(chart_obj, event_draw_part_begin_callback,
                       LV_EVENT_DRAW_PART_BEGIN, this);
 }
 
-void Widget::PressureChart::update() noexcept {
+void Widget::PressureChart::update() {
   auto bme280 = Application::measurements_database.getLatestMeasurementBme280();
   auto m5env3 = Application::measurements_database.getLatestMeasurementM5Env3();
   auto present = Measurements{bme280, m5env3};
@@ -1232,15 +1228,15 @@ void Widget::PressureChart::update() noexcept {
                               .name = "BME280",
                               .unit = "hpa",
                               .meas = bme280->second.pressure};
-      oss << s << " ";
+      oss << s << "  ";
     }
     if (m5env3.has_value()) {
       ShowMeasured<HectoPa> s{.color =
                                   get_color(m5env3->second.sensor_descriptor),
-                              .name = "ENViii",
+                              .name = "ENV.III",
                               .unit = "hpa",
                               .meas = m5env3->second.pressure};
-      oss << s << " ";
+      oss << s << "  ";
     }
     lv_label_set_text(label_obj, oss.str().c_str());
     //
@@ -1249,9 +1245,9 @@ void Widget::PressureChart::update() noexcept {
 }
 
 // データを座標に変換する関数
-lv_point_t Widget::PressureChart::coordinateXY(
-    system_clock::time_point begin_x,
-    const Database::TimePointAndDouble &in) noexcept {
+lv_point_t
+Widget::PressureChart::coordinateXY(system_clock::time_point begin_x,
+                                    const Database::TimePointAndDouble &in) {
   auto [sensorid, timepoint, fp_value] = in;
   auto hpa = HectoPa(fp_value);
   auto pascal = std::chrono::duration_cast<Pascal>(hpa - BIAS);
@@ -1262,8 +1258,7 @@ lv_point_t Widget::PressureChart::coordinateXY(
   return lv_point_t{.x = x, .y = y};
 };
 
-void Widget::PressureChart::event_draw_part_begin_callback(
-    lv_event_t *event) noexcept {
+void Widget::PressureChart::event_draw_part_begin_callback(lv_event_t *event) {
   lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
   if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
                                   LV_CHART_DRAW_PART_TICK_LABEL)) {
@@ -1277,10 +1272,10 @@ void Widget::PressureChart::event_draw_part_begin_callback(
 //
 // Co2 / ECo2
 //
-Widget::CarbonDeoxidesChart::CarbonDeoxidesChart(InitArg init) noexcept
+Widget::CarbonDeoxidesChart::CarbonDeoxidesChart(InitArg init)
     : BasicChart{init, "CO2"} {}
 
-void Widget::CarbonDeoxidesChart::update() noexcept {
+void Widget::CarbonDeoxidesChart::update() {
   auto sgp30 = Application::measurements_database.getLatestMeasurementSgp30();
   auto scd30 = Application::measurements_database.getLatestMeasurementScd30();
   auto scd41 = Application::measurements_database.getLatestMeasurementScd41();
@@ -1310,21 +1305,21 @@ void Widget::CarbonDeoxidesChart::update() noexcept {
                           .name = "SGP30",
                           .unit = "ppm",
                           .meas = sgp30->second.eCo2};
-      oss << s << " ";
+      oss << s << "  ";
     }
     if (scd30.has_value()) {
       ShowMeasured<Ppm> s{.color = get_color(scd30->second.sensor_descriptor),
                           .name = "SCD30",
                           .unit = "ppm",
                           .meas = scd30->second.co2};
-      oss << s << " ";
+      oss << s << "  ";
     }
     if (scd41.has_value()) {
       ShowMeasured<Ppm> s{.color = get_color(scd41->second.sensor_descriptor),
                           .name = "SCD41",
                           .unit = "ppm",
                           .meas = scd41->second.co2};
-      oss << s << " ";
+      oss << s << "  ";
     }
     lv_label_set_text(label_obj, oss.str().c_str());
     //
@@ -1334,8 +1329,7 @@ void Widget::CarbonDeoxidesChart::update() noexcept {
 
 // データを座標に変換する関数
 lv_point_t Widget::CarbonDeoxidesChart::coordinateXY(
-    system_clock::time_point begin_x,
-    const Database::TimePointAndUInt16 &in) noexcept {
+    system_clock::time_point begin_x, const Database::TimePointAndUInt16 &in) {
   auto [sensorid, timepoint, int_value] = in;
   uint32_t timediff =
       duration_cast<minutes>(floor<minutes>(timepoint) - begin_x).count();
@@ -1347,13 +1341,13 @@ lv_point_t Widget::CarbonDeoxidesChart::coordinateXY(
 //
 // Total VOC
 //
-Widget::TotalVocChart::TotalVocChart(InitArg init) noexcept
+Widget::TotalVocChart::TotalVocChart(InitArg init)
     : BasicChart{init, "Total VOC"} {
   lv_obj_add_event_cb(chart_obj, event_draw_part_begin_callback,
                       LV_EVENT_DRAW_PART_BEGIN, this);
 }
 
-void Widget::TotalVocChart::update() noexcept {
+void Widget::TotalVocChart::update() {
   auto sgp30 = Application::measurements_database.getLatestMeasurementSgp30();
   auto present = sgp30;
 
@@ -1381,7 +1375,7 @@ void Widget::TotalVocChart::update() noexcept {
                           .name = "SGP30",
                           .unit = "ppb",
                           .meas = sgp30->second.tvoc};
-      oss << s << " ";
+      oss << s << "  ";
     }
     lv_label_set_text(label_obj, oss.str().c_str());
     //
@@ -1390,9 +1384,9 @@ void Widget::TotalVocChart::update() noexcept {
 }
 
 // データを座標に変換する関数
-lv_point_t Widget::TotalVocChart::coordinateXY(
-    system_clock::time_point begin_x,
-    const Database::TimePointAndUInt16 &in) noexcept {
+lv_point_t
+Widget::TotalVocChart::coordinateXY(system_clock::time_point begin_x,
+                                    const Database::TimePointAndUInt16 &in) {
   auto [sensorid, timepoint, int_value] = in;
   uint32_t timediff =
       duration_cast<minutes>(floor<minutes>(timepoint) - begin_x).count();
@@ -1401,8 +1395,7 @@ lv_point_t Widget::TotalVocChart::coordinateXY(
   return lv_point_t{.x = x, .y = y};
 };
 
-void Widget::TotalVocChart::event_draw_part_begin_callback(
-    lv_event_t *event) noexcept {
+void Widget::TotalVocChart::event_draw_part_begin_callback(lv_event_t *event) {
   lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
   if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
                                   LV_CHART_DRAW_PART_TICK_LABEL)) {

@@ -64,7 +64,7 @@ public:
   }
   ~Telemetry() {}
   //
-  static Telemetry *getInstance() noexcept { return _instance; }
+  static Telemetry *getInstance() { return _instance; }
   //
   bool begin(std::string_view iothub_fqdn, std::string_view device_id,
              std::string_view device_key);
@@ -74,7 +74,7 @@ public:
   template <typename T>
   std::string to_json_message(MessageId messageId, const T &in);
   //
-  inline bool pushMessage(const Payload &&in) {
+  inline bool pushMessage(const Payload &in) {
     if (sending_fifo_queue.size() < MAXIMUM_QUEUE_SIZE) {
       sending_fifo_queue.push(in);
       return true;

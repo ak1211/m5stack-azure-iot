@@ -91,7 +91,7 @@ struct BaselineTotalVoc final {
 using SensorId = uint64_t;
 //
 struct SensorDescriptor final {
-  constexpr static uint64_t to_u64(const uint8_t *in) noexcept {
+  constexpr static uint64_t to_u64(const uint8_t *in) {
     return static_cast<uint64_t>(*in++) << 56 | // 1st byte
            static_cast<uint64_t>(*in++) << 48 | // 2nd byte
            static_cast<uint64_t>(*in++) << 40 | // 3rd byte
@@ -101,7 +101,7 @@ struct SensorDescriptor final {
            static_cast<uint64_t>(*in++) << 8 |  // 7th byte
            static_cast<uint64_t>(*in++);        // 8th byte
   }
-  constexpr static void from_u64(uint64_t in, uint8_t *out) noexcept {
+  constexpr static void from_u64(uint64_t in, uint8_t *out) {
     *out++ = static_cast<uint8_t>(in >> 56 & 0xff); // 1st byte
     *out++ = static_cast<uint8_t>(in >> 48 & 0xff); // 2nd byte
     *out++ = static_cast<uint8_t>(in >> 40 & 0xff); // 3rd byte
@@ -114,10 +114,10 @@ struct SensorDescriptor final {
   //
   std::array<uint8_t, 9> strDescriptor{'\0', '\0', '\0', '\0', '\0',
                                        '\0', '\0', '\0', '\0'};
-  explicit SensorDescriptor(SensorId init = 0) noexcept {
+  explicit SensorDescriptor(SensorId init = 0) {
     from_u64(init, strDescriptor.begin());
   }
-  constexpr SensorDescriptor(std::array<uint8_t, 8> init) noexcept
+  constexpr SensorDescriptor(std::array<uint8_t, 8> init)
       : strDescriptor{init[0], init[1], init[2], init[3], init[4],
                       init[5], init[6], init[7], '\0'} {}
   bool operator==(const SensorDescriptor &other) const {
@@ -126,10 +126,8 @@ struct SensorDescriptor final {
   bool operator!=(const SensorDescriptor &other) const {
     return !(*this == other);
   }
-  constexpr operator SensorId() const noexcept {
-    return to_u64(strDescriptor.begin());
-  }
-  std::string str() const noexcept {
+  constexpr operator SensorId() const { return to_u64(strDescriptor.begin()); }
+  std::string str() const {
     return std::string(reinterpret_cast<const char *>(strDescriptor.data()));
   }
 };

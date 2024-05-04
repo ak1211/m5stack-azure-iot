@@ -16,16 +16,16 @@ class BootLog {
 
 public:
   //
-  void logging(std::string_view sv) noexcept {
+  void logging(std::string_view sv) {
     message_cstring.pop_back();
     std::copy(sv.begin(), sv.end(), std::back_inserter(message_cstring));
     message_cstring.push_back('\n');
     message_cstring.push_back('\0');
   }
   //
-  const char *c_str() const noexcept { return message_cstring.data(); }
+  const char *c_str() const { return message_cstring.data(); }
   //
-  size_t size() const noexcept { return message_cstring.size(); }
+  size_t size() const { return message_cstring.size(); }
 };
 
 extern BootLog boot_log;
