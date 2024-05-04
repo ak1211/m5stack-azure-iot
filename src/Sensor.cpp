@@ -40,7 +40,7 @@ bool Sensor::Bme280Device::init() {
 }
 
 //
-bool Sensor::Bme280Device::readyToRead() noexcept {
+bool Sensor::Bme280Device::readyToRead() {
   return available() && (steady_clock::now() - last_measured_at >= INTERVAL);
 }
 
@@ -94,7 +94,7 @@ error_exit:
 }
 
 //
-Sensor::MeasuredValue Sensor::Bme280Device::calculateSMA() noexcept {
+Sensor::MeasuredValue Sensor::Bme280Device::calculateSMA() {
   if (sma_temperature.ready() && sma_relative_humidity.ready() &&
       sma_pressure.ready()) {
     return Bme280({
@@ -126,7 +126,7 @@ bool Sensor::Sgp30Device::init() {
   return initialized;
 }
 //
-bool Sensor::Sgp30Device::readyToRead() noexcept {
+bool Sensor::Sgp30Device::readyToRead() {
   return available() && (steady_clock::now() - last_measured_at >= INTERVAL);
 }
 //
@@ -162,7 +162,7 @@ Sensor::MeasuredValue Sensor::Sgp30Device::read() {
 }
 
 //
-Sensor::MeasuredValue Sensor::Sgp30Device::calculateSMA() noexcept {
+Sensor::MeasuredValue Sensor::Sgp30Device::calculateSMA() {
   if (sma_eCo2.ready() && sma_tvoc.ready()) {
     return Sgp30({
         .sensor_descriptor = getSensorDescriptor(),
@@ -178,7 +178,7 @@ Sensor::MeasuredValue Sensor::Sgp30Device::calculateSMA() noexcept {
 
 //
 bool Sensor::Sgp30Device::setIAQBaseline(BaselineECo2 eco2_base,
-                                         BaselineTotalVoc tvoc_base) noexcept {
+                                         BaselineTotalVoc tvoc_base) {
   auto result = sgp30.setIAQBaseline(eco2_base.value, tvoc_base.value);
   if (result) {
     M5_LOGI("SGP30 setIAQBaseline success");
@@ -190,7 +190,7 @@ bool Sensor::Sgp30Device::setIAQBaseline(BaselineECo2 eco2_base,
 
 //
 bool Sensor::Sgp30Device::setHumidity(
-    MilligramPerCubicMetre absolute_humidity) noexcept {
+    MilligramPerCubicMetre absolute_humidity) {
   return sgp30.setHumidity(absolute_humidity.value);
 }
 
@@ -231,7 +231,7 @@ bool Sensor::Scd30Device::init() {
 }
 
 //
-bool Sensor::Scd30Device::readyToRead() noexcept {
+bool Sensor::Scd30Device::readyToRead() {
   return available() && (steady_clock::now() - last_measured_at >= INTERVAL) &&
          scd30.dataReady();
 }
@@ -286,7 +286,7 @@ Sensor::MeasuredValue Sensor::Scd30Device::read() {
 }
 
 //
-Sensor::MeasuredValue Sensor::Scd30Device::calculateSMA() noexcept {
+Sensor::MeasuredValue Sensor::Scd30Device::calculateSMA() {
   if (sma_co2.ready() && sma_temperature.ready() &&
       sma_relative_humidity.ready()) {
     return Scd30({
@@ -343,8 +343,7 @@ bool Sensor::Scd41Device::init() {
 }
 
 //
-Sensor::Scd41Device::SensorStatus
-Sensor::Scd41Device::getSensorStatus() noexcept {
+Sensor::Scd41Device::SensorStatus Sensor::Scd41Device::getSensorStatus() {
   bool dataReadyFlag{false};
   if (auto error = scd4x.getDataReadyFlag(dataReadyFlag); error) {
     char errorMessage[256];
@@ -357,7 +356,7 @@ Sensor::Scd41Device::getSensorStatus() noexcept {
 }
 
 //
-bool Sensor::Scd41Device::readyToRead() noexcept {
+bool Sensor::Scd41Device::readyToRead() {
   return available() && (steady_clock::now() - last_measured_at >= INTERVAL) &&
          getSensorStatus() == SensorStatus::DataReady;
 }
@@ -403,7 +402,7 @@ Sensor::MeasuredValue Sensor::Scd41Device::read() {
 }
 
 //
-Sensor::MeasuredValue Sensor::Scd41Device::calculateSMA() noexcept {
+Sensor::MeasuredValue Sensor::Scd41Device::calculateSMA() {
   if (sma_co2.ready() && sma_temperature.ready() &&
       sma_relative_humidity.ready()) {
     return Scd41({
@@ -438,7 +437,7 @@ bool Sensor::M5Env3Device::init() {
 }
 
 //
-bool Sensor::M5Env3Device::readyToRead() noexcept {
+bool Sensor::M5Env3Device::readyToRead() {
   return available() && (steady_clock::now() - last_measured_at >= INTERVAL);
 }
 
@@ -479,7 +478,7 @@ Sensor::MeasuredValue Sensor::M5Env3Device::read() {
 }
 
 //
-Sensor::MeasuredValue Sensor::M5Env3Device::calculateSMA() noexcept {
+Sensor::MeasuredValue Sensor::M5Env3Device::calculateSMA(){
   if (sma_temperature.ready() && sma_relative_humidity.ready() &&
       sma_pressure.ready()) {
     return M5Env3({

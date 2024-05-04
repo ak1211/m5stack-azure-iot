@@ -580,7 +580,7 @@ struct Database::Transaction {
 //
 //
 //
-bool Database::begin() noexcept {
+bool Database::begin() {
   if (sqlite3_db) {
     terminate();
   }
@@ -671,7 +671,7 @@ bool Database::begin() noexcept {
 //
 //
 //
-void Database::terminate() noexcept {
+void Database::terminate() {
   if (sqlite3_db) {
     if (auto result = sqlite3_close(sqlite3_db); result != SQLITE_OK) {
       M5_LOGE("sqlite3_close() failure: %d", result);

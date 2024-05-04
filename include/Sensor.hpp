@@ -51,15 +51,13 @@ struct Bme280 {
   CentiDegC temperature;
   CentiRH relative_humidity;
   DeciPa pressure;
-  bool operator==(const Bme280 &other) const noexcept {
+  bool operator==(const Bme280 &other) const {
     return (sensor_descriptor == other.sensor_descriptor &&
             temperature == other.temperature &&
             relative_humidity == other.relative_humidity &&
             pressure == other.pressure);
   }
-  bool operator!=(const Bme280 &other) const noexcept {
-    return !(*this == other);
-  }
+  bool operator!=(const Bme280 &other) const { return !(*this == other); }
 };
 struct Sgp30 {
   SensorDescriptor sensor_descriptor;
@@ -67,71 +65,63 @@ struct Sgp30 {
   Ppb tvoc;
   std::optional<BaselineECo2> eCo2_baseline;
   std::optional<BaselineTotalVoc> tvoc_baseline;
-  bool operator==(const Sgp30 &other) const noexcept {
+  bool operator==(const Sgp30 &other) const {
     return (sensor_descriptor == other.sensor_descriptor &&
             eCo2 == other.eCo2 && tvoc == other.tvoc &&
             eCo2_baseline == other.eCo2_baseline &&
             tvoc_baseline == other.tvoc_baseline);
   }
-  bool operator!=(const Sgp30 &other) const noexcept {
-    return !(*this == other);
-  }
+  bool operator!=(const Sgp30 &other) const { return !(*this == other); }
 };
 struct Scd30 {
   SensorDescriptor sensor_descriptor;
   Ppm co2;
   CentiDegC temperature;
   CentiRH relative_humidity;
-  bool operator==(const Scd30 &other) const noexcept {
+  bool operator==(const Scd30 &other) const {
     return (sensor_descriptor == other.sensor_descriptor && co2 == other.co2 &&
             temperature == other.temperature &&
             relative_humidity == other.relative_humidity);
   }
-  bool operator!=(const Scd30 &other) const noexcept {
-    return !(*this == other);
-  }
+  bool operator!=(const Scd30 &other) const { return !(*this == other); }
 };
 struct Scd41 {
   SensorDescriptor sensor_descriptor;
   Ppm co2;
   CentiDegC temperature;
   CentiRH relative_humidity;
-  bool operator==(const Scd41 &other) const noexcept {
+  bool operator==(const Scd41 &other) const {
     return (sensor_descriptor == other.sensor_descriptor && co2 == other.co2 &&
             temperature == other.temperature &&
             relative_humidity == other.relative_humidity);
   }
-  bool operator!=(const Scd41 &other) const noexcept {
-    return !(*this == other);
-  }
+  bool operator!=(const Scd41 &other) const { return !(*this == other); }
 };
 struct M5Env3 {
   SensorDescriptor sensor_descriptor;
   CentiDegC temperature;
   CentiRH relative_humidity;
   DeciPa pressure;
-  bool operator==(const M5Env3 &other) const noexcept {
+  bool operator==(const M5Env3 &other) const {
     return (sensor_descriptor == other.sensor_descriptor &&
             temperature == other.temperature &&
             relative_humidity == other.relative_humidity &&
             pressure == other.pressure);
   }
-  bool operator!=(const M5Env3 &other) const noexcept {
-    return !(*this == other);
-  }
+  bool operator!=(const M5Env3 &other) const { return !(*this == other); }
 };
 
 //
 // device driver
 //
 struct Device {
-  virtual SensorDescriptor getSensorDescriptor() const noexcept = 0;
+  virtual SensorDescriptor getSensorDescriptor() const = 0;
   virtual void printSensorDetails() = 0;
   virtual bool init() = 0;
-  virtual bool available() const noexcept = 0;
-  virtual bool readyToRead() noexcept = 0;
+  virtual bool available() const = 0;
+  virtual bool readyToRead() = 0;
   virtual MeasuredValue read() = 0;
-  virtual MeasuredValue calculateSMA() noexcept = 0;
+  virtual MeasuredValue calculateSMA() = 0;
 };
 
 // Bosch BME280: Temperature and Humidity and Pressure Sensor
@@ -163,17 +153,17 @@ public:
   Bme280Device(Bme280Device &&) = delete;
   Bme280Device &operator=(const Bme280Device &) = delete;
   //
-  SensorDescriptor getSensorDescriptor() const noexcept override {
+  SensorDescriptor getSensorDescriptor() const override {
     return sensor_descriptor;
   }
   void printSensorDetails() override;
   bool init() override;
-  bool available() const noexcept override { return initialized; }
-  bool readyToRead() noexcept override;
+  bool available() const override { return initialized; }
+  bool readyToRead() override;
   MeasuredValue read() override;
-  MeasuredValue calculateSMA() noexcept override;
+  MeasuredValue calculateSMA() override;
   //
-  void setSampling() noexcept {
+  void setSampling() {
     bme280.setSampling(Adafruit_BME280::MODE_NORMAL,
                        Adafruit_BME280::SAMPLING_X1, // temperature
                        Adafruit_BME280::SAMPLING_X1, // pressure
@@ -210,19 +200,18 @@ public:
   Sgp30Device(Sgp30Device &&) = delete;
   Sgp30Device &operator=(const Sgp30Device &) = delete;
   //
-  SensorDescriptor getSensorDescriptor() const noexcept override {
+  SensorDescriptor getSensorDescriptor() const override {
     return sensor_descriptor;
   }
   void printSensorDetails() override;
   bool init() override;
-  bool available() const noexcept override { return initialized; }
-  bool readyToRead() noexcept override;
+  bool available() const override { return initialized; }
+  bool readyToRead() override;
   MeasuredValue read() override;
-  MeasuredValue calculateSMA() noexcept override;
+  MeasuredValue calculateSMA() override;
   //
-  bool setIAQBaseline(BaselineECo2 eco2_base,
-                      BaselineTotalVoc tvoc_base) noexcept;
-  bool setHumidity(MilligramPerCubicMetre absolute_humidity) noexcept;
+  bool setIAQBaseline(BaselineECo2 eco2_base, BaselineTotalVoc tvoc_base);
+  bool setHumidity(MilligramPerCubicMetre absolute_humidity);
 };
 
 // Sensirion SCD30: NDIR CO2 and Temperature and Humidity Sensor
@@ -250,15 +239,15 @@ public:
   Scd30Device(Scd30Device &&) = delete;
   Scd30Device &operator=(const Scd30Device &) = delete;
   //
-  SensorDescriptor getSensorDescriptor() const noexcept override {
+  SensorDescriptor getSensorDescriptor() const override {
     return sensor_descriptor;
   }
   void printSensorDetails() override;
   bool init() override;
-  bool available() const noexcept override { return initialized; }
-  bool readyToRead() noexcept override;
+  bool available() const override { return initialized; }
+  bool readyToRead() override;
   MeasuredValue read() override;
-  MeasuredValue calculateSMA() noexcept override;
+  MeasuredValue calculateSMA() override;
 };
 
 // Sensirion SCD41: PASens CO2 and Temperature and Humidity Sensor
@@ -286,17 +275,17 @@ public:
   Scd41Device(Scd41Device &&) = delete;
   Scd41Device &operator=(const Scd41Device &) = delete;
   //
-  SensorDescriptor getSensorDescriptor() const noexcept override {
+  SensorDescriptor getSensorDescriptor() const override {
     return sensor_descriptor;
   }
   void printSensorDetails() override;
   bool init() override;
-  bool available() const noexcept override { return initialized; }
-  bool readyToRead() noexcept override;
+  bool available() const override { return initialized; }
+  bool readyToRead() override;
   enum class SensorStatus { DataNotReady, DataReady };
-  SensorStatus getSensorStatus() noexcept;
+  SensorStatus getSensorStatus();
   MeasuredValue read() override;
-  MeasuredValue calculateSMA() noexcept override;
+  MeasuredValue calculateSMA() override;
 };
 
 // M5Stack ENV.iii unit: Temperature and Humidity and Pressure Sensor
@@ -334,15 +323,15 @@ public:
   M5Env3Device(M5Env3Device &&) = delete;
   M5Env3Device &operator=(const M5Env3Device &) = delete;
   //
-  SensorDescriptor getSensorDescriptor() const noexcept override {
+  SensorDescriptor getSensorDescriptor() const override {
     return sensor_descriptor;
   }
   void printSensorDetails() override;
   bool init() override;
-  bool available() const noexcept override { return initialized; }
-  bool readyToRead() noexcept override;
+  bool available() const override { return initialized; }
+  bool readyToRead() override;
   MeasuredValue read() override;
-  MeasuredValue calculateSMA() noexcept override;
+  MeasuredValue calculateSMA() override;
 };
 
 } // namespace Sensor

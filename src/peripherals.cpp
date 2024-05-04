@@ -9,7 +9,7 @@
 std::vector<std::unique_ptr<Sensor::Device>> Peripherals::sensors{};
 
 //
-void Peripherals::init(TwoWire &wire, int8_t sda_pin, int8_t scl_pin) noexcept {
+void Peripherals::init(TwoWire &wire, int8_t sda_pin, int8_t scl_pin) {
   sensors.emplace_back(std::move(std::make_unique<Sensor::Bme280Device>(
       SENSOR_DESCRIPTOR_BME280, BME280_I2C_ADDRESS, wire)));
   sensors.emplace_back(std::move(

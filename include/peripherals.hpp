@@ -25,5 +25,5 @@ constexpr static auto SENSOR_DESCRIPTOR_M5ENV3 =
 //
 extern std::vector<std::unique_ptr<Sensor::Device>> sensors;
 // 初期化
-extern void init(TwoWire &wire, int8_t sda_pin, int8_t scl_pin) noexcept;
+extern void init(TwoWire &wire, int8_t sda_pin, int8_t scl_pin);
 } // namespace Peripherals
