@@ -586,11 +586,13 @@ void Widget::Clock::update() {
 }
 
 void Widget::Clock::render(const std::tm &tm) {
-  lv_meter_set_indicator_value(meter_obj, sec_indic, tm.tm_sec);
-  lv_meter_set_indicator_value(meter_obj, min_indic, tm.tm_min);
-  const float h = (60.0f / 12.0f) * (tm.tm_hour % 12);
-  const float m = (60.0f / 12.0f) * tm.tm_min / 60.0f;
-  lv_meter_set_indicator_value(meter_obj, hour_indic, std::floor(h + m));
+  if (meter_obj) {
+    lv_meter_set_indicator_value(meter_obj, sec_indic, tm.tm_sec);
+    lv_meter_set_indicator_value(meter_obj, min_indic, tm.tm_min);
+    const float h = (60.0f / 12.0f) * (tm.tm_hour % 12);
+    const float m = (60.0f / 12.0f) * tm.tm_min / 60.0f;
+    lv_meter_set_indicator_value(meter_obj, hour_indic, std::floor(h + m));
+  }
 }
 
 //
@@ -628,19 +630,75 @@ Widget::SystemHealthy::SystemHealthy(Widget::InitArg init) : TileBase{init} {
     lv_style_init(&label_style);
     lv_style_set_text_font(&label_style, &lv_font_montserrat_16);
     //
-    time_label_obj = create(cont_col_obj, &label_style);
-    status_label_obj = create(cont_col_obj, &label_style);
-    battery_label_obj = create(cont_col_obj, &label_style);
-    battery_charging_label_obj = create(cont_col_obj, &label_style);
-    available_heap_label_obj = create(cont_col_obj, &label_style);
-    available_internal_heap_label_obj = create(cont_col_obj, &label_style);
-    minimum_free_heap_label_obj = create(cont_col_obj, &label_style);
+    if (time_label_obj = create(cont_col_obj, &label_style);
+        time_label_obj == nullptr) {
+      M5_LOGE("time_label_obj had null");
+      return;
+    }
+    if (status_label_obj = create(cont_col_obj, &label_style);
+        status_label_obj == nullptr) {
+      M5_LOGE("status_label_obj had null");
+      return;
+    }
+    if (battery_label_obj = create(cont_col_obj, &label_style);
+        battery_label_obj == nullptr) {
+      M5_LOGE("battery_label_obj had null");
+      return;
+    }
+    if (battery_charging_label_obj = create(cont_col_obj, &label_style);
+        battery_charging_label_obj == nullptr) {
+      M5_LOGE("battery_charging_label_obj had null");
+      return;
+    }
+    if (available_heap_label_obj = create(cont_col_obj, &label_style);
+        available_heap_label_obj == nullptr) {
+      M5_LOGE("available_heap_label_obj had null");
+      return;
+    }
+    if (available_internal_heap_label_obj = create(cont_col_obj, &label_style);
+        available_internal_heap_label_obj == nullptr) {
+      M5_LOGE("available_heap_label_obj had null");
+      return;
+    }
+    if (minimum_free_heap_label_obj = create(cont_col_obj, &label_style);
+        minimum_free_heap_label_obj == nullptr) {
+      M5_LOGE("minimum_free_heap_label_obj had null");
+      return;
+    }
     //
     render();
   }
 }
 
 void Widget::SystemHealthy::render() {
+  if (time_label_obj == nullptr) {
+    M5_LOGE("time_label_obj had null");
+    return;
+  }
+  if (status_label_obj == nullptr) {
+    M5_LOGE("status_label_obj had null");
+    return;
+  }
+  if (battery_label_obj == nullptr) {
+    M5_LOGE("battery_label_obj had null");
+    return;
+  }
+  if (battery_charging_label_obj == nullptr) {
+    M5_LOGE("battery_charging_label_obj had null");
+    return;
+  }
+  if (available_heap_label_obj == nullptr) {
+    M5_LOGE("available_heap_label_obj had null");
+    return;
+  }
+  if (available_internal_heap_label_obj == nullptr) {
+    M5_LOGE("available_heap_label_obj had null");
+    return;
+  }
+  if (minimum_free_heap_label_obj == nullptr) {
+    M5_LOGE("minimum_free_heap_label_obj had null");
+    return;
+  }
   const seconds uptime = Time::uptime();
   const int16_t sec = uptime.count() % 60;
   const int16_t min = uptime.count() / 60 % 60;
@@ -815,10 +873,10 @@ Widget::BasicChart<T>::BasicChart(InitArg init, const std::string &inSubheading)
     return;
   }
   constexpr auto MARGIN{8};
-  subheading = inSubheading;
+  subheading.assign(inSubheading);
   // create
   if (title_obj = lv_label_create(tile_obj); title_obj == nullptr) {
-    M5_LOGE("chart had null");
+    M5_LOGE("title had null");
     return;
   }
   lv_obj_set_style_text_align(title_obj, LV_TEXT_ALIGN_LEFT, LV_STATE_DEFAULT);
@@ -829,7 +887,7 @@ Widget::BasicChart<T>::BasicChart(InitArg init, const std::string &inSubheading)
   lv_label_set_text(title_obj, subheading.c_str());
   //
   if (label_obj = lv_label_create(tile_obj); label_obj == nullptr) {
-    M5_LOGE("chart had null");
+    M5_LOGE("label had null");
     return;
   }
   const lv_font_t *FONT{&lv_font_montserrat_24};
@@ -1001,6 +1059,7 @@ Widget::TemperatureChart::TemperatureChart(InitArg init)
   // create
   lv_obj_add_event_cb(chart_obj, event_draw_part_begin_callback,
                       LV_EVENT_DRAW_PART_BEGIN, this);
+  render();
 }
 
 void Widget::TemperatureChart::update() {
@@ -1100,6 +1159,7 @@ Widget::RelativeHumidityChart::RelativeHumidityChart(InitArg init)
     : BasicChart{init, "Relative Humidity"} {
   lv_obj_add_event_cb(chart_obj, event_draw_part_begin_callback,
                       LV_EVENT_DRAW_PART_BEGIN, this);
+  render();
 }
 
 void Widget::RelativeHumidityChart::update() {
@@ -1196,6 +1256,7 @@ Widget::PressureChart::PressureChart(InitArg init)
     : BasicChart{init, "Pressure"} {
   lv_obj_add_event_cb(chart_obj, event_draw_part_begin_callback,
                       LV_EVENT_DRAW_PART_BEGIN, this);
+  render();
 }
 
 void Widget::PressureChart::update() {
@@ -1273,7 +1334,9 @@ void Widget::PressureChart::event_draw_part_begin_callback(lv_event_t *event) {
 // Co2 / ECo2
 //
 Widget::CarbonDeoxidesChart::CarbonDeoxidesChart(InitArg init)
-    : BasicChart{init, "CO2"} {}
+    : BasicChart{init, "CO2"} {
+  render();
+}
 
 void Widget::CarbonDeoxidesChart::update() {
   auto sgp30 = Application::measurements_database.getLatestMeasurementSgp30();
@@ -1345,6 +1408,7 @@ Widget::TotalVocChart::TotalVocChart(InitArg init)
     : BasicChart{init, "Total VOC"} {
   lv_obj_add_event_cb(chart_obj, event_draw_part_begin_callback,
                       LV_EVENT_DRAW_PART_BEGIN, this);
+  render();
 }
 
 void Widget::TotalVocChart::update() {

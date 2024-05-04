@@ -10,7 +10,7 @@
 //
 //
 class RgbLed {
-  inline static RgbLed *_instance{nullptr};
+  static RgbLed *_instance;
 
 public:
   RgbLed() {
@@ -19,7 +19,7 @@ public:
     }
     _instance = this;
   }
-  virtual ~RgbLed() {}
+  virtual ~RgbLed() { _instance = nullptr; }
   static RgbLed *getInstance() { return _instance; }
   //
   void begin();

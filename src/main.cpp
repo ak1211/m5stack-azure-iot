@@ -21,10 +21,10 @@
 #include <future>
 #include <lvgl.h>
 #include <optional>
+#include <queue>
 #include <string>
 #include <tuple>
 #include <variant>
-#include <vector>
 
 #include <M5Unified.h>
 

@@ -6,9 +6,9 @@
 #include "AzIoTSasToken.h"
 #include "Sensor.hpp"
 #include <mqtt_client.h>
-#include <queue>
 #include <string>
 #include <variant>
+#include <vector>
 extern "C" {
 #include <az_core.h>
 #include <az_iot.h>
@@ -16,6 +16,9 @@ extern "C" {
 
 // MQTT通信
 class Telemetry {
+  static Telemetry *_instance;
+
+private:
   constexpr static auto MAXIMUM_QUEUE_SIZE = 100;
   using MessageId = uint32_t;
   // 送信用
@@ -48,11 +51,11 @@ class Telemetry {
   std::array<uint8_t, 256> sas_signature_buffer{};
   std::optional<AzIoTSasToken> optAzIoTSasToken{};
   // 送信用バッファ
-  std::queue<Payload> sending_fifo_queue{};
+  using QueueData = std::pair<int32_t, std::string>;
+  std::vector<QueueData> sending_fifo_vect{};
   //
   bool mqtt_connected{false};
   //
-  static Telemetry *_instance;
 
 public:
   //
@@ -62,7 +65,7 @@ public:
     }
     _instance = this;
   }
-  ~Telemetry() {}
+  virtual ~Telemetry() { _instance = nullptr; }
   //
   static Telemetry *getInstance() { return _instance; }
   //
@@ -74,13 +77,7 @@ public:
   template <typename T>
   std::string to_json_message(MessageId messageId, const T &in);
   //
-  inline bool pushMessage(const Payload &in) {
-    if (sending_fifo_queue.size() < MAXIMUM_QUEUE_SIZE) {
-      sending_fifo_queue.push(in);
-      return true;
-    }
-    return false;
-  }
+  bool pushMessage(const Payload &in);
 
 private:
   //
@@ -88,4 +85,5 @@ private:
   bool initializeMqttClient();
   //
   static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event);
+  static std::string to_absolute_sensor_id(SensorDescriptor descriptor);
 };
