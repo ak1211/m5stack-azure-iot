@@ -35,8 +35,6 @@ private:
   std::string config_device_id{};
   std::string config_device_key{};
   //
-  constexpr static int MQTT_QOS1{1};
-  constexpr static int DO_NOT_RETAIN_MSG{0};
   constexpr static int mqtt_port{AZ_IOT_DEFAULT_MQTT_CONNECT_PORT};
   esp_mqtt_client_handle_t mqtt_client{};
   std::string mqtt_broker_uri{};

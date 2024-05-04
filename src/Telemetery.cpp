@@ -122,7 +122,10 @@ std::string Telemetry::to_json_message<Sensor::MeasurementScd41>(
 
 //
 bool Telemetry::pushMessage(const Payload &in) {
-  if (sending_fifo_vect.size() < MAXIMUM_QUEUE_SIZE) {
+  if (sending_fifo_vect.size() >= MAXIMUM_QUEUE_SIZE) {
+    M5_LOGE("fifo queue size limits reached.");
+    return false;
+  } else {
     std::string datum = std::visit(
         [this](const auto &x) {
           auto retval = to_json_message(message_id, x);
@@ -134,7 +137,6 @@ bool Telemetry::pushMessage(const Payload &in) {
     sending_fifo_vect.push_back({int32_t{-1}, datum});
     return true;
   }
-  return false;
 }
 
 // When developing for your own Arduino-based platform,
@@ -366,11 +368,14 @@ bool Telemetry::loopMqtt() {
     return false;
   }
   // 送信するべき測定値があれば送信する
+  constexpr auto MQTT_QOS0{0};
+  constexpr auto MQTT_QOS1{1};
+  constexpr auto DO_NOT_RETAIN_MSG{0};
   if (!sending_fifo_vect.empty()) {
     auto itr = sending_fifo_vect.begin();
     if (auto number = esp_mqtt_client_enqueue(
             mqtt_client, telemetry_topic.data(), itr->second.data(),
-            itr->second.length(), MQTT_QOS1, DO_NOT_RETAIN_MSG, true);
+            itr->second.length(), MQTT_QOS0, DO_NOT_RETAIN_MSG, true);
         number < 0) {
       M5_LOGE("Failed publishing");
       return false;
