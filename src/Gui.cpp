@@ -953,7 +953,6 @@ Widget::BasicChart<T>::BasicChart(InitArg init, const std::string &inSubheading)
 
   // 初期化
   lv_chart_set_point_count(chart_obj, Gui::CHART_X_POINT_COUNT);
-  //  render();
 }
 
 //
@@ -1060,6 +1059,7 @@ Widget::TemperatureChart::TemperatureChart(InitArg init)
   // create
   lv_obj_add_event_cb(chart_obj, event_draw_part_begin_callback,
                       LV_EVENT_DRAW_PART_BEGIN, this);
+  render();
 }
 
 void Widget::TemperatureChart::update() {
@@ -1159,6 +1159,7 @@ Widget::RelativeHumidityChart::RelativeHumidityChart(InitArg init)
     : BasicChart{init, "Relative Humidity"} {
   lv_obj_add_event_cb(chart_obj, event_draw_part_begin_callback,
                       LV_EVENT_DRAW_PART_BEGIN, this);
+  render();
 }
 
 void Widget::RelativeHumidityChart::update() {
@@ -1255,6 +1256,7 @@ Widget::PressureChart::PressureChart(InitArg init)
     : BasicChart{init, "Pressure"} {
   lv_obj_add_event_cb(chart_obj, event_draw_part_begin_callback,
                       LV_EVENT_DRAW_PART_BEGIN, this);
+  render();
 }
 
 void Widget::PressureChart::update() {
@@ -1332,7 +1334,9 @@ void Widget::PressureChart::event_draw_part_begin_callback(lv_event_t *event) {
 // Co2 / ECo2
 //
 Widget::CarbonDeoxidesChart::CarbonDeoxidesChart(InitArg init)
-    : BasicChart{init, "CO2"} {}
+    : BasicChart{init, "CO2"} {
+  render();
+}
 
 void Widget::CarbonDeoxidesChart::update() {
   auto sgp30 = Application::measurements_database.getLatestMeasurementSgp30();
@@ -1404,6 +1408,7 @@ Widget::TotalVocChart::TotalVocChart(InitArg init)
     : BasicChart{init, "Total VOC"} {
   lv_obj_add_event_cb(chart_obj, event_draw_part_begin_callback,
                       LV_EVENT_DRAW_PART_BEGIN, this);
+  render();
 }
 
 void Widget::TotalVocChart::update() {
