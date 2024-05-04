@@ -29,8 +29,9 @@ using namespace std::literals::string_literals;
 using namespace std::literals::string_view_literals;
 
 //
-void Gui::display_flush_callback(lv_disp_drv_t *disp_drv, const lv_area_t *area,
-                                 lv_color_t *color_p) noexcept {
+void Gui::lvgl_use_display_flush_callback(lv_disp_drv_t *disp_drv,
+                                          const lv_area_t *area,
+                                          lv_color_t *color_p) noexcept {
   M5GFX &gfx = *static_cast<M5GFX *>(disp_drv->user_data);
 
   int32_t width = area->x2 - area->x1 + 1;
@@ -47,8 +48,8 @@ void Gui::display_flush_callback(lv_disp_drv_t *disp_drv, const lv_area_t *area,
 }
 
 //
-void Gui::touchpad_read_callback(lv_indev_drv_t *indev_drv,
-                                 lv_indev_data_t *data) noexcept {
+void Gui::lvgl_use_touchpad_read_callback(lv_indev_drv_t *indev_drv,
+                                          lv_indev_data_t *data) noexcept {
   M5GFX &gfx = *static_cast<M5GFX *>(indev_drv->user_data);
 
   lgfx::touch_point_t tp;
@@ -83,7 +84,7 @@ bool Gui::begin() noexcept {
   lvgl_use.disp_drv.user_data = &gfx;
   lvgl_use.disp_drv.hor_res = gfx.width();
   lvgl_use.disp_drv.ver_res = gfx.height();
-  lvgl_use.disp_drv.flush_cb = display_flush_callback;
+  lvgl_use.disp_drv.flush_cb = lvgl_use_display_flush_callback;
   lvgl_use.disp_drv.draw_buf = &lvgl_use.draw_buf_dsc;
   // register the display driver
   lv_disp_drv_register(&lvgl_use.disp_drv);
@@ -92,60 +93,30 @@ bool Gui::begin() noexcept {
   lv_indev_drv_init(&lvgl_use.indev_drv);
   lvgl_use.indev_drv.user_data = &gfx;
   lvgl_use.indev_drv.type = LV_INDEV_TYPE_POINTER;
-  lvgl_use.indev_drv.read_cb = touchpad_read_callback;
+  lvgl_use.indev_drv.read_cb = lvgl_use_touchpad_read_callback;
   // register the input device driver
   lv_indev_drv_register(&lvgl_use.indev_drv);
 
   // tileview init
-  tileview_obj = lv_tileview_create(lv_scr_act());
+  if (tileview_obj = lv_tileview_create(lv_scr_act());
+      tileview_obj == nullptr) {
+    M5_LOGE("memory allocation error");
+    return false;
+  }
   // make the first tile
   add_tile<Widget::BootMessage>({tileview_obj, 0, 0, LV_DIR_RIGHT});
   // move to first tile
-  tiles.front()->setActiveTile(tileview_obj);
-
-  // set value changed callback
-  lv_obj_add_event_cb(
-      tileview_obj,
-      [](lv_event_t *event) noexcept -> void {
-        Gui *gui = static_cast<Gui *>(event->user_data);
-        if (gui == nullptr) {
-          M5_LOGE("user_data had null");
-          return;
-        }
-        auto itr = std::find_if(gui->tiles.cbegin(), gui->tiles.cend(),
-                                check_if_active_tile);
-        if (itr == gui->tiles.cend()) {
-          return;
-        }
-        if (auto found = itr->get(); found) {
-          found->valueChangedEventHook(event);
-        }
-      },
-      LV_EVENT_VALUE_CHANGED, this);
-  // set timer callback
-  periodic_timer = lv_timer_create(
-      [](lv_timer_t *timer) noexcept -> void {
-        Gui *gui = static_cast<Gui *>(timer->user_data);
-        if (gui == nullptr) {
-          M5_LOGE("user_data had null");
-          return;
-        }
-        auto itr = std::find_if(gui->tiles.cbegin(), gui->tiles.cend(),
-                                check_if_active_tile);
-        if (itr == gui->tiles.cend()) {
-          return;
-        }
-        if (auto found = itr->get(); found) {
-          found->timerHook();
-        }
-      },
-      duration_cast<milliseconds>(PERIODIC_TIMER_INTERVAL).count(), this);
+  tile_vector.front()->setActiveTile();
 
   return true;
 }
 
 //
 void Gui::startUi() noexcept {
+  if (tileview_obj == nullptr) {
+    M5_LOGE("tileview had null");
+    return;
+  }
   // TileWidget::BootMessageの次からこの並び順
   auto col = 1;
   if constexpr (false) {
@@ -165,10 +136,11 @@ void Gui::startUi() noexcept {
 
 //
 void Gui::home() noexcept {
-  vibrate();
-  if (periodic_timer) {
-    lv_timer_reset(periodic_timer);
+  if (tileview_obj == nullptr) {
+    M5_LOGE("tileview had null");
+    return;
   }
+  vibrate();
   constexpr auto COL_ID = 2;
   constexpr auto ROW_ID = 0;
   lv_obj_set_tile_id(tileview_obj, COL_ID, ROW_ID, LV_ANIM_OFF);
@@ -177,58 +149,67 @@ void Gui::home() noexcept {
 //
 void Gui::movePrev() noexcept {
   vibrate();
-  auto itr = std::find_if(tiles.begin(), tiles.end(), check_if_active_tile);
-  if (itr == tiles.end() || itr == tiles.begin()) {
-    return;
-  }
-  if (auto p = std::prev(itr)->get(); p) {
-    if (periodic_timer) {
-      lv_timer_reset(periodic_timer);
+  if (auto found = std::find_if(tile_vector.begin(), tile_vector.end(),
+                                check_if_active_tile);
+      found != tile_vector.end()) {
+    if (found != tile_vector.begin()) {
+      std::vector<std::unique_ptr<Widget::TileBase>>::iterator itr =
+          std::prev(found);
+      itr->get()->setActiveTile();
     }
-    p->setActiveTile(tileview_obj);
   }
 }
 
 //
 void Gui::moveNext() noexcept {
   vibrate();
-  auto itr = std::find_if(tiles.begin(), tiles.end(), check_if_active_tile);
-  if (itr == tiles.end() || std::next(itr) == tiles.end()) {
-    return;
-  }
-  if (auto p = std::next(itr)->get(); p) {
-    if (periodic_timer) {
-      lv_timer_reset(periodic_timer);
+  if (auto found = std::find_if(tile_vector.begin(), tile_vector.end(),
+                                check_if_active_tile);
+      found != tile_vector.end()) {
+    std::vector<std::unique_ptr<Widget::TileBase>>::iterator itr =
+        std::next(found);
+    if (itr != tile_vector.end()) {
+      itr->get()->setActiveTile();
     }
-    p->setActiveTile(tileview_obj);
   }
 }
 
 //
 void Gui::vibrate() noexcept {
   constexpr auto MILLISECONDS = 100;
-  lv_timer_t *timer = lv_timer_create(
-      [](lv_timer_t *) noexcept -> void { M5.Power.setVibration(0); },
-      MILLISECONDS, nullptr);
-  lv_timer_set_repeat_count(timer, 1); // one-shot timer
-  M5.Power.setVibration(255);          // start vibrate
+  auto stop_the_vibration = [](lv_timer_t *) noexcept -> void {
+    M5.Power.setVibration(0);
+  };
+  if (lv_timer_t *timer =
+          lv_timer_create(stop_the_vibration, MILLISECONDS, nullptr);
+      timer) {
+    lv_timer_set_repeat_count(timer, 1); // one-shot timer
+    M5.Power.setVibration(255);          // start vibrate
+  }
 }
 
 //
 //
 //
-Widget::BootMessage::BootMessage(Widget::InitArg init) noexcept {
-  tile_obj = std::apply(lv_tileview_add_tile, init);
-  message_label_obj = lv_label_create(tile_obj);
-  lv_label_set_long_mode(message_label_obj, LV_LABEL_LONG_WRAP);
-  lv_label_set_text_static(message_label_obj, Application::boot_log.c_str());
+Widget::BootMessage::BootMessage(Widget::InitArg init) noexcept
+    : TileBase{init} {
+  if (tileview_obj == nullptr) {
+    M5_LOGE("tileview had null");
+    return;
+  }
+  if (tile_obj == nullptr) {
+    M5_LOGE("tile had null");
+    return;
+  }
+  // create
+  if (message_label_obj = lv_label_create(tile_obj); message_label_obj) {
+    lv_label_set_long_mode(message_label_obj, LV_LABEL_LONG_WRAP);
+    lv_label_set_text_static(message_label_obj, Application::boot_log.c_str());
+    render();
+  }
 }
 
-Widget::BootMessage::~BootMessage() { lv_obj_del(tile_obj); }
-
-void Widget::BootMessage::valueChangedEventHook(lv_event_t *) noexcept {}
-
-void Widget::BootMessage::timerHook() noexcept {
+void Widget::BootMessage::update() noexcept {
   if (auto x = Application::boot_log.size(); x != count) {
     render();
     count = x;
@@ -242,223 +223,22 @@ void Widget::BootMessage::render() noexcept {
 //
 //
 //
-Widget::SystemHealthy::SystemHealthy(Widget::InitArg init) noexcept {
-  tile_obj = std::apply(lv_tileview_add_tile, init);
-  //
-  lv_style_init(&label_style);
-  lv_style_set_text_font(&label_style, &lv_font_montserrat_16);
-  //
-  cont_col_obj = lv_obj_create(tile_obj);
-  lv_obj_set_size(cont_col_obj, LV_PCT(100), LV_PCT(100));
-  lv_obj_align(cont_col_obj, LV_ALIGN_CENTER, 0, 0);
-  lv_obj_set_flex_flow(cont_col_obj, LV_FLEX_FLOW_COLUMN);
-  //
-  auto create = [&](lv_style_t *style,
-                    lv_text_align_t align = LV_TEXT_ALIGN_LEFT) -> lv_obj_t * {
-    lv_obj_t *label = lv_label_create(cont_col_obj);
-    lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP);
-    lv_obj_set_style_text_align(label, align, 0);
-    lv_obj_add_style(label, style, 0);
-    lv_obj_set_width(label, LV_PCT(100));
-    lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
-    return label;
-  };
-  //
-  time_label_obj = create(&label_style);
-  status_label_obj = create(&label_style);
-  battery_label_obj = create(&label_style);
-  battery_charging_label_obj = create(&label_style);
-  available_heap_label_obj = create(&label_style);
-  available_internal_heap_label_obj = create(&label_style);
-  minimum_free_heap_label_obj = create(&label_style);
-  //
-  render();
-}
-
-Widget::SystemHealthy::~SystemHealthy() { lv_obj_del(tile_obj); }
-
-void Widget::SystemHealthy::valueChangedEventHook(lv_event_t *) noexcept {
-  render();
-}
-
-void Widget::SystemHealthy::timerHook() noexcept { render(); }
-
-void Widget::SystemHealthy::render() noexcept {
-  const seconds uptime = Time::uptime();
-  const int16_t sec = uptime.count() % 60;
-  const int16_t min = uptime.count() / 60 % 60;
-  const int16_t hour = uptime.count() / (60 * 60) % 24;
-  const int32_t days = uptime.count() / (60 * 60 * 24);
-  //
-  { // now time
-    std::ostringstream oss;
-    const auto now = system_clock::now();
-    std::time_t time =
-        (Time::sync_completed()) ? system_clock::to_time_t(now) : 0;
-    {
-      std::tm utc_time;
-      gmtime_r(&time, &utc_time);
-      oss << std::put_time(&utc_time, "%F %T UTC");
-    }
-    oss << std::endl;
-    {
-      std::tm local_time;
-      localtime_r(&time, &local_time);
-      oss << std::put_time(&local_time, "%F %T %Z");
-    }
-    oss << std::endl;
-    if (Time::sync_completed()) {
-      oss << "Sync completed, based on SNTP";
-    } else {
-      oss << "Time is not synced";
-    }
-    lv_label_set_text(time_label_obj, oss.str().c_str());
+Widget::Summary::Summary(Widget::InitArg init) noexcept : TileBase{init} {
+  if (tileview_obj == nullptr) {
+    M5_LOGE("tileview had null");
+    return;
   }
-  { // status
-    std::ostringstream oss;
-    if (WiFi.status() == WL_CONNECTED) {
-      oss << "WiFi connected.IP : ";
-      oss << WiFi.localIP().toString().c_str();
-    } else {
-      oss << "No WiFi connection.";
-    }
-    oss << std::endl                     //
-        << std::setfill(' ')             //
-        << "uptime " << days << " days," //
-        << std::setfill('0')             //
-        << std::setw(2) << hour << ":"   //
-        << std::setw(2) << min << ":"    //
-        << std::setw(2) << sec;          //
-    lv_label_set_text(status_label_obj, oss.str().c_str());
+  if (tile_obj == nullptr) {
+    M5_LOGE("tile had null");
+    return;
   }
-  { // battery status
-    auto battery_level = M5.Power.getBatteryLevel();
-    auto battery_current = M5.Power.getBatteryCurrent();
-    auto battery_voltage = M5.Power.getBatteryVoltage();
-    std::ostringstream oss;
-    oss << "Battery "                                                  //
-        << std::setfill(' ') << std::setw(3) << +battery_level << "% " //
-        << std::setfill(' ') << std::fixed                             //
-        << std::setw(5) << std::setprecision(3)                        //
-        << battery_voltage << "mV "                                    //
-        << std::setw(5) << std::setprecision(3)                        //
-        << battery_current << "mA ";                                   //
-    lv_label_set_text(battery_label_obj, oss.str().c_str());
-  }
-  { // battery charging
-    std::ostringstream oss;
-    switch (M5.Power.isCharging()) {
-    case M5.Power.is_charging_t::is_discharging: {
-      oss << "DISCHARGING"sv;
-    } break;
-    case M5.Power.is_charging_t::is_charging: {
-      oss << "CHARGING"sv;
-    } break;
-    default: {
-    } break;
-    }
-    lv_label_set_text(battery_charging_label_obj, oss.str().c_str());
-  }
-  { // available heap memory
-    uint32_t memfree = esp_get_free_heap_size();
-    std::ostringstream oss;
-    oss << "available heap size: " << memfree;
-    lv_label_set_text(available_heap_label_obj, oss.str().c_str());
-  }
-  { // available internal heap memory
-    uint32_t memfree = esp_get_free_internal_heap_size();
-    std::ostringstream oss;
-    oss << "available internal heap size: " << memfree;
-    lv_label_set_text(available_internal_heap_label_obj, oss.str().c_str());
-  }
-  { // minumum free heap memory
-    uint32_t memfree = esp_get_minimum_free_heap_size();
-    std::ostringstream oss;
-    oss << "minimum free heap size: " << memfree;
-    lv_label_set_text(minimum_free_heap_label_obj, oss.str().c_str());
+  // create
+  if (table_obj = lv_table_create(tile_obj); table_obj) {
+    render();
   }
 }
 
-//
-//
-//
-Widget::Clock::Clock(Widget::InitArg init) noexcept {
-  tile_obj = std::apply(lv_tileview_add_tile, init);
-  meter_obj = lv_meter_create(tile_obj);
-  auto size = std::min(lv_obj_get_content_width(tile_obj),
-                       lv_obj_get_content_height(tile_obj));
-  lv_obj_set_size(meter_obj, size * 0.9, size * 0.9);
-  lv_obj_center(meter_obj);
-  //
-  sec_scale = lv_meter_add_scale(meter_obj);
-  lv_meter_set_scale_ticks(meter_obj, sec_scale, 61, 1, 10,
-                           lv_palette_main(LV_PALETTE_GREY));
-  lv_meter_set_scale_range(meter_obj, sec_scale, 0, 60, 360, 270);
-  //
-  min_scale = lv_meter_add_scale(meter_obj);
-  lv_meter_set_scale_ticks(meter_obj, min_scale, 61, 1, 10,
-                           lv_palette_main(LV_PALETTE_GREY));
-  lv_meter_set_scale_range(meter_obj, min_scale, 0, 60, 360, 270);
-  //
-  hour_scale = lv_meter_add_scale(meter_obj);
-  lv_meter_set_scale_ticks(meter_obj, hour_scale, 12, 0, 0,
-                           lv_palette_main(LV_PALETTE_GREY));
-  lv_meter_set_scale_major_ticks(meter_obj, hour_scale, 1, 2, 20,
-                                 lv_color_black(), 10);
-  lv_meter_set_scale_range(meter_obj, hour_scale, 1, 12, 330, 300);
-  //
-  hour_indic = lv_meter_add_needle_line(
-      meter_obj, min_scale, 9, lv_palette_darken(LV_PALETTE_INDIGO, 2), -50);
-  min_indic = lv_meter_add_needle_line(
-      meter_obj, min_scale, 4, lv_palette_darken(LV_PALETTE_INDIGO, 2), -25);
-  sec_indic = lv_meter_add_needle_line(meter_obj, sec_scale, 2,
-                                       lv_palette_main(LV_PALETTE_RED), -10);
-  //
-  timerHook();
-}
-
-Widget::Clock::~Clock() { lv_obj_del(tile_obj); }
-
-void Widget::Clock::valueChangedEventHook(lv_event_t *) noexcept {
-  timerHook();
-}
-
-void Widget::Clock::timerHook() noexcept {
-  if (Time::sync_completed()) {
-    std::time_t now = system_clock::to_time_t(system_clock::now());
-    std::tm local;
-    localtime_r(&now, &local);
-    render(local);
-  } else {
-    std::time_t now = 0;
-    std::tm utc;
-    gmtime_r(&now, &utc);
-    render(utc);
-  }
-}
-void Widget::Clock::render(const std::tm &tm) noexcept {
-  lv_meter_set_indicator_value(meter_obj, sec_indic, tm.tm_sec);
-  lv_meter_set_indicator_value(meter_obj, min_indic, tm.tm_min);
-  const float h = (60.0f / 12.0f) * (tm.tm_hour % 12);
-  const float m = (60.0f / 12.0f) * tm.tm_min / 60.0f;
-  lv_meter_set_indicator_value(meter_obj, hour_indic, std::floor(h + m));
-}
-
-//
-//
-//
-Widget::Summary::Summary(Widget::InitArg init) noexcept {
-  tile_obj = std::apply(lv_tileview_add_tile, init);
-  table_obj = lv_table_create(tile_obj);
-  //
-  render();
-}
-
-Widget::Summary::~Summary() { lv_obj_del(tile_obj); }
-
-void Widget::Summary::valueChangedEventHook(lv_event_t *) noexcept { render(); }
-
-void Widget::Summary::timerHook() noexcept {
+void Widget::Summary::update() noexcept {
   auto present = Measurements{
       Application::measurements_database.getLatestMeasurementBme280(),
       Application::measurements_database.getLatestMeasurementSgp30(),
@@ -466,8 +246,6 @@ void Widget::Summary::timerHook() noexcept {
       Application::measurements_database.getLatestMeasurementScd41(),
       Application::measurements_database.getLatestMeasurementM5Env3()};
   if (present != latest) {
-    //    Gui::getInstance()->send_event_to_tileview(LV_EVENT_VALUE_CHANGED,
-    //    nullptr);
     render();
     latest = present;
   }
@@ -750,20 +528,302 @@ void Widget::Summary::render() noexcept {
 //
 //
 //
+Widget::Clock::Clock(Widget::InitArg init) noexcept : TileBase{init} {
+  if (tileview_obj == nullptr) {
+    M5_LOGE("tileview had null");
+    return;
+  }
+  if (tile_obj == nullptr) {
+    M5_LOGE("tile had null");
+    return;
+  }
+  // create
+  if (meter_obj = lv_meter_create(tile_obj); meter_obj) {
+    auto size = std::min(lv_obj_get_content_width(tile_obj),
+                         lv_obj_get_content_height(tile_obj));
+    lv_obj_set_size(meter_obj, size * 0.9, size * 0.9);
+    lv_obj_center(meter_obj);
+    //
+    sec_scale = lv_meter_add_scale(meter_obj);
+    lv_meter_set_scale_ticks(meter_obj, sec_scale, 61, 1, 10,
+                             lv_palette_main(LV_PALETTE_GREY));
+    lv_meter_set_scale_range(meter_obj, sec_scale, 0, 60, 360, 270);
+    //
+    min_scale = lv_meter_add_scale(meter_obj);
+    lv_meter_set_scale_ticks(meter_obj, min_scale, 61, 1, 10,
+                             lv_palette_main(LV_PALETTE_GREY));
+    lv_meter_set_scale_range(meter_obj, min_scale, 0, 60, 360, 270);
+    //
+    hour_scale = lv_meter_add_scale(meter_obj);
+    lv_meter_set_scale_ticks(meter_obj, hour_scale, 12, 0, 0,
+                             lv_palette_main(LV_PALETTE_GREY));
+    lv_meter_set_scale_major_ticks(meter_obj, hour_scale, 1, 2, 20,
+                                   lv_color_black(), 10);
+    lv_meter_set_scale_range(meter_obj, hour_scale, 1, 12, 330, 300);
+    //
+    hour_indic = lv_meter_add_needle_line(
+        meter_obj, min_scale, 9, lv_palette_darken(LV_PALETTE_INDIGO, 2), -50);
+    min_indic = lv_meter_add_needle_line(
+        meter_obj, min_scale, 4, lv_palette_darken(LV_PALETTE_INDIGO, 2), -25);
+    sec_indic = lv_meter_add_needle_line(meter_obj, sec_scale, 2,
+                                         lv_palette_main(LV_PALETTE_RED), -10);
+    //
+    update();
+  }
+}
+
+void Widget::Clock::update() noexcept {
+  if (Time::sync_completed()) {
+    std::time_t now = system_clock::to_time_t(system_clock::now());
+    std::tm local;
+    localtime_r(&now, &local);
+    render(local);
+  } else {
+    std::time_t now = 0;
+    std::tm utc;
+    gmtime_r(&now, &utc);
+    render(utc);
+  }
+}
+
+void Widget::Clock::render(const std::tm &tm) noexcept {
+  lv_meter_set_indicator_value(meter_obj, sec_indic, tm.tm_sec);
+  lv_meter_set_indicator_value(meter_obj, min_indic, tm.tm_min);
+  const float h = (60.0f / 12.0f) * (tm.tm_hour % 12);
+  const float m = (60.0f / 12.0f) * tm.tm_min / 60.0f;
+  lv_meter_set_indicator_value(meter_obj, hour_indic, std::floor(h + m));
+}
+
+//
+//
+//
+Widget::SystemHealthy::SystemHealthy(Widget::InitArg init) noexcept
+    : TileBase{init} {
+  if (tileview_obj == nullptr) {
+    M5_LOGE("tileview had null");
+    return;
+  }
+  if (tile_obj == nullptr) {
+    M5_LOGE("tile had null");
+    return;
+  }
+  // create
+  if (cont_col_obj = lv_obj_create(tile_obj); cont_col_obj) {
+    lv_obj_set_size(cont_col_obj, LV_PCT(100), LV_PCT(100));
+    lv_obj_align(cont_col_obj, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_set_flex_flow(cont_col_obj, LV_FLEX_FLOW_COLUMN);
+    //
+    auto create = [](lv_obj_t *parent, lv_style_t *style,
+                     lv_text_align_t align = LV_TEXT_ALIGN_LEFT) -> lv_obj_t * {
+      if (lv_obj_t *label = lv_label_create(parent); label) {
+        lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP);
+        lv_obj_set_style_text_align(label, align, 0);
+        lv_obj_add_style(label, style, 0);
+        lv_obj_set_width(label, LV_PCT(100));
+        lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+        return label;
+      } else {
+        return nullptr;
+      }
+    };
+    //
+    lv_style_init(&label_style);
+    lv_style_set_text_font(&label_style, &lv_font_montserrat_16);
+    //
+    time_label_obj = create(cont_col_obj, &label_style);
+    status_label_obj = create(cont_col_obj, &label_style);
+    battery_label_obj = create(cont_col_obj, &label_style);
+    battery_charging_label_obj = create(cont_col_obj, &label_style);
+    available_heap_label_obj = create(cont_col_obj, &label_style);
+    available_internal_heap_label_obj = create(cont_col_obj, &label_style);
+    minimum_free_heap_label_obj = create(cont_col_obj, &label_style);
+    //
+    render();
+  }
+}
+
+void Widget::SystemHealthy::render() noexcept {
+  const seconds uptime = Time::uptime();
+  const int16_t sec = uptime.count() % 60;
+  const int16_t min = uptime.count() / 60 % 60;
+  const int16_t hour = uptime.count() / (60 * 60) % 24;
+  const int32_t days = uptime.count() / (60 * 60 * 24);
+  //
+  { // now time
+    std::ostringstream oss;
+    const auto now = system_clock::now();
+    std::time_t time =
+        (Time::sync_completed()) ? system_clock::to_time_t(now) : 0;
+    {
+      std::tm utc_time;
+      gmtime_r(&time, &utc_time);
+      oss << std::put_time(&utc_time, "%F %T UTC");
+    }
+    oss << std::endl;
+    {
+      std::tm local_time;
+      localtime_r(&time, &local_time);
+      oss << std::put_time(&local_time, "%F %T %Z");
+    }
+    oss << std::endl;
+    if (Time::sync_completed()) {
+      oss << "Sync completed, based on SNTP";
+    } else {
+      oss << "Time is not synced";
+    }
+    lv_label_set_text(time_label_obj, oss.str().c_str());
+  }
+  { // status
+    std::ostringstream oss;
+    if (WiFi.status() == WL_CONNECTED) {
+      oss << "WiFi connected.IP : ";
+      oss << WiFi.localIP().toString().c_str();
+    } else {
+      oss << "No WiFi connection.";
+    }
+    oss << std::endl                     //
+        << std::setfill(' ')             //
+        << "uptime " << days << " days," //
+        << std::setfill('0')             //
+        << std::setw(2) << hour << ":"   //
+        << std::setw(2) << min << ":"    //
+        << std::setw(2) << sec;          //
+    lv_label_set_text(status_label_obj, oss.str().c_str());
+  }
+  { // battery status
+    auto battery_level = M5.Power.getBatteryLevel();
+    auto battery_current = M5.Power.getBatteryCurrent();
+    auto battery_voltage = M5.Power.getBatteryVoltage();
+    std::ostringstream oss;
+    oss << "Battery "                                                  //
+        << std::setfill(' ') << std::setw(3) << +battery_level << "% " //
+        << std::setfill(' ') << std::fixed                             //
+        << std::setw(5) << std::setprecision(3)                        //
+        << battery_voltage << "mV "                                    //
+        << std::setw(5) << std::setprecision(3)                        //
+        << battery_current << "mA ";                                   //
+    lv_label_set_text(battery_label_obj, oss.str().c_str());
+  }
+  { // battery charging
+    std::ostringstream oss;
+    switch (M5.Power.isCharging()) {
+    case M5.Power.is_charging_t::is_discharging: {
+      oss << "DISCHARGING"sv;
+    } break;
+    case M5.Power.is_charging_t::is_charging: {
+      oss << "CHARGING"sv;
+    } break;
+    default: {
+    } break;
+    }
+    lv_label_set_text(battery_charging_label_obj, oss.str().c_str());
+  }
+  { // available heap memory
+    uint32_t memfree = esp_get_free_heap_size();
+    std::ostringstream oss;
+    oss << "available heap size: " << memfree;
+    lv_label_set_text(available_heap_label_obj, oss.str().c_str());
+  }
+  { // available internal heap memory
+    uint32_t memfree = esp_get_free_internal_heap_size();
+    std::ostringstream oss;
+    oss << "available internal heap size: " << memfree;
+    lv_label_set_text(available_internal_heap_label_obj, oss.str().c_str());
+  }
+  { // minumum free heap memory
+    uint32_t memfree = esp_get_minimum_free_heap_size();
+    std::ostringstream oss;
+    oss << "minimum free heap size: " << memfree;
+    lv_label_set_text(minimum_free_heap_label_obj, oss.str().c_str());
+  }
+}
+
+//
+template <>
+std::ostream &Widget::operator<<(std::ostream &os,
+                                 const Widget::ShowMeasured<DegC> &rhs) {
+  os << "#";
+  os << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.red
+     << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.green
+     << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.blue
+     << "  ";
+  os << rhs.name << " " << std::dec << std::fixed << std::setprecision(2)
+     << rhs.meas.count() << rhs.unit;
+  os << "#";
+  return os;
+}
+
+//
+template <>
+std::ostream &Widget::operator<<(std::ostream &os,
+                                 const Widget::ShowMeasured<HectoPa> &rhs) {
+  os << "#";
+  os << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.red
+     << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.green
+     << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.blue
+     << "  ";
+  os << rhs.name << " " << std::dec << std::fixed << std::setprecision(2)
+     << rhs.meas.count() << rhs.unit;
+  os << "#";
+  return os;
+}
+
+//
+template <>
+std::ostream &Widget::operator<<(std::ostream &os,
+                                 const Widget::ShowMeasured<Ppm> &rhs) {
+  os << "#";
+  os << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.red
+     << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.green
+     << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.blue
+     << "  ";
+  os << rhs.name << " " << std::dec << +rhs.meas.value << rhs.unit;
+  os << "#";
+  return os;
+}
+
+//
+template <>
+std::ostream &Widget::operator<<(std::ostream &os,
+                                 const Widget::ShowMeasured<Ppb> &rhs) {
+  os << "#";
+  os << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.red
+     << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.green
+     << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.blue
+     << "  ";
+  os << rhs.name << " " << std::dec << +rhs.meas.value << rhs.unit;
+  os << "#";
+  return os;
+}
+
+//
+//
+//
 template <typename T>
 Widget::BasicChart<T>::BasicChart(InitArg init,
                                   const std::string &inSubheading) noexcept
-    : LINE_COLOR_TABLE{lv_palette_lighten(LV_PALETTE_RED, 1),
+    : TileBase{init},
+      LINE_COLOR_TABLE{lv_palette_lighten(LV_PALETTE_RED, 1),
                        lv_palette_lighten(LV_PALETTE_ORANGE, 1),
                        lv_palette_lighten(LV_PALETTE_INDIGO, 1),
                        lv_palette_lighten(LV_PALETTE_PURPLE, 1),
                        lv_palette_lighten(LV_PALETTE_BROWN, 1),
                        lv_palette_lighten(LV_PALETTE_BLUE, 1)} {
+  if (tileview_obj == nullptr) {
+    M5_LOGE("tileview had null");
+    return;
+  }
+  if (tile_obj == nullptr) {
+    M5_LOGE("tile had null");
+    return;
+  }
   constexpr auto MARGIN{8};
   subheading = inSubheading;
-  tile_obj = std::apply(lv_tileview_add_tile, init);
-  //
-  title_obj = lv_label_create(tile_obj);
+  // create
+  if (title_obj = lv_label_create(tile_obj); title_obj == nullptr) {
+    M5_LOGE("chart had null");
+    return;
+  }
   lv_obj_set_style_text_align(title_obj, LV_TEXT_ALIGN_LEFT, LV_STATE_DEFAULT);
   lv_obj_set_style_text_font(title_obj, &lv_font_montserrat_16,
                              LV_STATE_DEFAULT);
@@ -771,7 +831,10 @@ Widget::BasicChart<T>::BasicChart(InitArg init,
   lv_obj_align(title_obj, LV_ALIGN_TOP_LEFT, MARGIN, MARGIN);
   lv_label_set_text(title_obj, subheading.c_str());
   //
-  label_obj = lv_label_create(tile_obj);
+  if (label_obj = lv_label_create(tile_obj); label_obj == nullptr) {
+    M5_LOGE("chart had null");
+    return;
+  }
   lv_obj_set_size(label_obj, lv_obj_get_content_width(tile_obj) - MARGIN * 2,
                   lv_font_montserrat_18.line_height);
   lv_obj_align_to(label_obj, title_obj, LV_ALIGN_OUT_BOTTOM_LEFT, 0, MARGIN);
@@ -787,7 +850,10 @@ Widget::BasicChart<T>::BasicChart(InitArg init,
   lv_obj_add_style(label_obj, &label_style, LV_PART_MAIN);
   lv_label_set_text(label_obj, "");
   //
-  chart_obj = lv_chart_create(tile_obj);
+  if (chart_obj = lv_chart_create(tile_obj); chart_obj == nullptr) {
+    M5_LOGE("chart had null");
+    return;
+  }
   lv_obj_set_style_bg_color(
       chart_obj, lv_palette_lighten(LV_PALETTE_LIGHT_GREEN, 2), LV_PART_MAIN);
   //
@@ -834,12 +900,12 @@ Widget::BasicChart<T>::BasicChart(InitArg init,
   lv_chart_set_point_count(chart_obj, Gui::CHART_X_POINT_COUNT);
 }
 
-template <typename T> Widget::BasicChart<T>::~BasicChart() noexcept {
-  lv_obj_del(tile_obj);
-}
-
 //
 template <typename T> void Widget::BasicChart<T>::render() noexcept {
+  if (chart_obj == nullptr) {
+    M5_LOGE("chart had null");
+    return;
+  }
   // 初期化
   for (auto &[_, p] : chart_series_vect) {
     lv_chart_set_all_value(chart_obj, p, LV_CHART_POINT_NONE);
@@ -919,76 +985,28 @@ template <typename T> void Widget::BasicChart<T>::render() noexcept {
 }
 
 //
-template <>
-std::ostream &Widget::operator<<(std::ostream &os,
-                                 const Widget::ShowMeasured<DegC> &rhs) {
-  os << "#";
-  os << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.red
-     << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.green
-     << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.blue
-     << "  ";
-  os << rhs.name << " " << std::dec << std::fixed << std::setprecision(2)
-     << rhs.meas.count() << rhs.unit;
-  os << "#";
-  return os;
-}
-
-//
-template <>
-std::ostream &Widget::operator<<(std::ostream &os,
-                                 const Widget::ShowMeasured<HectoPa> &rhs) {
-  os << "#";
-  os << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.red
-     << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.green
-     << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.blue
-     << "  ";
-  os << rhs.name << " " << std::dec << std::fixed << std::setprecision(2)
-     << rhs.meas.count() << rhs.unit;
-  os << "#";
-  return os;
-}
-
-//
-template <>
-std::ostream &Widget::operator<<(std::ostream &os,
-                                 const Widget::ShowMeasured<Ppm> &rhs) {
-  os << "#";
-  os << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.red
-     << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.green
-     << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.blue
-     << "  ";
-  os << rhs.name << " " << std::dec << +rhs.meas.value << rhs.unit;
-  os << "#";
-  return os;
-}
-
-//
-template <>
-std::ostream &Widget::operator<<(std::ostream &os,
-                                 const Widget::ShowMeasured<Ppb> &rhs) {
-  os << "#";
-  os << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.red
-     << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.green
-     << std::hex << std::setfill('0') << std::setw(2) << +rhs.color.ch.blue
-     << "  ";
-  os << rhs.name << " " << std::dec << +rhs.meas.value << rhs.unit;
-  os << "#";
-  return os;
-}
-
-//
 // 気温
 //
 Widget::TemperatureChart::TemperatureChart(InitArg init) noexcept
-    : BasicChart(init, "Temperature") {
-  lv_obj_add_event_cb(chart_obj, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
+    : BasicChart{init, "Temperature"} {
+  if (tileview_obj == nullptr) {
+    M5_LOGE("tileview had null");
+    return;
+  }
+  if (tile_obj == nullptr) {
+    M5_LOGE("tile had null");
+    return;
+  }
+  if (chart_obj == nullptr) {
+    M5_LOGE("chart had null");
+    return;
+  }
+  // create
+  lv_obj_add_event_cb(chart_obj, event_draw_part_begin_callback,
+                      LV_EVENT_DRAW_PART_BEGIN, this);
 }
 
-void Widget::TemperatureChart::valueChangedEventHook(lv_event_t *) noexcept {
-  render();
-}
-
-void Widget::TemperatureChart::timerHook() noexcept {
+void Widget::TemperatureChart::update() noexcept {
   auto bme280 = Application::measurements_database.getLatestMeasurementBme280();
   auto scd30 = Application::measurements_database.getLatestMeasurementScd30();
   auto scd41 = Application::measurements_database.getLatestMeasurementScd41();
@@ -1062,7 +1080,8 @@ lv_point_t Widget::TemperatureChart::coordinateXY(
   return lv_point_t{.x = x, .y = y};
 };
 
-void Widget::TemperatureChart::drawEventHook(lv_event_t *event) noexcept {
+void Widget::TemperatureChart::event_draw_part_begin_callback(
+    lv_event_t *event) noexcept {
   auto it = static_cast<Widget::TemperatureChart *>(event->user_data);
   if (it == nullptr) {
     M5_LOGE("user_data had null");
@@ -1081,16 +1100,12 @@ void Widget::TemperatureChart::drawEventHook(lv_event_t *event) noexcept {
 // 相対湿度
 //
 Widget::RelativeHumidityChart::RelativeHumidityChart(InitArg init) noexcept
-    : BasicChart(init, "Relative Humidity") {
-  lv_obj_add_event_cb(chart_obj, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
+    : BasicChart{init, "Relative Humidity"} {
+  lv_obj_add_event_cb(chart_obj, event_draw_part_begin_callback,
+                      LV_EVENT_DRAW_PART_BEGIN, this);
 }
 
-void Widget::RelativeHumidityChart::valueChangedEventHook(
-    lv_event_t *) noexcept {
-  render();
-}
-
-void Widget::RelativeHumidityChart::timerHook() noexcept {
+void Widget::RelativeHumidityChart::update() noexcept {
   auto bme280 = Application::measurements_database.getLatestMeasurementBme280();
   auto scd30 = Application::measurements_database.getLatestMeasurementScd30();
   auto scd41 = Application::measurements_database.getLatestMeasurementScd41();
@@ -1166,7 +1181,8 @@ lv_point_t Widget::RelativeHumidityChart::coordinateXY(
   return lv_point_t{.x = x, .y = y};
 };
 
-void Widget::RelativeHumidityChart::drawEventHook(lv_event_t *event) noexcept {
+void Widget::RelativeHumidityChart::event_draw_part_begin_callback(
+    lv_event_t *event) noexcept {
   lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
   if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
                                   LV_CHART_DRAW_PART_TICK_LABEL)) {
@@ -1181,15 +1197,12 @@ void Widget::RelativeHumidityChart::drawEventHook(lv_event_t *event) noexcept {
 // 気圧
 //
 Widget::PressureChart::PressureChart(InitArg init) noexcept
-    : BasicChart(init, "Pressure") {
-  lv_obj_add_event_cb(chart_obj, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
+    : BasicChart{init, "Pressure"} {
+  lv_obj_add_event_cb(chart_obj, event_draw_part_begin_callback,
+                      LV_EVENT_DRAW_PART_BEGIN, this);
 }
 
-void Widget::PressureChart::valueChangedEventHook(lv_event_t *) noexcept {
-  render();
-}
-
-void Widget::PressureChart::timerHook() noexcept {
+void Widget::PressureChart::update() noexcept {
   auto bme280 = Application::measurements_database.getLatestMeasurementBme280();
   auto m5env3 = Application::measurements_database.getLatestMeasurementM5Env3();
   auto present = Measurements{bme280, m5env3};
@@ -1249,7 +1262,8 @@ lv_point_t Widget::PressureChart::coordinateXY(
   return lv_point_t{.x = x, .y = y};
 };
 
-void Widget::PressureChart::drawEventHook(lv_event_t *event) noexcept {
+void Widget::PressureChart::event_draw_part_begin_callback(
+    lv_event_t *event) noexcept {
   lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
   if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
                                   LV_CHART_DRAW_PART_TICK_LABEL)) {
@@ -1264,13 +1278,9 @@ void Widget::PressureChart::drawEventHook(lv_event_t *event) noexcept {
 // Co2 / ECo2
 //
 Widget::CarbonDeoxidesChart::CarbonDeoxidesChart(InitArg init) noexcept
-    : BasicChart(init, "CO2") {}
+    : BasicChart{init, "CO2"} {}
 
-void Widget::CarbonDeoxidesChart::valueChangedEventHook(lv_event_t *) noexcept {
-  render();
-}
-
-void Widget::CarbonDeoxidesChart::timerHook() noexcept {
+void Widget::CarbonDeoxidesChart::update() noexcept {
   auto sgp30 = Application::measurements_database.getLatestMeasurementSgp30();
   auto scd30 = Application::measurements_database.getLatestMeasurementScd30();
   auto scd41 = Application::measurements_database.getLatestMeasurementScd41();
@@ -1338,15 +1348,12 @@ lv_point_t Widget::CarbonDeoxidesChart::coordinateXY(
 // Total VOC
 //
 Widget::TotalVocChart::TotalVocChart(InitArg init) noexcept
-    : BasicChart(init, "Total VOC") {
-  lv_obj_add_event_cb(chart_obj, drawEventHook, LV_EVENT_DRAW_PART_BEGIN, this);
+    : BasicChart{init, "Total VOC"} {
+  lv_obj_add_event_cb(chart_obj, event_draw_part_begin_callback,
+                      LV_EVENT_DRAW_PART_BEGIN, this);
 }
 
-void Widget::TotalVocChart::valueChangedEventHook(lv_event_t *) noexcept {
-  render();
-}
-
-void Widget::TotalVocChart::timerHook() noexcept {
+void Widget::TotalVocChart::update() noexcept {
   auto sgp30 = Application::measurements_database.getLatestMeasurementSgp30();
   auto present = sgp30;
 
@@ -1394,7 +1401,8 @@ lv_point_t Widget::TotalVocChart::coordinateXY(
   return lv_point_t{.x = x, .y = y};
 };
 
-void Widget::TotalVocChart::drawEventHook(lv_event_t *event) noexcept {
+void Widget::TotalVocChart::event_draw_part_begin_callback(
+    lv_event_t *event) noexcept {
   lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
   if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
                                   LV_CHART_DRAW_PART_TICK_LABEL)) {
