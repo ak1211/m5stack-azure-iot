@@ -128,10 +128,10 @@ esp_err_t Telemetry::mqtt_event_handler(esp_mqtt_event_handle_t event) {
   }
   switch (event->event_id) {
   case MQTT_EVENT_ERROR:
-    M5_LOGI("MQTT event MQTT_EVENT_ERROR");
+    M5_LOGD("MQTT event MQTT_EVENT_ERROR");
     break;
   case MQTT_EVENT_CONNECTED:
-    M5_LOGI("MQTT event MQTT_EVENT_CONNECTED");
+    M5_LOGD("MQTT event MQTT_EVENT_CONNECTED");
     telemetry->mqtt_connected = true;
     if (telemetry->mqtt_client == nullptr) {
       M5_LOGE("mqtt_client had null.");
@@ -142,21 +142,21 @@ esp_err_t Telemetry::mqtt_event_handler(esp_mqtt_event_handle_t event) {
         r == -1) {
       M5_LOGE("Could not subscribe for cloud-to-device messages.");
     } else {
-      M5_LOGI("Subscribed for cloud-to-device messages; message id:%d", r);
+      M5_LOGD("Subscribed for cloud-to-device messages; message id:%d", r);
     }
     break;
   case MQTT_EVENT_DISCONNECTED:
-    M5_LOGI("MQTT event MQTT_EVENT_DISCONNECTED");
+    M5_LOGD("MQTT event MQTT_EVENT_DISCONNECTED");
     telemetry->mqtt_connected = false;
     break;
   case MQTT_EVENT_SUBSCRIBED:
-    M5_LOGI("MQTT event MQTT_EVENT_SUBSCRIBED");
+    M5_LOGD("MQTT event MQTT_EVENT_SUBSCRIBED");
     break;
   case MQTT_EVENT_UNSUBSCRIBED:
-    M5_LOGI("MQTT event MQTT_EVENT_UNSUBSCRIBED");
+    M5_LOGD("MQTT event MQTT_EVENT_UNSUBSCRIBED");
     break;
   case MQTT_EVENT_PUBLISHED:
-    M5_LOGI("MQTT event MQTT_EVENT_PUBLISHED");
+    M5_LOGD("MQTT event MQTT_EVENT_PUBLISHED; message id:%d", event->msg_id);
     break;
   case MQTT_EVENT_DATA:
     M5_LOGI("MQTT event MQTT_EVENT_DATA");
@@ -169,10 +169,10 @@ esp_err_t Telemetry::mqtt_event_handler(esp_mqtt_event_handle_t event) {
     M5_LOGI("[RECEIVE] Data: %s", telemetry->incoming_data.data());
     break;
   case MQTT_EVENT_BEFORE_CONNECT:
-    M5_LOGI("MQTT event MQTT_EVENT_BEFORE_CONNECT");
+    M5_LOGD("MQTT event MQTT_EVENT_BEFORE_CONNECT");
     break;
   default:
-    M5_LOGE("MQTT event UNKNOWN");
+    M5_LOGD("MQTT event UNKNOWN");
     break;
   }
 
@@ -337,13 +337,14 @@ bool Telemetry::loopMqtt() {
         },
         sending_fifo_queue.front());
     M5_LOGD("[SEND] %s", payload.c_str());
-    auto count = esp_mqtt_client_publish(mqtt_client, telemetry_topic.data(),
-                                         payload.c_str(), 0, MQTT_QOS1,
-                                         DO_NOT_RETAIN_MSG);
-    if (count < 0) {
+    auto message_id = esp_mqtt_client_enqueue(
+        mqtt_client, telemetry_topic.data(), payload.c_str(), 0, MQTT_QOS1,
+        DO_NOT_RETAIN_MSG, true);
+    if (message_id < 0) {
       M5_LOGE("Failed publishing");
       return false;
     } else {
+      M5_LOGD("MQTT enqueued; message id:%d", message_id);
       //  Count up message_id
       message_id = message_id + 1;
       // IoT Coreへ送信した測定値をFIFOから消す
