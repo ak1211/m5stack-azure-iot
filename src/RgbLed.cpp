@@ -8,6 +8,8 @@
 #include <array>
 #include <cmath>
 
+RgbLed *RgbLed::_instance{nullptr};
+
 //
 void RgbLed::begin() {
   FastLED.addLeds<SK6812, GPIO_PIN_SK6815, GRB>(leds.data(), leds.size());

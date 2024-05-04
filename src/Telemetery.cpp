@@ -33,9 +33,10 @@ using namespace std::string_literals;
 Telemetry *Telemetry::_instance{nullptr};
 
 //
-static std::string to_absolute_sensor_id(SensorDescriptor descriptor) {
+std::string Telemetry::to_absolute_sensor_id(SensorDescriptor descriptor) {
   return std::string(Credentials.device_id) + "-"s + descriptor.str();
 }
+
 // 送信用メッセージに変換する
 template <>
 std::string Telemetry::to_json_message<Sensor::MeasurementBme280>(
@@ -51,6 +52,8 @@ std::string Telemetry::to_json_message<Sensor::MeasurementBme280>(
   serializeJson(doc, output);
   return output;
 }
+
+//
 template <>
 std::string Telemetry::to_json_message<Sensor::MeasurementM5Env3>(
     MessageId messageId, const Sensor::MeasurementM5Env3 &in) {
@@ -65,6 +68,8 @@ std::string Telemetry::to_json_message<Sensor::MeasurementM5Env3>(
   serializeJson(doc, output);
   return output;
 }
+
+//
 template <>
 std::string Telemetry::to_json_message<Sensor::MeasurementSgp30>(
     MessageId messageId, const Sensor::MeasurementSgp30 &in) {
@@ -84,6 +89,8 @@ std::string Telemetry::to_json_message<Sensor::MeasurementSgp30>(
   serializeJson(doc, output);
   return output;
 }
+
+//
 template <>
 std::string Telemetry::to_json_message<Sensor::MeasurementScd30>(
     MessageId messageId, const Sensor::MeasurementScd30 &in) {
@@ -111,6 +118,23 @@ std::string Telemetry::to_json_message<Sensor::MeasurementScd41>(
   std::string output;
   serializeJson(doc, output);
   return output;
+}
+
+//
+bool Telemetry::pushMessage(const Payload &in) {
+  if (sending_fifo_vect.size() < MAXIMUM_QUEUE_SIZE) {
+    std::string datum = std::visit(
+        [this](const auto &x) {
+          auto retval = to_json_message(message_id, x);
+          //  Count up message_id
+          message_id = message_id + 1;
+          return retval;
+        },
+        in);
+    sending_fifo_vect.push_back({int32_t{-1}, datum});
+    return true;
+  }
+  return false;
 }
 
 // When developing for your own Arduino-based platform,
@@ -157,6 +181,18 @@ esp_err_t Telemetry::mqtt_event_handler(esp_mqtt_event_handle_t event) {
     break;
   case MQTT_EVENT_PUBLISHED:
     M5_LOGD("MQTT event MQTT_EVENT_PUBLISHED; message id:%d", event->msg_id);
+    if (event->msg_id >= 0) {
+      if (auto itr = std::find_if(telemetry->sending_fifo_vect.begin(),
+                                  telemetry->sending_fifo_vect.end(),
+                                  [&event](auto &item) -> bool {
+                                    return item.first == event->msg_id;
+                                  });
+          itr != telemetry->sending_fifo_vect.end()) {
+        // IoT Hubへ送信した測定値をFIFOから消す
+        M5_LOGD("[SEND]:%s", itr->second.c_str());
+        telemetry->sending_fifo_vect.erase(itr);
+      }
+    }
     break;
   case MQTT_EVENT_DATA:
     M5_LOGI("MQTT event MQTT_EVENT_DATA");
@@ -330,25 +366,17 @@ bool Telemetry::loopMqtt() {
     return false;
   }
   // 送信するべき測定値があれば送信する
-  if (!sending_fifo_queue.empty()) {
-    std::string payload = std::visit(
-        [this](const auto &x) {
-          return Telemetry::to_json_message(message_id, x);
-        },
-        sending_fifo_queue.front());
-    M5_LOGD("[SEND] %s", payload.c_str());
-    auto message_id = esp_mqtt_client_enqueue(
-        mqtt_client, telemetry_topic.data(), payload.c_str(), 0, MQTT_QOS1,
-        DO_NOT_RETAIN_MSG, true);
-    if (message_id < 0) {
+  if (!sending_fifo_vect.empty()) {
+    auto itr = sending_fifo_vect.begin();
+    if (auto number = esp_mqtt_client_enqueue(
+            mqtt_client, telemetry_topic.data(), itr->second.data(),
+            itr->second.length(), MQTT_QOS1, DO_NOT_RETAIN_MSG, true);
+        number < 0) {
       M5_LOGE("Failed publishing");
       return false;
     } else {
-      M5_LOGD("MQTT enqueued; message id:%d", message_id);
-      //  Count up message_id
-      message_id = message_id + 1;
-      // IoT Coreへ送信した測定値をFIFOから消す
-      sending_fifo_queue.pop();
+      M5_LOGD("MQTT enqueued; message id: %d", number);
+      itr->first = number;
       return true;
     }
   }
