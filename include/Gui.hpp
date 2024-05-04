@@ -23,37 +23,102 @@ using namespace std::chrono;
 // init argument for "lv_tileview_add_tile()"
 using InitArg = std::tuple<lv_obj_t *, uint8_t, uint8_t, lv_dir_t>;
 
-//
-//
-//
-struct TileBase {
-  virtual void setActiveTile(lv_obj_t *tileview_obj) noexcept = 0;
-  virtual bool isActiveTile(lv_obj_t *tileview_obj) const noexcept = 0;
-  virtual void valueChangedEventHook(lv_event_t *event) noexcept = 0;
-  virtual void timerHook() noexcept = 0;
+class TileBase {
+  // LVGL timer
+  lv_timer_t *periodic_timer{nullptr};
+
+protected:
+  lv_obj_t *tileview_obj{nullptr};
+  lv_obj_t *tile_obj{nullptr};
+
+public:
+  constexpr static auto PERIODIC_TIMER_INTERVAL = std::chrono::milliseconds{60};
+  //
+  TileBase(InitArg init) {
+    if (tileview_obj = std::get<0>(init); tileview_obj) {
+      tile_obj = std::apply(lv_tileview_add_tile, init);
+      // set value changed callback
+      lv_obj_add_event_cb(tileview_obj, event_value_changed_callback,
+                          LV_EVENT_VALUE_CHANGED, this);
+    }
+  }
+  //
+  virtual ~TileBase() {
+    delTimer();
+    lv_obj_remove_event_cb(tileview_obj, event_value_changed_callback);
+    if (tile_obj) {
+      lv_obj_del(tile_obj);
+    }
+  };
+  //
+  bool isActiveTile() const noexcept {
+    return tile_obj == lv_tileview_get_tile_act(tileview_obj);
+  }
+  //
+  void setActiveTile() noexcept {
+    lv_obj_set_tile(tileview_obj, tile_obj, LV_ANIM_ON);
+  }
+  //
+  bool createTimer() {
+    if (timer_callback) {
+      delTimer();
+      periodic_timer = lv_timer_create(
+          timer_callback,
+          duration_cast<milliseconds>(PERIODIC_TIMER_INTERVAL).count(), this);
+      return true;
+    } else {
+      return false;
+    }
+  }
+  //
+  void delTimer() {
+    if (periodic_timer) {
+      lv_timer_del(periodic_timer);
+    }
+    periodic_timer = nullptr;
+  }
+  //
+  static void timer_callback(lv_timer_t *timer) noexcept {
+    if (timer) {
+      if (auto *it = static_cast<TileBase *>(timer->user_data); it) {
+        it->update();
+      }
+    }
+  }
+  //
+  static void event_value_changed_callback(lv_event_t *event) noexcept {
+    if (event) {
+      if (auto it = static_cast<TileBase *>(event->user_data); it) {
+        if (lv_tileview_get_tile_act(it->tileview_obj) == it->tile_obj) {
+          M5_LOGV("event_value_changed_callback: active");
+          // active
+          it->createTimer();
+        } else {
+          M5_LOGV("event_value_changed_callback: inactive");
+          // inactive
+          it->delTimer();
+        }
+      }
+    }
+  }
+  //
+  virtual void update() noexcept = 0;
 };
 
 //
 //
 //
 class BootMessage final : public TileBase {
-  lv_obj_t *tile_obj{nullptr};
   lv_obj_t *message_label_obj{nullptr};
   size_t count{0};
 
 public:
-  BootMessage(InitArg init) noexcept;
   BootMessage(BootMessage &&) = delete;
   BootMessage &operator=(const BootMessage &) = delete;
-  virtual ~BootMessage() noexcept;
-  virtual void setActiveTile(lv_obj_t *tileview_obj) noexcept override {
-    lv_obj_set_tile(tileview_obj, tile_obj, LV_ANIM_ON);
-  }
-  virtual bool isActiveTile(lv_obj_t *tileview_obj) const noexcept override {
-    return tile_obj == lv_tileview_get_tile_act(tileview_obj);
-  }
-  virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
-  virtual void timerHook() noexcept override;
+  BootMessage(InitArg init) noexcept;
+  //
+  virtual void update() noexcept override;
+  //
   void render() noexcept;
 };
 
@@ -61,7 +126,6 @@ public:
 //
 //
 class Summary final : public TileBase {
-  lv_obj_t *tile_obj{nullptr};
   lv_obj_t *table_obj{nullptr};
   //
   using Measurements = std::tuple<std::optional<Sensor::MeasurementBme280>,
@@ -72,18 +136,12 @@ class Summary final : public TileBase {
   Measurements latest{};
 
 public:
-  Summary(InitArg init) noexcept;
   Summary(Summary &&) = delete;
   Summary &operator=(const Summary &) = delete;
-  virtual ~Summary() noexcept;
-  virtual void setActiveTile(lv_obj_t *tileview_obj) noexcept override {
-    lv_obj_set_tile(tileview_obj, tile_obj, LV_ANIM_ON);
-  }
-  virtual bool isActiveTile(lv_obj_t *tileview_obj) const noexcept override {
-    return tile_obj == lv_tileview_get_tile_act(tileview_obj);
-  }
-  virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
-  virtual void timerHook() noexcept override;
+  Summary(InitArg init) noexcept;
+  //
+  virtual void update() noexcept override;
+  //
   void render() noexcept;
 };
 
@@ -91,7 +149,6 @@ public:
 //
 //
 class Clock final : public TileBase {
-  lv_obj_t *tile_obj{nullptr};
   lv_obj_t *meter_obj{nullptr};
   lv_meter_scale_t *sec_scale{nullptr};
   lv_meter_scale_t *min_scale{nullptr};
@@ -101,18 +158,12 @@ class Clock final : public TileBase {
   lv_meter_indicator_t *hour_indic{nullptr};
 
 public:
-  Clock(InitArg init) noexcept;
   Clock(Clock &&) = delete;
   Clock &operator=(const Clock &) = delete;
-  virtual ~Clock() noexcept;
-  virtual void setActiveTile(lv_obj_t *tileview_obj) noexcept override {
-    lv_obj_set_tile(tileview_obj, tile_obj, LV_ANIM_ON);
-  }
-  virtual bool isActiveTile(lv_obj_t *tileview_obj) const noexcept override {
-    return tile_obj == lv_tileview_get_tile_act(tileview_obj);
-  }
-  virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
-  virtual void timerHook() noexcept override;
+  Clock(InitArg init) noexcept;
+  //
+  virtual void update() noexcept override;
+  //
   void render(const std::tm &tm) noexcept;
 };
 
@@ -120,7 +171,6 @@ public:
 //
 //
 class SystemHealthy final : public TileBase {
-  lv_obj_t *tile_obj{nullptr};
   lv_obj_t *cont_col_obj{nullptr};
   //
   lv_style_t label_style;
@@ -134,20 +184,25 @@ class SystemHealthy final : public TileBase {
   lv_obj_t *minimum_free_heap_label_obj{nullptr};
 
 public:
-  SystemHealthy(InitArg init) noexcept;
   SystemHealthy(SystemHealthy &&) = delete;
   SystemHealthy &operator=(const SystemHealthy &) = delete;
-  virtual ~SystemHealthy() noexcept;
-  virtual void setActiveTile(lv_obj_t *tileview_obj) noexcept override {
-    lv_obj_set_tile(tileview_obj, tile_obj, LV_ANIM_ON);
-  }
-  virtual bool isActiveTile(lv_obj_t *tileview_obj) const noexcept override {
-    return tile_obj == lv_tileview_get_tile_act(tileview_obj);
-  }
-  virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
-  virtual void timerHook() noexcept override;
+  SystemHealthy(InitArg init) noexcept;
+  //
+  virtual void update() noexcept override { render(); }
   void render() noexcept;
 };
+
+//
+//
+//
+template <typename T> struct ShowMeasured {
+  lv_color32_t color;
+  std::string name;
+  std::string_view unit;
+  T meas;
+};
+template <typename T>
+std::ostream &operator<<(std::ostream &os, const ShowMeasured<T> &rhs);
 
 //
 //
@@ -157,7 +212,6 @@ public:
   using DataType = std::tuple<SensorId, system_clock::time_point, T>;
 
 protected:
-  lv_obj_t *tile_obj{nullptr};
   lv_obj_t *title_obj{nullptr};
   lv_style_t label_style{};
   lv_obj_t *label_obj{nullptr};
@@ -172,16 +226,9 @@ protected:
   std::string subheading{};
 
 public:
-  BasicChart(InitArg init, const std::string &inSubheading) noexcept;
   BasicChart(BasicChart &&) = delete;
   BasicChart &operator=(const BasicChart &) = delete;
-  virtual ~BasicChart() noexcept;
-  virtual void setActiveTile(lv_obj_t *tileview_obj) noexcept override {
-    lv_obj_set_tile(tileview_obj, tile_obj, LV_ANIM_ON);
-  }
-  virtual bool isActiveTile(lv_obj_t *tileview_obj) const noexcept override {
-    return tile_obj == lv_tileview_get_tile_act(tileview_obj);
-  }
+  BasicChart(InitArg init, const std::string &inSubheading) noexcept;
   //
   virtual size_t read_measurements_from_database(
       Database::OrderBy order, system_clock::time_point at_begin,
@@ -190,18 +237,8 @@ public:
   virtual lv_point_t coordinateXY(system_clock::time_point begin_x,
                                   const DataType &in) noexcept = 0;
   //
-  virtual void render() noexcept;
+  void render() noexcept;
 };
-
-//
-template <typename T> struct ShowMeasured {
-  lv_color32_t color;
-  std::string name;
-  std::string_view unit;
-  T meas;
-};
-template <typename T>
-std::ostream &operator<<(std::ostream &os, const ShowMeasured<T> &rhs);
 
 //
 // 気温
@@ -215,11 +252,11 @@ private:
   Measurements latest{};
 
 public:
-  TemperatureChart(InitArg init) noexcept;
   TemperatureChart(TemperatureChart &&) = delete;
   TemperatureChart &operator=(const TemperatureChart &) = delete;
-  virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
-  virtual void timerHook() noexcept override;
+  TemperatureChart(InitArg init) noexcept;
+  //
+  virtual void update() noexcept override;
   // データを座標に変換する関数
   virtual lv_point_t
   coordinateXY(system_clock::time_point begin_x,
@@ -231,9 +268,8 @@ public:
     return Application::measurements_database.read_temperatures(order, at_begin,
                                                                 callback);
   }
-
   //
-  static void drawEventHook(lv_event_t *event) noexcept;
+  static void event_draw_part_begin_callback(lv_event_t *event) noexcept;
 };
 
 //
@@ -248,11 +284,11 @@ private:
   Measurements latest{};
 
 public:
-  RelativeHumidityChart(InitArg init) noexcept;
   RelativeHumidityChart(RelativeHumidityChart &&) = delete;
   RelativeHumidityChart &operator=(const RelativeHumidityChart &) = delete;
-  virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
-  virtual void timerHook() noexcept override;
+  RelativeHumidityChart(InitArg init) noexcept;
+  //
+  virtual void update() noexcept override;
   // データを座標に変換する関数
   virtual lv_point_t
   coordinateXY(system_clock::time_point begin_x,
@@ -265,7 +301,7 @@ public:
         order, at_begin, callback);
   }
   //
-  static void drawEventHook(lv_event_t *event) noexcept;
+  static void event_draw_part_begin_callback(lv_event_t *event) noexcept;
 };
 
 //
@@ -278,11 +314,11 @@ private:
   Measurements latest{};
 
 public:
-  PressureChart(InitArg init) noexcept;
   PressureChart(PressureChart &&) = delete;
   PressureChart &operator=(const PressureChart &) = delete;
-  virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
-  virtual void timerHook() noexcept override;
+  PressureChart(InitArg init) noexcept;
+  //
+  virtual void update() noexcept override;
   //
   constexpr static DeciPa BIAS = round<DeciPa>(HectoPa{1000});
   // データを座標に変換する関数
@@ -296,7 +332,7 @@ public:
     return Application::measurements_database.read_pressures(order, at_begin,
                                                              callback);
   }
-  static void drawEventHook(lv_event_t *event) noexcept;
+  static void event_draw_part_begin_callback(lv_event_t *event) noexcept;
 };
 
 //
@@ -310,11 +346,11 @@ private:
   Measurements latest{};
 
 public:
-  CarbonDeoxidesChart(InitArg init) noexcept;
   CarbonDeoxidesChart(CarbonDeoxidesChart &&) = delete;
   CarbonDeoxidesChart &operator=(const CarbonDeoxidesChart &) = delete;
-  virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
-  virtual void timerHook() noexcept override;
+  CarbonDeoxidesChart(InitArg init) noexcept;
+  //
+  virtual void update() noexcept override;
   // データを座標に変換する関数
   virtual lv_point_t
   coordinateXY(system_clock::time_point begin_x,
@@ -336,11 +372,11 @@ private:
   std::optional<Sensor::MeasurementSgp30> latest{};
 
 public:
-  TotalVocChart(InitArg init) noexcept;
   TotalVocChart(TotalVocChart &&) = delete;
   TotalVocChart &operator=(const TotalVocChart &) = delete;
-  virtual void valueChangedEventHook(lv_event_t *event) noexcept override;
-  virtual void timerHook() noexcept override;
+  TotalVocChart(InitArg init) noexcept;
+  //
+  virtual void update() noexcept override;
   // データを座標に変換する関数
   virtual lv_point_t
   coordinateXY(system_clock::time_point begin_x,
@@ -353,7 +389,7 @@ public:
                                                               callback);
   }
   //
-  static void drawEventHook(lv_event_t *event) noexcept;
+  static void event_draw_part_begin_callback(lv_event_t *event) noexcept;
 };
 } // namespace Widget
 
@@ -374,8 +410,6 @@ public:
   }
   //
   static Gui *getInstance() noexcept { return _instance; }
-
-public:
   //
   bool begin() noexcept;
   //
@@ -395,6 +429,26 @@ public:
 
 private:
   M5GFX &gfx;
+  // LVGL tileview object
+  lv_obj_t *tileview_obj{nullptr};
+  // tile widget
+  std::vector<std::unique_ptr<Widget::TileBase>> tile_vector{};
+  //
+  static bool check_if_active_tile(
+      const std::unique_ptr<Widget::TileBase> &tile_to_test) noexcept {
+    if (auto tile = tile_to_test.get(); tile) {
+      return tile->isActiveTile();
+    } else {
+      return false;
+    }
+  }
+  //
+  template <typename T>
+  inline void add_tile(const Widget::InitArg &arg) noexcept {
+    tile_vector.emplace_back(std::make_unique<T>(arg));
+  }
+
+private:
   // LVGL use area
   struct {
     // LVGL draw buffer
@@ -404,32 +458,11 @@ private:
     lv_disp_drv_t disp_drv;
     lv_indev_drv_t indev_drv;
   } lvgl_use;
-  // LVGL timer
-  lv_timer_t *periodic_timer{nullptr};
-  // LVGL tileview object
-  lv_obj_t *tileview_obj{nullptr};
-  // tile widget
-  using TileVector = std::vector<std::unique_ptr<Widget::TileBase>>;
-  TileVector tiles{};
   //
-  static void display_flush_callback(lv_disp_drv_t *disp_drv,
-                                     const lv_area_t *area,
-                                     lv_color_t *color_p) noexcept;
+  static void lvgl_use_display_flush_callback(lv_disp_drv_t *disp_drv,
+                                              const lv_area_t *area,
+                                              lv_color_t *color_p) noexcept;
   //
-  static void touchpad_read_callback(lv_indev_drv_t *indev_drv,
-                                     lv_indev_data_t *data) noexcept;
-  //
-  static bool check_if_active_tile(
-      const std::unique_ptr<Widget::TileBase> &tile_to_test) noexcept {
-    if (auto p = tile_to_test.get(); p) {
-      return p->isActiveTile(_instance->tileview_obj);
-    } else {
-      return false;
-    }
-  }
-  //
-  template <typename T>
-  inline void add_tile(const Widget::InitArg &arg) noexcept {
-    tiles.emplace_back(std::make_unique<T>(arg));
-  }
+  static void lvgl_use_touchpad_read_callback(lv_indev_drv_t *indev_drv,
+                                              lv_indev_data_t *data) noexcept;
 };
