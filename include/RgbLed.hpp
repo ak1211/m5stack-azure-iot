@@ -10,6 +10,9 @@
 //
 //
 class RgbLed {
+  constexpr static auto NUM_OF_LEDS = uint8_t{10};
+  constexpr static auto GPIO_PIN_SK6815 = uint16_t{25};
+  std::array<CRGB, NUM_OF_LEDS> leds{};
   static RgbLed *_instance;
 
 public:
@@ -34,9 +37,4 @@ public:
   //
   static CRGB hslToRgb(float_t hue /* 0 < 360*/, float_t saturation /* 0 < 1 */,
                        float_t lightness /* 0 < 1 */);
-
-private:
-  constexpr static auto NUM_OF_LEDS = uint8_t{10};
-  constexpr static auto GPIO_PIN_SK6815 = uint16_t{25};
-  std::array<CRGB, NUM_OF_LEDS> leds{};
 };

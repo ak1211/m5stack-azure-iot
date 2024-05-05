@@ -16,38 +16,42 @@ extern "C" {
 
 // MQTT通信
 class Telemetry {
-  static Telemetry *_instance;
-
-private:
+public:
+  constexpr static int32_t MQTT_PORT{AZ_IOT_DEFAULT_MQTT_CONNECT_PORT};
   constexpr static size_t MAX_SEND_FIFO_BUFFER_SIZE{64};
-  using MessageId = uint32_t;
+  constexpr static int32_t SAS_TOKEN_DURATION_IN_MINUTES{60};
+  using MessageId = int32_t;
   // 送信用
   using Payload =
       std::variant<Sensor::MeasurementBme280, Sensor::MeasurementSgp30,
                    Sensor::MeasurementScd30, Sensor::MeasurementScd41,
                    Sensor::MeasurementM5Env3>;
   //
+  struct Configuration {
+    std::string iothub_fqdn{};
+    std::string device_id{};
+    std::string device_key{};
+  };
+
+private:
+  static Telemetry *_instance;
+  //
+  Configuration config{};
+  //
   az_iot_hub_client client{};
   az_iot_hub_client_options client_options{az_iot_hub_client_options_default()};
-  std::string config_iothub_fqdn{};
-  std::string config_device_id{};
-  std::string config_device_key{};
-  //
-  constexpr static int mqtt_port{AZ_IOT_DEFAULT_MQTT_CONNECT_PORT};
   esp_mqtt_client_handle_t mqtt_client{};
   std::string mqtt_broker_uri{};
   std::string mqtt_client_id{};
   std::string mqtt_username{};
-  std::array<char, 128> telemetry_topic{};
   //
-  std::array<uint8_t, 200> mqtt_password{};
-  std::array<char, 128> incoming_data{};
+  std::array<char, 256> incoming_data{};
   //
-  constexpr static int SAS_TOKEN_DURATION_IN_MINUTES{60};
   std::array<uint8_t, 256> sas_signature_buffer{};
+  std::array<uint8_t, 256> sas_token_buffer{};
   std::optional<AzIoTSasToken> optAzIoTSasToken{};
   // 送信用バッファ
-  std::vector<std::pair<std::optional<int32_t>, std::string>>
+  std::vector<std::pair<std::optional<MessageId>, std::string>>
       sending_fifo_vect{};
   //
   bool mqtt_connected{false};

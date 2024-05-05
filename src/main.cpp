@@ -28,16 +28,16 @@
 
 #include <M5Unified.h>
 
+using namespace std::literals::string_literals;
+using namespace std::chrono;
+using namespace std::chrono_literals;
+
 // 起動時のログ
 Application::BootLog Application::boot_log{};
 //
 const std::string_view Application::MEASUREMENTS_DATABASE_FILE_NAME{
     "file:/littlefs/measurements.db?pow=0&mode=memory"};
 Database Application::measurements_database{};
-
-using namespace std::literals::string_literals;
-using namespace std::chrono;
-using namespace std::chrono_literals;
 
 //
 // Over The Air update
@@ -195,7 +195,7 @@ void setup() {
           std::this_thread::sleep_for(6ms);
         }
       },
-      "Task:LVGL", 16384, nullptr, 5, &rtos_task_handle, ARDUINO_RUNNING_CORE);
+      "Task:LVGL", 8192, nullptr, 5, &rtos_task_handle, ARDUINO_RUNNING_CORE);
 
   logging("System Start.");
 
@@ -422,24 +422,20 @@ inline void low_speed_loop() {
 // Arduinoのloop()関数
 //
 void loop() {
-  high_speed_loop();
-  //
   static steady_clock::time_point before_epoch{};
   auto now_epoch = steady_clock::now();
-  if (now_epoch - before_epoch >= 1s) {
-    low_speed_loop();
-    before_epoch = now_epoch;
-  }
+  //
+  high_speed_loop();
   if (Time::sync_completed()) {
     static system_clock::time_point before_meas_tp{};
     static system_clock::time_point before_db_tp{};
     auto now_tp = system_clock::now();
+    auto sec = floor<seconds>(now_tp.time_since_epoch()).count() % 60;
+    //
     if (now_tp - before_meas_tp >= 1s) {
       measurements_loop(now_tp);
       before_meas_tp = now_tp;
-    } else if (auto sec =
-                   floor<seconds>(now_tp.time_since_epoch()).count() % 60;
-               (now_tp - before_db_tp >= 333s) && (2 <= sec && sec <= 30)) {
+    } else if ((now_tp - before_db_tp >= 333s) && (2 <= sec && sec <= 30)) {
       // データベースの整理
       system_clock::time_point tp = now_tp - minutes(Gui::CHART_X_POINT_COUNT);
       if (Application::measurements_database
@@ -449,5 +445,9 @@ void loop() {
       }
       before_db_tp = now_tp;
     }
+  }
+  if (now_epoch - before_epoch >= 3s) {
+    low_speed_loop();
+    before_epoch = now_epoch;
   }
 }

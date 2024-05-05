@@ -217,10 +217,10 @@ esp_err_t Telemetry::mqtt_event_handler(esp_mqtt_event_handle_t event) {
 bool Telemetry::initializeIoTHubClient() {
   if (az_result_failed(az_iot_hub_client_init(
           &client,
-          az_span_create((uint8_t *)config_iothub_fqdn.c_str(),
-                         config_iothub_fqdn.length()),
-          az_span_create((uint8_t *)config_device_id.c_str(),
-                         config_device_id.length()),
+          az_span_create((uint8_t *)config.iothub_fqdn.data(),
+                         config.iothub_fqdn.length()),
+          az_span_create((uint8_t *)config.device_id.data(),
+                         config.device_id.length()),
           &client_options))) {
     M5_LOGE("Failed initializing Azure IoT Hub client");
     return false;
@@ -260,11 +260,11 @@ bool Telemetry::initializeMqttClient() {
           AzIoTSasToken{
               &client,
               az_span_create(
-                  reinterpret_cast<uint8_t *>(config_device_key.data()),
-                  config_device_key.length()),
+                  reinterpret_cast<uint8_t *>(config.device_key.data()),
+                  config.device_key.length()),
               az_span_create(sas_signature_buffer.data(),
                              sas_signature_buffer.size()),
-              az_span_create(mqtt_password.data(), mqtt_password.size())};
+              az_span_create(sas_token_buffer.data(), sas_token_buffer.size())};
       azIoTSasToken.Generate(SAS_TOKEN_DURATION_IN_MINUTES) != 0) {
     M5_LOGE("Failed generating SAS token");
     optAzIoTSasToken = std::nullopt;
@@ -276,13 +276,18 @@ bool Telemetry::initializeMqttClient() {
   esp_mqtt_client_config_t mqtt_config{0};
 
   mqtt_config.uri = mqtt_broker_uri.c_str();
-  mqtt_config.port = mqtt_port;
+  mqtt_config.port = MQTT_PORT;
   mqtt_config.client_id = mqtt_client_id.c_str();
   mqtt_config.username = mqtt_username.c_str();
 
   // Using SAS key
-  mqtt_config.password =
-      reinterpret_cast<char *>(az_span_ptr(optAzIoTSasToken->Get()));
+  if (optAzIoTSasToken.has_value()) {
+    auto &azIoTSasToken = optAzIoTSasToken.value();
+    mqtt_config.password =
+        reinterpret_cast<char *>(az_span_ptr(azIoTSasToken.Get()));
+  } else {
+    mqtt_config.password = "";
+  }
 
   mqtt_config.keepalive = 180;
   mqtt_config.disable_clean_session = 0;
@@ -322,10 +327,10 @@ bool Telemetry::begin(std::string_view iothub_fqdn, std::string_view device_id,
   client_options = az_iot_hub_client_options_default();
   client_options.user_agent = AZ_SPAN_FROM_STR(AZURE_SDK_CLIENT_USER_AGENT);
   //
-  config_iothub_fqdn = std::string(iothub_fqdn);
-  config_device_id = std::string(device_id);
-  config_device_key = std::string(device_key);
-  mqtt_broker_uri = std::string("mqtts://" + config_iothub_fqdn);
+  config.iothub_fqdn = std::string(iothub_fqdn);
+  config.device_id = std::string(device_id);
+  config.device_key = std::string(device_key);
+  mqtt_broker_uri = std::string("mqtts://") + config.iothub_fqdn;
   //
   return (initializeIoTHubClient() && initializeMqttClient());
 }
@@ -355,6 +360,7 @@ bool Telemetry::loopMqtt() {
   // The topic could be obtained just once during setup,
   // however if properties are used the topic need to be generated again to
   // reflect the current values of the properties.
+  std::array<char, 128> telemetry_topic{};
   if (az_result_failed(az_iot_hub_client_telemetry_get_publish_topic(
           &client, nullptr, telemetry_topic.data(), telemetry_topic.size(),
           nullptr))) {
