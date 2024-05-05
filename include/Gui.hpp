@@ -545,7 +545,7 @@ class Gui {
 
 public:
   constexpr static auto PERIODIC_TIMER_INTERVAL = std::chrono::milliseconds{60};
-  constexpr static uint16_t CHART_X_POINT_COUNT = 60;
+  constexpr static uint16_t CHART_X_POINT_COUNT = 30;
   Gui(M5GFX &gfx) : gfx{gfx} {
     if (_instance) {
       delete _instance;
