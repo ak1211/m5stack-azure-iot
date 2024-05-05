@@ -208,17 +208,6 @@ void setup() {
     }
   }
 
-  // init Telemetry
-  if (auto telemetry = new Telemetry(); telemetry) {
-    if (!telemetry->begin(Credentials.iothub_fqdn, Credentials.device_id,
-                          Credentials.device_key)) {
-      M5_LOGE("MQTT subscribe failed.");
-    }
-  } else {
-    M5.Display.print("insufficient memory.");
-    goto fatal_error;
-  }
-
   // init Time
   if constexpr (true) {
     logging("init time.");
@@ -287,6 +276,20 @@ void setup() {
                          return active == false;
                        });
     Peripherals::sensors.erase(result, Peripherals::sensors.end());
+  }
+
+  // init Telemetry
+  logging("init Telemetry");
+  if (auto telemetry = new Telemetry(); telemetry) {
+    if (telemetry->begin(Credentials.iothub_fqdn, Credentials.device_id,
+                         Credentials.device_key)) {
+      logging("MQTT subscribed.");
+    } else {
+      logging("MQTT subscribe failed.");
+      M5_LOGE("MQTT subscribe failed.");
+    }
+  } else {
+    logging("insufficient memory.");
   }
 
   //
@@ -401,7 +404,7 @@ inline void low_speed_loop() {
     // WiFiが接続されていない場合は接続する。
     WiFi.begin(Credentials.wifi_ssid, Credentials.wifi_password);
   } else if (!Telemetry::getInstance()->loopMqtt()) {
-    static steady_clock::time_point before{};
+    static steady_clock::time_point before{steady_clock::now()};
     // 再接続
     if (steady_clock::now() - before > 1min) {
       before = steady_clock::now();
@@ -423,10 +426,11 @@ void loop() {
   //
   static steady_clock::time_point before_epoch{};
   auto now_epoch = steady_clock::now();
-  if (now_epoch - before_epoch >= 3s) {
+  if (now_epoch - before_epoch >= 1s) {
     low_speed_loop();
     before_epoch = now_epoch;
-  } else if (Time::sync_completed()) {
+  }
+  if (Time::sync_completed()) {
     static system_clock::time_point before_meas_tp{};
     static system_clock::time_point before_db_tp{};
     auto now_tp = system_clock::now();
@@ -435,7 +439,7 @@ void loop() {
       before_meas_tp = now_tp;
     } else if (auto sec =
                    floor<seconds>(now_tp.time_since_epoch()).count() % 60;
-               (now_tp - before_db_tp >= 333s) && (3 <= sec && sec <= 15)) {
+               (now_tp - before_db_tp >= 333s) && (2 <= sec && sec <= 30)) {
       // データベースの整理
       system_clock::time_point tp = now_tp - minutes(Gui::CHART_X_POINT_COUNT);
       if (Application::measurements_database

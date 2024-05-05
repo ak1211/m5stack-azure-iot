@@ -19,7 +19,7 @@ class Telemetry {
   static Telemetry *_instance;
 
 private:
-  constexpr static auto MAXIMUM_QUEUE_SIZE = 100;
+  constexpr static size_t MAX_SEND_FIFO_BUFFER_SIZE{64};
   using MessageId = uint32_t;
   // 送信用
   using Payload =
@@ -27,16 +27,12 @@ private:
                    Sensor::MeasurementScd30, Sensor::MeasurementScd41,
                    Sensor::MeasurementM5Env3>;
   //
-  uint32_t message_id{0};
-  //
   az_iot_hub_client client{};
   az_iot_hub_client_options client_options{az_iot_hub_client_options_default()};
   std::string config_iothub_fqdn{};
   std::string config_device_id{};
   std::string config_device_key{};
   //
-  constexpr static int MQTT_QOS1{1};
-  constexpr static int DO_NOT_RETAIN_MSG{0};
   constexpr static int mqtt_port{AZ_IOT_DEFAULT_MQTT_CONNECT_PORT};
   esp_mqtt_client_handle_t mqtt_client{};
   std::string mqtt_broker_uri{};
@@ -51,8 +47,8 @@ private:
   std::array<uint8_t, 256> sas_signature_buffer{};
   std::optional<AzIoTSasToken> optAzIoTSasToken{};
   // 送信用バッファ
-  using QueueData = std::pair<int32_t, std::string>;
-  std::vector<QueueData> sending_fifo_vect{};
+  std::vector<std::pair<std::optional<int32_t>, std::string>>
+      sending_fifo_vect{};
   //
   bool mqtt_connected{false};
   //
@@ -73,11 +69,10 @@ public:
              std::string_view device_key);
   //
   bool loopMqtt();
-  // 送信用メッセージに変換する
-  template <typename T>
-  std::string to_json_message(MessageId messageId, const T &in);
   //
   bool pushMessage(const Payload &in);
+  // 送信用メッセージに変換する
+  template <typename T> std::string to_json_message(const T &in);
 
 private:
   //
