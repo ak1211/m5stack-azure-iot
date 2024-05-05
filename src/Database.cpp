@@ -14,6 +14,33 @@
 
 using namespace std::chrono;
 
+const sqlite3_mem_methods Database::_custom_mem_methods{
+    /* Memory allocation function */
+    .xMalloc = [](int size) -> void * {
+      return heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
+    },
+    /* Free a prior allocation */
+    .xFree = free,
+    /* Resize an allocation */
+    .xRealloc = [](void *ptr, int size) -> void * {
+      return heap_caps_realloc(ptr, size, MALLOC_CAP_SPIRAM);
+    },
+    /* Return the size of an allocation */
+    .xSize = [](void *ptr) -> int { return heap_caps_get_allocated_size(ptr); },
+    /* Round up request size to allocation size */
+    .xRoundup = [](int size) -> int { return (size + 7) & ~7; },
+    /* Initialize the memory allocator */
+    .xInit = [](void *app_data) -> int {
+      return 0; // nothing to do
+    },
+    /* Deinitialize the memory allocator */
+    .xShutdown = [](void *app_data) -> void {
+      // nothing to do
+    },
+    /* Argument to xInit() and xShutdown() */
+    .pAppData = nullptr,
+};
+
 //
 //
 //
@@ -584,7 +611,18 @@ bool Database::begin() {
   if (sqlite3_db) {
     terminate();
   }
-
+  //
+  if (psramFound()) {
+    M5_LOGI("Database uses to SPIRAM");
+    //
+    if (auto result =
+            sqlite3_config(SQLITE_CONFIG_MALLOC, &_custom_mem_methods);
+        result != SQLITE_OK) {
+      M5_LOGE("sqlite3_config() failure: %d", result);
+      terminate();
+      return false;
+    }
+  }
   //
   if (auto result = sqlite3_config(SQLITE_CONFIG_URI, true);
       result != SQLITE_OK) {
