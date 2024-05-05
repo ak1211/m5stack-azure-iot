@@ -90,15 +90,21 @@ public:
         if (lv_tileview_get_tile_act(it->tileview_obj) == it->tile_obj) {
           M5_LOGV("event_value_changed_callback: active");
           // active
+          it->onActivate();
           it->createTimer();
         } else {
           M5_LOGV("event_value_changed_callback: inactive");
           // inactive
           it->delTimer();
+          it->onDeactivate();
         }
       }
     }
   }
+  //
+  virtual void onActivate() = 0;
+  //
+  virtual void onDeactivate() = 0;
   //
   virtual void update() = 0;
 };
@@ -114,6 +120,10 @@ public:
   BootMessage(BootMessage &&) = delete;
   BootMessage &operator=(const BootMessage &) = delete;
   BootMessage(InitArg init);
+  //
+  virtual void onActivate() override {}
+  //
+  virtual void onDeactivate() override {}
   //
   virtual void update() override;
   //
@@ -138,6 +148,10 @@ public:
   Summary &operator=(const Summary &) = delete;
   Summary(InitArg init);
   //
+  virtual void onActivate() override {}
+  //
+  virtual void onDeactivate() override {}
+  //
   virtual void update() override;
   //
   void render();
@@ -159,6 +173,10 @@ public:
   Clock(Clock &&) = delete;
   Clock &operator=(const Clock &) = delete;
   Clock(InitArg init);
+  //
+  virtual void onActivate() override {}
+  //
+  virtual void onDeactivate() override {}
   //
   virtual void update() override;
   //
@@ -186,8 +204,116 @@ public:
   SystemHealthy &operator=(const SystemHealthy &) = delete;
   SystemHealthy(InitArg init);
   //
+  virtual void onActivate() override {}
+  //
+  virtual void onDeactivate() override {}
+  //
   virtual void update() override { render(); }
+  //
   void render();
+};
+
+//
+class ChartSeriesWrapper {
+  SensorId _sensor_id;
+  lv_obj_t *_chart_obj;
+  lv_color_t _color;
+  lv_chart_series_t *_chart_series{nullptr};
+
+public:
+  //
+  ChartSeriesWrapper(SensorId sensor_id, lv_obj_t *chart_obj, lv_color_t color)
+      : _sensor_id{sensor_id},
+        _chart_obj{chart_obj},
+        _color{color},
+        _chart_series{nullptr} {
+    if (_chart_obj == nullptr) {
+      M5_LOGD("chart had null");
+      return;
+    }
+  }
+  //
+  ~ChartSeriesWrapper() {
+    if (_chart_series) {
+      lv_chart_remove_series(_chart_obj, _chart_series);
+    }
+  }
+  //
+  bool operator==(const SensorId &other) const {
+    return this->_sensor_id == other;
+  }
+  //
+  bool operator!=(const SensorId &other) const { return !(*this == other); }
+  //
+  lv_color_t getColor() const { return _color; }
+  //
+  std::pair<lv_coord_t, lv_coord_t> getMinMaxOfYPoints() {
+    auto y_min = std::numeric_limits<lv_coord_t>::max();
+    auto y_max = std::numeric_limits<lv_coord_t>::min();
+    if (_chart_series) {
+      for (auto i = 0; i < lv_chart_get_point_count(_chart_obj); ++i) {
+        if (_chart_series->y_points[i] != LV_CHART_POINT_NONE) {
+          y_min = std::min(y_min, _chart_series->y_points[i]);
+          y_max = std::max(y_max, _chart_series->y_points[i]);
+        }
+      }
+    } else {
+      M5_LOGD("chart_series had null");
+    }
+    return {y_min, y_max};
+  }
+  //
+  bool available() const { return _chart_series != nullptr; }
+  //
+  void chart_add_series() {
+    if (_chart_obj == nullptr) {
+      M5_LOGE("chart had null");
+      return;
+    }
+    _chart_series =
+        lv_chart_add_series(_chart_obj, _color, LV_CHART_AXIS_SECONDARY_Y);
+  }
+  //
+  void chart_remove_series() {
+    if (_chart_obj == nullptr) {
+      M5_LOGE("chart had null");
+      return;
+    }
+    if (_chart_series) {
+      lv_chart_remove_series(_chart_obj, _chart_series);
+    }
+    _chart_series = nullptr;
+  }
+  //
+  bool chart_set_all_value(lv_coord_t value) {
+    if (_chart_series) {
+      lv_chart_set_all_value(_chart_obj, _chart_series, value);
+      return true;
+    } else {
+      M5_LOGE("chart_series had null");
+      return false;
+    }
+  }
+  //
+  bool chart_set_x_start_point(uint16_t id) {
+    if (_chart_series) {
+      lv_chart_set_x_start_point(_chart_obj, _chart_series, id);
+      return true;
+    } else {
+      M5_LOGE("chart_series had null");
+      return false;
+    }
+  }
+  //
+  bool chart_set_value_by_id(uint16_t id, lv_coord_t value) {
+    if (_chart_series) {
+      lv_chart_set_value_by_id(_chart_obj, _chart_series, id, value);
+      return true;
+    } else {
+      M5_LOGE("chart_series had null");
+      return false;
+    }
+  }
 };
 
 //
@@ -217,7 +343,7 @@ protected:
   //
   const std::vector<lv_color_t> LINE_COLOR_TABLE;
   //
-  std::vector<std::pair<SensorId, lv_chart_series_t *>> chart_series_vect{};
+  std::vector<ChartSeriesWrapper> chart_series_vect{};
   //
   system_clock::time_point begin_x_tick{};
   //
@@ -254,6 +380,10 @@ public:
   TemperatureChart &operator=(const TemperatureChart &) = delete;
   TemperatureChart(InitArg init);
   //
+  virtual void onActivate() override {}
+  //
+  virtual void onDeactivate() override {}
+  //
   virtual void update() override;
   // データを座標に変換する関数
   virtual lv_point_t
@@ -286,6 +416,10 @@ public:
   RelativeHumidityChart &operator=(const RelativeHumidityChart &) = delete;
   RelativeHumidityChart(InitArg init);
   //
+  virtual void onActivate() override {}
+  //
+  virtual void onDeactivate() override {}
+  //
   virtual void update() override;
   // データを座標に変換する関数
   virtual lv_point_t
@@ -315,6 +449,10 @@ public:
   PressureChart(PressureChart &&) = delete;
   PressureChart &operator=(const PressureChart &) = delete;
   PressureChart(InitArg init);
+  //
+  virtual void onActivate() override {}
+  //
+  virtual void onDeactivate() override {}
   //
   virtual void update() override;
   //
@@ -348,6 +486,10 @@ public:
   CarbonDeoxidesChart &operator=(const CarbonDeoxidesChart &) = delete;
   CarbonDeoxidesChart(InitArg init);
   //
+  virtual void onActivate() override {}
+  //
+  virtual void onDeactivate() override {}
+  //
   virtual void update() override;
   // データを座標に変換する関数
   virtual lv_point_t
@@ -373,6 +515,10 @@ public:
   TotalVocChart(TotalVocChart &&) = delete;
   TotalVocChart &operator=(const TotalVocChart &) = delete;
   TotalVocChart(InitArg init);
+  //
+  virtual void onActivate() override {}
+  //
+  virtual void onDeactivate() override {}
   //
   virtual void update() override;
   // データを座標に変換する関数

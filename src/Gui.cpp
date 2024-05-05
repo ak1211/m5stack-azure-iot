@@ -69,7 +69,8 @@ bool Gui::begin() {
   // LVGL init
   lv_init();
   // LVGL draw buffer
-  const int32_t DRAW_BUFFER_SIZE = gfx.width() * (gfx.height() / 2);
+  const int32_t DRAW_BUFFER_SIZE =
+      gfx.width() * gfx.height() * (LV_COLOR_DEPTH / 8) / 10;
   lvgl_use.draw_buf_1 = std::make_unique<lv_color_t[]>(DRAW_BUFFER_SIZE);
   lvgl_use.draw_buf_2 = std::make_unique<lv_color_t[]>(DRAW_BUFFER_SIZE);
   if (lvgl_use.draw_buf_1 == nullptr || lvgl_use.draw_buf_2 == nullptr) {
@@ -670,6 +671,7 @@ Widget::SystemHealthy::SystemHealthy(Widget::InitArg init) : TileBase{init} {
   }
 }
 
+//
 void Widget::SystemHealthy::render() {
   if (time_label_obj == nullptr) {
     M5_LOGE("time_label_obj had null");
@@ -936,23 +938,24 @@ Widget::BasicChart<T>::BasicChart(InitArg init, const std::string &inSubheading)
                          false, X_TICK_LABEL_LEN);
   lv_chart_set_axis_tick(chart_obj, LV_CHART_AXIS_SECONDARY_Y, 10, 5, 10, 5,
                          true, Y_TICK_LABEL_LEN);
-
+  // 初期化
+  lv_chart_set_point_count(chart_obj, Gui::CHART_X_POINT_COUNT);
+  //
   // センサーIDとchart seriesをペアにする。
   auto line_color_itr = LINE_COLOR_TABLE.begin();
   for (const auto &sensor : Peripherals::sensors) {
     if (const auto p = sensor.get(); p) {
-      if (line_color_itr == LINE_COLOR_TABLE.end()) {
+      chart_series_vect.emplace_back(ChartSeriesWrapper{
+          p->getSensorDescriptor(), chart_obj, *line_color_itr});
+      //
+      if (++line_color_itr == LINE_COLOR_TABLE.end()) {
         line_color_itr = LINE_COLOR_TABLE.begin();
       }
-      chart_series_vect.push_back(
-          std::make_pair(p->getSensorDescriptor(),
-                         lv_chart_add_series(chart_obj, *line_color_itr++,
-                                             LV_CHART_AXIS_SECONDARY_Y)));
     }
   }
-
-  // 初期化
-  lv_chart_set_point_count(chart_obj, Gui::CHART_X_POINT_COUNT);
+  for (auto &item : chart_series_vect) {
+    item.chart_add_series();
+  }
 }
 
 //
@@ -962,9 +965,13 @@ template <typename T> void Widget::BasicChart<T>::render() {
     return;
   }
   // 初期化
-  for (auto &[_, p] : chart_series_vect) {
-    lv_chart_set_all_value(chart_obj, p, LV_CHART_POINT_NONE);
-    lv_chart_set_x_start_point(chart_obj, p, 0);
+  for (auto &item : chart_series_vect) {
+    if (item.available() == false) {
+      M5_LOGE("chart series not available");
+      return;
+    }
+    item.chart_set_all_value(LV_CHART_POINT_NONE);
+    item.chart_set_x_start_point(0);
   }
   //
   system_clock::time_point now_min = floor<minutes>(system_clock::now());
@@ -975,13 +982,11 @@ template <typename T> void Widget::BasicChart<T>::render() {
   auto setChartSeries = [this](size_t counter, DataType item) -> bool {
     auto &[sensorid, tp, value] = item;
     // 各々のsensoridのchart seriesにセットする。
-    if (auto found_itr = std::find_if(
-            chart_series_vect.begin(), chart_series_vect.end(),
-            [&sensorid](auto &item) { return item.first == sensorid; });
+    if (auto found_itr = std::find(chart_series_vect.begin(),
+                                   chart_series_vect.end(), sensorid);
         found_itr != chart_series_vect.end()) {
-      lv_chart_series_t *target_series = found_itr->second;
       auto coord = coordinateXY(begin_x_tick, item);
-      lv_chart_set_value_by_id(chart_obj, target_series, coord.x, coord.y);
+      found_itr->chart_set_value_by_id(coord.x, coord.y);
     }
     // データー表示(デバッグ用)
     if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_VERBOSE) {
@@ -1001,25 +1006,15 @@ template <typename T> void Widget::BasicChart<T>::render() {
   };
 
   // データーベースより測定データーを得る
-  read_measurements_from_database(Database::OrderByAtAsc, begin_x_tick,
-                                  setChartSeries);
-
-  // 下限、上限
-  {
+  if (read_measurements_from_database(Database::OrderByAtAsc, begin_x_tick,
+                                      setChartSeries) >= 1) {
+    // 下限、上限
     auto y_min = std::numeric_limits<lv_coord_t>::max();
     auto y_max = std::numeric_limits<lv_coord_t>::min();
     for (auto &item : chart_series_vect) {
-      lv_chart_series_t *series = item.second;
-      if (series == nullptr) {
-        M5_LOGE("lv_chart_series had null");
-        break;
-      }
-      for (auto i = 0; i < Gui::CHART_X_POINT_COUNT; ++i) {
-        if (series->y_points[i] != LV_CHART_POINT_NONE) {
-          y_min = std::min(y_min, series->y_points[i]);
-          y_max = std::max(y_max, series->y_points[i]);
-        }
-      }
+      auto [min, max] = item.getMinMaxOfYPoints();
+      y_min = std::min(y_min, min);
+      y_max = std::max(y_max, max);
     }
     //
     if (y_min == std::numeric_limits<lv_coord_t>::max() &&
@@ -1070,18 +1065,12 @@ void Widget::TemperatureChart::update() {
   auto present = Measurements{bme280, scd30, scd41, m5env3};
 
   auto get_color = [this](SensorId sensorid) -> lv_color32_t {
-    if (auto found_itr = std::find_if(
-            chart_series_vect.begin(), chart_series_vect.end(),
-            [&sensorid](const auto &item) { return item.first == sensorid; });
+    if (auto found_itr = std::find(chart_series_vect.begin(),
+                                   chart_series_vect.end(), sensorid);
         found_itr != chart_series_vect.end()) {
-      lv_chart_series_t *ptr = found_itr->second;
-      if (ptr == nullptr) {
-        M5_LOGE("lv_chart_series_t had null");
-      } else {
-        return lv_color32_t{.full = lv_color_to32(ptr->color)};
-      }
+      return lv_color32_t{.full = lv_color_to32(found_itr->getColor())};
     }
-    return LV_COLOR_MAKE(255, 255, 255);
+    return LV_COLOR_MAKE(0, 0, 0);
   };
 
   if (present != latest) {
@@ -1170,18 +1159,12 @@ void Widget::RelativeHumidityChart::update() {
   auto present = Measurements{bme280, scd30, scd41, m5env3};
 
   auto get_color = [this](SensorId sensorid) -> lv_color32_t {
-    if (auto found_itr = std::find_if(
-            chart_series_vect.begin(), chart_series_vect.end(),
-            [&sensorid](const auto &item) { return item.first == sensorid; });
+    if (auto found_itr = std::find(chart_series_vect.begin(),
+                                   chart_series_vect.end(), sensorid);
         found_itr != chart_series_vect.end()) {
-      lv_chart_series_t *ptr = found_itr->second;
-      if (ptr == nullptr) {
-        M5_LOGE("lv_chart_series_t had null");
-      } else {
-        return lv_color32_t{.full = lv_color_to32(ptr->color)};
-      }
+      return lv_color32_t{.full = lv_color_to32(found_itr->getColor())};
     }
-    return LV_COLOR_MAKE(255, 255, 255);
+    return LV_COLOR_MAKE(0, 0, 0);
   };
 
   if (present != latest) {
@@ -1265,18 +1248,12 @@ void Widget::PressureChart::update() {
   auto present = Measurements{bme280, m5env3};
 
   auto get_color = [this](SensorId sensorid) -> lv_color32_t {
-    if (auto found_itr = std::find_if(
-            chart_series_vect.begin(), chart_series_vect.end(),
-            [&sensorid](const auto &item) { return item.first == sensorid; });
+    if (auto found_itr = std::find(chart_series_vect.begin(),
+                                   chart_series_vect.end(), sensorid);
         found_itr != chart_series_vect.end()) {
-      lv_chart_series_t *ptr = found_itr->second;
-      if (ptr == nullptr) {
-        M5_LOGE("lv_chart_series_t had null");
-      } else {
-        return lv_color32_t{.full = lv_color_to32(ptr->color)};
-      }
+      return lv_color32_t{.full = lv_color_to32(found_itr->getColor())};
     }
-    return LV_COLOR_MAKE(255, 255, 255);
+    return LV_COLOR_MAKE(0, 0, 0);
   };
 
   if (present != latest) {
@@ -1345,18 +1322,12 @@ void Widget::CarbonDeoxidesChart::update() {
   auto present = Measurements{sgp30, scd30, scd41};
 
   auto get_color = [this](SensorId sensorid) -> lv_color32_t {
-    if (auto found_itr = std::find_if(
-            chart_series_vect.begin(), chart_series_vect.end(),
-            [&sensorid](const auto &item) { return item.first == sensorid; });
+    if (auto found_itr = std::find(chart_series_vect.begin(),
+                                   chart_series_vect.end(), sensorid);
         found_itr != chart_series_vect.end()) {
-      lv_chart_series_t *ptr = found_itr->second;
-      if (ptr == nullptr) {
-        M5_LOGE("lv_chart_series_t had null");
-      } else {
-        return lv_color32_t{.full = lv_color_to32(ptr->color)};
-      }
+      return lv_color32_t{.full = lv_color_to32(found_itr->getColor())};
     }
-    return LV_COLOR_MAKE(255, 255, 255);
+    return LV_COLOR_MAKE(0, 0, 0);
   };
 
   if (present != latest) {
@@ -1416,18 +1387,12 @@ void Widget::TotalVocChart::update() {
   auto present = sgp30;
 
   auto get_color = [this](SensorId sensorid) -> lv_color32_t {
-    if (auto found_itr = std::find_if(
-            chart_series_vect.begin(), chart_series_vect.end(),
-            [&sensorid](const auto &item) { return item.first == sensorid; });
+    if (auto found_itr = std::find(chart_series_vect.begin(),
+                                   chart_series_vect.end(), sensorid);
         found_itr != chart_series_vect.end()) {
-      lv_chart_series_t *ptr = found_itr->second;
-      if (ptr == nullptr) {
-        M5_LOGE("lv_chart_series_t had null");
-      } else {
-        return lv_color32_t{.full = lv_color_to32(ptr->color)};
-      }
+      return lv_color32_t{.full = lv_color_to32(found_itr->getColor())};
     }
-    return LV_COLOR_MAKE(255, 255, 255);
+    return LV_COLOR_MAKE(0, 0, 0);
   };
 
   if (present != latest) {
