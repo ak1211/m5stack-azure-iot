@@ -17,7 +17,7 @@ using namespace std::chrono;
 const sqlite3_mem_methods Database::_custom_mem_methods{
     /* Memory allocation function */
     .xMalloc = [](int size) -> void * {
-      return heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
+      return heap_caps_aligned_alloc(8, size, MALLOC_CAP_SPIRAM);
     },
     /* Free a prior allocation */
     .xFree = free,
