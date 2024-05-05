@@ -20,8 +20,10 @@ class Database final {
   struct Transaction;
 
 private:
+  const static sqlite3_mem_methods _custom_mem_methods;
   bool _available{false};
-  sqlite3 *sqlite3_db{nullptr};
+  sqlite3 *_sqlite3_db{nullptr};
+
   //
   std::optional<Sensor::MeasurementBme280> _latestMeasurementBme280{};
   std::optional<Sensor::MeasurementSgp30> _latestMeasurementSgp30{};
