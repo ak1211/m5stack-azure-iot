@@ -195,7 +195,7 @@ void setup() {
           std::this_thread::sleep_for(6ms);
         }
       },
-      "Task:LVGL", 8192, nullptr, 5, &rtos_task_handle, ARDUINO_RUNNING_CORE);
+      "Task:LVGL", 16384, nullptr, 5, &rtos_task_handle, ARDUINO_RUNNING_CORE);
 
   logging("System Start.");
 
