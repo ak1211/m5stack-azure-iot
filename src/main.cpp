@@ -293,7 +293,7 @@ void setup() {
   }
 
   {
-    constexpr auto TIMEOUT{60s};
+    constexpr auto TIMEOUT{90s};
     logging("waiting for Telemetry connection.");
     auto timeover{steady_clock::now() + TIMEOUT};
     while (Telemetry::getInstance()->mqttConnected() == false &&
