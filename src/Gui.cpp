@@ -1019,7 +1019,7 @@ template <typename T> void Widget::BasicChart<T>::render() {
   uint16_t x_start_point = 0;
   for (auto &item : chart_series_vect) {
     if (auto opt_x = item.getXStartPointForValidValues(); opt_x) {
-      x_start_point = x_start_point > *opt_x ? *opt_x : x_start_point;
+      x_start_point = std::min(x_start_point, *opt_x);
     }
   }
   for (auto &item : chart_series_vect) {
