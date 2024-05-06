@@ -221,6 +221,20 @@ void setup() {
     setupOTA();
   }
 
+  // init Telemetry
+  logging("init Telemetry");
+  if (auto telemetry = new Telemetry(); telemetry) {
+    if (telemetry->begin(Credentials.iothub_fqdn, Credentials.device_id,
+                         Credentials.device_key)) {
+      logging("MQTT subscribed.");
+    } else {
+      logging("MQTT subscribe failed.");
+      M5_LOGE("MQTT subscribe failed.");
+    }
+  } else {
+    logging("insufficient memory.");
+  }
+
   // init Database
   logging("init Database.");
   if (Application::measurements_database.begin() == false) {
@@ -276,20 +290,6 @@ void setup() {
                          return active == false;
                        });
     Peripherals::sensors.erase(result, Peripherals::sensors.end());
-  }
-
-  // init Telemetry
-  logging("init Telemetry");
-  if (auto telemetry = new Telemetry(); telemetry) {
-    if (telemetry->begin(Credentials.iothub_fqdn, Credentials.device_id,
-                         Credentials.device_key)) {
-      logging("MQTT subscribed.");
-    } else {
-      logging("MQTT subscribe failed.");
-      M5_LOGE("MQTT subscribe failed.");
-    }
-  } else {
-    logging("insufficient memory.");
   }
 
   //

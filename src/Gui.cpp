@@ -19,6 +19,7 @@
 #include <iomanip>
 #include <sstream>
 #include <tuple>
+#include <unordered_map>
 
 #include <M5Unified.h>
 
@@ -855,24 +856,27 @@ std::ostream &Widget::operator<<(std::ostream &os,
 }
 
 //
+namespace P = Peripherals;
+const std::unordered_map<SensorId, lv_color_t> Widget::LINE_COLOR_MAP{
+    {P::SENSOR_DESCRIPTOR_BME280, lv_palette_lighten(LV_PALETTE_RED, 1)},
+    {P::SENSOR_DESCRIPTOR_SGP30, lv_palette_lighten(LV_PALETTE_ORANGE, 1)},
+    {P::SENSOR_DESCRIPTOR_SCD30, lv_palette_lighten(LV_PALETTE_INDIGO, 1)},
+    {P::SENSOR_DESCRIPTOR_SCD41, lv_palette_lighten(LV_PALETTE_PURPLE, 1)},
+    {P::SENSOR_DESCRIPTOR_M5ENV3, lv_palette_lighten(LV_PALETTE_BROWN, 1)}};
+
+//
 //
 //
 template <typename T>
 Widget::BasicChart<T>::BasicChart(ReadDataFn read_measurements_from_database,
                                   CoordinatePointFn coordinateXY)
     : _read_measurements_from_database{read_measurements_from_database},
-      _coordinateXY{coordinateXY},
-      LINE_COLOR_TABLE{lv_palette_lighten(LV_PALETTE_RED, 1),
-                       lv_palette_lighten(LV_PALETTE_ORANGE, 1),
-                       lv_palette_lighten(LV_PALETTE_INDIGO, 1),
-                       lv_palette_lighten(LV_PALETTE_PURPLE, 1),
-                       lv_palette_lighten(LV_PALETTE_BROWN, 1),
-                       lv_palette_lighten(LV_PALETTE_BLUE, 1)} {}
+      _coordinateXY{coordinateXY} {}
 
 //
 template <typename T>
-void Widget::BasicChart<T>::create(lv_obj_t *parent_obj,
-                                   const std::string &inSubheading) {
+void Widget::BasicChart<T>::createWidgets(lv_obj_t *parent_obj,
+                                          std::string_view inSubheading) {
   if (parent_obj == nullptr) {
     M5_LOGE("null");
     return;
@@ -941,16 +945,12 @@ void Widget::BasicChart<T>::create(lv_obj_t *parent_obj,
                          false, X_TICK_LABEL_LEN);
   lv_chart_set_axis_tick(chart_obj, LV_CHART_AXIS_SECONDARY_Y, 10, 5, 10, 5,
                          true, Y_TICK_LABEL_LEN);
-  // センサーIDとchart seriesをペアにする。
-  auto line_color_itr = LINE_COLOR_TABLE.begin();
+  //
   for (const auto &sensor : Peripherals::sensors) {
     if (const auto p = sensor.get(); p) {
-      chart_series_vect.emplace_back(ChartSeriesWrapper{
-          p->getSensorDescriptor(), chart_obj, *line_color_itr});
+      chart_series_vect.emplace_back(
+          ChartSeriesWrapper{p->getSensorDescriptor(), chart_obj});
       //
-      if (++line_color_itr == LINE_COLOR_TABLE.end()) {
-        line_color_itr = LINE_COLOR_TABLE.begin();
-      }
     }
   }
   for (auto &item : chart_series_vect) {
@@ -1050,7 +1050,7 @@ Widget::TemperatureChart::TemperatureChart(InitArg init)
     return;
   }
   // create
-  basic_chart.create(tile_obj, "Temperature");
+  basic_chart.createWidgets(tile_obj, "Temperature");
   //
   lv_obj_add_event_cb(basic_chart.getChartObj(), event_draw_part_begin_callback,
                       LV_EVENT_DRAW_PART_BEGIN, this);
@@ -1064,37 +1064,43 @@ void Widget::TemperatureChart::update() {
   auto m5env3 = Application::measurements_database.getLatestMeasurementM5Env3();
   auto present = Measurements{bme280, scd30, scd41, m5env3};
 
+  //
+  auto toColor32 = [](SensorId id) -> lv_color32_t {
+    if (auto itr = LINE_COLOR_MAP.find(id); itr != LINE_COLOR_MAP.end()) {
+      return lv_color32_t{.full = lv_color_to32(itr->second)};
+    } else {
+      return lv_color32_t{.full = lv_color_to32(lv_color_white())};
+    }
+  };
+
+  //
   if (present != latest) {
     latest = present;
     //
     std::ostringstream oss;
     if (bme280.has_value()) {
-      ShowMeasured<DegC> s{.color = basic_chart.getColorBySensorId(
-                               bme280->second.sensor_descriptor),
+      ShowMeasured<DegC> s{.color = toColor32(bme280->second.sensor_descriptor),
                            .name = "BME280",
                            .unit = "C",
                            .meas = bme280->second.temperature};
       oss << s << "  ";
     }
     if (scd30.has_value()) {
-      ShowMeasured<DegC> s{.color = basic_chart.getColorBySensorId(
-                               scd30->second.sensor_descriptor),
+      ShowMeasured<DegC> s{.color = toColor32(scd30->second.sensor_descriptor),
                            .name = "SCD30",
                            .unit = "C",
                            .meas = scd30->second.temperature};
       oss << s << "  ";
     }
     if (scd41.has_value()) {
-      ShowMeasured<DegC> s{.color = basic_chart.getColorBySensorId(
-                               scd41->second.sensor_descriptor),
+      ShowMeasured<DegC> s{.color = toColor32(scd41->second.sensor_descriptor),
                            .name = "SCD41",
                            .unit = "C",
                            .meas = scd41->second.temperature};
       oss << s << "  ";
     }
     if (m5env3.has_value()) {
-      ShowMeasured<DegC> s{.color = basic_chart.getColorBySensorId(
-                               m5env3->second.sensor_descriptor),
+      ShowMeasured<DegC> s{.color = toColor32(m5env3->second.sensor_descriptor),
                            .name = "ENV.III",
                            .unit = "C",
                            .meas = m5env3->second.temperature};
@@ -1152,7 +1158,7 @@ Widget::RelativeHumidityChart::RelativeHumidityChart(InitArg init)
     return;
   }
   // create
-  basic_chart.create(tile_obj, "Relative Humidity");
+  basic_chart.createWidgets(tile_obj, "Relative Humidity");
   //
   lv_obj_add_event_cb(basic_chart.getChartObj(), event_draw_part_begin_callback,
                       LV_EVENT_DRAW_PART_BEGIN, this);
@@ -1166,37 +1172,45 @@ void Widget::RelativeHumidityChart::update() {
   auto m5env3 = Application::measurements_database.getLatestMeasurementM5Env3();
   auto present = Measurements{bme280, scd30, scd41, m5env3};
 
+  //
+  auto toColor32 = [](SensorId id) -> lv_color32_t {
+    if (auto itr = LINE_COLOR_MAP.find(id); itr != LINE_COLOR_MAP.end()) {
+      return lv_color32_t{.full = lv_color_to32(itr->second)};
+    } else {
+      return lv_color32_t{.full = lv_color_to32(lv_color_white())};
+    }
+  };
+
+  //
   if (present != latest) {
     latest = present;
     //
     std::ostringstream oss;
     if (bme280.has_value()) {
-      ShowMeasured<PctRH> s{.color = basic_chart.getColorBySensorId(
-                                bme280->second.sensor_descriptor),
+      ShowMeasured<PctRH> s{.color =
+                                toColor32(bme280->second.sensor_descriptor),
                             .name = "BME280",
                             .unit = "%",
                             .meas = bme280->second.relative_humidity};
       oss << s << "  ";
     }
     if (scd30.has_value()) {
-      ShowMeasured<PctRH> s{.color = basic_chart.getColorBySensorId(
-                                scd30->second.sensor_descriptor),
+      ShowMeasured<PctRH> s{.color = toColor32(scd30->second.sensor_descriptor),
                             .name = "SCD30",
                             .unit = "%",
                             .meas = scd30->second.relative_humidity};
       oss << s << "  ";
     }
     if (scd41.has_value()) {
-      ShowMeasured<PctRH> s{.color = basic_chart.getColorBySensorId(
-                                scd41->second.sensor_descriptor),
+      ShowMeasured<PctRH> s{.color = toColor32(scd41->second.sensor_descriptor),
                             .name = "SCD41",
                             .unit = "%",
                             .meas = scd41->second.relative_humidity};
       oss << s << "  ";
     }
     if (m5env3.has_value()) {
-      ShowMeasured<PctRH> s{.color = basic_chart.getColorBySensorId(
-                                m5env3->second.sensor_descriptor),
+      ShowMeasured<PctRH> s{.color =
+                                toColor32(m5env3->second.sensor_descriptor),
                             .name = "ENV.III",
                             .unit = "%",
                             .meas = m5env3->second.relative_humidity};
@@ -1248,7 +1262,7 @@ Widget::PressureChart::PressureChart(InitArg init)
     return;
   }
   // create
-  basic_chart.create(tile_obj, "Pressure");
+  basic_chart.createWidgets(tile_obj, "Pressure");
   //
   lv_obj_add_event_cb(basic_chart.getChartObj(), event_draw_part_begin_callback,
                       LV_EVENT_DRAW_PART_BEGIN, this);
@@ -1260,21 +1274,31 @@ void Widget::PressureChart::update() {
   auto m5env3 = Application::measurements_database.getLatestMeasurementM5Env3();
   auto present = Measurements{bme280, m5env3};
 
+  //
+  auto toColor32 = [](SensorId id) -> lv_color32_t {
+    if (auto itr = LINE_COLOR_MAP.find(id); itr != LINE_COLOR_MAP.end()) {
+      return lv_color32_t{.full = lv_color_to32(itr->second)};
+    } else {
+      return lv_color32_t{.full = lv_color_to32(lv_color_white())};
+    }
+  };
+
+  //
   if (present != latest) {
     latest = present;
     //
     std::ostringstream oss;
     if (bme280.has_value()) {
-      ShowMeasured<HectoPa> s{.color = basic_chart.getColorBySensorId(
-                                  bme280->second.sensor_descriptor),
+      ShowMeasured<HectoPa> s{.color =
+                                  toColor32(bme280->second.sensor_descriptor),
                               .name = "BME280",
                               .unit = "hpa",
                               .meas = bme280->second.pressure};
       oss << s << "  ";
     }
     if (m5env3.has_value()) {
-      ShowMeasured<HectoPa> s{.color = basic_chart.getColorBySensorId(
-                                  m5env3->second.sensor_descriptor),
+      ShowMeasured<HectoPa> s{.color =
+                                  toColor32(m5env3->second.sensor_descriptor),
                               .name = "ENV.III",
                               .unit = "hpa",
                               .meas = m5env3->second.pressure};
@@ -1326,7 +1350,7 @@ Widget::CarbonDeoxidesChart::CarbonDeoxidesChart(InitArg init)
     return;
   }
   // create
-  basic_chart.create(tile_obj, "CO2");
+  basic_chart.createWidgets(tile_obj, "CO2");
 }
 
 void Widget::CarbonDeoxidesChart::update() {
@@ -1335,29 +1359,36 @@ void Widget::CarbonDeoxidesChart::update() {
   auto scd41 = Application::measurements_database.getLatestMeasurementScd41();
   auto present = Measurements{sgp30, scd30, scd41};
 
+  //
+  auto toColor32 = [](SensorId id) -> lv_color32_t {
+    if (auto itr = LINE_COLOR_MAP.find(id); itr != LINE_COLOR_MAP.end()) {
+      return lv_color32_t{.full = lv_color_to32(itr->second)};
+    } else {
+      return lv_color32_t{.full = lv_color_to32(lv_color_white())};
+    }
+  };
+
+  //
   if (present != latest) {
     latest = present;
     //
     std::ostringstream oss;
     if (sgp30.has_value()) {
-      ShowMeasured<Ppm> s{.color = basic_chart.getColorBySensorId(
-                              sgp30->second.sensor_descriptor),
+      ShowMeasured<Ppm> s{.color = toColor32(sgp30->second.sensor_descriptor),
                           .name = "SGP30",
                           .unit = "ppm",
                           .meas = sgp30->second.eCo2};
       oss << s << "  ";
     }
     if (scd30.has_value()) {
-      ShowMeasured<Ppm> s{.color = basic_chart.getColorBySensorId(
-                              scd30->second.sensor_descriptor),
+      ShowMeasured<Ppm> s{.color = toColor32(scd30->second.sensor_descriptor),
                           .name = "SCD30",
                           .unit = "ppm",
                           .meas = scd30->second.co2};
       oss << s << "  ";
     }
     if (scd41.has_value()) {
-      ShowMeasured<Ppm> s{.color = basic_chart.getColorBySensorId(
-                              scd41->second.sensor_descriptor),
+      ShowMeasured<Ppm> s{.color = toColor32(scd41->second.sensor_descriptor),
                           .name = "SCD41",
                           .unit = "ppm",
                           .meas = scd41->second.co2};
@@ -1395,7 +1426,7 @@ Widget::TotalVocChart::TotalVocChart(InitArg init)
     return;
   }
   // create
-  basic_chart.create(tile_obj, "Total VOC");
+  basic_chart.createWidgets(tile_obj, "Total VOC");
   //
   lv_obj_add_event_cb(basic_chart.getChartObj(), event_draw_part_begin_callback,
                       LV_EVENT_DRAW_PART_BEGIN, this);
@@ -1405,13 +1436,22 @@ void Widget::TotalVocChart::update() {
   auto sgp30 = Application::measurements_database.getLatestMeasurementSgp30();
   auto present = sgp30;
 
+  //
+  auto toColor32 = [](SensorId id) -> lv_color32_t {
+    if (auto itr = LINE_COLOR_MAP.find(id); itr != LINE_COLOR_MAP.end()) {
+      return lv_color32_t{.full = lv_color_to32(itr->second)};
+    } else {
+      return lv_color32_t{.full = lv_color_to32(lv_color_white())};
+    }
+  };
+
+  //
   if (present != latest) {
     latest = present;
     //
     std::ostringstream oss;
     if (sgp30.has_value()) {
-      ShowMeasured<Ppb> s{.color = basic_chart.getColorBySensorId(
-                              sgp30->second.sensor_descriptor),
+      ShowMeasured<Ppb> s{.color = toColor32(sgp30->second.sensor_descriptor),
                           .name = "SGP30",
                           .unit = "ppb",
                           .meas = sgp30->second.tvoc};

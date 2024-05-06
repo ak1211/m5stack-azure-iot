@@ -11,6 +11,7 @@
 #include <lvgl.h>
 #include <memory>
 #include <tuple>
+#include <unordered_map>
 #include <vector>
 
 #include <M5Unified.h>
@@ -214,19 +215,22 @@ public:
 };
 
 //
+//
+//
+extern const std::unordered_map<SensorId, lv_color_t> LINE_COLOR_MAP;
+
+//
+//
+//
 class ChartSeriesWrapper {
   SensorId _sensor_id;
   lv_obj_t *_chart_obj;
-  lv_color_t _color;
   lv_chart_series_t *_chart_series{nullptr};
 
 public:
   //
-  ChartSeriesWrapper(SensorId sensor_id, lv_obj_t *chart_obj, lv_color_t color)
-      : _sensor_id{sensor_id},
-        _chart_obj{chart_obj},
-        _color{color},
-        _chart_series{nullptr} {
+  ChartSeriesWrapper(SensorId sensor_id, lv_obj_t *chart_obj)
+      : _sensor_id{sensor_id}, _chart_obj{chart_obj}, _chart_series{nullptr} {
     if (_chart_obj == nullptr) {
       M5_LOGD("chart had null");
       return;
@@ -244,8 +248,6 @@ public:
   }
   //
   bool operator!=(const SensorId &other) const { return !(*this == other); }
-  //
-  lv_color_t getColor() const { return _color; }
   //
   std::pair<lv_coord_t, lv_coord_t> getMinMaxOfYPoints() {
     auto y_min = std::numeric_limits<lv_coord_t>::max();
@@ -270,8 +272,11 @@ public:
       M5_LOGE("chart had null");
       return;
     }
+    auto itr = LINE_COLOR_MAP.find(_sensor_id);
+    lv_color_t color =
+        itr != LINE_COLOR_MAP.end() ? itr->second : lv_color_black();
     _chart_series =
-        lv_chart_add_series(_chart_obj, _color, LV_CHART_AXIS_SECONDARY_Y);
+        lv_chart_add_series(_chart_obj, color, LV_CHART_AXIS_SECONDARY_Y);
   }
   //
   void chart_remove_series() {
@@ -349,20 +354,11 @@ public:
   BasicChart(ReadDataFn read_measurements_from_database,
              CoordinatePointFn coordinateXY);
   //
-  void create(lv_obj_t *parent_obj, const std::string &inSubheading);
+  void createWidgets(lv_obj_t *parent_obj, std::string_view inSubheading);
   //
   lv_obj_t *getChartObj() const { return chart_obj; }
   //
   lv_obj_t *getLabelObj() const { return label_obj; }
-  //
-  lv_color32_t getColorBySensorId(SensorId sensorid) {
-    if (auto found_itr = std::find(chart_series_vect.begin(),
-                                   chart_series_vect.end(), sensorid);
-        found_itr != chart_series_vect.end()) {
-      return lv_color32_t{.full = lv_color_to32(found_itr->getColor())};
-    }
-    return LV_COLOR_MAKE(0, 0, 0);
-  }
   //
   void render();
 
@@ -371,8 +367,6 @@ private:
   lv_style_t label_style{};
   lv_obj_t *label_obj{nullptr};
   lv_obj_t *chart_obj{nullptr};
-  //
-  const std::vector<lv_color_t> LINE_COLOR_TABLE;
   //
   std::vector<ChartSeriesWrapper> chart_series_vect{};
   //
