@@ -267,6 +267,21 @@ public:
   //
   bool available() const { return _chart_series != nullptr; }
   //
+  std::optional<uint16_t> getXStartPointForValidValues() const {
+    if (_chart_obj == nullptr) {
+      return std::nullopt;
+    }
+    if (_chart_series == nullptr) {
+      return std::nullopt;
+    }
+    auto index = 0;
+    while (index < lv_chart_get_point_count(_chart_obj) &&
+           _chart_series->y_points[index] == LV_CHART_POINT_NONE) {
+      ++index;
+    }
+    return index;
+  }
+  //
   void chart_add_series() {
     if (_chart_obj == nullptr) {
       M5_LOGE("chart had null");
@@ -562,7 +577,7 @@ class Gui {
 
 public:
   constexpr static auto PERIODIC_TIMER_INTERVAL = std::chrono::milliseconds{60};
-  constexpr static uint16_t CHART_X_POINT_COUNT = 30;
+  constexpr static uint16_t CHART_X_POINT_COUNT = 60;
   Gui(M5GFX &gfx) : gfx{gfx} {
     if (_instance) {
       delete _instance;

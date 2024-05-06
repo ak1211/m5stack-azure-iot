@@ -623,8 +623,10 @@ bool Database::begin() {
       return false;
     }
     //
-    _database_use_preallocated_memory = heap_caps_aligned_alloc(
-        8, DATABASE_USE_PREALLOCATED_MEMORY_SIZE, MALLOC_CAP_SPIRAM);
+    if (_database_use_preallocated_memory == nullptr) {
+      _database_use_preallocated_memory = heap_caps_aligned_alloc(
+          8, DATABASE_USE_PREALLOCATED_MEMORY_SIZE, MALLOC_CAP_SPIRAM);
+    }
     //
     if (_database_use_preallocated_memory) {
       M5_LOGI("Database uses on pre-allocated memory");
@@ -757,6 +759,8 @@ bool Database::delete_old_measurements_from_database(
     return false;
   }
 
+  M5_LOGI("delete old rows.");
+
   // delete old rows
   for (auto &query : queries) {
     struct Finalizer {
@@ -791,11 +795,20 @@ bool Database::delete_old_measurements_from_database(
       return false;
     }
     // SQL表示(デバッグ用)
-    if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_VERBOSE) {
+    if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_DEBUG) {
+      std::time_t time = system_clock::to_time_t(delete_of_older_than_tp);
+      std::tm local_time;
+      localtime_r(&time, &local_time);
+      std::ostringstream oss;
+      //
       if (auto p = sqlite3_expanded_sql(fin.stmt); p) {
-        M5_LOGV("%s", p);
+        oss << std::string_view(p);
         sqlite3_free(p);
       }
+      //
+      oss << " (" << static_cast<int64_t>(time) << " is "
+          << std::put_time(&local_time, "%F %T %Z") << ")";
+      M5_LOGD("%s", oss.str().c_str());
     }
     //
     auto timeover{steady_clock::now() + RETRY_TIMEOUT};
@@ -1055,11 +1068,21 @@ bool Database::insert_values(std::string_view query,
   }
 
   // SQL表示(デバッグ用)
-  if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_VERBOSE) {
+  if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_DEBUG) {
+    //
+    std::time_t time = system_clock::to_time_t(tp_to_insert);
+    std::tm local_time;
+    localtime_r(&time, &local_time);
+    std::ostringstream oss;
+    //
     if (auto p = sqlite3_expanded_sql(fin.stmt); p) {
-      M5_LOGV("%s", p);
+      oss << std::string_view(p);
       sqlite3_free(p);
     }
+    //
+    oss << " (" << static_cast<int64_t>(time) << " is "
+        << std::put_time(&local_time, "%F %T %Z") << ")";
+    M5_LOGD("%s", oss.str().c_str());
   }
 
   //
@@ -1139,11 +1162,21 @@ bool Database::insert_values(std::string_view query,
     }
   }
   // SQL表示(デバッグ用)
-  if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_VERBOSE) {
+  if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_DEBUG) {
+    //
+    std::time_t time = system_clock::to_time_t(tp_to_insert);
+    std::tm local_time;
+    localtime_r(&time, &local_time);
+    std::ostringstream oss;
+    //
     if (auto p = sqlite3_expanded_sql(fin.stmt); p) {
-      M5_LOGV("%s", p);
+      oss << std::string_view(p);
       sqlite3_free(p);
     }
+    //
+    oss << " (" << static_cast<int64_t>(time) << " is "
+        << std::put_time(&local_time, "%F %T %Z") << ")";
+    M5_LOGD("%s", oss.str().c_str());
   }
 
   //
@@ -1218,9 +1251,9 @@ Database::read_values(std::string_view query,
     }
   }
   // SQL表示(デバッグ用)
-  if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_VERBOSE) {
+  if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_DEBUG) {
     if (auto p = sqlite3_expanded_sql(fin.stmt); p) {
-      M5_LOGV("%s", p);
+      M5_LOGD("%s", p);
       sqlite3_free(p);
     }
   }
@@ -1300,9 +1333,9 @@ Database::read_values(std::string_view query,
     return std::nullopt;
   }
   // SQL表示(デバッグ用)
-  if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_VERBOSE) {
+  if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_DEBUG) {
     if (auto p = sqlite3_expanded_sql(fin.stmt); p) {
-      M5_LOGV("%s", p);
+      M5_LOGD("%s", p);
       sqlite3_free(p);
     }
   }
@@ -1379,9 +1412,9 @@ Database::read_values(std::string_view query,
     }
   }
   // SQL表示(デバッグ用)
-  if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_VERBOSE) {
+  if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_DEBUG) {
     if (auto p = sqlite3_expanded_sql(fin.stmt); p) {
-      M5_LOGV("%s", p);
+      M5_LOGD("%s", p);
       sqlite3_free(p);
     }
   }
@@ -1458,9 +1491,9 @@ Database::read_values(std::string_view query,
     }
   }
   // SQL表示(デバッグ用)
-  if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_VERBOSE) {
+  if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_DEBUG) {
     if (auto p = sqlite3_expanded_sql(fin.stmt); p) {
-      M5_LOGV("%s", p);
+      M5_LOGD("%s", p);
       sqlite3_free(p);
     }
   }
@@ -1542,9 +1575,9 @@ Database::read_values(std::string_view query,
     return std::nullopt;
   }
   // SQL表示(デバッグ用)
-  if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_VERBOSE) {
+  if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_DEBUG) {
     if (auto p = sqlite3_expanded_sql(fin.stmt); p) {
-      M5_LOGV("%s", p);
+      M5_LOGD("%s", p);
       sqlite3_free(p);
     }
   }

@@ -24,7 +24,7 @@ private:
   bool _available{false};
   sqlite3 *_sqlite3_db{nullptr};
   constexpr static size_t DATABASE_USE_PREALLOCATED_MEMORY_SIZE =
-      2 * 1024 * 1024;
+      3 * 1024 * 1024;
   void *_database_use_preallocated_memory{};
   //
   std::optional<Sensor::MeasurementBme280> _latestMeasurementBme280{};

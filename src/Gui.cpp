@@ -956,7 +956,6 @@ template <typename T> void Widget::BasicChart<T>::render() {
     }
     item.chart_set_point_count(Gui::CHART_X_POINT_COUNT);
     item.chart_set_all_value(LV_CHART_POINT_NONE);
-    item.chart_set_x_start_point(0);
   }
   //
   system_clock::time_point now_min = floor<minutes>(system_clock::now());
@@ -1016,6 +1015,17 @@ template <typename T> void Widget::BasicChart<T>::render() {
       M5_LOGV("y_min:%d, y_max:%d", y_min, y_max);
     }
   }
+  // 横軸の開始位置
+  uint16_t x_start_point = 0;
+  for (auto &item : chart_series_vect) {
+    if (auto opt_x = item.getXStartPointForValidValues(); opt_x) {
+      x_start_point = std::max(x_start_point, *opt_x);
+    }
+  }
+  for (auto &item : chart_series_vect) {
+    item.chart_set_x_start_point(x_start_point);
+  }
+  //
   lv_chart_refresh(chart_obj);
 }
 
