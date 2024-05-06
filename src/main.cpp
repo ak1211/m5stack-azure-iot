@@ -293,7 +293,7 @@ void setup() {
   }
 
   {
-    constexpr auto TIMEOUT{30s};
+    constexpr auto TIMEOUT{10s};
     logging("waiting for Telemetry connection.");
     auto timeover{steady_clock::now() + TIMEOUT};
     while (Telemetry::getInstance()->mqttConnected() == false &&
@@ -302,6 +302,8 @@ void setup() {
     }
     if (Telemetry::getInstance()->mqttConnected()) {
       logging("Telemetry is connected.");
+    } else {
+      logging("Time over.");
     }
   }
 
@@ -317,97 +319,118 @@ fatal_error:
 }
 
 //
-// 高速度loop()関数
+// 測定用
 //
-inline void high_speed_loop() {
-  ArduinoOTA.handle();
-  M5.update();
-  if (M5.BtnA.wasPressed()) {
-    Gui::getInstance()->movePrev();
-  } else if (M5.BtnB.wasPressed()) {
-    Gui::getInstance()->home();
-  } else if (M5.BtnC.wasPressed()) {
-    Gui::getInstance()->moveNext();
-  }
-}
-
-//
-// 測定用loop関数
-//
-inline void measurements_loop(system_clock::time_point nowtp) {
-  // 測定
-  for (auto &sensor_device : Peripherals::sensors) {
-    auto ready = sensor_device->readyToRead();
-    std::this_thread::sleep_for(2ms);
-    auto measured = ready ? sensor_device->read() : std::monostate{};
-    std::this_thread::sleep_for(2ms);
-  }
-  // 測定値キュー
-  static std::queue<std::pair<system_clock::time_point, Sensor::MeasuredValue>>
-      queue{};
+class Sensing final {
   //
-  if (auto s = floor<seconds>(nowtp.time_since_epoch()).count() % 60; s == 0) {
-    //
-    // 毎分0秒時点の値を取り込む
-    //
-    for (auto &sensor_device : Peripherals::sensors) {
-      queue.emplace(std::make_pair(nowtp, sensor_device->calculateSMA()));
+  // それぞれの測定値毎にIoTHubに送信＆データーベースに入れる
+  //
+  struct Visitor {
+    system_clock::time_point time_point;
+    Visitor(system_clock::time_point arg) : time_point{arg} {}
+    // Not Available (N/A)
+    bool operator()(std::monostate) { return false; }
+    // Bosch BME280: Temperature and Humidity and Pressure Sensor
+    bool operator()(const Sensor::Bme280 &in) {
+      Sensor::MeasurementBme280 m = {time_point, in};
+      Telemetry::getInstance()->pushMessage(m);
+      Application::measurements_database.insert(m);
+      return true;
     }
-  } else {
-    // それぞれの測定値毎にIoTHubに送信＆データーベースに入れる
-    struct Visitor {
-      system_clock::time_point time_point;
-      Visitor(system_clock::time_point arg) : time_point{arg} {}
-      // Not Available (N/A)
-      bool operator()(std::monostate) { return false; }
-      // Bosch BME280: Temperature and Humidity and Pressure Sensor
-      bool operator()(const Sensor::Bme280 &in) {
-        Sensor::MeasurementBme280 m = {time_point, in};
-        Telemetry::getInstance()->pushMessage(m);
-        Application::measurements_database.insert(m);
-        return true;
-      }
-      // Sensirion SGP30: Air Quality Sensor
-      bool operator()(const Sensor::Sgp30 &in) {
-        Sensor::MeasurementSgp30 m = {time_point, in};
-        Telemetry::getInstance()->pushMessage(m);
-        Application::measurements_database.insert(m);
-        return true;
-      }
-      // Sensirion SCD30: NDIR CO2 and Temperature and Humidity Sensor
-      bool operator()(const Sensor::Scd30 &in) {
-        Sensor::MeasurementScd30 m = {time_point, in};
-        // CO2の値でLEDの色を変える
-        RgbLed::getInstance()->fill(
-            RgbLed::colorFromCarbonDioxide(in.co2.value));
-        //
-        Telemetry::getInstance()->pushMessage(m);
-        Application::measurements_database.insert(m);
-        return true;
-      }
-      // Sensirion SCD41: PASens CO2 and Temperature and Humidity Sensor
-      bool operator()(const Sensor::Scd41 &in) {
-        Sensor::MeasurementScd41 m = {time_point, in};
-        Telemetry::getInstance()->pushMessage(m);
-        Application::measurements_database.insert(m);
-        return true;
-      }
-      // M5Stack ENV.iii unit: Temperature and Humidity and Pressure Sensor
-      bool operator()(const Sensor::M5Env3 &in) {
-        Sensor::MeasurementM5Env3 m = {time_point, in};
-        Telemetry::getInstance()->pushMessage(m);
-        Application::measurements_database.insert(m);
-        return true;
-      }
-    };
-    // キューに値があれば, IoTHubに送信＆データーベースに入れる
-    if (!queue.empty()) {
-      auto &[tp, m] = queue.front();
-      std::visit(Visitor{tp}, m);
-      queue.pop();
+    // Sensirion SGP30: Air Quality Sensor
+    bool operator()(const Sensor::Sgp30 &in) {
+      Sensor::MeasurementSgp30 m = {time_point, in};
+      Telemetry::getInstance()->pushMessage(m);
+      Application::measurements_database.insert(m);
+      return true;
+    }
+    // Sensirion SCD30: NDIR CO2 and Temperature and Humidity Sensor
+    bool operator()(const Sensor::Scd30 &in) {
+      Sensor::MeasurementScd30 m = {time_point, in};
+      // CO2の値でLEDの色を変える
+      RgbLed::getInstance()->fill(RgbLed::colorFromCarbonDioxide(in.co2.value));
+      //
+      Telemetry::getInstance()->pushMessage(m);
+      Application::measurements_database.insert(m);
+      return true;
+    }
+    // Sensirion SCD41: PASens CO2 and Temperature and Humidity Sensor
+    bool operator()(const Sensor::Scd41 &in) {
+      Sensor::MeasurementScd41 m = {time_point, in};
+      Telemetry::getInstance()->pushMessage(m);
+      Application::measurements_database.insert(m);
+      return true;
+    }
+    // M5Stack ENV.iii unit: Temperature and Humidity and Pressure Sensor
+    bool operator()(const Sensor::M5Env3 &in) {
+      Sensor::MeasurementM5Env3 m = {time_point, in};
+      Telemetry::getInstance()->pushMessage(m);
+      Application::measurements_database.insert(m);
+      return true;
+    }
+  };
+  //
+  using TimeAndMeasurement =
+      std::pair<system_clock::time_point, Sensor::MeasuredValue>;
+  // 測定値キュー
+  std::queue<TimeAndMeasurement> _queue{};
+  //
+  system_clock::time_point next_queue_in_tp{};
+  // 次回の実行予定時間
+  system_clock::time_point next_run_tp{};
+
+private:
+  // 測定
+  void measure() {
+    for (auto &sensor_device : Peripherals::sensors) {
+      auto ready = sensor_device->readyToRead();
+      std::this_thread::sleep_for(2ms);
+      auto measured = ready ? sensor_device->read() : std::monostate{};
+      std::this_thread::sleep_for(2ms);
     }
   }
-}
+
+  // 現在値をキューに入れる
+  void queueIn(system_clock::time_point nowtp) {
+    for (auto &sensor_device : Peripherals::sensors) {
+      _queue.emplace(std::make_pair(nowtp, sensor_device->calculateSMA()));
+    }
+  }
+
+  // キューに値があれば, IoTHubに送信＆データーベースに入れる
+  void queueOut() {
+    if (_queue.empty() == false) {
+      auto &[tp, m] = _queue.front();
+      std::visit(Visitor{tp}, m);
+      _queue.pop();
+    }
+  }
+
+public:
+  //
+  Sensing(system_clock::time_point nowtp) {
+    auto extra_sec =
+        std::chrono::duration_cast<seconds>(nowtp.time_since_epoch()) % 60s;
+    //
+    next_queue_in_tp = nowtp + 1min - extra_sec;
+    next_run_tp = nowtp + 1s; // 次回の実行予定時間
+  }
+  // 測定用loop関数
+  void loop(system_clock::time_point nowtp) {
+    if (nowtp >= next_queue_in_tp) {
+      //
+      auto extra_sec =
+          std::chrono::duration_cast<seconds>(nowtp.time_since_epoch()) % 60s;
+      next_queue_in_tp = nowtp + 1min - extra_sec;
+      //
+      queueIn(nowtp); // 現在値をキューに入れる
+    } else if (nowtp >= next_run_tp) {
+      next_run_tp = nowtp + 1s; // 次回の実行予定時間
+      measure();                // 測定
+      queueOut();               // コミット
+    }
+  }
+};
 
 //
 // 低速度loop()関数
@@ -416,7 +439,7 @@ inline void low_speed_loop() {
   if (WiFi.status() != WL_CONNECTED) {
     // WiFiが接続されていない場合は接続する。
     WiFi.begin(Credentials.wifi_ssid, Credentials.wifi_password);
-  } else if (!Telemetry::getInstance()->loopMqtt()) {
+  } else if (Telemetry::getInstance()->mqttConnected() == false) {
     static steady_clock::time_point before{steady_clock::now()};
     // 再接続
     if (steady_clock::now() - before > 1min) {
@@ -428,6 +451,8 @@ inline void low_speed_loop() {
         M5_LOGE("MQTT subscribe failed.");
       }
     }
+  } else if (Telemetry::getInstance()->loopMqtt() == false) {
+    M5_LOGE("loopMqtt failed.");
   }
 }
 
@@ -435,20 +460,31 @@ inline void low_speed_loop() {
 // Arduinoのloop()関数
 //
 void loop() {
-  static steady_clock::time_point before_epoch{};
-  auto now_epoch = steady_clock::now();
   //
-  high_speed_loop();
+  {
+    ArduinoOTA.handle();
+    M5.update();
+    if (M5.BtnA.wasPressed()) {
+      Gui::getInstance()->movePrev();
+    } else if (M5.BtnB.wasPressed()) {
+      Gui::getInstance()->home();
+    } else if (M5.BtnC.wasPressed()) {
+      Gui::getInstance()->moveNext();
+    }
+  }
+  //
   if (Time::sync_completed()) {
-    static system_clock::time_point before_meas_tp{};
+    static std::unique_ptr<Sensing> sensing{};
     static system_clock::time_point before_db_tp{};
     auto now_tp = system_clock::now();
-    auto sec = floor<seconds>(now_tp.time_since_epoch()).count() % 60;
     //
-    if (now_tp - before_meas_tp >= 1s) {
-      measurements_loop(now_tp);
-      before_meas_tp = now_tp;
-    } else if ((now_tp - before_db_tp >= 333s) && (2 <= sec && sec <= 30)) {
+    while (!sensing) {
+      sensing = std::make_unique<Sensing>(now_tp);
+    }
+    // 随時測定する
+    sensing->loop(now_tp);
+    //
+    if (now_tp - before_db_tp >= 333s) {
       // データベースの整理
       system_clock::time_point tp = now_tp - minutes(Gui::CHART_X_POINT_COUNT);
       if (Application::measurements_database
@@ -459,6 +495,9 @@ void loop() {
       before_db_tp = now_tp;
     }
   }
+  //
+  static steady_clock::time_point before_epoch{};
+  auto now_epoch = steady_clock::now();
   if (now_epoch - before_epoch >= 3s) {
     low_speed_loop();
     before_epoch = now_epoch;
