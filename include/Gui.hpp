@@ -274,14 +274,12 @@ public:
     if (_chart_series == nullptr) {
       return std::nullopt;
     }
-    auto x_start_point = 0;
-    for (; x_start_point < lv_chart_get_point_count(_chart_obj);
-         ++x_start_point) {
-      if (_chart_series->y_points[x_start_point] != LV_CHART_POINT_NONE) {
-        break;
-      }
+    auto index = 0;
+    while (index < lv_chart_get_point_count(_chart_obj) &&
+           _chart_series->y_points[index] == LV_CHART_POINT_NONE) {
+      ++index;
     }
-    return x_start_point;
+    return index;
   }
   //
   void chart_add_series() {

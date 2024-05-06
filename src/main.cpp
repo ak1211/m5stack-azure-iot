@@ -293,7 +293,7 @@ void setup() {
   }
 
   {
-    constexpr auto TIMEOUT{90s};
+    constexpr auto TIMEOUT{30s};
     logging("waiting for Telemetry connection.");
     auto timeover{steady_clock::now() + TIMEOUT};
     while (Telemetry::getInstance()->mqttConnected() == false &&
@@ -302,13 +302,6 @@ void setup() {
     }
     if (Telemetry::getInstance()->mqttConnected()) {
       logging("Telemetry is connected.");
-    } else {
-      // 再接続
-      if (!Telemetry::getInstance()->begin(Credentials.iothub_fqdn,
-                                           Credentials.device_id,
-                                           Credentials.device_key)) {
-        M5_LOGE("MQTT subscribe failed.");
-      }
     }
   }
 
