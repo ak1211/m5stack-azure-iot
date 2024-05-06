@@ -267,6 +267,23 @@ public:
   //
   bool available() const { return _chart_series != nullptr; }
   //
+  std::optional<uint16_t> getXStartPointForValidValues() const {
+    if (_chart_obj == nullptr) {
+      return std::nullopt;
+    }
+    if (_chart_series == nullptr) {
+      return std::nullopt;
+    }
+    auto x_start_point = 0;
+    for (; x_start_point < lv_chart_get_point_count(_chart_obj);
+         ++x_start_point) {
+      if (_chart_series->y_points[x_start_point] != LV_CHART_POINT_NONE) {
+        break;
+      }
+    }
+    return x_start_point;
+  }
+  //
   void chart_add_series() {
     if (_chart_obj == nullptr) {
       M5_LOGE("chart had null");
