@@ -623,8 +623,10 @@ bool Database::begin() {
       return false;
     }
     //
-    _database_use_preallocated_memory = heap_caps_aligned_alloc(
-        8, DATABASE_USE_PREALLOCATED_MEMORY_SIZE, MALLOC_CAP_SPIRAM);
+    if (_database_use_preallocated_memory == nullptr) {
+      _database_use_preallocated_memory = heap_caps_aligned_alloc(
+          8, DATABASE_USE_PREALLOCATED_MEMORY_SIZE, MALLOC_CAP_SPIRAM);
+    }
     //
     if (_database_use_preallocated_memory) {
       M5_LOGI("Database uses on pre-allocated memory");
