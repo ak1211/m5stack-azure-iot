@@ -54,11 +54,11 @@ private:
   std::array<uint8_t, 256> sas_token_buffer{};
   std::optional<AzIoTSasToken> optAzIoTSasToken{};
   // 送信用FIFO待ち行列
-  std::queue<Payload> sending_fifo_queue{};
+  std::queue<Payload> _sending_fifo_queue{};
   // 送信メッセージの実体を送信が終わるまで保持するコンテナ
-  std::unordered_map<MessageId, std::string> sent_messages{};
+  std::unordered_map<MessageId, std::string> _sent_messages{};
   //
-  bool mqtt_connected{false};
+  bool _mqtt_connected{false};
 
 public:
   //
@@ -75,14 +75,16 @@ public:
   bool begin(std::string_view iothub_fqdn, std::string_view device_id,
              std::string_view device_key);
   //
+  bool mqttConnected() const { return _mqtt_connected; };
+  //
   bool loopMqtt();
   //
   bool pushMessage(Payload in) {
-    if (sending_fifo_queue.size() >= MAX_SEND_FIFO_BUFFER_SIZE) {
+    if (_sending_fifo_queue.size() >= MAX_SEND_FIFO_BUFFER_SIZE) {
       M5_LOGE("FIFO buffer size limit reached.");
       return false;
     } else {
-      sending_fifo_queue.push(std::move(in));
+      _sending_fifo_queue.push(std::move(in));
       return true;
     }
   }

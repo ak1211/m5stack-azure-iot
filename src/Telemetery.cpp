@@ -126,24 +126,24 @@ std::string Telemetry::to_json_message<Sensor::MeasurementScd41>(
 //
 //
 esp_err_t Telemetry::mqtt_event_handler(esp_mqtt_event_handle_t event) {
-  Telemetry *telemetry = static_cast<Telemetry *>(event->user_context);
-  if (telemetry == nullptr) {
+  if (event->user_context == nullptr) {
     M5_LOGE("user context had null");
     return ESP_OK;
   }
+  Telemetry &telemetry = *static_cast<Telemetry *>(event->user_context);
   switch (event->event_id) {
   case MQTT_EVENT_ERROR:
     M5_LOGD("MQTT event MQTT_EVENT_ERROR");
     break;
   case MQTT_EVENT_CONNECTED:
     M5_LOGD("MQTT event MQTT_EVENT_CONNECTED");
-    telemetry->mqtt_connected = true;
-    if (telemetry->mqtt_client == nullptr) {
+    telemetry._mqtt_connected = true;
+    if (telemetry.mqtt_client == nullptr) {
       M5_LOGE("mqtt_client had null.");
       break;
     }
     if (auto r = esp_mqtt_client_subscribe(
-            telemetry->mqtt_client, AZ_IOT_HUB_CLIENT_C2D_SUBSCRIBE_TOPIC, 1);
+            telemetry.mqtt_client, AZ_IOT_HUB_CLIENT_C2D_SUBSCRIBE_TOPIC, 1);
         r == -1) {
       M5_LOGE("Could not subscribe for cloud-to-device messages.");
     } else {
@@ -152,7 +152,7 @@ esp_err_t Telemetry::mqtt_event_handler(esp_mqtt_event_handle_t event) {
     break;
   case MQTT_EVENT_DISCONNECTED:
     M5_LOGD("MQTT event MQTT_EVENT_DISCONNECTED");
-    telemetry->mqtt_connected = false;
+    telemetry._mqtt_connected = false;
     break;
   case MQTT_EVENT_SUBSCRIBED:
     M5_LOGD("MQTT event MQTT_EVENT_SUBSCRIBED");
@@ -163,25 +163,25 @@ esp_err_t Telemetry::mqtt_event_handler(esp_mqtt_event_handle_t event) {
   case MQTT_EVENT_PUBLISHED:
     M5_LOGD("MQTT event MQTT_EVENT_PUBLISHED; message id:%d", event->msg_id);
     if (event->msg_id >= 0) {
-      if (auto itr = telemetry->sent_messages.find(event->msg_id);
-          itr != telemetry->sent_messages.end()) {
+      if (auto itr = telemetry._sent_messages.find(event->msg_id);
+          itr != telemetry._sent_messages.end()) {
         M5_LOGD("[PUBLISHED]:%s", itr->second.c_str());
       } else {
         M5_LOGE("PUBLISHED message ID is not found");
       }
       // 実際にMQTT送信が終わったので不要になったメッセージを消す
-      telemetry->sent_messages.erase(event->msg_id);
+      telemetry._sent_messages.erase(event->msg_id);
     }
     break;
   case MQTT_EVENT_DATA:
     M5_LOGI("MQTT event MQTT_EVENT_DATA");
-    telemetry->incoming_data.fill('\0');
+    telemetry.incoming_data.fill('\0');
     std::copy_n(event->topic, event->topic_len,
-                telemetry->incoming_data.begin());
-    M5_LOGI("[RECEIVE] Topic: %s", telemetry->incoming_data.data());
-    telemetry->incoming_data.fill('\0');
-    std::copy_n(event->data, event->data_len, telemetry->incoming_data.begin());
-    M5_LOGI("[RECEIVE] Data: %s", telemetry->incoming_data.data());
+                telemetry.incoming_data.begin());
+    M5_LOGI("[RECEIVE] Topic: %s", telemetry.incoming_data.data());
+    telemetry.incoming_data.fill('\0');
+    std::copy_n(event->data, event->data_len, telemetry.incoming_data.begin());
+    M5_LOGI("[RECEIVE] Data: %s", telemetry.incoming_data.data());
     break;
   case MQTT_EVENT_BEFORE_CONNECT:
     M5_LOGD("MQTT event MQTT_EVENT_BEFORE_CONNECT");
@@ -325,7 +325,7 @@ bool Telemetry::loopMqtt() {
   if (mqtt_client == nullptr) {
     return false;
   }
-  if (mqtt_connected == false) {
+  if (_mqtt_connected == false) {
     if (esp_mqtt_client_destroy(mqtt_client) != ESP_OK) {
       M5_LOGE("esp_mqtt_client_destroy failure.");
     }
@@ -353,11 +353,11 @@ bool Telemetry::loopMqtt() {
   // 送信するべき測定値があれば送信する
   constexpr auto MQTT_QOS{1};
   constexpr auto DO_NOT_RETAIN_MSG{0};
-  if (sending_fifo_queue.empty()) {
+  if (_sending_fifo_queue.empty()) {
     // nothing to do
   } else {
     // 送信用FIFO待ち行列から先頭のアイテムを得る
-    auto item = sending_fifo_queue.front();
+    auto item = _sending_fifo_queue.front();
     // メッセージに変換する
     std::string datum =
         std::visit([this](const auto &x) { return to_json_message(x); }, item);
@@ -372,9 +372,9 @@ bool Telemetry::loopMqtt() {
       M5_LOGD("MQTT enqueued; message id: %d", message_id);
       M5_LOGV("MQTT enqueued; %s", datum.data());
       // MQTT待ち行列に送った後も、実際にMQTT送信が終わるまでポインタが指すメッセージの実体を保持しておく
-      sent_messages.insert({message_id, std::move(datum)});
+      _sent_messages.insert({message_id, std::move(datum)});
       // MQTT待ち行列に送ったので送信用FIFO待ち行列から先頭のアイテムを消す
-      sending_fifo_queue.pop();
+      _sending_fifo_queue.pop();
       return true;
     }
   }

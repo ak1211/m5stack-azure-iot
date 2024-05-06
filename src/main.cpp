@@ -292,12 +292,32 @@ void setup() {
     Peripherals::sensors.erase(result, Peripherals::sensors.end());
   }
 
+  {
+    constexpr auto TIMEOUT{60s};
+    logging("waiting for Telemetry connection.");
+    auto timeover{steady_clock::now() + TIMEOUT};
+    while (Telemetry::getInstance()->mqttConnected() == false &&
+           steady_clock::now() < timeover) {
+      std::this_thread::sleep_for(100ms);
+    }
+    if (Telemetry::getInstance()->mqttConnected()) {
+      logging("Telemetry is connected.");
+    } else {
+      // 再接続
+      if (!Telemetry::getInstance()->begin(Credentials.iothub_fqdn,
+                                           Credentials.device_id,
+                                           Credentials.device_key)) {
+        M5_LOGE("MQTT subscribe failed.");
+      }
+    }
+  }
+
   //
   logging("setup done.");
   Gui::getInstance()->startUi();
 
   return; // Successfully exit.
-  //
+//
 fatal_error:
   delay(300 * 1000);
   esp_system_abort("fatal");
