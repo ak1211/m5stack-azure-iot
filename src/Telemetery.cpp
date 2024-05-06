@@ -18,6 +18,7 @@
 #include <queue>
 #include <sstream>
 #include <string>
+#include <unordered_map>
 
 #include <M5Unified.h>
 
@@ -117,21 +118,6 @@ std::string Telemetry::to_json_message<Sensor::MeasurementScd41>(
   return output;
 }
 
-//
-bool Telemetry::pushMessage(const Payload &in) {
-  if (sending_fifo_vect.size() >= MAX_SEND_FIFO_BUFFER_SIZE) {
-    M5_LOGE("FIFO buffer size limit reached.");
-    return false;
-  } else {
-    std::string datum =
-        std::visit([this](const auto &x) { return to_json_message(x); }, in);
-    M5_LOGV("FIFO-in: %s", datum.data());
-    sending_fifo_vect.emplace_back(
-        std::make_pair(std::nullopt, std::move(datum)));
-    return true;
-  }
-}
-
 // When developing for your own Arduino-based platform,
 // please follow the format '(ard;<platform>)'.
 #define AZURE_SDK_CLIENT_USER_AGENT "c%2F" AZ_SDK_VERSION_STRING "(ard;esp32)"
@@ -177,17 +163,14 @@ esp_err_t Telemetry::mqtt_event_handler(esp_mqtt_event_handle_t event) {
   case MQTT_EVENT_PUBLISHED:
     M5_LOGD("MQTT event MQTT_EVENT_PUBLISHED; message id:%d", event->msg_id);
     if (event->msg_id >= 0) {
-      if (auto itr = std::find_if(telemetry->sending_fifo_vect.begin(),
-                                  telemetry->sending_fifo_vect.end(),
-                                  [&event](auto &item) -> bool {
-                                    return item.first == event->msg_id;
-                                  });
-          itr != telemetry->sending_fifo_vect.end()) {
-        //
-        M5_LOGV("[PUBLISHED]:%s", itr->second.c_str());
-        // IoT Hubへ送信した測定値をFIFOから消す
-        telemetry->sending_fifo_vect.erase(itr);
+      if (auto itr = telemetry->sent_messages.find(event->msg_id);
+          itr != telemetry->sent_messages.end()) {
+        M5_LOGD("[PUBLISHED]:%s", itr->second.c_str());
+      } else {
+        M5_LOGE("PUBLISHED message ID is not found");
       }
+      // 実際にMQTT送信が終わったので不要になったメッセージを消す
+      telemetry->sent_messages.erase(event->msg_id);
     }
     break;
   case MQTT_EVENT_DATA:
@@ -370,29 +353,29 @@ bool Telemetry::loopMqtt() {
   // 送信するべき測定値があれば送信する
   constexpr auto MQTT_QOS{1};
   constexpr auto DO_NOT_RETAIN_MSG{0};
-  if (sending_fifo_vect.empty()) {
+  if (sending_fifo_queue.empty()) {
     // nothing to do
   } else {
-    auto itr = std::find_if(sending_fifo_vect.begin(), sending_fifo_vect.end(),
-                            [](auto &item) -> bool {
-                              // すでにMQTTキューに送信済みのアイテムは除外する
-                              return item.first == std::nullopt;
-                            });
-    // MQTTキューに送る
-    if (itr != sending_fifo_vect.end()) {
-      // 待ち行列に入れる
-      if (auto message_id = esp_mqtt_client_enqueue(
-              mqtt_client, telemetry_topic.data(), itr->second.data(),
-              itr->second.length(), MQTT_QOS, DO_NOT_RETAIN_MSG, true);
-          message_id < 0) {
-        M5_LOGE("Failed publishing");
-        return false;
-      } else {
-        M5_LOGD("MQTT enqueued; message id: %d", message_id);
-        // MQTTキューに送ったのでメッセージIDを記録しておく
-        itr->first = std::make_optional(message_id);
-        return true;
-      }
+    // 送信用FIFO待ち行列から先頭のアイテムを得る
+    auto item = sending_fifo_queue.front();
+    // メッセージに変換する
+    std::string datum =
+        std::visit([this](const auto &x) { return to_json_message(x); }, item);
+    M5_LOGV("FIFO-in: %s", datum.data());
+    // MQTT待ち行列に入れる
+    if (auto message_id = esp_mqtt_client_enqueue(
+            mqtt_client, telemetry_topic.data(), datum.data(), datum.length(),
+            MQTT_QOS, DO_NOT_RETAIN_MSG, true);
+        message_id < 0) {
+      M5_LOGE("Failed publishing");
+      return false;
+    } else {
+      M5_LOGD("MQTT enqueued; message id: %d", message_id);
+      // MQTT待ち行列に送った後も、実際にMQTT送信が終わるまでポインタが指すメッセージの実体を保持しておく
+      sent_messages.insert({message_id, std::move(datum)});
+      // MQTT待ち行列に送ったので送信用FIFO待ち行列から先頭のアイテムを消す
+      sending_fifo_queue.pop();
+      return true;
     }
   }
   return true;
