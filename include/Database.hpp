@@ -23,7 +23,9 @@ private:
   const static sqlite3_mem_methods _custom_mem_methods;
   bool _available{false};
   sqlite3 *_sqlite3_db{nullptr};
-
+  constexpr static size_t DATABASE_USE_PREALLOCATED_MEMORY_SIZE =
+      2 * 1024 * 1024;
+  void *_database_use_preallocated_memory{};
   //
   std::optional<Sensor::MeasurementBme280> _latestMeasurementBme280{};
   std::optional<Sensor::MeasurementSgp30> _latestMeasurementSgp30{};
@@ -49,9 +51,11 @@ public:
   using OrderBy = enum { OrderByAtAsc = 0, OrderByAtDesc = 1 };
 
   constexpr static std::chrono::seconds RETRY_TIMEOUT{60};
-
   //
-  virtual ~Database() { terminate(); }
+  virtual ~Database() {
+    terminate();
+    free(_database_use_preallocated_memory);
+  }
   //
   bool available() const { return _available; }
   //

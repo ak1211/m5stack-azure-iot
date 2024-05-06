@@ -19,6 +19,7 @@
 #include <iomanip>
 #include <sstream>
 #include <tuple>
+#include <unordered_map>
 
 #include <M5Unified.h>
 
@@ -205,7 +206,6 @@ Widget::BootMessage::BootMessage(Widget::InitArg init) : TileBase{init} {
   if (message_label_obj = lv_label_create(tile_obj); message_label_obj) {
     lv_label_set_long_mode(message_label_obj, LV_LABEL_LONG_WRAP);
     lv_label_set_text_static(message_label_obj, Application::boot_log.c_str());
-    render();
   }
 }
 
@@ -233,9 +233,7 @@ Widget::Summary::Summary(Widget::InitArg init) : TileBase{init} {
     return;
   }
   // create
-  if (table_obj = lv_table_create(tile_obj); table_obj) {
-    render();
-  }
+  table_obj = lv_table_create(tile_obj);
 }
 
 void Widget::Summary::update() {
@@ -567,8 +565,6 @@ Widget::Clock::Clock(Widget::InitArg init) : TileBase{init} {
         meter_obj, min_scale, 4, lv_palette_darken(LV_PALETTE_INDIGO, 2), -25);
     sec_indic = lv_meter_add_needle_line(meter_obj, sec_scale, 2,
                                          lv_palette_main(LV_PALETTE_RED), -10);
-    //
-    update();
   }
 }
 
@@ -666,8 +662,6 @@ Widget::SystemHealthy::SystemHealthy(Widget::InitArg init) : TileBase{init} {
       M5_LOGE("minimum_free_heap_label_obj had null");
       return;
     }
-    //
-    render();
   }
 }
 
@@ -855,29 +849,26 @@ std::ostream &Widget::operator<<(std::ostream &os,
 }
 
 //
-//
+namespace P = Peripherals;
+const std::unordered_map<SensorId, lv_color_t> Widget::LINE_COLOR_MAP{
+    {P::SENSOR_DESCRIPTOR_BME280, lv_palette_lighten(LV_PALETTE_RED, 1)},
+    {P::SENSOR_DESCRIPTOR_SGP30, lv_palette_lighten(LV_PALETTE_ORANGE, 1)},
+    {P::SENSOR_DESCRIPTOR_SCD30, lv_palette_lighten(LV_PALETTE_INDIGO, 1)},
+    {P::SENSOR_DESCRIPTOR_SCD41, lv_palette_lighten(LV_PALETTE_PURPLE, 1)},
+    {P::SENSOR_DESCRIPTOR_M5ENV3, lv_palette_lighten(LV_PALETTE_BROWN, 1)}};
+
 //
 template <typename T>
-Widget::BasicChart<T>::BasicChart(InitArg init, const std::string &inSubheading)
-    : TileBase{init},
-      LINE_COLOR_TABLE{lv_palette_lighten(LV_PALETTE_RED, 1),
-                       lv_palette_lighten(LV_PALETTE_ORANGE, 1),
-                       lv_palette_lighten(LV_PALETTE_INDIGO, 1),
-                       lv_palette_lighten(LV_PALETTE_PURPLE, 1),
-                       lv_palette_lighten(LV_PALETTE_BROWN, 1),
-                       lv_palette_lighten(LV_PALETTE_BLUE, 1)} {
-  if (tileview_obj == nullptr) {
-    M5_LOGE("tileview had null");
-    return;
-  }
-  if (tile_obj == nullptr) {
-    M5_LOGE("tile had null");
+void Widget::BasicChart<T>::createWidgets(lv_obj_t *parent_obj,
+                                          std::string_view inSubheading) {
+  if (parent_obj == nullptr) {
+    M5_LOGE("null");
     return;
   }
   constexpr auto MARGIN{8};
   subheading.assign(inSubheading);
   // create
-  if (title_obj = lv_label_create(tile_obj); title_obj == nullptr) {
+  if (title_obj = lv_label_create(parent_obj); title_obj == nullptr) {
     M5_LOGE("title had null");
     return;
   }
@@ -888,12 +879,12 @@ Widget::BasicChart<T>::BasicChart(InitArg init, const std::string &inSubheading)
   lv_obj_align(title_obj, LV_ALIGN_TOP_LEFT, MARGIN, MARGIN);
   lv_label_set_text(title_obj, subheading.c_str());
   //
-  if (label_obj = lv_label_create(tile_obj); label_obj == nullptr) {
+  if (label_obj = lv_label_create(parent_obj); label_obj == nullptr) {
     M5_LOGE("label had null");
     return;
   }
   const lv_font_t *FONT{&lv_font_montserrat_24};
-  lv_obj_set_size(label_obj, lv_obj_get_content_width(tile_obj) - MARGIN * 2,
+  lv_obj_set_size(label_obj, lv_obj_get_content_width(parent_obj) - MARGIN * 2,
                   FONT->line_height);
   lv_obj_align_to(label_obj, title_obj, LV_ALIGN_OUT_BOTTOM_LEFT, 0, MARGIN);
   lv_label_set_long_mode(label_obj, LV_LABEL_LONG_SCROLL_CIRCULAR);
@@ -907,7 +898,7 @@ Widget::BasicChart<T>::BasicChart(InitArg init, const std::string &inSubheading)
   lv_obj_add_style(label_obj, &label_style, LV_PART_MAIN);
   lv_label_set_text(label_obj, "");
   //
-  if (chart_obj = lv_chart_create(tile_obj); chart_obj == nullptr) {
+  if (chart_obj = lv_chart_create(parent_obj); chart_obj == nullptr) {
     M5_LOGE("chart had null");
     return;
   }
@@ -917,9 +908,9 @@ Widget::BasicChart<T>::BasicChart(InitArg init, const std::string &inSubheading)
   constexpr auto X_TICK_LABEL_LEN = 10;
   constexpr auto Y_TICK_LABEL_LEN = 75;
   lv_obj_set_size(chart_obj,
-                  lv_obj_get_content_width(tile_obj) //
+                  lv_obj_get_content_width(parent_obj) //
                       - MARGIN - Y_TICK_LABEL_LEN,
-                  lv_obj_get_content_height(tile_obj)             //
+                  lv_obj_get_content_height(parent_obj)           //
                       - MARGIN * 2 - lv_obj_get_height(title_obj) //
                       - MARGIN * 2 - lv_obj_get_height(label_obj) //
                       - MARGIN - X_TICK_LABEL_LEN);
@@ -938,19 +929,12 @@ Widget::BasicChart<T>::BasicChart(InitArg init, const std::string &inSubheading)
                          false, X_TICK_LABEL_LEN);
   lv_chart_set_axis_tick(chart_obj, LV_CHART_AXIS_SECONDARY_Y, 10, 5, 10, 5,
                          true, Y_TICK_LABEL_LEN);
-  // 初期化
-  lv_chart_set_point_count(chart_obj, Gui::CHART_X_POINT_COUNT);
   //
-  // センサーIDとchart seriesをペアにする。
-  auto line_color_itr = LINE_COLOR_TABLE.begin();
   for (const auto &sensor : Peripherals::sensors) {
     if (const auto p = sensor.get(); p) {
-      chart_series_vect.emplace_back(ChartSeriesWrapper{
-          p->getSensorDescriptor(), chart_obj, *line_color_itr});
+      chart_series_vect.emplace_back(
+          ChartSeriesWrapper{p->getSensorDescriptor(), chart_obj});
       //
-      if (++line_color_itr == LINE_COLOR_TABLE.end()) {
-        line_color_itr = LINE_COLOR_TABLE.begin();
-      }
     }
   }
   for (auto &item : chart_series_vect) {
@@ -970,6 +954,7 @@ template <typename T> void Widget::BasicChart<T>::render() {
       M5_LOGE("chart series not available");
       return;
     }
+    item.chart_set_point_count(Gui::CHART_X_POINT_COUNT);
     item.chart_set_all_value(LV_CHART_POINT_NONE);
     item.chart_set_x_start_point(0);
   }
@@ -979,13 +964,13 @@ template <typename T> void Widget::BasicChart<T>::render() {
 
   // データーベースより測定データーを得て
   // 各々のsensoridのchart seriesにセットする関数
-  auto setChartSeries = [this](size_t counter, DataType item) -> bool {
+  auto coordinateChartSeries = [this](size_t counter, DataType item) -> bool {
     auto &[sensorid, tp, value] = item;
     // 各々のsensoridのchart seriesにセットする。
     if (auto found_itr = std::find(chart_series_vect.begin(),
                                    chart_series_vect.end(), sensorid);
         found_itr != chart_series_vect.end()) {
-      auto coord = coordinateXY(begin_x_tick, item);
+      auto coord = _coordinateXY(begin_x_tick, item);
       found_itr->chart_set_value_by_id(coord.x, coord.y);
     }
     // データー表示(デバッグ用)
@@ -1006,8 +991,8 @@ template <typename T> void Widget::BasicChart<T>::render() {
   };
 
   // データーベースより測定データーを得る
-  if (read_measurements_from_database(Database::OrderByAtAsc, begin_x_tick,
-                                      setChartSeries) >= 1) {
+  if (_read_measurements_from_database(Database::OrderByAtAsc, begin_x_tick,
+                                       coordinateChartSeries) >= 1) {
     // 下限、上限
     auto y_min = std::numeric_limits<lv_coord_t>::max();
     auto y_max = std::numeric_limits<lv_coord_t>::min();
@@ -1038,7 +1023,8 @@ template <typename T> void Widget::BasicChart<T>::render() {
 // 気温
 //
 Widget::TemperatureChart::TemperatureChart(InitArg init)
-    : BasicChart{init, "Temperature"} {
+    : TileBase{init},
+      basic_chart{coordinateXY, read_measurements_from_database} {
   if (tileview_obj == nullptr) {
     M5_LOGE("tileview had null");
     return;
@@ -1047,16 +1033,14 @@ Widget::TemperatureChart::TemperatureChart(InitArg init)
     M5_LOGE("tile had null");
     return;
   }
-  if (chart_obj == nullptr) {
-    M5_LOGE("chart had null");
-    return;
-  }
   // create
-  lv_obj_add_event_cb(chart_obj, event_draw_part_begin_callback,
+  basic_chart.createWidgets(tile_obj, "Temperature");
+  //
+  lv_obj_add_event_cb(basic_chart.getChartObj(), event_draw_part_begin_callback,
                       LV_EVENT_DRAW_PART_BEGIN, this);
-  render();
 }
 
+//
 void Widget::TemperatureChart::update() {
   auto bme280 = Application::measurements_database.getLatestMeasurementBme280();
   auto scd30 = Application::measurements_database.getLatestMeasurementScd30();
@@ -1064,50 +1048,51 @@ void Widget::TemperatureChart::update() {
   auto m5env3 = Application::measurements_database.getLatestMeasurementM5Env3();
   auto present = Measurements{bme280, scd30, scd41, m5env3};
 
-  auto get_color = [this](SensorId sensorid) -> lv_color32_t {
-    if (auto found_itr = std::find(chart_series_vect.begin(),
-                                   chart_series_vect.end(), sensorid);
-        found_itr != chart_series_vect.end()) {
-      return lv_color32_t{.full = lv_color_to32(found_itr->getColor())};
+  //
+  auto toColor32 = [](SensorId id) -> lv_color32_t {
+    if (auto itr = LINE_COLOR_MAP.find(id); itr != LINE_COLOR_MAP.end()) {
+      return lv_color32_t{.full = lv_color_to32(itr->second)};
+    } else {
+      return lv_color32_t{.full = lv_color_to32(lv_color_white())};
     }
-    return LV_COLOR_MAKE(0, 0, 0);
   };
 
+  //
   if (present != latest) {
     latest = present;
     //
     std::ostringstream oss;
     if (bme280.has_value()) {
-      ShowMeasured<DegC> s{.color = get_color(bme280->second.sensor_descriptor),
+      ShowMeasured<DegC> s{.color = toColor32(bme280->second.sensor_descriptor),
                            .name = "BME280",
                            .unit = "C",
                            .meas = bme280->second.temperature};
       oss << s << "  ";
     }
     if (scd30.has_value()) {
-      ShowMeasured<DegC> s{.color = get_color(scd30->second.sensor_descriptor),
+      ShowMeasured<DegC> s{.color = toColor32(scd30->second.sensor_descriptor),
                            .name = "SCD30",
                            .unit = "C",
                            .meas = scd30->second.temperature};
       oss << s << "  ";
     }
     if (scd41.has_value()) {
-      ShowMeasured<DegC> s{.color = get_color(scd41->second.sensor_descriptor),
+      ShowMeasured<DegC> s{.color = toColor32(scd41->second.sensor_descriptor),
                            .name = "SCD41",
                            .unit = "C",
                            .meas = scd41->second.temperature};
       oss << s << "  ";
     }
     if (m5env3.has_value()) {
-      ShowMeasured<DegC> s{.color = get_color(m5env3->second.sensor_descriptor),
+      ShowMeasured<DegC> s{.color = toColor32(m5env3->second.sensor_descriptor),
                            .name = "ENV.III",
                            .unit = "C",
                            .meas = m5env3->second.temperature};
       oss << s << "  ";
     }
-    lv_label_set_text(label_obj, oss.str().c_str());
+    lv_label_set_text(basic_chart.getLabelObj(), oss.str().c_str());
     //
-    render();
+    basic_chart.render();
   }
 }
 
@@ -1125,6 +1110,7 @@ Widget::TemperatureChart::coordinateXY(system_clock::time_point begin_x,
   return lv_point_t{.x = x, .y = y};
 };
 
+//
 void Widget::TemperatureChart::event_draw_part_begin_callback(
     lv_event_t *event) {
   auto it = static_cast<Widget::TemperatureChart *>(event->user_data);
@@ -1145,12 +1131,24 @@ void Widget::TemperatureChart::event_draw_part_begin_callback(
 // 相対湿度
 //
 Widget::RelativeHumidityChart::RelativeHumidityChart(InitArg init)
-    : BasicChart{init, "Relative Humidity"} {
-  lv_obj_add_event_cb(chart_obj, event_draw_part_begin_callback,
+    : TileBase{init},
+      basic_chart{coordinateXY, read_measurements_from_database} {
+  if (tileview_obj == nullptr) {
+    M5_LOGE("tileview had null");
+    return;
+  }
+  if (tile_obj == nullptr) {
+    M5_LOGE("tile had null");
+    return;
+  }
+  // create
+  basic_chart.createWidgets(tile_obj, "Relative Humidity");
+  //
+  lv_obj_add_event_cb(basic_chart.getChartObj(), event_draw_part_begin_callback,
                       LV_EVENT_DRAW_PART_BEGIN, this);
-  render();
 }
 
+//
 void Widget::RelativeHumidityChart::update() {
   auto bme280 = Application::measurements_database.getLatestMeasurementBme280();
   auto scd30 = Application::measurements_database.getLatestMeasurementScd30();
@@ -1158,36 +1156,37 @@ void Widget::RelativeHumidityChart::update() {
   auto m5env3 = Application::measurements_database.getLatestMeasurementM5Env3();
   auto present = Measurements{bme280, scd30, scd41, m5env3};
 
-  auto get_color = [this](SensorId sensorid) -> lv_color32_t {
-    if (auto found_itr = std::find(chart_series_vect.begin(),
-                                   chart_series_vect.end(), sensorid);
-        found_itr != chart_series_vect.end()) {
-      return lv_color32_t{.full = lv_color_to32(found_itr->getColor())};
+  //
+  auto toColor32 = [](SensorId id) -> lv_color32_t {
+    if (auto itr = LINE_COLOR_MAP.find(id); itr != LINE_COLOR_MAP.end()) {
+      return lv_color32_t{.full = lv_color_to32(itr->second)};
+    } else {
+      return lv_color32_t{.full = lv_color_to32(lv_color_white())};
     }
-    return LV_COLOR_MAKE(0, 0, 0);
   };
 
+  //
   if (present != latest) {
     latest = present;
     //
     std::ostringstream oss;
     if (bme280.has_value()) {
       ShowMeasured<PctRH> s{.color =
-                                get_color(bme280->second.sensor_descriptor),
+                                toColor32(bme280->second.sensor_descriptor),
                             .name = "BME280",
                             .unit = "%",
                             .meas = bme280->second.relative_humidity};
       oss << s << "  ";
     }
     if (scd30.has_value()) {
-      ShowMeasured<PctRH> s{.color = get_color(scd30->second.sensor_descriptor),
+      ShowMeasured<PctRH> s{.color = toColor32(scd30->second.sensor_descriptor),
                             .name = "SCD30",
                             .unit = "%",
                             .meas = scd30->second.relative_humidity};
       oss << s << "  ";
     }
     if (scd41.has_value()) {
-      ShowMeasured<PctRH> s{.color = get_color(scd41->second.sensor_descriptor),
+      ShowMeasured<PctRH> s{.color = toColor32(scd41->second.sensor_descriptor),
                             .name = "SCD41",
                             .unit = "%",
                             .meas = scd41->second.relative_humidity};
@@ -1195,15 +1194,15 @@ void Widget::RelativeHumidityChart::update() {
     }
     if (m5env3.has_value()) {
       ShowMeasured<PctRH> s{.color =
-                                get_color(m5env3->second.sensor_descriptor),
+                                toColor32(m5env3->second.sensor_descriptor),
                             .name = "ENV.III",
                             .unit = "%",
                             .meas = m5env3->second.relative_humidity};
       oss << s << "  ";
     }
-    lv_label_set_text(label_obj, oss.str().c_str());
+    lv_label_set_text(basic_chart.getLabelObj(), oss.str().c_str());
     //
-    render();
+    basic_chart.render();
   }
 }
 
@@ -1236,33 +1235,46 @@ void Widget::RelativeHumidityChart::event_draw_part_begin_callback(
 // 気圧
 //
 Widget::PressureChart::PressureChart(InitArg init)
-    : BasicChart{init, "Pressure"} {
-  lv_obj_add_event_cb(chart_obj, event_draw_part_begin_callback,
+    : TileBase{init},
+      basic_chart{coordinateXY, read_measurements_from_database} {
+  if (tileview_obj == nullptr) {
+    M5_LOGE("tileview had null");
+    return;
+  }
+  if (tile_obj == nullptr) {
+    M5_LOGE("tile had null");
+    return;
+  }
+  // create
+  basic_chart.createWidgets(tile_obj, "Pressure");
+  //
+  lv_obj_add_event_cb(basic_chart.getChartObj(), event_draw_part_begin_callback,
                       LV_EVENT_DRAW_PART_BEGIN, this);
-  render();
 }
 
+//
 void Widget::PressureChart::update() {
   auto bme280 = Application::measurements_database.getLatestMeasurementBme280();
   auto m5env3 = Application::measurements_database.getLatestMeasurementM5Env3();
   auto present = Measurements{bme280, m5env3};
 
-  auto get_color = [this](SensorId sensorid) -> lv_color32_t {
-    if (auto found_itr = std::find(chart_series_vect.begin(),
-                                   chart_series_vect.end(), sensorid);
-        found_itr != chart_series_vect.end()) {
-      return lv_color32_t{.full = lv_color_to32(found_itr->getColor())};
+  //
+  auto toColor32 = [](SensorId id) -> lv_color32_t {
+    if (auto itr = LINE_COLOR_MAP.find(id); itr != LINE_COLOR_MAP.end()) {
+      return lv_color32_t{.full = lv_color_to32(itr->second)};
+    } else {
+      return lv_color32_t{.full = lv_color_to32(lv_color_white())};
     }
-    return LV_COLOR_MAKE(0, 0, 0);
   };
 
+  //
   if (present != latest) {
     latest = present;
     //
     std::ostringstream oss;
     if (bme280.has_value()) {
       ShowMeasured<HectoPa> s{.color =
-                                  get_color(bme280->second.sensor_descriptor),
+                                  toColor32(bme280->second.sensor_descriptor),
                               .name = "BME280",
                               .unit = "hpa",
                               .meas = bme280->second.pressure};
@@ -1270,15 +1282,15 @@ void Widget::PressureChart::update() {
     }
     if (m5env3.has_value()) {
       ShowMeasured<HectoPa> s{.color =
-                                  get_color(m5env3->second.sensor_descriptor),
+                                  toColor32(m5env3->second.sensor_descriptor),
                               .name = "ENV.III",
                               .unit = "hpa",
                               .meas = m5env3->second.pressure};
       oss << s << "  ";
     }
-    lv_label_set_text(label_obj, oss.str().c_str());
+    lv_label_set_text(basic_chart.getLabelObj(), oss.str().c_str());
     //
-    render();
+    basic_chart.render();
   }
 }
 
@@ -1311,8 +1323,18 @@ void Widget::PressureChart::event_draw_part_begin_callback(lv_event_t *event) {
 // Co2 / ECo2
 //
 Widget::CarbonDeoxidesChart::CarbonDeoxidesChart(InitArg init)
-    : BasicChart{init, "CO2"} {
-  render();
+    : TileBase{init},
+      basic_chart{coordinateXY, read_measurements_from_database} {
+  if (tileview_obj == nullptr) {
+    M5_LOGE("tileview had null");
+    return;
+  }
+  if (tile_obj == nullptr) {
+    M5_LOGE("tile had null");
+    return;
+  }
+  // create
+  basic_chart.createWidgets(tile_obj, "CO2");
 }
 
 void Widget::CarbonDeoxidesChart::update() {
@@ -1321,43 +1343,44 @@ void Widget::CarbonDeoxidesChart::update() {
   auto scd41 = Application::measurements_database.getLatestMeasurementScd41();
   auto present = Measurements{sgp30, scd30, scd41};
 
-  auto get_color = [this](SensorId sensorid) -> lv_color32_t {
-    if (auto found_itr = std::find(chart_series_vect.begin(),
-                                   chart_series_vect.end(), sensorid);
-        found_itr != chart_series_vect.end()) {
-      return lv_color32_t{.full = lv_color_to32(found_itr->getColor())};
+  //
+  auto toColor32 = [](SensorId id) -> lv_color32_t {
+    if (auto itr = LINE_COLOR_MAP.find(id); itr != LINE_COLOR_MAP.end()) {
+      return lv_color32_t{.full = lv_color_to32(itr->second)};
+    } else {
+      return lv_color32_t{.full = lv_color_to32(lv_color_white())};
     }
-    return LV_COLOR_MAKE(0, 0, 0);
   };
 
+  //
   if (present != latest) {
     latest = present;
     //
     std::ostringstream oss;
     if (sgp30.has_value()) {
-      ShowMeasured<Ppm> s{.color = get_color(sgp30->second.sensor_descriptor),
+      ShowMeasured<Ppm> s{.color = toColor32(sgp30->second.sensor_descriptor),
                           .name = "SGP30",
                           .unit = "ppm",
                           .meas = sgp30->second.eCo2};
       oss << s << "  ";
     }
     if (scd30.has_value()) {
-      ShowMeasured<Ppm> s{.color = get_color(scd30->second.sensor_descriptor),
+      ShowMeasured<Ppm> s{.color = toColor32(scd30->second.sensor_descriptor),
                           .name = "SCD30",
                           .unit = "ppm",
                           .meas = scd30->second.co2};
       oss << s << "  ";
     }
     if (scd41.has_value()) {
-      ShowMeasured<Ppm> s{.color = get_color(scd41->second.sensor_descriptor),
+      ShowMeasured<Ppm> s{.color = toColor32(scd41->second.sensor_descriptor),
                           .name = "SCD41",
                           .unit = "ppm",
                           .meas = scd41->second.co2};
       oss << s << "  ";
     }
-    lv_label_set_text(label_obj, oss.str().c_str());
+    lv_label_set_text(basic_chart.getLabelObj(), oss.str().c_str());
     //
-    render();
+    basic_chart.render();
   }
 }
 
@@ -1376,39 +1399,51 @@ lv_point_t Widget::CarbonDeoxidesChart::coordinateXY(
 // Total VOC
 //
 Widget::TotalVocChart::TotalVocChart(InitArg init)
-    : BasicChart{init, "Total VOC"} {
-  lv_obj_add_event_cb(chart_obj, event_draw_part_begin_callback,
+    : TileBase{init},
+      basic_chart{coordinateXY, read_measurements_from_database} {
+  if (tileview_obj == nullptr) {
+    M5_LOGE("tileview had null");
+    return;
+  }
+  if (tile_obj == nullptr) {
+    M5_LOGE("tile had null");
+    return;
+  }
+  // create
+  basic_chart.createWidgets(tile_obj, "Total VOC");
+  //
+  lv_obj_add_event_cb(basic_chart.getChartObj(), event_draw_part_begin_callback,
                       LV_EVENT_DRAW_PART_BEGIN, this);
-  render();
 }
 
 void Widget::TotalVocChart::update() {
   auto sgp30 = Application::measurements_database.getLatestMeasurementSgp30();
   auto present = sgp30;
 
-  auto get_color = [this](SensorId sensorid) -> lv_color32_t {
-    if (auto found_itr = std::find(chart_series_vect.begin(),
-                                   chart_series_vect.end(), sensorid);
-        found_itr != chart_series_vect.end()) {
-      return lv_color32_t{.full = lv_color_to32(found_itr->getColor())};
+  //
+  auto toColor32 = [](SensorId id) -> lv_color32_t {
+    if (auto itr = LINE_COLOR_MAP.find(id); itr != LINE_COLOR_MAP.end()) {
+      return lv_color32_t{.full = lv_color_to32(itr->second)};
+    } else {
+      return lv_color32_t{.full = lv_color_to32(lv_color_white())};
     }
-    return LV_COLOR_MAKE(0, 0, 0);
   };
 
+  //
   if (present != latest) {
     latest = present;
     //
     std::ostringstream oss;
     if (sgp30.has_value()) {
-      ShowMeasured<Ppb> s{.color = get_color(sgp30->second.sensor_descriptor),
+      ShowMeasured<Ppb> s{.color = toColor32(sgp30->second.sensor_descriptor),
                           .name = "SGP30",
                           .unit = "ppb",
                           .meas = sgp30->second.tvoc};
       oss << s << "  ";
     }
-    lv_label_set_text(label_obj, oss.str().c_str());
+    lv_label_set_text(basic_chart.getLabelObj(), oss.str().c_str());
     //
-    render();
+    basic_chart.render();
   }
 }
 

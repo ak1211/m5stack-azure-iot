@@ -6,6 +6,7 @@
 #include "AzIoTSasToken.h"
 #include "Sensor.hpp"
 #include <mqtt_client.h>
+#include <queue>
 #include <string>
 #include <variant>
 #include <vector>
@@ -13,6 +14,8 @@ extern "C" {
 #include <az_core.h>
 #include <az_iot.h>
 }
+
+#include <M5Unified.h>
 
 // MQTT通信
 class Telemetry {
@@ -50,12 +53,12 @@ private:
   std::array<uint8_t, 256> sas_signature_buffer{};
   std::array<uint8_t, 256> sas_token_buffer{};
   std::optional<AzIoTSasToken> optAzIoTSasToken{};
-  // 送信用バッファ
-  std::vector<std::pair<std::optional<MessageId>, std::string>>
-      sending_fifo_vect{};
+  // 送信用FIFO待ち行列
+  std::queue<Payload> sending_fifo_queue{};
+  // 送信メッセージの実体を送信が終わるまで保持するコンテナ
+  std::unordered_map<MessageId, std::string> sent_messages{};
   //
   bool mqtt_connected{false};
-  //
 
 public:
   //
@@ -74,7 +77,15 @@ public:
   //
   bool loopMqtt();
   //
-  bool pushMessage(const Payload &in);
+  bool pushMessage(Payload in) {
+    if (sending_fifo_queue.size() >= MAX_SEND_FIFO_BUFFER_SIZE) {
+      M5_LOGE("FIFO buffer size limit reached.");
+      return false;
+    } else {
+      sending_fifo_queue.push(std::move(in));
+      return true;
+    }
+  }
   // 送信用メッセージに変換する
   template <typename T> std::string to_json_message(const T &in);
 
