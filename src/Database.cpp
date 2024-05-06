@@ -613,14 +613,29 @@ bool Database::begin() {
   }
   //
   if (psramFound()) {
-    M5_LOGI("Database uses to SPIRAM");
     //
+    M5_LOGI("Database uses heap on SPIRAM");
     if (auto result =
             sqlite3_config(SQLITE_CONFIG_MALLOC, &_custom_mem_methods);
         result != SQLITE_OK) {
       M5_LOGE("sqlite3_config() failure: %d", result);
       terminate();
       return false;
+    }
+    //
+    _database_use_preallocated_memory = heap_caps_aligned_alloc(
+        8, DATABASE_USE_PREALLOCATED_MEMORY_SIZE, MALLOC_CAP_SPIRAM);
+    //
+    if (_database_use_preallocated_memory) {
+      M5_LOGI("Database uses on pre-allocated memory");
+      if (auto result = sqlite3_config(
+              SQLITE_CONFIG_HEAP, _database_use_preallocated_memory,
+              DATABASE_USE_PREALLOCATED_MEMORY_SIZE, 64);
+          result != SQLITE_OK) {
+        M5_LOGE("sqlite3_config() failure: %d", result);
+        terminate();
+        return false;
+      }
     }
   }
   //

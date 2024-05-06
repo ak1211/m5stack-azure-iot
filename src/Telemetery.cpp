@@ -361,7 +361,6 @@ bool Telemetry::loopMqtt() {
     // メッセージに変換する
     std::string datum =
         std::visit([this](const auto &x) { return to_json_message(x); }, item);
-    M5_LOGV("FIFO-in: %s", datum.data());
     // MQTT待ち行列に入れる
     if (auto message_id = esp_mqtt_client_enqueue(
             mqtt_client, telemetry_topic.data(), datum.data(), datum.length(),
@@ -371,6 +370,7 @@ bool Telemetry::loopMqtt() {
       return false;
     } else {
       M5_LOGD("MQTT enqueued; message id: %d", message_id);
+      M5_LOGV("MQTT enqueued; %s", datum.data());
       // MQTT待ち行列に送った後も、実際にMQTT送信が終わるまでポインタが指すメッセージの実体を保持しておく
       sent_messages.insert({message_id, std::move(datum)});
       // MQTT待ち行列に送ったので送信用FIFO待ち行列から先頭のアイテムを消す

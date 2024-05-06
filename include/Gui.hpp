@@ -122,7 +122,7 @@ public:
   BootMessage &operator=(const BootMessage &) = delete;
   BootMessage(InitArg init);
   //
-  virtual void onActivate() override {}
+  virtual void onActivate() override { render(); }
   //
   virtual void onDeactivate() override {}
   //
@@ -149,7 +149,7 @@ public:
   Summary &operator=(const Summary &) = delete;
   Summary(InitArg init);
   //
-  virtual void onActivate() override {}
+  virtual void onActivate() override { render(); }
   //
   virtual void onDeactivate() override {}
   //
@@ -205,7 +205,7 @@ public:
   SystemHealthy &operator=(const SystemHealthy &) = delete;
   SystemHealthy(InitArg init);
   //
-  virtual void onActivate() override {}
+  virtual void onActivate() override { render(); }
   //
   virtual void onDeactivate() override {}
   //
@@ -343,16 +343,18 @@ std::ostream &operator<<(std::ostream &os, const ShowMeasured<T> &rhs);
 template <typename T> class BasicChart {
 public:
   using DataType = std::tuple<SensorId, system_clock::time_point, T>;
-  //
-  using ReadDataFn = std::function<size_t(
-      Database::OrderBy order, system_clock::time_point at_begin,
-      Database::ReadCallback<DataType> callback)>;
   // データを座標に変換する関数
   using CoordinatePointFn =
       std::function<lv_point_t(system_clock::time_point, const DataType &)>;
+  // データーベースからデーターを得る関数
+  using ReadDataFn = std::function<size_t(
+      Database::OrderBy order, system_clock::time_point at_begin,
+      Database::ReadCallback<DataType> callback)>;
   //
-  BasicChart(ReadDataFn read_measurements_from_database,
-             CoordinatePointFn coordinateXY);
+  BasicChart(CoordinatePointFn coordinateXY,
+             ReadDataFn read_measurements_from_database)
+      : _coordinateXY{coordinateXY},
+        _read_measurements_from_database{read_measurements_from_database} {}
   //
   void createWidgets(lv_obj_t *parent_obj, std::string_view inSubheading);
   //
@@ -395,21 +397,21 @@ public:
   TemperatureChart &operator=(const TemperatureChart &) = delete;
   TemperatureChart(InitArg init);
   //
-  virtual void onActivate() override {}
+  virtual void onActivate() override { basic_chart.render(); }
   //
   virtual void onDeactivate() override {}
   //
   virtual void update() override;
-  // データを座標に変換する関数
-  static lv_point_t coordinateXY(system_clock::time_point begin_x,
-                                 const Database::TimePointAndDouble &in);
-  //
+  // データーベースからデーターを得る
   static size_t read_measurements_from_database(
       Database::OrderBy order, system_clock::time_point at_begin,
       Database::ReadCallback<Database::TimePointAndDouble> callback) {
     return Application::measurements_database.read_temperatures(order, at_begin,
                                                                 callback);
   }
+  // データを座標に変換する関数
+  static lv_point_t coordinateXY(system_clock::time_point begin_x,
+                                 const Database::TimePointAndDouble &in);
   //
   static void event_draw_part_begin_callback(lv_event_t *event);
 };
@@ -431,21 +433,21 @@ public:
   RelativeHumidityChart &operator=(const RelativeHumidityChart &) = delete;
   RelativeHumidityChart(InitArg init);
   //
-  virtual void onActivate() override {}
+  virtual void onActivate() override { basic_chart.render(); }
   //
   virtual void onDeactivate() override {}
   //
   virtual void update() override;
-  // データを座標に変換する関数
-  static lv_point_t coordinateXY(system_clock::time_point begin_x,
-                                 const Database::TimePointAndDouble &in);
-  //
+  // データーベースからデーターを得る
   static size_t read_measurements_from_database(
       Database::OrderBy order, system_clock::time_point at_begin,
       Database::ReadCallback<Database::TimePointAndDouble> callback) {
     return Application::measurements_database.read_relative_humidities(
         order, at_begin, callback);
   }
+  // データを座標に変換する関数
+  static lv_point_t coordinateXY(system_clock::time_point begin_x,
+                                 const Database::TimePointAndDouble &in);
   //
   static void event_draw_part_begin_callback(lv_event_t *event);
 };
@@ -465,23 +467,24 @@ public:
   PressureChart &operator=(const PressureChart &) = delete;
   PressureChart(InitArg init);
   //
-  virtual void onActivate() override {}
+  virtual void onActivate() override { basic_chart.render(); }
   //
   virtual void onDeactivate() override {}
   //
   virtual void update() override;
-  //
-  constexpr static DeciPa BIAS = round<DeciPa>(HectoPa{1000});
-  // データを座標に変換する関数
-  static lv_point_t coordinateXY(system_clock::time_point begin_x,
-                                 const Database::TimePointAndDouble &in);
-  //
+  // データーベースからデーターを得る
   static size_t read_measurements_from_database(
       Database::OrderBy order, system_clock::time_point at_begin,
       Database::ReadCallback<Database::TimePointAndDouble> callback) {
     return Application::measurements_database.read_pressures(order, at_begin,
                                                              callback);
   }
+  // データを座標に変換する関数
+  static lv_point_t coordinateXY(system_clock::time_point begin_x,
+                                 const Database::TimePointAndDouble &in);
+  //
+  constexpr static DeciPa BIAS = round<DeciPa>(HectoPa{1000});
+  //
   static void event_draw_part_begin_callback(lv_event_t *event);
 };
 
@@ -501,21 +504,21 @@ public:
   CarbonDeoxidesChart &operator=(const CarbonDeoxidesChart &) = delete;
   CarbonDeoxidesChart(InitArg init);
   //
-  virtual void onActivate() override {}
+  virtual void onActivate() override { basic_chart.render(); }
   //
   virtual void onDeactivate() override {}
   //
   virtual void update() override;
-  // データを座標に変換する関数
-  static lv_point_t coordinateXY(system_clock::time_point begin_x,
-                                 const Database::TimePointAndUInt16 &in);
-  //
+  // データーベースからデーターを得る
   static size_t read_measurements_from_database(
       Database::OrderBy order, system_clock::time_point at_begin,
       Database::ReadCallback<Database::TimePointAndUInt16> callback) {
     return Application::measurements_database.read_carbon_deoxides(
         order, at_begin, callback);
   }
+  // データを座標に変換する関数
+  static lv_point_t coordinateXY(system_clock::time_point begin_x,
+                                 const Database::TimePointAndUInt16 &in);
 };
 
 //
@@ -531,21 +534,21 @@ public:
   TotalVocChart &operator=(const TotalVocChart &) = delete;
   TotalVocChart(InitArg init);
   //
-  virtual void onActivate() override {}
+  virtual void onActivate() override { basic_chart.render(); }
   //
   virtual void onDeactivate() override {}
   //
   virtual void update() override;
-  // データを座標に変換する関数
-  static lv_point_t coordinateXY(system_clock::time_point begin_x,
-                                 const Database::TimePointAndUInt16 &in);
-  //
+  // データーベースからデーターを得る
   static size_t read_measurements_from_database(
       Database::OrderBy order, system_clock::time_point at_begin,
       Database::ReadCallback<Database::TimePointAndUInt16> callback) {
     return Application::measurements_database.read_total_vocs(order, at_begin,
                                                               callback);
   }
+  // データを座標に変換する関数
+  static lv_point_t coordinateXY(system_clock::time_point begin_x,
+                                 const Database::TimePointAndUInt16 &in);
   //
   static void event_draw_part_begin_callback(lv_event_t *event);
 };

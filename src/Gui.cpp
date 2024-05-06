@@ -206,7 +206,6 @@ Widget::BootMessage::BootMessage(Widget::InitArg init) : TileBase{init} {
   if (message_label_obj = lv_label_create(tile_obj); message_label_obj) {
     lv_label_set_long_mode(message_label_obj, LV_LABEL_LONG_WRAP);
     lv_label_set_text_static(message_label_obj, Application::boot_log.c_str());
-    render();
   }
 }
 
@@ -234,9 +233,7 @@ Widget::Summary::Summary(Widget::InitArg init) : TileBase{init} {
     return;
   }
   // create
-  if (table_obj = lv_table_create(tile_obj); table_obj) {
-    render();
-  }
+  table_obj = lv_table_create(tile_obj);
 }
 
 void Widget::Summary::update() {
@@ -568,8 +565,6 @@ Widget::Clock::Clock(Widget::InitArg init) : TileBase{init} {
         meter_obj, min_scale, 4, lv_palette_darken(LV_PALETTE_INDIGO, 2), -25);
     sec_indic = lv_meter_add_needle_line(meter_obj, sec_scale, 2,
                                          lv_palette_main(LV_PALETTE_RED), -10);
-    //
-    update();
   }
 }
 
@@ -667,8 +662,6 @@ Widget::SystemHealthy::SystemHealthy(Widget::InitArg init) : TileBase{init} {
       M5_LOGE("minimum_free_heap_label_obj had null");
       return;
     }
-    //
-    render();
   }
 }
 
@@ -865,15 +858,6 @@ const std::unordered_map<SensorId, lv_color_t> Widget::LINE_COLOR_MAP{
     {P::SENSOR_DESCRIPTOR_M5ENV3, lv_palette_lighten(LV_PALETTE_BROWN, 1)}};
 
 //
-//
-//
-template <typename T>
-Widget::BasicChart<T>::BasicChart(ReadDataFn read_measurements_from_database,
-                                  CoordinatePointFn coordinateXY)
-    : _read_measurements_from_database{read_measurements_from_database},
-      _coordinateXY{coordinateXY} {}
-
-//
 template <typename T>
 void Widget::BasicChart<T>::createWidgets(lv_obj_t *parent_obj,
                                           std::string_view inSubheading) {
@@ -1040,7 +1024,7 @@ template <typename T> void Widget::BasicChart<T>::render() {
 //
 Widget::TemperatureChart::TemperatureChart(InitArg init)
     : TileBase{init},
-      basic_chart(read_measurements_from_database, coordinateXY) {
+      basic_chart{coordinateXY, read_measurements_from_database} {
   if (tileview_obj == nullptr) {
     M5_LOGE("tileview had null");
     return;
@@ -1148,7 +1132,7 @@ void Widget::TemperatureChart::event_draw_part_begin_callback(
 //
 Widget::RelativeHumidityChart::RelativeHumidityChart(InitArg init)
     : TileBase{init},
-      basic_chart(read_measurements_from_database, coordinateXY) {
+      basic_chart{coordinateXY, read_measurements_from_database} {
   if (tileview_obj == nullptr) {
     M5_LOGE("tileview had null");
     return;
@@ -1252,7 +1236,7 @@ void Widget::RelativeHumidityChart::event_draw_part_begin_callback(
 //
 Widget::PressureChart::PressureChart(InitArg init)
     : TileBase{init},
-      basic_chart(read_measurements_from_database, coordinateXY) {
+      basic_chart{coordinateXY, read_measurements_from_database} {
   if (tileview_obj == nullptr) {
     M5_LOGE("tileview had null");
     return;
@@ -1340,7 +1324,7 @@ void Widget::PressureChart::event_draw_part_begin_callback(lv_event_t *event) {
 //
 Widget::CarbonDeoxidesChart::CarbonDeoxidesChart(InitArg init)
     : TileBase{init},
-      basic_chart(read_measurements_from_database, coordinateXY) {
+      basic_chart{coordinateXY, read_measurements_from_database} {
   if (tileview_obj == nullptr) {
     M5_LOGE("tileview had null");
     return;
@@ -1416,7 +1400,7 @@ lv_point_t Widget::CarbonDeoxidesChart::coordinateXY(
 //
 Widget::TotalVocChart::TotalVocChart(InitArg init)
     : TileBase{init},
-      basic_chart(read_measurements_from_database, coordinateXY) {
+      basic_chart{coordinateXY, read_measurements_from_database} {
   if (tileview_obj == nullptr) {
     M5_LOGE("tileview had null");
     return;
