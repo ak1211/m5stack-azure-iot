@@ -5,8 +5,6 @@
 #include "Gui.hpp"
 #include "Application.hpp"
 #include "Database.hpp"
-#include "Peripherals.hpp"
-#include "Time.hpp"
 #include <WiFi.h>
 #include <esp_system.h>
 
@@ -22,8 +20,6 @@
 #include <unordered_map>
 
 #include <M5Unified.h>
-
-Gui *Gui::_instance{nullptr};
 
 using namespace std::chrono;
 using namespace std::literals::string_literals;
@@ -70,16 +66,8 @@ bool Gui::begin() {
   // LVGL init
   lv_init();
   // LVGL draw buffer
-  const int32_t DRAW_BUFFER_SIZE =
-      gfx.width() * gfx.height() * (LV_COLOR_DEPTH / 8) / 10;
-  lvgl_use.draw_buf_1 = std::make_unique<lv_color_t[]>(DRAW_BUFFER_SIZE);
-  lvgl_use.draw_buf_2 = std::make_unique<lv_color_t[]>(DRAW_BUFFER_SIZE);
-  if (lvgl_use.draw_buf_1 == nullptr || lvgl_use.draw_buf_2 == nullptr) {
-    M5_LOGE("memory allocation error");
-    return false;
-  }
-  lv_disp_draw_buf_init(&lvgl_use.draw_buf_dsc, lvgl_use.draw_buf_1.get(),
-                        lvgl_use.draw_buf_2.get(), DRAW_BUFFER_SIZE);
+  lv_disp_draw_buf_init(&lvgl_use.draw_buf_dsc, lvgl_use.draw_buf_1,
+                        lvgl_use.draw_buf_2, std::size(lvgl_use.draw_buf_1));
 
   // LVGL display driver
   lv_disp_drv_init(&lvgl_use.disp_drv);
@@ -99,28 +87,25 @@ bool Gui::begin() {
   // register the input device driver
   lv_indev_drv_register(&lvgl_use.indev_drv);
 
-  // tileview init
-  if (tileview_obj = lv_tileview_create(lv_scr_act());
-      tileview_obj == nullptr) {
-    M5_LOGE("memory allocation error");
-    return false;
-  }
-  // make the first tile
-  add_tile<Widget::BootMessage>({tileview_obj, 0, 0, LV_DIR_RIGHT});
-  // move to first tile
-  tile_vector.front()->setActiveTile();
-
+  // 起動画面
+  _startup_widget =
+      std::make_unique<Widget::Startup>(gfx.width(), gfx.height());
+  //
   return true;
 }
 
 //
-void Gui::startUi() {
-  if (tileview_obj == nullptr) {
-    M5_LOGE("tileview had null");
-    return;
+bool Gui::startUi() {
+  //
+  if (tileview_obj = lv_tileview_create(nullptr); tileview_obj == nullptr) {
+    M5_LOGE("memory allocation error");
+    return false;
   }
+  //
+  auto col = 0;
+  // make the first tile
+  add_tile<Widget::BootMessage>({tileview_obj, col++, 0, LV_DIR_RIGHT});
   // TileWidget::BootMessageの次からこの並び順
-  auto col = 1;
   if constexpr (false) {
     add_tile<Widget::Clock>({tileview_obj, col++, 0, LV_DIR_HOR});
   }
@@ -132,8 +117,15 @@ void Gui::startUi() {
   add_tile<Widget::CarbonDeoxidesChart>({tileview_obj, col++, 0, LV_DIR_HOR});
   // 最後のタイルだけ右移動を禁止する
   add_tile<Widget::TotalVocChart>({tileview_obj, col++, 0, LV_DIR_LEFT});
-
+  //
+  if (_startup_widget) {
+    _startup_widget.reset();
+  }
+  //
+  lv_scr_load(tileview_obj);
+  //
   home();
+  return true;
 }
 
 //
@@ -178,7 +170,7 @@ void Gui::moveNext() {
 
 //
 void Gui::vibrate() {
-  constexpr auto MILLISECONDS = 100;
+  constexpr auto MILLISECONDS = 50;
   auto stop_the_vibration = [](lv_timer_t *) -> void {
     M5.Power.setVibration(0);
   };
@@ -188,6 +180,75 @@ void Gui::vibrate() {
     lv_timer_set_repeat_count(timer, 1); // one-shot timer
     M5.Power.setVibration(255);          // start vibrate
   }
+}
+
+//
+Widget::Startup::Startup(lv_coord_t display_width, lv_coord_t display_height) {
+  // create
+  constexpr auto MARGIN{24};
+  //
+  if (container_obj = lv_obj_create(lv_scr_act()); container_obj == nullptr) {
+    return;
+  }
+  lv_obj_set_size(container_obj, display_width, display_height);
+  lv_obj_align(container_obj, LV_ALIGN_CENTER, 0, 0);
+  lv_obj_set_style_bg_opa(container_obj, LV_OPA_COVER, LV_PART_MAIN);
+  lv_obj_set_style_bg_color(
+      container_obj, lv_palette_lighten(LV_PALETTE_GREY, 2), LV_PART_MAIN);
+  //
+  {
+    const lv_font_t *FONT{&lv_font_montserrat_30};
+    if (title_obj = lv_label_create(container_obj); title_obj == nullptr) {
+      return;
+    }
+    lv_obj_set_size(title_obj, display_width - MARGIN * 2, FONT->line_height);
+    lv_obj_align(title_obj, LV_ALIGN_CENTER, 0, -1 * FONT->line_height);
+    lv_obj_set_style_text_font(title_obj, FONT, LV_STATE_DEFAULT);
+    lv_style_init(&title_style);
+    lv_style_set_text_color(&title_style,
+                            lv_palette_darken(LV_PALETTE_BROWN, 3));
+    lv_style_set_text_align(&title_style, LV_TEXT_ALIGN_CENTER);
+    lv_obj_add_style(title_obj, &title_style, LV_PART_MAIN);
+    lv_label_set_text(title_obj, "HELLO");
+  }
+  //
+  {
+    const lv_font_t *FONT{&lv_font_montserrat_16};
+    if (label_obj = lv_label_create(container_obj); label_obj == nullptr) {
+      return;
+    }
+    lv_obj_set_size(label_obj, display_width - MARGIN * 2, FONT->line_height);
+    lv_obj_align(label_obj, LV_ALIGN_CENTER, 0, FONT->line_height);
+    lv_label_set_long_mode(label_obj, LV_LABEL_LONG_SCROLL);
+    lv_label_set_recolor(label_obj, true);
+    lv_obj_set_style_text_font(label_obj, FONT, LV_STATE_DEFAULT);
+    lv_style_init(&label_style);
+    lv_style_set_text_color(&label_style,
+                            lv_palette_darken(LV_PALETTE_BROWN, 3));
+    lv_style_set_text_align(&label_style, LV_TEXT_ALIGN_CENTER);
+    lv_obj_add_style(label_obj, &label_style, LV_PART_MAIN);
+    lv_label_set_text(label_obj, "");
+  }
+  //
+  if (bar_obj = lv_bar_create(container_obj); bar_obj == nullptr) {
+    return;
+  }
+  lv_obj_set_width(bar_obj, display_width - MARGIN * 2);
+  lv_obj_align_to(bar_obj, label_obj, LV_ALIGN_OUT_BOTTOM_MID, 0, MARGIN);
+  updateProgress(0);
+}
+
+//
+Widget::Startup::~Startup() { lv_obj_del(container_obj); }
+
+//
+void Widget::Startup::updateMessage(const std::string &s) {
+  lv_label_set_text(label_obj, s.c_str());
+}
+
+//
+void Widget::Startup::updateProgress(int16_t percent) {
+  lv_bar_set_value(bar_obj, percent, LV_ANIM_ON);
 }
 
 //
@@ -205,19 +266,18 @@ Widget::BootMessage::BootMessage(Widget::InitArg init) : TileBase{init} {
   // create
   if (message_label_obj = lv_label_create(tile_obj); message_label_obj) {
     lv_label_set_long_mode(message_label_obj, LV_LABEL_LONG_WRAP);
-    lv_label_set_text_static(message_label_obj, Application::boot_log.c_str());
   }
 }
 
 void Widget::BootMessage::update() {
-  if (auto x = Application::boot_log.size(); x != count) {
+  if (auto x = Application::getInstance().getStartupLog(); x != latest) {
+    latest = x;
     render();
-    count = x;
   }
 }
 
 void Widget::BootMessage::render() {
-  lv_label_set_text_static(message_label_obj, Application::boot_log.c_str());
+  lv_label_set_text_static(message_label_obj, latest.c_str());
 }
 
 //
@@ -238,11 +298,11 @@ Widget::Summary::Summary(Widget::InitArg init) : TileBase{init} {
 
 void Widget::Summary::update() {
   auto present = Measurements{
-      Application::measurements_database.getLatestMeasurementBme280(),
-      Application::measurements_database.getLatestMeasurementSgp30(),
-      Application::measurements_database.getLatestMeasurementScd30(),
-      Application::measurements_database.getLatestMeasurementScd41(),
-      Application::measurements_database.getLatestMeasurementM5Env3()};
+      Application::getMeasurementsDatabase().getLatestMeasurementBme280(),
+      Application::getMeasurementsDatabase().getLatestMeasurementSgp30(),
+      Application::getMeasurementsDatabase().getLatestMeasurementScd30(),
+      Application::getMeasurementsDatabase().getLatestMeasurementScd41(),
+      Application::getMeasurementsDatabase().getLatestMeasurementM5Env3()};
   if (present != latest) {
     render();
     latest = present;
@@ -253,14 +313,14 @@ void Widget::Summary::render() {
   std::ostringstream oss;
   oss << std::fixed << std::setprecision(2);
   auto row = 0;
-  for (const auto &p : Peripherals::sensors) {
+  for (const auto &p : Application::getSensors()) {
     if (p.get() == nullptr) {
       continue;
     }
     switch (p->getSensorDescriptor()) {
-    case Peripherals::SENSOR_DESCRIPTOR_M5ENV3: { // M5 unit ENV3
+    case Application::SENSOR_DESCRIPTOR_M5ENV3: { // M5 unit ENV3
       auto m5env3 =
-          Application::measurements_database.getLatestMeasurementM5Env3();
+          Application::getMeasurementsDatabase().getLatestMeasurementM5Env3();
       lv_table_set_cell_value(table_obj, row, 0, "ENV3 Temp");
       if (auto temp = m5env3 ? std::make_optional(m5env3->second.temperature)
                              : std::nullopt;
@@ -304,9 +364,9 @@ void Widget::Summary::render() {
       lv_table_set_cell_value(table_obj, row, 2, "hPa");
       row++;
     } break;
-    case Peripherals::SENSOR_DESCRIPTOR_BME280: { // BME280
+    case Application::SENSOR_DESCRIPTOR_BME280: { // BME280
       auto bme280 =
-          Application::measurements_database.getLatestMeasurementBme280();
+          Application::getMeasurementsDatabase().getLatestMeasurementBme280();
       lv_table_set_cell_value(table_obj, row, 0, "BME280 Temp");
       if (auto temp = bme280 ? std::make_optional(bme280->second.temperature)
                              : std::nullopt;
@@ -350,9 +410,9 @@ void Widget::Summary::render() {
       lv_table_set_cell_value(table_obj, row, 2, "hPa");
       row++;
     } break;
-    case Peripherals::SENSOR_DESCRIPTOR_SCD30: { // SCD30
+    case Application::SENSOR_DESCRIPTOR_SCD30: { // SCD30
       auto scd30 =
-          Application::measurements_database.getLatestMeasurementScd30();
+          Application::getMeasurementsDatabase().getLatestMeasurementScd30();
       lv_table_set_cell_value(table_obj, row, 0, "SCD30 Temp");
       if (auto temp = scd30 ? std::make_optional(scd30->second.temperature)
                             : std::nullopt;
@@ -396,9 +456,9 @@ void Widget::Summary::render() {
       lv_table_set_cell_value(table_obj, row, 2, "ppm");
       row++;
     } break;
-    case Peripherals::SENSOR_DESCRIPTOR_SCD41: { // SCD41
+    case Application::SENSOR_DESCRIPTOR_SCD41: { // SCD41
       auto scd41 =
-          Application::measurements_database.getLatestMeasurementScd41();
+          Application::getMeasurementsDatabase().getLatestMeasurementScd41();
       lv_table_set_cell_value(table_obj, row, 0, "SCD41 Temp");
       if (auto temp = scd41 ? std::make_optional(scd41->second.temperature)
                             : std::nullopt;
@@ -442,9 +502,9 @@ void Widget::Summary::render() {
       lv_table_set_cell_value(table_obj, row, 2, "ppm");
       row++;
     } break;
-    case Peripherals::SENSOR_DESCRIPTOR_SGP30: { // SGP30
+    case Application::SENSOR_DESCRIPTOR_SGP30: { // SGP30
       auto sgp30 =
-          Application::measurements_database.getLatestMeasurementSgp30();
+          Application::getMeasurementsDatabase().getLatestMeasurementSgp30();
       lv_table_set_cell_value(table_obj, row, 0, "SGP30 eCO2");
       if (auto equivalent_carbon_dioxide =
               sgp30 ? std::make_optional(sgp30->second.eCo2) : std::nullopt;
@@ -569,7 +629,7 @@ Widget::Clock::Clock(Widget::InitArg init) : TileBase{init} {
 }
 
 void Widget::Clock::update() {
-  if (Time::sync_completed()) {
+  if (Application::isTimeSynced()) {
     std::time_t now = system_clock::to_time_t(system_clock::now());
     std::tm local;
     localtime_r(&now, &local);
@@ -695,7 +755,7 @@ void Widget::SystemHealthy::render() {
     M5_LOGE("minimum_free_heap_label_obj had null");
     return;
   }
-  const seconds uptime = Time::uptime();
+  const seconds uptime = Application::uptime();
   const int16_t sec = uptime.count() % 60;
   const int16_t min = uptime.count() / 60 % 60;
   const int16_t hour = uptime.count() / (60 * 60) % 24;
@@ -705,7 +765,7 @@ void Widget::SystemHealthy::render() {
     std::ostringstream oss;
     const auto now = system_clock::now();
     std::time_t time =
-        (Time::sync_completed()) ? system_clock::to_time_t(now) : 0;
+        (Application::isTimeSynced()) ? system_clock::to_time_t(now) : 0;
     {
       std::tm utc_time;
       gmtime_r(&time, &utc_time);
@@ -718,7 +778,7 @@ void Widget::SystemHealthy::render() {
       oss << std::put_time(&local_time, "%F %T %Z");
     }
     oss << std::endl;
-    if (Time::sync_completed()) {
+    if (Application::isTimeSynced()) {
       oss << "Sync completed, based on SNTP";
     } else {
       oss << "Time is not synced";
@@ -849,13 +909,17 @@ std::ostream &Widget::operator<<(std::ostream &os,
 }
 
 //
-namespace P = Peripherals;
 const std::unordered_map<SensorId, lv_color_t> Widget::LINE_COLOR_MAP{
-    {P::SENSOR_DESCRIPTOR_BME280, lv_palette_lighten(LV_PALETTE_RED, 1)},
-    {P::SENSOR_DESCRIPTOR_SGP30, lv_palette_lighten(LV_PALETTE_ORANGE, 1)},
-    {P::SENSOR_DESCRIPTOR_SCD30, lv_palette_lighten(LV_PALETTE_INDIGO, 1)},
-    {P::SENSOR_DESCRIPTOR_SCD41, lv_palette_lighten(LV_PALETTE_PURPLE, 1)},
-    {P::SENSOR_DESCRIPTOR_M5ENV3, lv_palette_lighten(LV_PALETTE_BROWN, 1)}};
+    {Application::SENSOR_DESCRIPTOR_BME280,
+     lv_palette_lighten(LV_PALETTE_RED, 1)},
+    {Application::SENSOR_DESCRIPTOR_SGP30,
+     lv_palette_lighten(LV_PALETTE_ORANGE, 1)},
+    {Application::SENSOR_DESCRIPTOR_SCD30,
+     lv_palette_lighten(LV_PALETTE_INDIGO, 1)},
+    {Application::SENSOR_DESCRIPTOR_SCD41,
+     lv_palette_lighten(LV_PALETTE_PURPLE, 1)},
+    {Application::SENSOR_DESCRIPTOR_M5ENV3,
+     lv_palette_lighten(LV_PALETTE_BROWN, 1)}};
 
 //
 template <typename T>
@@ -930,7 +994,7 @@ void Widget::BasicChart<T>::createWidgets(lv_obj_t *parent_obj,
   lv_chart_set_axis_tick(chart_obj, LV_CHART_AXIS_SECONDARY_Y, 10, 5, 10, 5,
                          true, Y_TICK_LABEL_LEN);
   //
-  for (const auto &sensor : Peripherals::sensors) {
+  for (const auto &sensor : Application::getSensors()) {
     if (const auto p = sensor.get(); p) {
       chart_series_vect.emplace_back(
           ChartSeriesWrapper{p->getSensorDescriptor(), chart_obj});
@@ -1052,10 +1116,14 @@ Widget::TemperatureChart::TemperatureChart(InitArg init)
 
 //
 void Widget::TemperatureChart::update() {
-  auto bme280 = Application::measurements_database.getLatestMeasurementBme280();
-  auto scd30 = Application::measurements_database.getLatestMeasurementScd30();
-  auto scd41 = Application::measurements_database.getLatestMeasurementScd41();
-  auto m5env3 = Application::measurements_database.getLatestMeasurementM5Env3();
+  auto bme280 =
+      Application::getMeasurementsDatabase().getLatestMeasurementBme280();
+  auto scd30 =
+      Application::getMeasurementsDatabase().getLatestMeasurementScd30();
+  auto scd41 =
+      Application::getMeasurementsDatabase().getLatestMeasurementScd41();
+  auto m5env3 =
+      Application::getMeasurementsDatabase().getLatestMeasurementM5Env3();
   auto present = Measurements{bme280, scd30, scd41, m5env3};
 
   //
@@ -1104,6 +1172,14 @@ void Widget::TemperatureChart::update() {
     //
     basic_chart.render();
   }
+}
+
+// データーベースからデーターを得る
+size_t Widget::TemperatureChart::read_measurements_from_database(
+    Database::OrderBy order, system_clock::time_point at_begin,
+    Database::ReadCallback<Database::TimePointAndDouble> callback) {
+  return Application::getMeasurementsDatabase().read_temperatures(
+      order, at_begin, callback);
 }
 
 // データを座標に変換する関数
@@ -1160,10 +1236,14 @@ Widget::RelativeHumidityChart::RelativeHumidityChart(InitArg init)
 
 //
 void Widget::RelativeHumidityChart::update() {
-  auto bme280 = Application::measurements_database.getLatestMeasurementBme280();
-  auto scd30 = Application::measurements_database.getLatestMeasurementScd30();
-  auto scd41 = Application::measurements_database.getLatestMeasurementScd41();
-  auto m5env3 = Application::measurements_database.getLatestMeasurementM5Env3();
+  auto bme280 =
+      Application::getMeasurementsDatabase().getLatestMeasurementBme280();
+  auto scd30 =
+      Application::getMeasurementsDatabase().getLatestMeasurementScd30();
+  auto scd41 =
+      Application::getMeasurementsDatabase().getLatestMeasurementScd41();
+  auto m5env3 =
+      Application::getMeasurementsDatabase().getLatestMeasurementM5Env3();
   auto present = Measurements{bme280, scd30, scd41, m5env3};
 
   //
@@ -1216,6 +1296,14 @@ void Widget::RelativeHumidityChart::update() {
   }
 }
 
+// データーベースからデーターを得る
+size_t Widget::RelativeHumidityChart::read_measurements_from_database(
+    Database::OrderBy order, system_clock::time_point at_begin,
+    Database::ReadCallback<Database::TimePointAndDouble> callback) {
+  return Application::getMeasurementsDatabase().read_relative_humidities(
+      order, at_begin, callback);
+}
+
 // データを座標に変換する関数
 lv_point_t Widget::RelativeHumidityChart::coordinateXY(
     system_clock::time_point begin_x, const Database::TimePointAndDouble &in) {
@@ -1264,8 +1352,10 @@ Widget::PressureChart::PressureChart(InitArg init)
 
 //
 void Widget::PressureChart::update() {
-  auto bme280 = Application::measurements_database.getLatestMeasurementBme280();
-  auto m5env3 = Application::measurements_database.getLatestMeasurementM5Env3();
+  auto bme280 =
+      Application::getMeasurementsDatabase().getLatestMeasurementBme280();
+  auto m5env3 =
+      Application::getMeasurementsDatabase().getLatestMeasurementM5Env3();
   auto present = Measurements{bme280, m5env3};
 
   //
@@ -1302,6 +1392,14 @@ void Widget::PressureChart::update() {
     //
     basic_chart.render();
   }
+}
+
+// データーベースからデーターを得る
+size_t Widget::PressureChart::read_measurements_from_database(
+    Database::OrderBy order, system_clock::time_point at_begin,
+    Database::ReadCallback<Database::TimePointAndDouble> callback) {
+  return Application::getMeasurementsDatabase().read_pressures(order, at_begin,
+                                                               callback);
 }
 
 // データを座標に変換する関数
@@ -1348,9 +1446,12 @@ Widget::CarbonDeoxidesChart::CarbonDeoxidesChart(InitArg init)
 }
 
 void Widget::CarbonDeoxidesChart::update() {
-  auto sgp30 = Application::measurements_database.getLatestMeasurementSgp30();
-  auto scd30 = Application::measurements_database.getLatestMeasurementScd30();
-  auto scd41 = Application::measurements_database.getLatestMeasurementScd41();
+  auto sgp30 =
+      Application::getMeasurementsDatabase().getLatestMeasurementSgp30();
+  auto scd30 =
+      Application::getMeasurementsDatabase().getLatestMeasurementScd30();
+  auto scd41 =
+      Application::getMeasurementsDatabase().getLatestMeasurementScd41();
   auto present = Measurements{sgp30, scd30, scd41};
 
   //
@@ -1394,6 +1495,14 @@ void Widget::CarbonDeoxidesChart::update() {
   }
 }
 
+// データーベースからデーターを得る
+size_t Widget::CarbonDeoxidesChart::read_measurements_from_database(
+    Database::OrderBy order, system_clock::time_point at_begin,
+    Database::ReadCallback<Database::TimePointAndUInt16> callback) {
+  return Application::getMeasurementsDatabase().read_carbon_deoxides(
+      order, at_begin, callback);
+}
+
 // データを座標に変換する関数
 lv_point_t Widget::CarbonDeoxidesChart::coordinateXY(
     system_clock::time_point begin_x, const Database::TimePointAndUInt16 &in) {
@@ -1427,7 +1536,8 @@ Widget::TotalVocChart::TotalVocChart(InitArg init)
 }
 
 void Widget::TotalVocChart::update() {
-  auto sgp30 = Application::measurements_database.getLatestMeasurementSgp30();
+  auto sgp30 =
+      Application::getMeasurementsDatabase().getLatestMeasurementSgp30();
   auto present = sgp30;
 
   //
@@ -1455,6 +1565,14 @@ void Widget::TotalVocChart::update() {
     //
     basic_chart.render();
   }
+}
+
+// データーベースからデーターを得る
+size_t Widget::TotalVocChart::read_measurements_from_database(
+    Database::OrderBy order, system_clock::time_point at_begin,
+    Database::ReadCallback<Database::TimePointAndUInt16> callback) {
+  return Application::getMeasurementsDatabase().read_total_vocs(order, at_begin,
+                                                                callback);
 }
 
 // データを座標に変換する関数

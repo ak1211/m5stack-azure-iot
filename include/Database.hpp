@@ -59,7 +59,7 @@ public:
   //
   bool available() const { return _available; }
   //
-  bool begin();
+  bool begin(const std::string&database_filename);
   //
   void terminate();
   //

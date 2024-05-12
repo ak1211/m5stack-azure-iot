@@ -3,7 +3,6 @@
 // See LICENSE file in the project root for full license information.
 //
 #pragma once
-#include "Application.hpp"
 #include "Database.hpp"
 #include "Sensor.hpp"
 #include <algorithm>
@@ -115,7 +114,7 @@ public:
 //
 class BootMessage final : public TileBase {
   lv_obj_t *message_label_obj{nullptr};
-  size_t count{0};
+  std::string latest{};
 
 public:
   BootMessage(BootMessage &&) = delete;
@@ -420,10 +419,7 @@ public:
   // データーベースからデーターを得る
   static size_t read_measurements_from_database(
       Database::OrderBy order, system_clock::time_point at_begin,
-      Database::ReadCallback<Database::TimePointAndDouble> callback) {
-    return Application::measurements_database.read_temperatures(order, at_begin,
-                                                                callback);
-  }
+      Database::ReadCallback<Database::TimePointAndDouble> callback);
   // データを座標に変換する関数
   static lv_point_t coordinateXY(system_clock::time_point begin_x,
                                  const Database::TimePointAndDouble &in);
@@ -456,10 +452,7 @@ public:
   // データーベースからデーターを得る
   static size_t read_measurements_from_database(
       Database::OrderBy order, system_clock::time_point at_begin,
-      Database::ReadCallback<Database::TimePointAndDouble> callback) {
-    return Application::measurements_database.read_relative_humidities(
-        order, at_begin, callback);
-  }
+      Database::ReadCallback<Database::TimePointAndDouble> callback);
   // データを座標に変換する関数
   static lv_point_t coordinateXY(system_clock::time_point begin_x,
                                  const Database::TimePointAndDouble &in);
@@ -490,10 +483,7 @@ public:
   // データーベースからデーターを得る
   static size_t read_measurements_from_database(
       Database::OrderBy order, system_clock::time_point at_begin,
-      Database::ReadCallback<Database::TimePointAndDouble> callback) {
-    return Application::measurements_database.read_pressures(order, at_begin,
-                                                             callback);
-  }
+      Database::ReadCallback<Database::TimePointAndDouble> callback);
   // データを座標に変換する関数
   static lv_point_t coordinateXY(system_clock::time_point begin_x,
                                  const Database::TimePointAndDouble &in);
@@ -527,10 +517,7 @@ public:
   // データーベースからデーターを得る
   static size_t read_measurements_from_database(
       Database::OrderBy order, system_clock::time_point at_begin,
-      Database::ReadCallback<Database::TimePointAndUInt16> callback) {
-    return Application::measurements_database.read_carbon_deoxides(
-        order, at_begin, callback);
-  }
+      Database::ReadCallback<Database::TimePointAndUInt16> callback);
   // データを座標に変換する関数
   static lv_point_t coordinateXY(system_clock::time_point begin_x,
                                  const Database::TimePointAndUInt16 &in);
@@ -557,39 +544,50 @@ public:
   // データーベースからデーターを得る
   static size_t read_measurements_from_database(
       Database::OrderBy order, system_clock::time_point at_begin,
-      Database::ReadCallback<Database::TimePointAndUInt16> callback) {
-    return Application::measurements_database.read_total_vocs(order, at_begin,
-                                                              callback);
-  }
+      Database::ReadCallback<Database::TimePointAndUInt16> callback);
   // データを座標に変換する関数
   static lv_point_t coordinateXY(system_clock::time_point begin_x,
                                  const Database::TimePointAndUInt16 &in);
   //
   static void event_draw_part_begin_callback(lv_event_t *event);
 };
+
+//
+//
+//
+class Startup final {
+  lv_style_t title_style{};
+  lv_style_t label_style{};
+  lv_obj_t *container_obj{nullptr};
+  lv_obj_t *title_obj{nullptr};
+  lv_obj_t *label_obj{nullptr};
+  lv_obj_t *bar_obj{nullptr};
+
+public:
+  Startup(Startup &&) = delete;
+  Startup &operator=(const Startup &) = delete;
+  Startup(lv_coord_t display_width, lv_coord_t display_height);
+  ~Startup();
+  //
+  void updateMessage(const std::string &s);
+  //
+  void updateProgress(int16_t percent);
+};
+
 } // namespace Widget
 
 //
 //
 //
 class Gui {
-  static Gui *_instance;
-
 public:
-  constexpr static auto PERIODIC_TIMER_INTERVAL = std::chrono::milliseconds{60};
+  constexpr static auto PERIODIC_TIMER_INTERVAL = std::chrono::milliseconds{30};
   constexpr static uint16_t CHART_X_POINT_COUNT = 60;
-  Gui(M5GFX &gfx) : gfx{gfx} {
-    if (_instance) {
-      delete _instance;
-    }
-    _instance = this;
-  }
-  //
-  static Gui *getInstance() { return _instance; }
+  Gui(M5GFX &gfx) : gfx{gfx} {}
   //
   bool begin();
   //
-  void startUi();
+  bool startUi();
   //
   void home();
   //
@@ -599,13 +597,27 @@ public:
   //
   void vibrate();
   //
-  lv_res_t send_event_to_tileview(lv_event_code_t event_code, void *param) {
-    return lv_event_send(_instance->tileview_obj, event_code, param);
+  bool update_startup_progress(int16_t percent) {
+    if (_startup_widget) {
+      _startup_widget->updateProgress(percent);
+      return true;
+    }
+    return false;
+  }
+  //
+  bool update_startup_message(const std::string &s) {
+    if (_startup_widget) {
+      _startup_widget->updateMessage(s);
+      return true;
+    }
+    return false;
   }
 
 private:
   M5GFX &gfx;
-  // LVGL tileview object
+  //
+  std::unique_ptr<Widget::Startup> _startup_widget{};
+  //
   lv_obj_t *tileview_obj{nullptr};
   // tile widget
   std::vector<std::unique_ptr<Widget::TileBase>> tile_vector{};
@@ -624,11 +636,12 @@ private:
   }
 
 private:
+  constexpr static size_t LVGL_BUFFER_ONE_SIZE_OF_BYTES = 16384;
   // LVGL use area
   struct {
     // LVGL draw buffer
-    std::unique_ptr<lv_color_t[]> draw_buf_1;
-    std::unique_ptr<lv_color_t[]> draw_buf_2;
+    lv_color_t draw_buf_1[LVGL_BUFFER_ONE_SIZE_OF_BYTES / sizeof(lv_color_t)];
+    lv_color_t draw_buf_2[LVGL_BUFFER_ONE_SIZE_OF_BYTES / sizeof(lv_color_t)];
     lv_disp_draw_buf_t draw_buf_dsc;
     lv_disp_drv_t disp_drv;
     lv_indev_drv_t indev_drv;

@@ -607,7 +607,7 @@ struct Database::Transaction {
 //
 //
 //
-bool Database::begin() {
+bool Database::begin(const std::string &database_filename) {
   if (_sqlite3_db) {
     terminate();
   }
@@ -623,6 +623,7 @@ bool Database::begin() {
       return false;
     }
     //
+#ifdef SQLITE_ENABLE_MEMSYS5
     if (_database_use_preallocated_memory == nullptr) {
       _database_use_preallocated_memory = heap_caps_aligned_alloc(
           8, DATABASE_USE_PREALLOCATED_MEMORY_SIZE, MALLOC_CAP_SPIRAM);
@@ -639,6 +640,7 @@ bool Database::begin() {
         return false;
       }
     }
+#endif
   }
   //
   if (auto result = sqlite3_config(SQLITE_CONFIG_URI, true);
@@ -656,12 +658,11 @@ bool Database::begin() {
   }
 
   //
-  M5_LOGD("sqlite3 open file : %s",
-          Application::MEASUREMENTS_DATABASE_FILE_NAME.data());
-  if (auto result = sqlite3_open_v2(
-          Application::MEASUREMENTS_DATABASE_FILE_NAME.data(), &_sqlite3_db,
-          SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_URI,
-          nullptr);
+  M5_LOGD("sqlite3 open file : %s", database_filename.c_str());
+  if (auto result = sqlite3_open_v2(database_filename.c_str(), &_sqlite3_db,
+                                    SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE |
+                                        SQLITE_OPEN_URI,
+                                    nullptr);
       result != SQLITE_OK) {
     M5_LOGE("sqlite3_open_v2() failure: %d", result);
     terminate();

@@ -4,7 +4,6 @@
 //
 #include "Sensor.hpp"
 #include "Application.hpp"
-#include "Time.hpp"
 #include <M5Unified.h>
 
 #include <cmath>
@@ -141,7 +140,7 @@ Sensor::MeasuredValue Sensor::Sgp30Device::read() {
   }
   // 稼働時間が 12hour　を超えている状態のときにベースラインを取得する
   constexpr auto half_day = seconds{12 * 60 * 60}; // 43200 seconds
-  if (Time::uptime() > half_day) {
+  if (Application::uptime() > half_day) {
     if (uint16_t eco2, tvoc; sgp30.getIAQBaseline(&eco2, &tvoc)) {
       last_eco2_baseline = BaselineECo2(eco2);
       last_tvoc_baseline = BaselineTotalVoc(tvoc);
@@ -478,7 +477,7 @@ Sensor::MeasuredValue Sensor::M5Env3Device::read() {
 }
 
 //
-Sensor::MeasuredValue Sensor::M5Env3Device::calculateSMA(){
+Sensor::MeasuredValue Sensor::M5Env3Device::calculateSMA() {
   if (sma_temperature.ready() && sma_relative_humidity.ready() &&
       sma_pressure.ready()) {
     return M5Env3({
