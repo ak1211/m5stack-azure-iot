@@ -13,17 +13,8 @@ class RgbLed {
   constexpr static auto NUM_OF_LEDS = uint8_t{10};
   constexpr static auto GPIO_PIN_SK6815 = uint16_t{25};
   std::array<CRGB, NUM_OF_LEDS> leds{};
-  static RgbLed *_instance;
 
 public:
-  RgbLed() {
-    if (_instance) {
-      delete _instance;
-    }
-    _instance = this;
-  }
-  virtual ~RgbLed() { _instance = nullptr; }
-  static RgbLed *getInstance() { return _instance; }
   //
   void begin();
   //

@@ -6,7 +6,6 @@
 #include "AzIoTSasToken.h"
 #include "Sensor.hpp"
 #include "Telemetry.hpp"
-#include "Time.hpp"
 #include "credentials.h"
 #include <Arduinojson.h>
 #include <chrono>
@@ -31,8 +30,6 @@ extern "C" {
 using namespace std::chrono;
 using namespace std::string_literals;
 
-Telemetry *Telemetry::_instance{nullptr};
-
 //
 std::string Telemetry::to_absolute_sensor_id(SensorDescriptor descriptor) {
   return std::string(Credentials.device_id) + "-"s + descriptor.str();
@@ -44,7 +41,7 @@ std::string Telemetry::to_json_message<Sensor::MeasurementBme280>(
     const Sensor::MeasurementBme280 &in) {
   JsonDocument doc;
   doc["sensorId"] = to_absolute_sensor_id(in.second.sensor_descriptor);
-  doc["measuredAt"] = Time::isoformatUTC(in.first);
+  doc["measuredAt"] = Application::isoformatUTC(in.first);
   doc["temperature"] = DegC(in.second.temperature).count();
   doc["humidity"] = PctRH(in.second.relative_humidity).count();
   doc["pressure"] = HectoPa(in.second.pressure).count();
@@ -59,7 +56,7 @@ std::string Telemetry::to_json_message<Sensor::MeasurementM5Env3>(
     const Sensor::MeasurementM5Env3 &in) {
   JsonDocument doc;
   doc["sensorId"] = to_absolute_sensor_id(in.second.sensor_descriptor);
-  doc["measuredAt"] = Time::isoformatUTC(in.first);
+  doc["measuredAt"] = Application::isoformatUTC(in.first);
   doc["temperature"] = DegC(in.second.temperature).count();
   doc["humidity"] = PctRH(in.second.relative_humidity).count();
   doc["pressure"] = HectoPa(in.second.pressure).count();
@@ -74,7 +71,7 @@ std::string Telemetry::to_json_message<Sensor::MeasurementSgp30>(
     const Sensor::MeasurementSgp30 &in) {
   JsonDocument doc;
   doc["sensorId"] = to_absolute_sensor_id(in.second.sensor_descriptor);
-  doc["measuredAt"] = Time::isoformatUTC(in.first);
+  doc["measuredAt"] = Application::isoformatUTC(in.first);
   doc["tvoc"] = in.second.tvoc.value;
   doc["eCo2"] = in.second.eCo2.value;
   if (in.second.tvoc_baseline.has_value()) {
@@ -94,7 +91,7 @@ std::string Telemetry::to_json_message<Sensor::MeasurementScd30>(
     const Sensor::MeasurementScd30 &in) {
   JsonDocument doc;
   doc["sensorId"] = to_absolute_sensor_id(in.second.sensor_descriptor);
-  doc["measuredAt"] = Time::isoformatUTC(in.first);
+  doc["measuredAt"] = Application::isoformatUTC(in.first);
   doc["co2"] = in.second.co2.value;
   doc["temperature"] = DegC(in.second.temperature).count();
   doc["humidity"] = PctRH(in.second.relative_humidity).count();
@@ -109,7 +106,7 @@ std::string Telemetry::to_json_message<Sensor::MeasurementScd41>(
     const Sensor::MeasurementScd41 &in) {
   JsonDocument doc;
   doc["sensorId"] = to_absolute_sensor_id(in.second.sensor_descriptor);
-  doc["measuredAt"] = Time::isoformatUTC(in.first);
+  doc["measuredAt"] = Application::isoformatUTC(in.first);
   doc["co2"] = in.second.co2.value;
   doc["temperature"] = DegC(in.second.temperature).count();
   doc["humidity"] = PctRH(in.second.relative_humidity).count();
@@ -122,8 +119,6 @@ std::string Telemetry::to_json_message<Sensor::MeasurementScd41>(
 // please follow the format '(ard;<platform>)'.
 #define AZURE_SDK_CLIENT_USER_AGENT "c%2F" AZ_SDK_VERSION_STRING "(ard;esp32)"
 
-//
-//
 //
 esp_err_t Telemetry::mqtt_event_handler(esp_mqtt_event_handle_t event) {
   if (event->user_context == nullptr) {
@@ -195,16 +190,14 @@ esp_err_t Telemetry::mqtt_event_handler(esp_mqtt_event_handle_t event) {
 }
 
 //
-//
-//
 bool Telemetry::initializeIoTHubClient() {
   if (az_result_failed(az_iot_hub_client_init(
-          &client,
+          &iot_hub_client,
           az_span_create((uint8_t *)config.iothub_fqdn.data(),
                          config.iothub_fqdn.length()),
           az_span_create((uint8_t *)config.device_id.data(),
                          config.device_id.length()),
-          &client_options))) {
+          &iot_hub_client_options))) {
     M5_LOGE("Failed initializing Azure IoT Hub client");
     return false;
   }
@@ -212,7 +205,7 @@ bool Telemetry::initializeIoTHubClient() {
   {
     std::array<char, 128> buffer{};
     if (az_result_failed(az_iot_hub_client_get_client_id(
-            &client, buffer.data(), buffer.size() - 1, nullptr))) {
+            &iot_hub_client, buffer.data(), buffer.size() - 1, nullptr))) {
       M5_LOGE("Failed getting client id");
       return false;
     }
@@ -222,7 +215,7 @@ bool Telemetry::initializeIoTHubClient() {
   {
     std::array<char, 128> buffer{};
     if (az_result_failed(az_iot_hub_client_get_user_name(
-            &client, buffer.data(), buffer.size() - 1, NULL))) {
+            &iot_hub_client, buffer.data(), buffer.size() - 1, NULL))) {
       M5_LOGE("Failed to get MQTT clientId, return code");
       return false;
     }
@@ -235,13 +228,11 @@ bool Telemetry::initializeIoTHubClient() {
 }
 
 //
-//
-//
 bool Telemetry::initializeMqttClient() {
   // Using SAS
   if (auto azIoTSasToken =
           AzIoTSasToken{
-              &client,
+              &iot_hub_client,
               az_span_create(
                   reinterpret_cast<uint8_t *>(config.device_key.data()),
                   config.device_key.length()),
@@ -281,8 +272,8 @@ bool Telemetry::initializeMqttClient() {
 
   if (mqtt_client) {
     esp_mqtt_client_destroy(mqtt_client);
-    mqtt_client = nullptr;
   }
+  _mqtt_connected = false;
   mqtt_client = esp_mqtt_client_init(&mqtt_config);
 
   if (mqtt_client == nullptr) {
@@ -302,13 +293,12 @@ bool Telemetry::initializeMqttClient() {
 }
 
 //
-//
-//
 bool Telemetry::begin(std::string_view iothub_fqdn, std::string_view device_id,
                       std::string_view device_key) {
   //
-  client_options = az_iot_hub_client_options_default();
-  client_options.user_agent = AZ_SPAN_FROM_STR(AZURE_SDK_CLIENT_USER_AGENT);
+  iot_hub_client_options = az_iot_hub_client_options_default();
+  iot_hub_client_options.user_agent =
+      AZ_SPAN_FROM_STR(AZURE_SDK_CLIENT_USER_AGENT);
   //
   config.iothub_fqdn = std::string(iothub_fqdn);
   config.device_id = std::string(device_id);
@@ -319,9 +309,18 @@ bool Telemetry::begin(std::string_view iothub_fqdn, std::string_view device_id,
 }
 
 //
+bool Telemetry::terminate() {
+  if (esp_mqtt_client_destroy(mqtt_client) != ESP_OK) {
+    mqtt_client = nullptr;
+    M5_LOGE("esp_mqtt_client_destroy failure.");
+    return false;
+  }
+  mqtt_client = nullptr;
+  return true;
+}
+
 //
-//
-bool Telemetry::loopMqtt() {
+bool Telemetry::exec() {
   if (mqtt_client == nullptr) {
     return false;
   }
@@ -345,19 +344,19 @@ bool Telemetry::loopMqtt() {
   // reflect the current values of the properties.
   std::array<char, 128> telemetry_topic{};
   if (az_result_failed(az_iot_hub_client_telemetry_get_publish_topic(
-          &client, nullptr, telemetry_topic.data(), telemetry_topic.size(),
-          nullptr))) {
+          &iot_hub_client, nullptr, telemetry_topic.data(),
+          telemetry_topic.size(), nullptr))) {
     M5_LOGE("Failed az_iot_hub_client_telemetry_get_publish_topic");
     return false;
   }
   // 送信するべき測定値があれば送信する
   constexpr auto MQTT_QOS{1};
   constexpr auto DO_NOT_RETAIN_MSG{0};
-  if (_sending_fifo_queue.empty()) {
+  if (_sending_fifo_buffer.empty()) {
     // nothing to do
   } else {
     // 送信用FIFO待ち行列から先頭のアイテムを得る
-    auto item = _sending_fifo_queue.front();
+    auto item = _sending_fifo_buffer.front();
     // メッセージに変換する
     std::string datum =
         std::visit([this](const auto &x) { return to_json_message(x); }, item);
@@ -374,7 +373,7 @@ bool Telemetry::loopMqtt() {
       // MQTT待ち行列に送った後も、実際にMQTT送信が終わるまでポインタが指すメッセージの実体を保持しておく
       _sent_messages.insert({message_id, std::move(datum)});
       // MQTT待ち行列に送ったので送信用FIFO待ち行列から先頭のアイテムを消す
-      _sending_fifo_queue.pop();
+      _sending_fifo_buffer.pop();
       return true;
     }
   }
