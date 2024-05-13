@@ -31,23 +31,6 @@ using namespace std::chrono;
 using namespace std::chrono_literals;
 
 //
-// WiFi APとの接続待ち
-//
-static bool waitingForWiFiConnection(seconds TIMEOUT) {
-  if (WiFi.status() == WL_CONNECTED) {
-    return true;
-  }
-
-  auto timeover{steady_clock::now() + TIMEOUT};
-  auto status = WiFi.status();
-  while (status != WL_CONNECTED && steady_clock::now() < timeover) {
-    std::this_thread::sleep_for(10ms);
-    status = WiFi.status();
-  }
-  return WiFi.status() == WL_CONNECTED;
-}
-
-//
 // Arduinoのsetup()関数
 //
 void setup() {
@@ -60,7 +43,8 @@ void setup() {
   } else {
     M5_LOGE("filesystem inititalize failed.");
     M5.Display.print("filesystem inititalize failed.");
-    delay(300 * 1000);
+    std::this_thread::sleep_for(1min);
+    esp_system_abort("filesystem inititalize failed.");
   }
 
   // initializing M5Stack Core2 with M5Unified
@@ -71,7 +55,14 @@ void setup() {
   }
 
   //
-  Application::getInstance().startup();
+  if (auto app = new Application(M5.Display); app) {
+    app->startup();
+  } else {
+    M5_LOGE("out of memory");
+    M5.Display.print("out of memory.");
+    std::this_thread::sleep_for(1min);
+    esp_system_abort("out of memory.");
+  }
 }
 
 //

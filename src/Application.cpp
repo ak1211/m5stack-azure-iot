@@ -20,14 +20,11 @@ using namespace std::literals::string_literals;
 using namespace std::chrono;
 
 //
-const steady_clock::time_point Application::_application_start_time{
-    steady_clock::now()};
+Application *Application::_instance{nullptr};
 
 //
-Application &Application::getInstance() {
-  static Application _instance{M5.Display};
-  return _instance;
-}
+const steady_clock::time_point Application::_application_start_time{
+    steady_clock::now()};
 
 // 起動
 bool Application::startup() {

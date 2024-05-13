@@ -26,6 +26,10 @@ using namespace std::literals::string_literals;
 using namespace std::literals::string_view_literals;
 
 //
+lv_color_t Gui::LvglUseArea::draw_buf_1[];
+lv_color_t Gui::LvglUseArea::draw_buf_2[];
+
+//
 void Gui::lvgl_use_display_flush_callback(lv_disp_drv_t *disp_drv,
                                           const lv_area_t *area,
                                           lv_color_t *color_p) {

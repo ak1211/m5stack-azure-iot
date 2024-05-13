@@ -42,6 +42,12 @@ public:
   Application &operator=(const Application &) = delete;
   Application(Application &&) = delete;
   Application &operator=(Application &&) = delete;
+  Application(M5GFX &gfx) : _gui{gfx} {
+    if (_instance) {
+      delete _instance;
+    }
+    _instance = this;
+  }
   // 起動
   bool startup();
   //
@@ -61,7 +67,10 @@ public:
     return getInstance()._sensors;
   }
   //
-  static Application &getInstance();
+  static Application &getInstance() {
+    assert(_instance);
+    return *_instance;
+  }
   //
   static bool isTimeSynced() { return getInstance()._time_is_synced; }
   //
@@ -77,7 +86,7 @@ public:
   }
 
 private:
-  Application(M5GFX &gfx) : _gui{gfx} {}
+  static Application *_instance;
   //
   static const std::chrono::steady_clock::time_point _application_start_time;
   // 起動時のログ
