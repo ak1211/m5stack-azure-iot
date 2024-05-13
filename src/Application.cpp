@@ -192,7 +192,7 @@ void Application::time_sync_notification_callback(struct timeval *time_val) {
     M5.Rtc.setDate(m5::rtc_date_t{local_tm});
   }
   //
-  Application::getInstance()._time_is_synced = true;
+  Application::getInstance()->_time_is_synced = true;
 }
 
 // インターネット時間サーバと同期する

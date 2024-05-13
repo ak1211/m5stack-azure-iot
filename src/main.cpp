@@ -55,8 +55,8 @@ void setup() {
   }
 
   //
-  if (auto app = new Application(M5.Display); app) {
-    app->startup();
+  if (new Application(M5.Display)) {
+    Application::getInstance()->startup();
   } else {
     M5_LOGE("out of memory");
     M5.Display.print("out of memory.");

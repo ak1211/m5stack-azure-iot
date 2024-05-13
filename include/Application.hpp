@@ -44,7 +44,7 @@ public:
   Application &operator=(Application &&) = delete;
   Application(M5GFX &gfx) : _gui{gfx} {
     if (_instance) {
-      delete _instance;
+      esp_system_abort("multiple Application started.");
     }
     _instance = this;
   }
@@ -53,30 +53,32 @@ public:
   //
   std::string getStartupLog() const { return _startup_log; }
   //
-  static RgbLed &getRgbLed() { return getInstance()._rgb_led; }
+  static RgbLed &getRgbLed() { return getInstance()->_rgb_led; }
   //
   static Database &getMeasurementsDatabase() {
-    return getInstance()._measurements_database;
+    return getInstance()->_measurements_database;
   }
   //
-  static Telemetry &getTelemetry() { return getInstance()._telemetry; }
+  static Telemetry &getTelemetry() { return getInstance()->_telemetry; }
   //
-  static Gui &getGui() { return getInstance()._gui; }
+  static Gui &getGui() { return getInstance()->_gui; }
   //
   static std::vector<std::unique_ptr<Sensor::Device>> &getSensors() {
-    return getInstance()._sensors;
+    return getInstance()->_sensors;
   }
   //
-  static Application &getInstance() {
-    assert(_instance);
-    return *_instance;
+  static Application *getInstance() {
+    if (_instance == nullptr) {
+      esp_system_abort("Application is not started.");
+    }
+    return _instance;
   }
   //
-  static bool isTimeSynced() { return getInstance()._time_is_synced; }
+  static bool isTimeSynced() { return getInstance()->_time_is_synced; }
   //
   static std::chrono::seconds uptime() {
     auto elapsed = std::chrono::steady_clock::now() -
-                   getInstance()._application_start_time;
+                   getInstance()->_application_start_time;
     return std::chrono::duration_cast<std::chrono::seconds>(elapsed);
   }
   // iso8601 format.

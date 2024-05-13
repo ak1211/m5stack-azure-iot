@@ -274,7 +274,7 @@ Widget::BootMessage::BootMessage(Widget::InitArg init) : TileBase{init} {
 }
 
 void Widget::BootMessage::update() {
-  if (auto x = Application::getInstance().getStartupLog(); x != latest) {
+  if (auto x = Application::getInstance()->getStartupLog(); x != latest) {
     latest = x;
     render();
   }
@@ -550,7 +550,7 @@ void Widget::Summary::render() {
   lv_obj_set_width(table_obj, w);
   lv_obj_set_height(table_obj, lv_obj_get_content_height(tile_obj));
   lv_obj_center(table_obj);
-  lv_obj_set_style_text_font(table_obj, &lv_font_montserrat_18,
+  lv_obj_set_style_text_font(table_obj, &lv_font_montserrat_16,
                              LV_PART_ITEMS | LV_STATE_DEFAULT);
   //
   lv_obj_add_event_cb(
