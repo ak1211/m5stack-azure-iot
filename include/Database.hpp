@@ -23,9 +23,11 @@ private:
   const static sqlite3_mem_methods _custom_mem_methods;
   bool _available{false};
   sqlite3 *_sqlite3_db{nullptr};
+#ifdef SQLITE_ENABLE_MEMSYS5
   constexpr static size_t DATABASE_USE_PREALLOCATED_MEMORY_SIZE =
       3 * 1024 * 1024;
   void *_database_use_preallocated_memory{};
+#endif
   //
   std::optional<Sensor::MeasurementBme280> _latestMeasurementBme280{};
   std::optional<Sensor::MeasurementSgp30> _latestMeasurementSgp30{};
@@ -52,14 +54,11 @@ public:
 
   constexpr static std::chrono::seconds RETRY_TIMEOUT{60};
   //
-  virtual ~Database() {
-    terminate();
-    free(_database_use_preallocated_memory);
-  }
+  virtual ~Database() { terminate(); }
   //
   bool available() const { return _available; }
   //
-  bool begin(const std::string&database_filename);
+  bool begin(const std::string &database_filename);
   //
   void terminate();
   //

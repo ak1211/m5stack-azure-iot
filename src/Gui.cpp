@@ -983,7 +983,7 @@ void Widget::BasicChart<T>::createWidgets(lv_obj_t *parent_obj,
                       - MARGIN * 2 - lv_obj_get_height(label_obj) //
                       - MARGIN - X_TICK_LABEL_LEN);
   lv_obj_align_to(chart_obj, label_obj, LV_ALIGN_OUT_BOTTOM_LEFT, 0, MARGIN);
-  if constexpr (true) {
+  if constexpr (false) {
     // Do not display points on the data
     lv_obj_set_style_size(chart_obj, 0, LV_PART_INDICATOR);
   }
