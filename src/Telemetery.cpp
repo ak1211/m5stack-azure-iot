@@ -320,7 +320,7 @@ bool Telemetry::terminate() {
 }
 
 //
-bool Telemetry::exec() {
+bool Telemetry::task_handler() {
   if (mqtt_client == nullptr) {
     return false;
   }

@@ -636,7 +636,7 @@ private:
   }
 
 private:
-  constexpr static size_t LVGL_BUFFER_ONE_SIZE_OF_BYTES = 8192;
+  constexpr static size_t LVGL_BUFFER_ONE_SIZE_OF_BYTES = 4096;
   // LVGL use area
   struct LvglUseArea {
     // LVGL draw buffer

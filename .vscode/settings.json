@@ -12,7 +12,8 @@
         "threadapi.h": "c",
         "lvgl.h": "c",
         "lv_log.h": "c",
-        "lv_hal.h": "c"
+        "lv_hal.h": "c",
+        "lv_timer.h": "c"
     },
     "python.formatting.provider": "autopep8"
 }

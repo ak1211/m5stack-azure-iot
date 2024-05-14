@@ -5,6 +5,7 @@
 #pragma once
 #include "Database.hpp"
 #include "Gui.hpp"
+#include "MeasuringTask.hpp"
 #include "RgbLed.hpp"
 #include "Sensor.hpp"
 #include "Telemetry.hpp"
@@ -48,6 +49,8 @@ public:
     }
     _instance = this;
   }
+  //
+  bool task_handler();
   // 起動
   bool startup();
   //
@@ -105,9 +108,10 @@ private:
   Gui _gui;
   // センサー
   std::vector<std::unique_ptr<Sensor::Device>> _sensors;
-
   //
-  void logging(const std::string &s);
+  MeasuringTask _measuring_task;
+  //
+  void idle_task_handler();
   //
   bool start_wifi(std::ostream &os);
   // インターネット時間サーバと同期する

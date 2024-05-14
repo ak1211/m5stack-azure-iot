@@ -69,7 +69,7 @@ public:
   //
   bool isConnected() const { return _mqtt_connected; };
   //
-  bool exec();
+  bool task_handler();
   //
   bool enqueue(Payload in) {
     if (_sending_fifo_buffer.size() >= MAX_SEND_FIFO_BUFFER_SIZE) {
