@@ -636,12 +636,14 @@ private:
   }
 
 private:
-  constexpr static size_t LVGL_BUFFER_ONE_SIZE_OF_BYTES = 16384;
+  constexpr static size_t LVGL_BUFFER_ONE_SIZE_OF_BYTES = 4096;
   // LVGL use area
-  struct {
+  struct LvglUseArea {
     // LVGL draw buffer
-    lv_color_t draw_buf_1[LVGL_BUFFER_ONE_SIZE_OF_BYTES / sizeof(lv_color_t)];
-    lv_color_t draw_buf_2[LVGL_BUFFER_ONE_SIZE_OF_BYTES / sizeof(lv_color_t)];
+    static lv_color_t
+        draw_buf_1[LVGL_BUFFER_ONE_SIZE_OF_BYTES / sizeof(lv_color_t)];
+    static lv_color_t
+        draw_buf_2[LVGL_BUFFER_ONE_SIZE_OF_BYTES / sizeof(lv_color_t)];
     lv_disp_draw_buf_t draw_buf_dsc;
     lv_disp_drv_t disp_drv;
     lv_indev_drv_t indev_drv;

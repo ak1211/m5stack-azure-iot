@@ -20,17 +20,83 @@ using namespace std::literals::string_literals;
 using namespace std::chrono;
 
 //
+Application *Application::_instance{nullptr};
+
+//
 const steady_clock::time_point Application::_application_start_time{
     steady_clock::now()};
 
 //
-Application &Application::getInstance() {
-  static Application _instance{M5.Display};
-  return _instance;
+bool Application::task_handler() {
+  ArduinoOTA.handle();
+  M5.update();
+  if (M5.BtnA.wasPressed()) {
+    _gui.movePrev();
+  } else if (M5.BtnB.wasPressed()) {
+    _gui.home();
+  } else if (M5.BtnC.wasPressed()) {
+    _gui.moveNext();
+  }
+  static system_clock::time_point before_db_tp{};
+  auto now_tp = system_clock::now();
+  // 随時測定する
+  _measuring_task.task_handler(now_tp);
+  //
+  if (now_tp - before_db_tp >= 333s) {
+    // データベースの整理
+    system_clock::time_point tp = now_tp - 24h;
+    if (_measurements_database.delete_old_measurements_from_database(
+            std::chrono::floor<minutes>(tp)) == false) {
+      M5_LOGE("delete old measurements failed.");
+    }
+    before_db_tp = now_tp;
+  }
+  //
+  static steady_clock::time_point before_epoch{};
+  auto now_epoch = steady_clock::now();
+  if (now_epoch - before_epoch >= 3s) {
+    idle_task_handler();
+    before_epoch = now_epoch;
+  }
+
+  return true;
+}
+
+//
+void Application::idle_task_handler() {
+  if (WiFi.status() != WL_CONNECTED) {
+    // WiFiが接続されていない場合は接続する。
+    WiFi.begin(Credentials.wifi_ssid, Credentials.wifi_password);
+  } else if (_telemetry.isConnected() == false) {
+    static steady_clock::time_point before{steady_clock::now()};
+    // 再接続
+    if (steady_clock::now() - before > 1min) {
+      before = steady_clock::now();
+      //
+      if (!_telemetry.begin(Credentials.iothub_fqdn, Credentials.device_id,
+                            Credentials.device_key)) {
+        M5_LOGE("MQTT subscribe failed.");
+      }
+    }
+  } else {
+    _telemetry.task_handler();
+  }
 }
 
 // 起動
 bool Application::startup() {
+  // 起動シーケンス
+  std::vector<std::function<bool(std::ostream &)>> startup_sequence{
+      std::bind(&Application::start_wifi, this, std::placeholders::_1),
+      std::bind(&Application::synchronize_ntp, this, std::placeholders::_1),
+      std::bind(&Application::start_telemetry, this, std::placeholders::_1),
+      std::bind(&Application::start_database, this, std::placeholders::_1),
+      std::bind(&Application::start_sensor_BME280, this, std::placeholders::_1),
+      std::bind(&Application::start_sensor_SGP30, this, std::placeholders::_1),
+      std::bind(&Application::start_sensor_SCD30, this, std::placeholders::_1),
+      std::bind(&Application::start_sensor_SCD41, this, std::placeholders::_1),
+      std::bind(&Application::start_sensor_M5ENV3, this, std::placeholders::_1),
+  };
   //
   struct BufWithLogging : public std::stringbuf {
     Application *pApp;
@@ -50,18 +116,26 @@ bool Application::startup() {
   };
   BufWithLogging buf{this};
   std::ostream oss(&buf);
-  // 起動シーケンス
-  std::vector<std::function<bool(std::ostream &)>> startup_sequence{
-      std::bind(&Application::start_wifi, this, std::placeholders::_1),
-      std::bind(&Application::synchronize_ntp, this, std::placeholders::_1),
-      std::bind(&Application::start_telemetry, this, std::placeholders::_1),
-      std::bind(&Application::start_database, this, std::placeholders::_1),
-      std::bind(&Application::start_sensor_BME280, this, std::placeholders::_1),
-      std::bind(&Application::start_sensor_SGP30, this, std::placeholders::_1),
-      std::bind(&Application::start_sensor_SCD30, this, std::placeholders::_1),
-      std::bind(&Application::start_sensor_SCD41, this, std::placeholders::_1),
-      std::bind(&Application::start_sensor_M5ENV3, this, std::placeholders::_1),
-  };
+
+  // file system init
+  if (LittleFS.begin(true)) {
+    M5_LOGI("filesystem status : %lu / %lu.", LittleFS.usedBytes(),
+            LittleFS.totalBytes());
+  } else {
+    M5_LOGE("filesystem inititalize failed.");
+    M5.Display.print("filesystem inititalize failed.");
+    std::this_thread::sleep_for(1min);
+    esp_system_abort("filesystem inititalize failed.");
+  }
+
+  // initializing M5Stack Core2 with M5Unified
+  {
+    auto cfg = M5.config();
+    M5.begin(cfg);
+    M5.Power.setVibration(0); // stop the vibration
+  }
+
+  //
   if (M5.Rtc.isEnabled()) {
     // RTCより時刻復帰する
     m5::rtc_datetime_t rtc = M5.Rtc.getDateTime();
@@ -98,7 +172,7 @@ bool Application::startup() {
   xTaskCreatePinnedToCore(
       [](void *arg) -> void {
         while (true) {
-          lv_timer_handler();
+          lv_task_handler();
           std::this_thread::sleep_for(10ms);
         }
       },
@@ -114,7 +188,8 @@ bool Application::startup() {
         *pValue = (*pValue + 1) % 360;
       },
       10, &timer_arg);
-  // 起動
+
+  // プログレスバーを表示しながら起動
   for (auto it = startup_sequence.begin(); it != startup_sequence.end(); ++it) {
     std::this_thread::sleep_for(100ms);
     auto func = *it;
@@ -124,10 +199,12 @@ bool Application::startup() {
     //
     func(oss);
   }
-  _gui.update_startup_progress(100);
+  _gui.update_startup_progress(100); // 100%
   std::this_thread::sleep_for(100ms);
   lv_timer_del(timer);
   _rgb_led.clear();
+  //
+  _measuring_task.begin(std::chrono::system_clock::now());
   //
   _gui.startUi();
 
@@ -195,7 +272,7 @@ void Application::time_sync_notification_callback(struct timeval *time_val) {
     M5.Rtc.setDate(m5::rtc_date_t{local_tm});
   }
   //
-  Application::getInstance()._time_is_synced = true;
+  Application::getInstance()->_time_is_synced = true;
 }
 
 // インターネット時間サーバと同期する

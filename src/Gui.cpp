@@ -26,6 +26,10 @@ using namespace std::literals::string_literals;
 using namespace std::literals::string_view_literals;
 
 //
+lv_color_t Gui::LvglUseArea::draw_buf_1[];
+lv_color_t Gui::LvglUseArea::draw_buf_2[];
+
+//
 void Gui::lvgl_use_display_flush_callback(lv_disp_drv_t *disp_drv,
                                           const lv_area_t *area,
                                           lv_color_t *color_p) {
@@ -270,7 +274,7 @@ Widget::BootMessage::BootMessage(Widget::InitArg init) : TileBase{init} {
 }
 
 void Widget::BootMessage::update() {
-  if (auto x = Application::getInstance().getStartupLog(); x != latest) {
+  if (auto x = Application::getInstance()->getStartupLog(); x != latest) {
     latest = x;
     render();
   }
@@ -546,7 +550,7 @@ void Widget::Summary::render() {
   lv_obj_set_width(table_obj, w);
   lv_obj_set_height(table_obj, lv_obj_get_content_height(tile_obj));
   lv_obj_center(table_obj);
-  lv_obj_set_style_text_font(table_obj, &lv_font_montserrat_18,
+  lv_obj_set_style_text_font(table_obj, &lv_font_montserrat_16,
                              LV_PART_ITEMS | LV_STATE_DEFAULT);
   //
   lv_obj_add_event_cb(
@@ -979,7 +983,7 @@ void Widget::BasicChart<T>::createWidgets(lv_obj_t *parent_obj,
                       - MARGIN * 2 - lv_obj_get_height(label_obj) //
                       - MARGIN - X_TICK_LABEL_LEN);
   lv_obj_align_to(chart_obj, label_obj, LV_ALIGN_OUT_BOTTOM_LEFT, 0, MARGIN);
-  if constexpr (true) {
+  if constexpr (false) {
     // Do not display points on the data
     lv_obj_set_style_size(chart_obj, 0, LV_PART_INDICATOR);
   }

@@ -734,6 +734,10 @@ void Database::terminate() {
     }
   }
   sqlite3_shutdown();
+#ifdef SQLITE_ENABLE_MEMSYS5
+  free(_database_use_preallocated_memory);
+  _database_use_preallocated_memory = nullptr;
+#endif
   _sqlite3_db = nullptr;
   _available = false;
 }
