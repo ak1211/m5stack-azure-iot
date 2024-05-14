@@ -211,7 +211,6 @@ bool Application::startup() {
   _gui.startUi();
 
   // create RTOS task for this Application
-  static TaskHandle_t rtos_task_handle{};
   xTaskCreatePinnedToCore(
       [](void *user_context) -> void {
         while (true) {
