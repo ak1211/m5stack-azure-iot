@@ -174,7 +174,7 @@ void Gui::moveNext() {
 
 //
 void Gui::vibrate() {
-  constexpr auto MILLISECONDS = 50;
+  constexpr auto MILLISECONDS = 100;
   auto stop_the_vibration = [](lv_timer_t *) -> void {
     M5.Power.setVibration(0);
   };
@@ -726,6 +726,16 @@ Widget::SystemHealthy::SystemHealthy(Widget::InitArg init) : TileBase{init} {
       M5_LOGE("minimum_free_heap_label_obj had null");
       return;
     }
+    if (lvgl_task_stack_mark_label_obj = create(cont_col_obj, &label_style);
+        lvgl_task_stack_mark_label_obj == nullptr) {
+      M5_LOGE("lvgl_task_stack_mark_label_obj had null");
+      return;
+    }
+    if (app_task_stack_mark_label_obj = create(cont_col_obj, &label_style);
+        app_task_stack_mark_label_obj == nullptr) {
+      M5_LOGE("app_task_stack_mark_label_obj had null");
+      return;
+    }
   }
 }
 
@@ -757,6 +767,14 @@ void Widget::SystemHealthy::render() {
   }
   if (minimum_free_heap_label_obj == nullptr) {
     M5_LOGE("minimum_free_heap_label_obj had null");
+    return;
+  }
+  if (lvgl_task_stack_mark_label_obj == nullptr) {
+    M5_LOGE("lvgl_stack_mark_label_obj had null");
+    return;
+  }
+  if (app_task_stack_mark_label_obj == nullptr) {
+    M5_LOGE("app_stack_mark_label_obj had null");
     return;
   }
   const seconds uptime = Application::uptime();
@@ -851,6 +869,20 @@ void Widget::SystemHealthy::render() {
     std::ostringstream oss;
     oss << "minimum free heap size: " << memfree;
     lv_label_set_text(minimum_free_heap_label_obj, oss.str().c_str());
+  }
+  { // lvgl task stack mark
+    auto stack_mark =
+        uxTaskGetStackHighWaterMark(Application::getLvglTaskHandle());
+    std::ostringstream oss;
+    oss << "LVGL task stack high water mark: " << stack_mark;
+    lv_label_set_text(lvgl_task_stack_mark_label_obj, oss.str().c_str());
+  }
+  { // application task stack mark
+    auto stack_mark =
+        uxTaskGetStackHighWaterMark(Application::getApplicationTaskHandle());
+    std::ostringstream oss;
+    oss << "APP task stack high water mark: " << stack_mark;
+    lv_label_set_text(app_task_stack_mark_label_obj, oss.str().c_str());
   }
 }
 
