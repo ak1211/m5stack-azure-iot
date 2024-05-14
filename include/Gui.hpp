@@ -198,7 +198,8 @@ class SystemHealthy final : public TileBase {
   lv_obj_t *available_heap_label_obj{nullptr};
   lv_obj_t *available_internal_heap_label_obj{nullptr};
   lv_obj_t *minimum_free_heap_label_obj{nullptr};
-  lv_obj_t *stack_mark_label_obj{nullptr};
+  lv_obj_t *lvgl_task_stack_mark_label_obj{nullptr};
+  lv_obj_t *app_task_stack_mark_label_obj{nullptr};
 
 public:
   SystemHealthy(SystemHealthy &&) = delete;

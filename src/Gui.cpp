@@ -726,9 +726,14 @@ Widget::SystemHealthy::SystemHealthy(Widget::InitArg init) : TileBase{init} {
       M5_LOGE("minimum_free_heap_label_obj had null");
       return;
     }
-    if (stack_mark_label_obj = create(cont_col_obj, &label_style);
-        stack_mark_label_obj == nullptr) {
-      M5_LOGE("stack_mark_label_obj had null");
+    if (lvgl_task_stack_mark_label_obj = create(cont_col_obj, &label_style);
+        lvgl_task_stack_mark_label_obj == nullptr) {
+      M5_LOGE("lvgl_task_stack_mark_label_obj had null");
+      return;
+    }
+    if (app_task_stack_mark_label_obj = create(cont_col_obj, &label_style);
+        app_task_stack_mark_label_obj == nullptr) {
+      M5_LOGE("app_task_stack_mark_label_obj had null");
       return;
     }
   }
@@ -764,8 +769,12 @@ void Widget::SystemHealthy::render() {
     M5_LOGE("minimum_free_heap_label_obj had null");
     return;
   }
-  if (stack_mark_label_obj == nullptr) {
-    M5_LOGE("stack_mark_label_obj had null");
+  if (lvgl_task_stack_mark_label_obj == nullptr) {
+    M5_LOGE("lvgl_stack_mark_label_obj had null");
+    return;
+  }
+  if (app_task_stack_mark_label_obj == nullptr) {
+    M5_LOGE("app_stack_mark_label_obj had null");
     return;
   }
   const seconds uptime = Application::uptime();
@@ -861,11 +870,19 @@ void Widget::SystemHealthy::render() {
     oss << "minimum free heap size: " << memfree;
     lv_label_set_text(minimum_free_heap_label_obj, oss.str().c_str());
   }
-  { // stack mark
-    auto stack_mark = uxTaskGetStackHighWaterMark(nullptr);
+  { // lvgl task stack mark
+    auto stack_mark =
+        uxTaskGetStackHighWaterMark(Application::getLvglTaskHandle());
     std::ostringstream oss;
-    oss << "task stack high water mark: " << stack_mark;
-    lv_label_set_text(stack_mark_label_obj, oss.str().c_str());
+    oss << "LVGL task stack high water mark: " << stack_mark;
+    lv_label_set_text(lvgl_task_stack_mark_label_obj, oss.str().c_str());
+  }
+  { // application task stack mark
+    auto stack_mark =
+        uxTaskGetStackHighWaterMark(Application::getApplicationTaskHandle());
+    std::ostringstream oss;
+    oss << "APP task stack high water mark: " << stack_mark;
+    lv_label_set_text(app_task_stack_mark_label_obj, oss.str().c_str());
   }
 }
 

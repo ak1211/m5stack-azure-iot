@@ -20,6 +20,10 @@
 class Application final {
 public:
   //
+  constexpr static auto LVGL_TASK_STACK_SIZE = size_t{8192};
+  //
+  constexpr static auto APPLICATION_TASK_STACK_SIZE = size_t{8192};
+  //
   constexpr static auto TIMEOUT = std::chrono::seconds{3};
   // time zone = Asia_Tokyo(UTC+9)
   constexpr static auto TZ_TIME_ZONE = std::string_view{"JST-9"};
@@ -71,6 +75,14 @@ public:
     return getInstance()->_sensors;
   }
   //
+  static TaskHandle_t getLvglTaskHandle() {
+    return getInstance()->_rtos_lvgl_task_handle;
+  }
+  //
+  static TaskHandle_t getApplicationTaskHandle() {
+    return getInstance()->_rtos_application_task_handle;
+  }
+  //
   static Application *getInstance() {
     if (_instance == nullptr) {
       esp_system_abort("Application is not started.");
@@ -112,9 +124,9 @@ private:
   //
   MeasuringTask _measuring_task;
   //
-  TaskHandle_t rtos_lvgl_task_handle{};
+  TaskHandle_t _rtos_lvgl_task_handle{};
   //
-  TaskHandle_t rtos_application_task_handle{};
+  TaskHandle_t _rtos_application_task_handle{};
   //
   void idle_task_handler();
   //

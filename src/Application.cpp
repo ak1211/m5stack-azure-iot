@@ -175,7 +175,7 @@ bool Application::startup() {
           std::this_thread::sleep_for(10ms);
         }
       },
-      "Task:LVGL", 4096, nullptr, 5, &rtos_lvgl_task_handle,
+      "Task:LVGL", LVGL_TASK_STACK_SIZE, nullptr, 5, &_rtos_lvgl_task_handle,
       ARDUINO_RUNNING_CORE);
 
   //
@@ -218,8 +218,8 @@ bool Application::startup() {
           app->task_handler();
         }
       },
-      "Task:Application", 16384, this, 1, &rtos_application_task_handle,
-      ARDUINO_RUNNING_CORE);
+      "Task:Application", APPLICATION_TASK_STACK_SIZE, this, 1,
+      &_rtos_application_task_handle, ARDUINO_RUNNING_CORE);
 
   return true;
 }
