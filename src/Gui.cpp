@@ -174,7 +174,7 @@ void Gui::moveNext() {
 
 //
 void Gui::vibrate() {
-  constexpr auto MILLISECONDS = 50;
+  constexpr auto MILLISECONDS = 100;
   auto stop_the_vibration = [](lv_timer_t *) -> void {
     M5.Power.setVibration(0);
   };
@@ -726,6 +726,11 @@ Widget::SystemHealthy::SystemHealthy(Widget::InitArg init) : TileBase{init} {
       M5_LOGE("minimum_free_heap_label_obj had null");
       return;
     }
+    if (stack_mark_label_obj = create(cont_col_obj, &label_style);
+        stack_mark_label_obj == nullptr) {
+      M5_LOGE("stack_mark_label_obj had null");
+      return;
+    }
   }
 }
 
@@ -757,6 +762,10 @@ void Widget::SystemHealthy::render() {
   }
   if (minimum_free_heap_label_obj == nullptr) {
     M5_LOGE("minimum_free_heap_label_obj had null");
+    return;
+  }
+  if (stack_mark_label_obj == nullptr) {
+    M5_LOGE("stack_mark_label_obj had null");
     return;
   }
   const seconds uptime = Application::uptime();
@@ -851,6 +860,12 @@ void Widget::SystemHealthy::render() {
     std::ostringstream oss;
     oss << "minimum free heap size: " << memfree;
     lv_label_set_text(minimum_free_heap_label_obj, oss.str().c_str());
+  }
+  { // stack mark
+    auto stack_mark = uxTaskGetStackHighWaterMark(nullptr);
+    std::ostringstream oss;
+    oss << "task stack high water mark: " << stack_mark;
+    lv_label_set_text(stack_mark_label_obj, oss.str().c_str());
   }
 }
 

@@ -198,6 +198,7 @@ class SystemHealthy final : public TileBase {
   lv_obj_t *available_heap_label_obj{nullptr};
   lv_obj_t *available_internal_heap_label_obj{nullptr};
   lv_obj_t *minimum_free_heap_label_obj{nullptr};
+  lv_obj_t *stack_mark_label_obj{nullptr};
 
 public:
   SystemHealthy(SystemHealthy &&) = delete;
@@ -636,7 +637,7 @@ private:
   }
 
 private:
-  constexpr static size_t LVGL_BUFFER_ONE_SIZE_OF_BYTES = 4096;
+  constexpr static size_t LVGL_BUFFER_ONE_SIZE_OF_BYTES = 8192;
   // LVGL use area
   struct LvglUseArea {
     // LVGL draw buffer

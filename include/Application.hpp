@@ -11,6 +11,7 @@
 #include "Telemetry.hpp"
 #include <WiFi.h>
 #include <chrono>
+#include <esp_task.h>
 #include <string>
 
 //
@@ -110,6 +111,10 @@ private:
   std::vector<std::unique_ptr<Sensor::Device>> _sensors;
   //
   MeasuringTask _measuring_task;
+  //
+  TaskHandle_t rtos_lvgl_task_handle{};
+  //
+  TaskHandle_t rtos_application_task_handle{};
   //
   void idle_task_handler();
   //

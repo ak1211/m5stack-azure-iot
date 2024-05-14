@@ -167,8 +167,7 @@ bool Application::startup() {
     return false;
   }
 
-  // create RTOS task
-  static TaskHandle_t rtos_task_handle{};
+  // create RTOS task for LVGL
   xTaskCreatePinnedToCore(
       [](void *arg) -> void {
         while (true) {
@@ -176,7 +175,8 @@ bool Application::startup() {
           std::this_thread::sleep_for(10ms);
         }
       },
-      "Task:LVGL", 4096, nullptr, 5, &rtos_task_handle, ARDUINO_RUNNING_CORE);
+      "Task:LVGL", 4096, nullptr, 5, &rtos_lvgl_task_handle,
+      ARDUINO_RUNNING_CORE);
 
   //
   int16_t timer_arg = 0;
@@ -203,10 +203,24 @@ bool Application::startup() {
   std::this_thread::sleep_for(100ms);
   lv_timer_del(timer);
   _rgb_led.clear();
+
   //
   _measuring_task.begin(std::chrono::system_clock::now());
+
   //
   _gui.startUi();
+
+  // create RTOS task for this Application
+  static TaskHandle_t rtos_task_handle{};
+  xTaskCreatePinnedToCore(
+      [](void *user_context) -> void {
+        while (true) {
+          Application *app = static_cast<Application *>(user_context);
+          app->task_handler();
+        }
+      },
+      "Task:Application", 16384, this, 1, &rtos_application_task_handle,
+      ARDUINO_RUNNING_CORE);
 
   return true;
 }
