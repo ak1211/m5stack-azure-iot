@@ -367,7 +367,7 @@ bool Application::start_sensor_BME280(std::ostream &os) {
       SENSOR_DESCRIPTOR_BME280, BME280_I2C_ADDRESS, Wire);
   if (pdev) {
     auto timeover{steady_clock::now() + TIMEOUT};
-    while (pdev->init() == false && steady_clock::now() < timeover) {
+    while (pdev->begin() == false && steady_clock::now() < timeover) {
       std::this_thread::sleep_for(1s);
     }
     if (pdev->available()) {
@@ -391,7 +391,7 @@ bool Application::start_sensor_SGP30(std::ostream &os) {
       std::make_unique<Sensor::Sgp30Device>(SENSOR_DESCRIPTOR_SGP30, Wire);
   if (pdev) {
     auto timeover{steady_clock::now() + TIMEOUT};
-    while (pdev->init() == false && steady_clock::now() < timeover) {
+    while (pdev->begin() == false && steady_clock::now() < timeover) {
       std::this_thread::sleep_for(1s);
     }
     if (pdev->available()) {
@@ -415,7 +415,7 @@ bool Application::start_sensor_SCD30(std::ostream &os) {
       std::make_unique<Sensor::Scd30Device>(SENSOR_DESCRIPTOR_SCD30, Wire);
   if (pdev) {
     auto timeover{steady_clock::now() + TIMEOUT};
-    while (pdev->init() == false && steady_clock::now() < timeover) {
+    while (pdev->begin() == false && steady_clock::now() < timeover) {
       std::this_thread::sleep_for(1s);
     }
     if (pdev->available()) {
@@ -439,7 +439,7 @@ bool Application::start_sensor_SCD41(std::ostream &os) {
       std::make_unique<Sensor::Scd41Device>(SENSOR_DESCRIPTOR_SCD41, Wire);
   if (pdev) {
     auto timeover{steady_clock::now() + TIMEOUT};
-    while (pdev->init() == false && steady_clock::now() < timeover) {
+    while (pdev->begin() == false && steady_clock::now() < timeover) {
       std::this_thread::sleep_for(1s);
     }
     if (pdev->available()) {
@@ -463,7 +463,7 @@ bool Application::start_sensor_M5ENV3(std::ostream &os) {
       SENSOR_DESCRIPTOR_M5ENV3, Wire, M5.Ex_I2C.getSDA(), M5.Ex_I2C.getSCL());
   if (pdev) {
     auto timeover{steady_clock::now() + TIMEOUT};
-    while (pdev->init() == false && steady_clock::now() < timeover) {
+    while (pdev->begin() == false && steady_clock::now() < timeover) {
       std::this_thread::sleep_for(1s);
     }
     if (pdev->available()) {
