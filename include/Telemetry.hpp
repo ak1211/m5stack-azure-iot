@@ -65,6 +65,8 @@ public:
   bool begin(std::string_view iothub_fqdn, std::string_view device_id,
              std::string_view device_key);
   //
+  bool reconnect();
+  //
   bool terminate();
   //
   bool isConnected() const { return _mqtt_connected; };

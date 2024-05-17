@@ -292,7 +292,7 @@ public:
     lv_color_t color =
         itr != LINE_COLOR_MAP.end() ? itr->second : lv_color_black();
     _chart_series =
-        lv_chart_add_series(_chart_obj, color, LV_CHART_AXIS_SECONDARY_Y);
+        lv_chart_add_series(_chart_obj, color, LV_CHART_AXIS_PRIMARY_Y);
   }
   //
   void chart_remove_series() {
@@ -354,29 +354,29 @@ template <typename T>
 std::ostream &operator<<(std::ostream &os, const ShowMeasured<T> &rhs);
 
 //
-//
-//
 template <typename T> class BasicChart {
 public:
-  using DataType = std::tuple<SensorId, system_clock::time_point, T>;
-  // データを座標に変換する関数
-  using CoordinatePointFn =
-      std::function<lv_point_t(system_clock::time_point, const DataType &)>;
-  // データーベースからデーターを得る関数
-  using ReadDataFn = std::function<size_t(
-      Database::OrderBy order, system_clock::time_point at_begin,
-      Database::ReadCallback<DataType> callback)>;
+  constexpr static auto X_AXIS_TICK_COUNT{4};
+  constexpr static auto Y_AXIS_TICK_COUNT{5};
   //
-  BasicChart(CoordinatePointFn coordinateXY,
-             ReadDataFn read_measurements_from_database)
-      : _coordinateXY{coordinateXY},
-        _read_measurements_from_database{read_measurements_from_database} {}
+  using DataType = std::tuple<SensorId, system_clock::time_point, T>;
+  // データーベースからデーターを得る
+  virtual size_t read_measurements_from_database(
+      Database::OrderBy order, system_clock::time_point at_begin,
+      Database::ReadCallback<DataType> callback) = 0;
+  // データを座標に変換する関数
+  virtual lv_point_t coordinateXY(system_clock::time_point tp_zero,
+                                  const DataType &in) = 0;
+  // 軸目盛関数
+  virtual void chart_draw_part_tick_label(lv_obj_draw_part_dsc_t *dsc) = 0;
   //
   void createWidgets(lv_obj_t *parent_obj, std::string_view inSubheading);
   //
   lv_obj_t *getChartObj() const { return chart_obj; }
   //
   lv_obj_t *getLabelObj() const { return label_obj; }
+  //
+  system_clock::time_point getBeginX() const { return begin_x_tp; }
   //
   void render();
 
@@ -388,12 +388,9 @@ private:
   //
   std::vector<ChartSeriesWrapper> chart_series_vect{};
   //
-  system_clock::time_point begin_x_tick{};
+  system_clock::time_point begin_x_tp{};
   //
   std::string subheading{};
-  //
-  const ReadDataFn _read_measurements_from_database;
-  const CoordinatePointFn _coordinateXY;
 };
 
 //
@@ -406,7 +403,21 @@ private:
                                   std::optional<Sensor::MeasurementScd41>,
                                   std::optional<Sensor::MeasurementM5Env3>>;
   Measurements latest{};
-  BasicChart<double> basic_chart;
+  //
+  class C : public BasicChart<double> {
+  public:
+    // データーベースからデーターを得る
+    virtual size_t read_measurements_from_database(
+        Database::OrderBy order, system_clock::time_point at_begin,
+        Database::ReadCallback<Database::TimePointAndDouble> callback) override;
+    // データを座標に変換する関数
+    virtual lv_point_t
+    coordinateXY(system_clock::time_point tp_zero,
+                 const Database::TimePointAndDouble &in) override;
+    //
+    virtual void
+    chart_draw_part_tick_label(lv_obj_draw_part_dsc_t *dsc) override;
+  } basic_chart;
 
 public:
   TemperatureChart(TemperatureChart &&) = delete;
@@ -418,15 +429,6 @@ public:
   virtual void onDeactivate() override {}
   //
   virtual void update() override;
-  // データーベースからデーターを得る
-  static size_t read_measurements_from_database(
-      Database::OrderBy order, system_clock::time_point at_begin,
-      Database::ReadCallback<Database::TimePointAndDouble> callback);
-  // データを座標に変換する関数
-  static lv_point_t coordinateXY(system_clock::time_point begin_x,
-                                 const Database::TimePointAndDouble &in);
-  //
-  static void event_draw_part_begin_callback(lv_event_t *event);
 };
 
 //
@@ -439,7 +441,21 @@ private:
                                   std::optional<Sensor::MeasurementScd41>,
                                   std::optional<Sensor::MeasurementM5Env3>>;
   Measurements latest{};
-  BasicChart<double> basic_chart;
+  //
+  class C : public BasicChart<double> {
+  public:
+    // データーベースからデーターを得る
+    virtual size_t read_measurements_from_database(
+        Database::OrderBy order, system_clock::time_point at_begin,
+        Database::ReadCallback<Database::TimePointAndDouble> callback) override;
+    // データを座標に変換する関数
+    virtual lv_point_t
+    coordinateXY(system_clock::time_point tp_zero,
+                 const Database::TimePointAndDouble &in) override;
+    //
+    virtual void
+    chart_draw_part_tick_label(lv_obj_draw_part_dsc_t *dsc) override;
+  } basic_chart;
 
 public:
   RelativeHumidityChart(RelativeHumidityChart &&) = delete;
@@ -451,15 +467,6 @@ public:
   virtual void onDeactivate() override {}
   //
   virtual void update() override;
-  // データーベースからデーターを得る
-  static size_t read_measurements_from_database(
-      Database::OrderBy order, system_clock::time_point at_begin,
-      Database::ReadCallback<Database::TimePointAndDouble> callback);
-  // データを座標に変換する関数
-  static lv_point_t coordinateXY(system_clock::time_point begin_x,
-                                 const Database::TimePointAndDouble &in);
-  //
-  static void event_draw_part_begin_callback(lv_event_t *event);
 };
 
 //
@@ -470,7 +477,23 @@ private:
   using Measurements = std::tuple<std::optional<Sensor::MeasurementBme280>,
                                   std::optional<Sensor::MeasurementM5Env3>>;
   Measurements latest{};
-  BasicChart<double> basic_chart;
+  //
+  class C : public BasicChart<double> {
+  public:
+    // データーベースからデーターを得る
+    virtual size_t read_measurements_from_database(
+        Database::OrderBy order, system_clock::time_point at_begin,
+        Database::ReadCallback<Database::TimePointAndDouble> callback) override;
+    // データを座標に変換する関数
+    virtual lv_point_t
+    coordinateXY(system_clock::time_point tp_zero,
+                 const Database::TimePointAndDouble &in) override;
+    //
+    constexpr static DeciPa BIAS = round<DeciPa>(HectoPa{1000});
+    //
+    virtual void
+    chart_draw_part_tick_label(lv_obj_draw_part_dsc_t *dsc) override;
+  } basic_chart;
 
 public:
   PressureChart(PressureChart &&) = delete;
@@ -482,17 +505,6 @@ public:
   virtual void onDeactivate() override {}
   //
   virtual void update() override;
-  // データーベースからデーターを得る
-  static size_t read_measurements_from_database(
-      Database::OrderBy order, system_clock::time_point at_begin,
-      Database::ReadCallback<Database::TimePointAndDouble> callback);
-  // データを座標に変換する関数
-  static lv_point_t coordinateXY(system_clock::time_point begin_x,
-                                 const Database::TimePointAndDouble &in);
-  //
-  constexpr static DeciPa BIAS = round<DeciPa>(HectoPa{1000});
-  //
-  static void event_draw_part_begin_callback(lv_event_t *event);
 };
 
 //
@@ -504,7 +516,21 @@ private:
                                   std::optional<Sensor::MeasurementScd30>,
                                   std::optional<Sensor::MeasurementScd41>>;
   Measurements latest{};
-  BasicChart<uint16_t> basic_chart;
+  //
+  class C : public BasicChart<uint16_t> {
+  public:
+    // データーベースからデーターを得る
+    virtual size_t read_measurements_from_database(
+        Database::OrderBy order, system_clock::time_point at_begin,
+        Database::ReadCallback<Database::TimePointAndUInt16> callback) override;
+    // データを座標に変換する関数
+    virtual lv_point_t
+    coordinateXY(system_clock::time_point tp_zero,
+                 const Database::TimePointAndUInt16 &in) override;
+    //
+    virtual void
+    chart_draw_part_tick_label(lv_obj_draw_part_dsc_t *dsc) override;
+  } basic_chart;
 
 public:
   CarbonDeoxidesChart(CarbonDeoxidesChart &&) = delete;
@@ -516,13 +542,6 @@ public:
   virtual void onDeactivate() override {}
   //
   virtual void update() override;
-  // データーベースからデーターを得る
-  static size_t read_measurements_from_database(
-      Database::OrderBy order, system_clock::time_point at_begin,
-      Database::ReadCallback<Database::TimePointAndUInt16> callback);
-  // データを座標に変換する関数
-  static lv_point_t coordinateXY(system_clock::time_point begin_x,
-                                 const Database::TimePointAndUInt16 &in);
 };
 
 //
@@ -531,7 +550,23 @@ public:
 class TotalVocChart final : public TileBase {
 private:
   std::optional<Sensor::MeasurementSgp30> latest{};
-  BasicChart<uint16_t> basic_chart;
+  //
+  class C : public BasicChart<uint16_t> {
+  public:
+    // データーベースからデーターを得る
+    virtual size_t read_measurements_from_database(
+        Database::OrderBy order, system_clock::time_point at_begin,
+        Database::ReadCallback<Database::TimePointAndUInt16> callback) override;
+    // データを座標に変換する関数
+    virtual lv_point_t
+    coordinateXY(system_clock::time_point tp_zero,
+                 const Database::TimePointAndUInt16 &in) override;
+    //
+    constexpr static int16_t DIVIDER = 2;
+    //
+    virtual void
+    chart_draw_part_tick_label(lv_obj_draw_part_dsc_t *dsc) override;
+  } basic_chart;
 
 public:
   TotalVocChart(TotalVocChart &&) = delete;
@@ -543,15 +578,6 @@ public:
   virtual void onDeactivate() override {}
   //
   virtual void update() override;
-  // データーベースからデーターを得る
-  static size_t read_measurements_from_database(
-      Database::OrderBy order, system_clock::time_point at_begin,
-      Database::ReadCallback<Database::TimePointAndUInt16> callback);
-  // データを座標に変換する関数
-  static lv_point_t coordinateXY(system_clock::time_point begin_x,
-                                 const Database::TimePointAndUInt16 &in);
-  //
-  static void event_draw_part_begin_callback(lv_event_t *event);
 };
 
 //
@@ -584,7 +610,7 @@ public:
 class Gui {
 public:
   constexpr static auto PERIODIC_TIMER_INTERVAL = std::chrono::milliseconds{30};
-  constexpr static uint16_t CHART_X_POINT_COUNT = 60;
+  constexpr static uint16_t CHART_X_POINT_COUNT = 360;
   Gui(M5GFX &gfx) : gfx{gfx} {}
   //
   bool begin();

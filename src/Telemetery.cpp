@@ -309,6 +309,11 @@ bool Telemetry::begin(std::string_view iothub_fqdn, std::string_view device_id,
 }
 
 //
+bool Telemetry::reconnect() {
+  return (initializeIoTHubClient() && initializeMqttClient());
+}
+
+//
 bool Telemetry::terminate() {
   if (esp_mqtt_client_destroy(mqtt_client) != ESP_OK) {
     mqtt_client = nullptr;

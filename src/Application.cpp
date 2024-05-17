@@ -30,11 +30,11 @@ const steady_clock::time_point Application::_application_start_time{
 bool Application::task_handler() {
   ArduinoOTA.handle();
   M5.update();
-  if (M5.BtnA.wasPressed()) {
+  if (M5.BtnA.wasReleased()) {
     _gui.movePrev();
-  } else if (M5.BtnB.wasPressed()) {
+  } else if (M5.BtnB.wasReleased()) {
     _gui.home();
-  } else if (M5.BtnC.wasPressed()) {
+  } else if (M5.BtnC.wasReleased()) {
     _gui.moveNext();
   }
   static system_clock::time_point before_db_tp{};
@@ -67,19 +67,22 @@ void Application::idle_task_handler() {
   if (WiFi.status() != WL_CONNECTED) {
     // WiFiが接続されていない場合は接続する。
     WiFi.begin(Credentials.wifi_ssid, Credentials.wifi_password);
-  } else if (_telemetry.isConnected() == false) {
+    return;
+  }
+  if (_telemetry.isConnected()) {
+    _telemetry.task_handler();
+    return;
+  } else {
     static steady_clock::time_point before{steady_clock::now()};
     // 再接続
     if (steady_clock::now() - before > 1min) {
       before = steady_clock::now();
       //
-      if (!_telemetry.begin(Credentials.iothub_fqdn, Credentials.device_id,
-                            Credentials.device_key)) {
-        M5_LOGE("MQTT subscribe failed.");
+      if (!_telemetry.reconnect()) {
+        M5_LOGE("Reconnect telemetry failed.");
       }
     }
-  } else {
-    _telemetry.task_handler();
+    return;
   }
 }
 
@@ -89,8 +92,8 @@ bool Application::startup() {
   std::vector<std::function<bool(std::ostream &)>> startup_sequence{
       std::bind(&Application::start_wifi, this, std::placeholders::_1),
       std::bind(&Application::synchronize_ntp, this, std::placeholders::_1),
-      std::bind(&Application::start_telemetry, this, std::placeholders::_1),
       std::bind(&Application::start_database, this, std::placeholders::_1),
+      std::bind(&Application::start_telemetry, this, std::placeholders::_1),
       std::bind(&Application::start_sensor_BME280, this, std::placeholders::_1),
       std::bind(&Application::start_sensor_SGP30, this, std::placeholders::_1),
       std::bind(&Application::start_sensor_SCD30, this, std::placeholders::_1),
@@ -205,6 +208,101 @@ bool Application::startup() {
   _rgb_led.clear();
 
   //
+  if constexpr (false) {
+    while (!isTimeSynced()) {
+      std::this_thread::sleep_for(100ms);
+    }
+    std::this_thread::sleep_for(1s);
+    std::unique_ptr<Sensor::Device> pdev =
+        std::make_unique<Sensor::Bme280Device>(SENSOR_DESCRIPTOR_BME280,
+                                               BME280_I2C_ADDRESS, Wire);
+    _sensors.push_back(std::move(pdev));
+    std::unique_ptr<Sensor::Device> pdev2 =
+        std::make_unique<Sensor::M5Env3Device>(SENSOR_DESCRIPTOR_M5ENV3, Wire,
+                                               32, 33);
+    _sensors.push_back(std::move(pdev2));
+    auto tp = floor<minutes>(system_clock::now());
+    Sensor::Bme280 a{SENSOR_DESCRIPTOR_BME280, CentiDegC{1100}, CentiRH{5000},
+                     DeciPa{1000}};
+    Sensor::Bme280 b{SENSOR_DESCRIPTOR_BME280, CentiDegC{1200}, CentiRH{5000},
+                     DeciPa{1000}};
+    Sensor::Bme280 c{SENSOR_DESCRIPTOR_BME280, CentiDegC{1300}, CentiRH{5000},
+                     DeciPa{1000}};
+    Sensor::Bme280 d{SENSOR_DESCRIPTOR_BME280, CentiDegC{1400}, CentiRH{5000},
+                     DeciPa{1000}};
+    Sensor::Bme280 e{SENSOR_DESCRIPTOR_BME280, CentiDegC{1600}, CentiRH{5000},
+                     DeciPa{1000}};
+    Sensor::Bme280 f{SENSOR_DESCRIPTOR_BME280, CentiDegC{1700}, CentiRH{5000},
+                     DeciPa{1000}};
+    Sensor::Bme280 g{SENSOR_DESCRIPTOR_BME280, CentiDegC{1800}, CentiRH{5000},
+                     DeciPa{1000}};
+    Sensor::Bme280 h{SENSOR_DESCRIPTOR_BME280, CentiDegC{1900}, CentiRH{5000},
+                     DeciPa{1000}};
+    Sensor::Bme280 i{SENSOR_DESCRIPTOR_BME280, CentiDegC{2000}, CentiRH{5000},
+                     DeciPa{1000}};
+    Sensor::Bme280 j{SENSOR_DESCRIPTOR_BME280, CentiDegC{2100}, CentiRH{5000},
+                     DeciPa{1000}};
+    Sensor::Bme280 k{SENSOR_DESCRIPTOR_BME280, CentiDegC{2200}, CentiRH{5000},
+                     DeciPa{1000}};
+    Sensor::Bme280 l{SENSOR_DESCRIPTOR_BME280, CentiDegC{2300}, CentiRH{5000},
+                     DeciPa{1000}};
+    Sensor::Bme280 m{SENSOR_DESCRIPTOR_BME280, CentiDegC{2400}, CentiRH{5000},
+                     DeciPa{1000}};
+    Sensor::Bme280 n{SENSOR_DESCRIPTOR_BME280, CentiDegC{2500}, CentiRH{5000},
+                     DeciPa{1000}};
+    Sensor::Bme280 o{SENSOR_DESCRIPTOR_BME280, CentiDegC{2600}, CentiRH{5000},
+                     DeciPa{1000}};
+    Sensor::Bme280 p{SENSOR_DESCRIPTOR_BME280, CentiDegC{2700}, CentiRH{5000},
+                     DeciPa{1000}};
+    Sensor::Bme280 q{SENSOR_DESCRIPTOR_BME280, CentiDegC{2800}, CentiRH{5000},
+                     DeciPa{1000}};
+    Sensor::Bme280 r{SENSOR_DESCRIPTOR_BME280, CentiDegC{2900}, CentiRH{5000},
+                     DeciPa{1000}};
+    Sensor::Bme280 s{SENSOR_DESCRIPTOR_BME280, CentiDegC{3000}, CentiRH{5000},
+                     DeciPa{1000}};
+    Sensor::Bme280 t{SENSOR_DESCRIPTOR_BME280, CentiDegC{3100}, CentiRH{5000},
+                     DeciPa{1000}};
+    Sensor::Bme280 u{SENSOR_DESCRIPTOR_BME280, CentiDegC{3200}, CentiRH{5000},
+                     DeciPa{1000}};
+    Sensor::Bme280 v{SENSOR_DESCRIPTOR_BME280, CentiDegC{3300}, CentiRH{5000},
+                     DeciPa{1000}};
+    Sensor::Bme280 w{SENSOR_DESCRIPTOR_BME280, CentiDegC{3400}, CentiRH{5000},
+                     DeciPa{1000}};
+    Sensor::Bme280 x{SENSOR_DESCRIPTOR_BME280, CentiDegC{3500}, CentiRH{5000},
+                     DeciPa{1000}};
+    Sensor::Bme280 y{SENSOR_DESCRIPTOR_BME280, CentiDegC{3600}, CentiRH{5000},
+                     DeciPa{1000}};
+    Sensor::Bme280 z{SENSOR_DESCRIPTOR_BME280, CentiDegC{3700}, CentiRH{5000},
+                     DeciPa{1000}};
+    _measurements_database.insert({tp - 25min, a});
+    _measurements_database.insert({tp - 24min, b});
+    _measurements_database.insert({tp - 23min, c});
+    _measurements_database.insert({tp - 22min, d});
+    _measurements_database.insert({tp - 21min, e});
+    _measurements_database.insert({tp - 20min, f});
+    _measurements_database.insert({tp - 19min, g});
+    _measurements_database.insert({tp - 18min, h});
+    _measurements_database.insert({tp - 17min, i});
+    _measurements_database.insert({tp - 16min, j});
+    _measurements_database.insert({tp - 15min, k});
+    _measurements_database.insert({tp - 14min, l});
+    _measurements_database.insert({tp - 13min, m});
+    _measurements_database.insert({tp - 12min, n});
+    _measurements_database.insert({tp - 11min, o});
+    _measurements_database.insert({tp - 10min, p});
+    _measurements_database.insert({tp - 9min, q});
+    _measurements_database.insert({tp - 8min, r});
+    _measurements_database.insert({tp - 7min, s});
+    _measurements_database.insert({tp - 6min, t});
+    _measurements_database.insert({tp - 5min, u});
+    _measurements_database.insert({tp - 4min, v});
+    _measurements_database.insert({tp - 3min, w});
+    _measurements_database.insert({tp - 2min, x});
+    _measurements_database.insert({tp - 1min, y});
+    _measurements_database.insert({tp - 0min, z});
+  }
+
+  //
   _measuring_task.begin(std::chrono::system_clock::now());
 
   //
@@ -306,26 +404,6 @@ bool Application::synchronize_ntp(std::ostream &os) {
 }
 
 //
-bool Application::start_telemetry(std::ostream &os) {
-  os << "start Telemetry." << std::endl;
-  M5_LOGI("start Telemetry.");
-  //
-  if (_telemetry.begin(Credentials.iothub_fqdn, Credentials.device_id,
-                       Credentials.device_key) == false) {
-    os << "MQTT subscribe failed." << std::endl;
-    return false;
-  }
-  //
-  os << "waiting for Telemetry connection." << std::endl;
-  //
-  auto timeover{steady_clock::now() + TIMEOUT};
-  while (_telemetry.isConnected() == false && steady_clock::now() < timeover) {
-    std::this_thread::sleep_for(1s);
-  }
-  return _telemetry.isConnected();
-}
-
-//
 bool Application::start_database(std::ostream &os) {
   os << "start database." << std::endl;
   M5_LOGI("start database.");
@@ -355,6 +433,26 @@ bool Application::start_database(std::ostream &os) {
     M5_LOGE("Database is not available.");
     return false;
   }
+}
+
+//
+bool Application::start_telemetry(std::ostream &os) {
+  os << "start Telemetry." << std::endl;
+  M5_LOGI("start Telemetry.");
+  //
+  if (_telemetry.begin(Credentials.iothub_fqdn, Credentials.device_id,
+                       Credentials.device_key) == false) {
+    os << "MQTT subscribe failed." << std::endl;
+    return false;
+  }
+  //
+  os << "waiting for Telemetry connection." << std::endl;
+  //
+  auto timeover{steady_clock::now() + TIMEOUT};
+  while (_telemetry.isConnected() == false && steady_clock::now() < timeover) {
+    std::this_thread::sleep_for(1s);
+  }
+  return _telemetry.isConnected();
 }
 
 //

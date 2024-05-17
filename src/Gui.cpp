@@ -1005,8 +1005,8 @@ void Widget::BasicChart<T>::createWidgets(lv_obj_t *parent_obj,
   lv_obj_set_style_bg_color(
       chart_obj, lv_palette_lighten(LV_PALETTE_LIGHT_GREEN, 2), LV_PART_MAIN);
   //
-  constexpr auto X_TICK_LABEL_LEN = 10;
-  constexpr auto Y_TICK_LABEL_LEN = 75;
+  constexpr auto X_TICK_LABEL_LEN = 30;
+  constexpr auto Y_TICK_LABEL_LEN = 50;
   lv_obj_set_size(chart_obj,
                   lv_obj_get_content_width(parent_obj) //
                       - MARGIN - Y_TICK_LABEL_LEN,
@@ -1014,8 +1014,8 @@ void Widget::BasicChart<T>::createWidgets(lv_obj_t *parent_obj,
                       - MARGIN * 2 - lv_obj_get_height(title_obj) //
                       - MARGIN * 2 - lv_obj_get_height(label_obj) //
                       - MARGIN - X_TICK_LABEL_LEN);
-  lv_obj_align_to(chart_obj, label_obj, LV_ALIGN_OUT_BOTTOM_LEFT, 0, MARGIN);
-  if constexpr (false) {
+  lv_obj_align_to(chart_obj, label_obj, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, MARGIN);
+  if constexpr (true) {
     // Do not display points on the data
     lv_obj_set_style_size(chart_obj, 0, LV_PART_INDICATOR);
   }
@@ -1023,12 +1023,27 @@ void Widget::BasicChart<T>::createWidgets(lv_obj_t *parent_obj,
   lv_chart_set_type(chart_obj, LV_CHART_TYPE_LINE);
   lv_chart_set_range(chart_obj, LV_CHART_AXIS_PRIMARY_X, 0,
                      Gui::CHART_X_POINT_COUNT);
-  lv_chart_set_range(chart_obj, LV_CHART_AXIS_SECONDARY_Y, 0, 1);
+  lv_chart_set_range(chart_obj, LV_CHART_AXIS_PRIMARY_Y, 0, 1);
   //
-  lv_chart_set_axis_tick(chart_obj, LV_CHART_AXIS_PRIMARY_X, 10, 5, 10, 2,
-                         false, X_TICK_LABEL_LEN);
-  lv_chart_set_axis_tick(chart_obj, LV_CHART_AXIS_SECONDARY_Y, 10, 5, 10, 5,
-                         true, Y_TICK_LABEL_LEN);
+  lv_chart_set_axis_tick(chart_obj, LV_CHART_AXIS_PRIMARY_X, 8, 4,
+                         X_AXIS_TICK_COUNT, 2, true, X_TICK_LABEL_LEN);
+  lv_chart_set_axis_tick(chart_obj, LV_CHART_AXIS_PRIMARY_Y, 4, 2,
+                         Y_AXIS_TICK_COUNT, 2, true, Y_TICK_LABEL_LEN);
+  // callback
+  lv_obj_add_event_cb(
+      chart_obj,
+      [](lv_event_t *event) -> void {
+        auto it = static_cast<Widget::BasicChart<T> *>(event->user_data);
+        if (it == nullptr) {
+          M5_LOGE("user_data had null");
+        }
+        lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
+        if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
+                                        LV_CHART_DRAW_PART_TICK_LABEL)) {
+          it->chart_draw_part_tick_label(dsc);
+        }
+      },
+      LV_EVENT_DRAW_PART_BEGIN, this);
   //
   for (const auto &sensor : Application::getSensors()) {
     if (const auto p = sensor.get(); p) {
@@ -1059,7 +1074,7 @@ template <typename T> void Widget::BasicChart<T>::render() {
   }
   //
   system_clock::time_point now_min = floor<minutes>(system_clock::now());
-  begin_x_tick = now_min - minutes(Gui::CHART_X_POINT_COUNT);
+  begin_x_tp = now_min - minutes(Gui::CHART_X_POINT_COUNT);
 
   // データーベースより測定データーを得て
   // 各々のsensoridのchart seriesにセットする関数
@@ -1069,7 +1084,8 @@ template <typename T> void Widget::BasicChart<T>::render() {
     if (auto found_itr = std::find(chart_series_vect.begin(),
                                    chart_series_vect.end(), sensorid);
         found_itr != chart_series_vect.end()) {
-      auto coord = _coordinateXY(begin_x_tick, item);
+      auto coord = coordinateXY(begin_x_tp, item);
+      M5_LOGV("%d,%d", coord.x, coord.y);
       found_itr->chart_set_value_by_id(coord.x, coord.y);
     }
     // データー表示(デバッグ用)
@@ -1090,8 +1106,8 @@ template <typename T> void Widget::BasicChart<T>::render() {
   };
 
   // データーベースより測定データーを得る
-  if (_read_measurements_from_database(Database::OrderByAtAsc, begin_x_tick,
-                                       coordinateChartSeries) >= 1) {
+  if (read_measurements_from_database(Database::OrderByAtAsc, begin_x_tp,
+                                      coordinateChartSeries) >= 1) {
     // 下限、上限
     auto y_min = std::numeric_limits<lv_coord_t>::max();
     auto y_max = std::numeric_limits<lv_coord_t>::min();
@@ -1103,15 +1119,11 @@ template <typename T> void Widget::BasicChart<T>::render() {
     //
     if (y_min == std::numeric_limits<lv_coord_t>::max() &&
         y_max == std::numeric_limits<lv_coord_t>::min()) {
-      lv_chart_set_range(chart_obj, LV_CHART_AXIS_SECONDARY_Y, 0, 1);
+      lv_chart_set_range(chart_obj, LV_CHART_AXIS_PRIMARY_Y, 0, 1);
     } else {
-      DegC degc_min = std::chrono::duration_cast<DegC>(CentiDegC(y_min));
-      DegC degc_max = std::chrono::duration_cast<DegC>(CentiDegC(y_max));
-      DegC floor = std::chrono::floor<DegC>(degc_min);
-      DegC ceil = std::chrono::ceil<DegC>(degc_max);
-      lv_chart_set_range(chart_obj, LV_CHART_AXIS_SECONDARY_Y,
-                         std::chrono::duration_cast<CentiDegC>(floor).count(),
-                         std::chrono::duration_cast<CentiDegC>(ceil).count());
+      y_min = floor(y_min / 500.0f) * 500.0f;
+      y_max = ceil(y_max / 500.0f) * 500.0f;
+      lv_chart_set_range(chart_obj, LV_CHART_AXIS_PRIMARY_Y, y_min, y_max);
       M5_LOGV("y_min:%d, y_max:%d", y_min, y_max);
     }
   }
@@ -1132,9 +1144,7 @@ template <typename T> void Widget::BasicChart<T>::render() {
 //
 // 気温
 //
-Widget::TemperatureChart::TemperatureChart(InitArg init)
-    : TileBase{init},
-      basic_chart{coordinateXY, read_measurements_from_database} {
+Widget::TemperatureChart::TemperatureChart(InitArg init) : TileBase{init} {
   if (tileview_obj == nullptr) {
     M5_LOGE("tileview had null");
     return;
@@ -1145,9 +1155,6 @@ Widget::TemperatureChart::TemperatureChart(InitArg init)
   }
   // create
   basic_chart.createWidgets(tile_obj, "Temperature");
-  //
-  lv_obj_add_event_cb(basic_chart.getChartObj(), event_draw_part_begin_callback,
-                      LV_EVENT_DRAW_PART_BEGIN, this);
 }
 
 //
@@ -1211,7 +1218,7 @@ void Widget::TemperatureChart::update() {
 }
 
 // データーベースからデーターを得る
-size_t Widget::TemperatureChart::read_measurements_from_database(
+size_t Widget::TemperatureChart::C::read_measurements_from_database(
     Database::OrderBy order, system_clock::time_point at_begin,
     Database::ReadCallback<Database::TimePointAndDouble> callback) {
   return Application::getMeasurementsDatabase().read_temperatures(
@@ -1219,33 +1226,43 @@ size_t Widget::TemperatureChart::read_measurements_from_database(
 }
 
 // データを座標に変換する関数
-lv_point_t
-Widget::TemperatureChart::coordinateXY(system_clock::time_point begin_x,
-                                       const Database::TimePointAndDouble &in) {
+lv_point_t Widget::TemperatureChart::C::coordinateXY(
+    system_clock::time_point tp_zero, const Database::TimePointAndDouble &in) {
   auto [sensorid, timepoint, fp_value] = in;
   auto degc = DegC(fp_value);
   auto centi_degc = std::chrono::duration_cast<CentiDegC>(degc);
   uint32_t timediff =
-      duration_cast<minutes>(floor<minutes>(timepoint) - begin_x).count();
+      duration_cast<minutes>(floor<minutes>(timepoint) - tp_zero).count();
   lv_coord_t x = std::clamp(timediff, 0U, uint32_t(Gui::CHART_X_POINT_COUNT));
   lv_coord_t y = static_cast<lv_coord_t>(centi_degc.count());
   return lv_point_t{.x = x, .y = y};
 };
 
 //
-void Widget::TemperatureChart::event_draw_part_begin_callback(
-    lv_event_t *event) {
-  auto it = static_cast<Widget::TemperatureChart *>(event->user_data);
-  if (it == nullptr) {
-    M5_LOGE("user_data had null");
-  }
-  lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
-  if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
-                                  LV_CHART_DRAW_PART_TICK_LABEL)) {
-    if (dsc->id == LV_CHART_AXIS_SECONDARY_Y && dsc->text) {
-      auto centiC = CentiDegC(dsc->value);
-      lv_snprintf(dsc->text, dsc->text_length, "%.2f", DegC(centiC).count());
+void Widget::TemperatureChart::C::chart_draw_part_tick_label(
+    lv_obj_draw_part_dsc_t *dsc) {
+  switch (dsc->id) {
+  case LV_CHART_AXIS_PRIMARY_X:
+    if (dsc->text) {
+      int32_t slope = Gui::CHART_X_POINT_COUNT / (X_AXIS_TICK_COUNT - 1);
+      system_clock::time_point tp = getBeginX() + minutes{slope * dsc->value};
+      std::time_t time = system_clock::to_time_t(tp);
+      std::tm local_time;
+      localtime_r(&time, &local_time);
+      //
+      lv_snprintf(dsc->text, dsc->text_length, "%02d:%02d", local_time.tm_hour,
+                  local_time.tm_min);
     }
+    break;
+  case LV_CHART_AXIS_PRIMARY_Y:
+    if (dsc->text) {
+      auto centiC = CentiDegC(dsc->value);
+      lv_snprintf(dsc->text, dsc->text_length, "%.1f", DegC(centiC).count());
+    }
+    break;
+  default:
+    M5_LOGD("axis id:%d is ignored.", dsc->id);
+    break;
   }
 }
 
@@ -1253,8 +1270,7 @@ void Widget::TemperatureChart::event_draw_part_begin_callback(
 // 相対湿度
 //
 Widget::RelativeHumidityChart::RelativeHumidityChart(InitArg init)
-    : TileBase{init},
-      basic_chart{coordinateXY, read_measurements_from_database} {
+    : TileBase{init} {
   if (tileview_obj == nullptr) {
     M5_LOGE("tileview had null");
     return;
@@ -1265,9 +1281,6 @@ Widget::RelativeHumidityChart::RelativeHumidityChart(InitArg init)
   }
   // create
   basic_chart.createWidgets(tile_obj, "Relative Humidity");
-  //
-  lv_obj_add_event_cb(basic_chart.getChartObj(), event_draw_part_begin_callback,
-                      LV_EVENT_DRAW_PART_BEGIN, this);
 }
 
 //
@@ -1333,7 +1346,7 @@ void Widget::RelativeHumidityChart::update() {
 }
 
 // データーベースからデーターを得る
-size_t Widget::RelativeHumidityChart::read_measurements_from_database(
+size_t Widget::RelativeHumidityChart::C::read_measurements_from_database(
     Database::OrderBy order, system_clock::time_point at_begin,
     Database::ReadCallback<Database::TimePointAndDouble> callback) {
   return Application::getMeasurementsDatabase().read_relative_humidities(
@@ -1341,36 +1354,49 @@ size_t Widget::RelativeHumidityChart::read_measurements_from_database(
 }
 
 // データを座標に変換する関数
-lv_point_t Widget::RelativeHumidityChart::coordinateXY(
-    system_clock::time_point begin_x, const Database::TimePointAndDouble &in) {
+lv_point_t Widget::RelativeHumidityChart::C::coordinateXY(
+    system_clock::time_point tp_zero, const Database::TimePointAndDouble &in) {
   auto [sensorid, timepoint, fp_value] = in;
   auto percentRelativeHumidity = PctRH(fp_value);
   auto rh = std::chrono::duration_cast<CentiRH>(percentRelativeHumidity);
   uint32_t timediff =
-      duration_cast<minutes>(floor<minutes>(timepoint) - begin_x).count();
+      duration_cast<minutes>(floor<minutes>(timepoint) - tp_zero).count();
   lv_coord_t x = std::clamp(timediff, 0U, uint32_t(Gui::CHART_X_POINT_COUNT));
   lv_coord_t y = static_cast<lv_coord_t>(rh.count());
   return lv_point_t{.x = x, .y = y};
 };
 
-void Widget::RelativeHumidityChart::event_draw_part_begin_callback(
-    lv_event_t *event) {
-  lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
-  if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
-                                  LV_CHART_DRAW_PART_TICK_LABEL)) {
-    if (dsc->id == LV_CHART_AXIS_SECONDARY_Y && dsc->text) {
-      auto centiRH = CentiRH(dsc->value);
-      lv_snprintf(dsc->text, dsc->text_length, "%.2f", PctRH(centiRH).count());
+void Widget::RelativeHumidityChart::C::chart_draw_part_tick_label(
+    lv_obj_draw_part_dsc_t *dsc) {
+  switch (dsc->id) {
+  case LV_CHART_AXIS_PRIMARY_X:
+    if (dsc->text) {
+      int32_t slope = Gui::CHART_X_POINT_COUNT / (X_AXIS_TICK_COUNT - 1);
+      system_clock::time_point tp = getBeginX() + minutes{slope * dsc->value};
+      std::time_t time = system_clock::to_time_t(tp);
+      std::tm local_time;
+      localtime_r(&time, &local_time);
+      //
+      lv_snprintf(dsc->text, dsc->text_length, "%02d:%02d", local_time.tm_hour,
+                  local_time.tm_min);
     }
+    break;
+  case LV_CHART_AXIS_PRIMARY_Y:
+    if (dsc->text) {
+      auto centiRH = CentiRH(dsc->value);
+      lv_snprintf(dsc->text, dsc->text_length, "%.1f", PctRH(centiRH).count());
+    }
+    break;
+  default:
+    M5_LOGD("axis id:%d is ignored.", dsc->id);
+    break;
   }
 }
 
 //
 // 気圧
 //
-Widget::PressureChart::PressureChart(InitArg init)
-    : TileBase{init},
-      basic_chart{coordinateXY, read_measurements_from_database} {
+Widget::PressureChart::PressureChart(InitArg init) : TileBase{init} {
   if (tileview_obj == nullptr) {
     M5_LOGE("tileview had null");
     return;
@@ -1381,9 +1407,6 @@ Widget::PressureChart::PressureChart(InitArg init)
   }
   // create
   basic_chart.createWidgets(tile_obj, "Pressure");
-  //
-  lv_obj_add_event_cb(basic_chart.getChartObj(), event_draw_part_begin_callback,
-                      LV_EVENT_DRAW_PART_BEGIN, this);
 }
 
 //
@@ -1431,7 +1454,7 @@ void Widget::PressureChart::update() {
 }
 
 // データーベースからデーターを得る
-size_t Widget::PressureChart::read_measurements_from_database(
+size_t Widget::PressureChart::C::read_measurements_from_database(
     Database::OrderBy order, system_clock::time_point at_begin,
     Database::ReadCallback<Database::TimePointAndDouble> callback) {
   return Application::getMeasurementsDatabase().read_pressures(order, at_begin,
@@ -1440,26 +1463,43 @@ size_t Widget::PressureChart::read_measurements_from_database(
 
 // データを座標に変換する関数
 lv_point_t
-Widget::PressureChart::coordinateXY(system_clock::time_point begin_x,
-                                    const Database::TimePointAndDouble &in) {
+Widget::PressureChart::C::coordinateXY(system_clock::time_point tp_zero,
+                                       const Database::TimePointAndDouble &in) {
   auto [sensorid, timepoint, fp_value] = in;
   auto hpa = HectoPa(fp_value);
   auto pascal = std::chrono::duration_cast<Pascal>(hpa - BIAS);
   uint32_t timediff =
-      duration_cast<minutes>(floor<minutes>(timepoint) - begin_x).count();
+      duration_cast<minutes>(floor<minutes>(timepoint) - tp_zero).count();
   lv_coord_t x = std::clamp(timediff, 0U, uint32_t(Gui::CHART_X_POINT_COUNT));
   lv_coord_t y = static_cast<lv_coord_t>(pascal.count());
   return lv_point_t{.x = x, .y = y};
 };
 
-void Widget::PressureChart::event_draw_part_begin_callback(lv_event_t *event) {
-  lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
-  if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
-                                  LV_CHART_DRAW_PART_TICK_LABEL)) {
-    if (dsc->id == LV_CHART_AXIS_SECONDARY_Y && dsc->text) {
-      auto pascal = Pascal(dsc->value) + BIAS;
-      lv_snprintf(dsc->text, dsc->text_length, "%.2f", HectoPa(pascal).count());
+//
+void Widget::PressureChart::C::chart_draw_part_tick_label(
+    lv_obj_draw_part_dsc_t *dsc) {
+  switch (dsc->id) {
+  case LV_CHART_AXIS_PRIMARY_X:
+    if (dsc->text) {
+      int32_t slope = Gui::CHART_X_POINT_COUNT / (X_AXIS_TICK_COUNT - 1);
+      system_clock::time_point tp = getBeginX() + minutes{slope * dsc->value};
+      std::time_t time = system_clock::to_time_t(tp);
+      std::tm local_time;
+      localtime_r(&time, &local_time);
+      //
+      lv_snprintf(dsc->text, dsc->text_length, "%02d:%02d", local_time.tm_hour,
+                  local_time.tm_min);
     }
+    break;
+  case LV_CHART_AXIS_PRIMARY_Y:
+    if (dsc->text) {
+      auto pascal = Pascal(dsc->value) + BIAS;
+      lv_snprintf(dsc->text, dsc->text_length, "%.1f", HectoPa(pascal).count());
+    }
+    break;
+  default:
+    M5_LOGD("axis id:%d is ignored.", dsc->id);
+    break;
   }
 }
 
@@ -1467,8 +1507,7 @@ void Widget::PressureChart::event_draw_part_begin_callback(lv_event_t *event) {
 // Co2 / ECo2
 //
 Widget::CarbonDeoxidesChart::CarbonDeoxidesChart(InitArg init)
-    : TileBase{init},
-      basic_chart{coordinateXY, read_measurements_from_database} {
+    : TileBase{init} {
   if (tileview_obj == nullptr) {
     M5_LOGE("tileview had null");
     return;
@@ -1532,7 +1571,7 @@ void Widget::CarbonDeoxidesChart::update() {
 }
 
 // データーベースからデーターを得る
-size_t Widget::CarbonDeoxidesChart::read_measurements_from_database(
+size_t Widget::CarbonDeoxidesChart::C::read_measurements_from_database(
     Database::OrderBy order, system_clock::time_point at_begin,
     Database::ReadCallback<Database::TimePointAndUInt16> callback) {
   return Application::getMeasurementsDatabase().read_carbon_deoxides(
@@ -1540,22 +1579,48 @@ size_t Widget::CarbonDeoxidesChart::read_measurements_from_database(
 }
 
 // データを座標に変換する関数
-lv_point_t Widget::CarbonDeoxidesChart::coordinateXY(
-    system_clock::time_point begin_x, const Database::TimePointAndUInt16 &in) {
+lv_point_t Widget::CarbonDeoxidesChart::C::coordinateXY(
+    system_clock::time_point tp_zero, const Database::TimePointAndUInt16 &in) {
   auto [sensorid, timepoint, int_value] = in;
   uint32_t timediff =
-      duration_cast<minutes>(floor<minutes>(timepoint) - begin_x).count();
+      duration_cast<minutes>(floor<minutes>(timepoint) - tp_zero).count();
   lv_coord_t x = std::clamp(timediff, 0U, uint32_t(Gui::CHART_X_POINT_COUNT));
   lv_coord_t y = static_cast<lv_coord_t>(int_value);
   return lv_point_t{.x = x, .y = y};
 };
 
 //
+void Widget::CarbonDeoxidesChart::C::chart_draw_part_tick_label(
+    lv_obj_draw_part_dsc_t *dsc) {
+  switch (dsc->id) {
+  case LV_CHART_AXIS_PRIMARY_X:
+    if (dsc->text) {
+      int32_t slope = Gui::CHART_X_POINT_COUNT / (X_AXIS_TICK_COUNT - 1);
+      system_clock::time_point tp = getBeginX() + minutes{slope * dsc->value};
+      std::time_t time = system_clock::to_time_t(tp);
+      std::tm local_time;
+      localtime_r(&time, &local_time);
+      //
+      lv_snprintf(dsc->text, dsc->text_length, "%02d:%02d", local_time.tm_hour,
+                  local_time.tm_min);
+    }
+    break;
+  case LV_CHART_AXIS_PRIMARY_Y:
+    if (dsc->text) {
+      auto ppm = dsc->value;
+      lv_snprintf(dsc->text, dsc->text_length, "%d", ppm);
+    }
+    break;
+  default:
+    M5_LOGD("axis id:%d is ignored.", dsc->id);
+    break;
+  }
+}
+
+//
 // Total VOC
 //
-Widget::TotalVocChart::TotalVocChart(InitArg init)
-    : TileBase{init},
-      basic_chart{coordinateXY, read_measurements_from_database} {
+Widget::TotalVocChart::TotalVocChart(InitArg init) : TileBase{init} {
   if (tileview_obj == nullptr) {
     M5_LOGE("tileview had null");
     return;
@@ -1566,9 +1631,6 @@ Widget::TotalVocChart::TotalVocChart(InitArg init)
   }
   // create
   basic_chart.createWidgets(tile_obj, "Total VOC");
-  //
-  lv_obj_add_event_cb(basic_chart.getChartObj(), event_draw_part_begin_callback,
-                      LV_EVENT_DRAW_PART_BEGIN, this);
 }
 
 void Widget::TotalVocChart::update() {
@@ -1604,7 +1666,7 @@ void Widget::TotalVocChart::update() {
 }
 
 // データーベースからデーターを得る
-size_t Widget::TotalVocChart::read_measurements_from_database(
+size_t Widget::TotalVocChart::C::read_measurements_from_database(
     Database::OrderBy order, system_clock::time_point at_begin,
     Database::ReadCallback<Database::TimePointAndUInt16> callback) {
   return Application::getMeasurementsDatabase().read_total_vocs(order, at_begin,
@@ -1613,23 +1675,40 @@ size_t Widget::TotalVocChart::read_measurements_from_database(
 
 // データを座標に変換する関数
 lv_point_t
-Widget::TotalVocChart::coordinateXY(system_clock::time_point begin_x,
-                                    const Database::TimePointAndUInt16 &in) {
+Widget::TotalVocChart::C::coordinateXY(system_clock::time_point tp_zero,
+                                       const Database::TimePointAndUInt16 &in) {
   auto [sensorid, timepoint, int_value] = in;
   uint32_t timediff =
-      duration_cast<minutes>(floor<minutes>(timepoint) - begin_x).count();
+      duration_cast<minutes>(floor<minutes>(timepoint) - tp_zero).count();
   lv_coord_t x = std::clamp(timediff, 0U, uint32_t(Gui::CHART_X_POINT_COUNT));
-  lv_coord_t y = static_cast<lv_coord_t>(int_value / 2);
+  lv_coord_t y = static_cast<lv_coord_t>(int_value / DIVIDER);
   return lv_point_t{.x = x, .y = y};
 };
 
-void Widget::TotalVocChart::event_draw_part_begin_callback(lv_event_t *event) {
-  lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
-  if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
-                                  LV_CHART_DRAW_PART_TICK_LABEL)) {
-    if (dsc->id == LV_CHART_AXIS_SECONDARY_Y && dsc->text) {
-      auto tvoc = dsc->value * 2;
+//
+void Widget::TotalVocChart::C::chart_draw_part_tick_label(
+    lv_obj_draw_part_dsc_t *dsc) {
+  switch (dsc->id) {
+  case LV_CHART_AXIS_PRIMARY_X:
+    if (dsc->text) {
+      int32_t slope = Gui::CHART_X_POINT_COUNT / (X_AXIS_TICK_COUNT - 1);
+      system_clock::time_point tp = getBeginX() + minutes{slope * dsc->value};
+      std::time_t time = system_clock::to_time_t(tp);
+      std::tm local_time;
+      localtime_r(&time, &local_time);
+      //
+      lv_snprintf(dsc->text, dsc->text_length, "%02d:%02d", local_time.tm_hour,
+                  local_time.tm_min);
+    }
+    break;
+  case LV_CHART_AXIS_PRIMARY_Y:
+    if (dsc->text) {
+      auto tvoc = dsc->value * DIVIDER;
       lv_snprintf(dsc->text, dsc->text_length, "%d", tvoc);
     }
+    break;
+  default:
+    M5_LOGD("axis id:%d is ignored.", dsc->id);
+    break;
   }
 }
