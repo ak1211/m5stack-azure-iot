@@ -134,9 +134,9 @@ private:
   // インターネット時間サーバと同期する
   bool synchronize_ntp(std::ostream &os);
   //
-  bool start_telemetry(std::ostream &os);
-  //
   bool start_database(std::ostream &os);
+  //
+  bool start_telemetry(std::ostream &os);
   //
   bool start_sensor_BME280(std::ostream &os);
   //

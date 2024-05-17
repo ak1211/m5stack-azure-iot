@@ -116,8 +116,7 @@ struct M5Env3 {
 //
 struct Device {
   virtual SensorDescriptor getSensorDescriptor() const = 0;
-  virtual void printSensorDetails() = 0;
-  virtual bool init() = 0;
+  virtual bool begin() = 0;
   virtual bool available() const = 0;
   virtual bool readyToRead() = 0;
   virtual MeasuredValue read() = 0;
@@ -156,8 +155,7 @@ public:
   SensorDescriptor getSensorDescriptor() const override {
     return sensor_descriptor;
   }
-  void printSensorDetails() override;
-  bool init() override;
+  bool begin() override;
   bool available() const override { return initialized; }
   bool readyToRead() override;
   MeasuredValue read() override;
@@ -203,8 +201,7 @@ public:
   SensorDescriptor getSensorDescriptor() const override {
     return sensor_descriptor;
   }
-  void printSensorDetails() override;
-  bool init() override;
+  bool begin() override;
   bool available() const override { return initialized; }
   bool readyToRead() override;
   MeasuredValue read() override;
@@ -242,8 +239,7 @@ public:
   SensorDescriptor getSensorDescriptor() const override {
     return sensor_descriptor;
   }
-  void printSensorDetails() override;
-  bool init() override;
+  bool begin() override;
   bool available() const override { return initialized; }
   bool readyToRead() override;
   MeasuredValue read() override;
@@ -278,8 +274,7 @@ public:
   SensorDescriptor getSensorDescriptor() const override {
     return sensor_descriptor;
   }
-  void printSensorDetails() override;
-  bool init() override;
+  bool begin() override;
   bool available() const override { return initialized; }
   bool readyToRead() override;
   enum class SensorStatus { DataNotReady, DataReady };
@@ -326,8 +321,7 @@ public:
   SensorDescriptor getSensorDescriptor() const override {
     return sensor_descriptor;
   }
-  void printSensorDetails() override;
-  bool init() override;
+  bool begin() override;
   bool available() const override { return initialized; }
   bool readyToRead() override;
   MeasuredValue read() override;

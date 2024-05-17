@@ -14,21 +14,7 @@ using namespace std::chrono;
 //
 // Bosch BME280 Humidity and Pressure Sensor
 //
-void Sensor::Bme280Device::printSensorDetails() {
-  Adafruit_Sensor *temperature = bme280.getTemperatureSensor();
-  Adafruit_Sensor *pressure = bme280.getPressureSensor();
-  Adafruit_Sensor *humidity = bme280.getHumiditySensor();
-  if (temperature && pressure && humidity) {
-    temperature->printSensorDetails();
-    pressure->printSensorDetails();
-    humidity->printSensorDetails();
-    return;
-  }
-  M5_LOGE("BME280 sensor has problems.");
-}
-
-//
-bool Sensor::Bme280Device::init() {
+bool Sensor::Bme280Device::begin() {
   initialized = false;
   if (!bme280.begin(i2c_address, &two_wire)) {
     return false;
@@ -110,13 +96,7 @@ Sensor::MeasuredValue Sensor::Bme280Device::calculateSMA() {
 //
 // Sensirion SGP30: Air Quality Sensor
 //
-void Sensor::Sgp30Device::printSensorDetails() {
-  Serial.printf("SGP30 serial number is [0x%x, 0x%x, 0x%x]\n",
-                sgp30.serialnumber[0], sgp30.serialnumber[1],
-                sgp30.serialnumber[2]);
-}
-//
-bool Sensor::Sgp30Device::init() {
+bool Sensor::Sgp30Device::begin() {
   initialized = false;
   if (!sgp30.begin(&two_wire)) {
     return initialized;
@@ -208,19 +188,7 @@ MilligramPerCubicMetre calculateAbsoluteHumidity(DegC temperature,
 //
 // Sensirion SCD30: NDIR CO2 and Temperature and Humidity Sensor
 //
-void Sensor::Scd30Device::printSensorDetails() {
-  Adafruit_Sensor *temperature = scd30.getTemperatureSensor();
-  Adafruit_Sensor *humidity = scd30.getHumiditySensor();
-  if (temperature && humidity) {
-    temperature->printSensorDetails();
-    humidity->printSensorDetails();
-  } else {
-    M5_LOGE("SCD30 sensor has problems.");
-  }
-}
-
-//
-bool Sensor::Scd30Device::init() {
+bool Sensor::Scd30Device::begin() {
   initialized = false;
   if (!scd30.begin(97U, &two_wire)) {
     return initialized;
@@ -302,23 +270,7 @@ Sensor::MeasuredValue Sensor::Scd30Device::calculateSMA() {
 //
 // Sensirion SCD41: PASens CO2 and Temperature and Humidity Sensor
 //
-void Sensor::Scd41Device::printSensorDetails() {
-  uint16_t serial0;
-  uint16_t serial1;
-  uint16_t serial2;
-  if (auto error = scd4x.getSerialNumber(serial0, serial1, serial2); error) {
-    char errorMessage[256];
-    M5_LOGE("Error trying to execute getSerialNumber(): ");
-    errorToString(error, errorMessage, std::size(errorMessage));
-    M5_LOGE("%s", errorMessage);
-    return;
-  }
-  Serial.printf("SCD41 serial number is [0x%x, 0x%x, 0x%x]\n", serial0, serial1,
-                serial2);
-}
-
-//
-bool Sensor::Scd41Device::init() {
+bool Sensor::Scd41Device::begin() {
 
   initialized = false;
   scd4x.begin(two_wire);
@@ -418,10 +370,7 @@ Sensor::MeasuredValue Sensor::Scd41Device::calculateSMA() {
 //
 // M5Stack ENV.iii unit: Temperature and Humidity and Pressure Sensor
 //
-void Sensor::M5Env3Device::printSensorDetails() {}
-
-//
-bool Sensor::M5Env3Device::init() {
+bool Sensor::M5Env3Device::begin() {
   initialized = false;
   if (!sht31.begin(&two_wire, ENV3_I2C_ADDRESS_SHT31, sda_pin, scl_pin,
                    two_wire.getClock())) {
