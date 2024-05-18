@@ -238,11 +238,7 @@ public:
     }
   }
   //
-  ~ChartSeriesWrapper() {
-    if (_chart_series) {
-      lv_chart_remove_series(_chart_obj, _chart_series);
-    }
-  }
+  virtual ~ChartSeriesWrapper() { chart_remove_series(); }
   //
   bool operator==(const SensorId &other) const {
     return this->_sensor_id == other;
@@ -301,7 +297,11 @@ public:
       return;
     }
     if (_chart_series) {
-      lv_chart_remove_series(_chart_obj, _chart_series);
+      //
+      // lv_chart_remove_seriesを呼ぶとクラッシュするので、とりあえず回避
+      //
+      // lv_chart_remove_series(_chart_obj, _chart_series);
+      M5_LOGD("Avoid the \"lv_chart_remove_series\" function call to crash.");
     }
     _chart_series = nullptr;
   }
@@ -370,7 +370,9 @@ public:
   // 軸目盛関数
   virtual void chart_draw_part_tick_label(lv_obj_draw_part_dsc_t *dsc) = 0;
   //
-  void createWidgets(lv_obj_t *parent_obj, std::string_view inSubheading);
+  BasicChart(lv_obj_t *parent_obj, std::string_view inSubheading);
+  //
+  virtual ~BasicChart();
   //
   lv_obj_t *getChartObj() const { return chart_obj; }
   //
@@ -397,15 +399,12 @@ private:
 // 気温
 //
 class TemperatureChart final : public TileBase {
-private:
-  using Measurements = std::tuple<std::optional<Sensor::MeasurementBme280>,
-                                  std::optional<Sensor::MeasurementScd30>,
-                                  std::optional<Sensor::MeasurementScd41>,
-                                  std::optional<Sensor::MeasurementM5Env3>>;
-  Measurements latest{};
   //
   class C : public BasicChart<double> {
   public:
+    //
+    C(lv_obj_t *parent_obj, std::string_view inSubheading)
+        : BasicChart<double>(parent_obj, inSubheading) {}
     // データーベースからデーターを得る
     virtual size_t read_measurements_from_database(
         Database::OrderBy order, system_clock::time_point at_begin,
@@ -417,16 +416,40 @@ private:
     //
     virtual void
     chart_draw_part_tick_label(lv_obj_draw_part_dsc_t *dsc) override;
-  } basic_chart;
+  };
+
+private:
+  using Measurements = std::tuple<std::optional<Sensor::MeasurementBme280>,
+                                  std::optional<Sensor::MeasurementScd30>,
+                                  std::optional<Sensor::MeasurementScd41>,
+                                  std::optional<Sensor::MeasurementM5Env3>>;
+  Measurements latest{};
+  std::unique_ptr<C> basic_chart;
 
 public:
   TemperatureChart(TemperatureChart &&) = delete;
   TemperatureChart &operator=(const TemperatureChart &) = delete;
   TemperatureChart(InitArg init);
   //
-  virtual void onActivate() override { basic_chart.render(); }
+  virtual void onActivate() override {
+    if (tile_obj == nullptr) {
+      M5_LOGE("tile had null");
+      return;
+    }
+    if (!basic_chart) {
+      // create
+      basic_chart = std::make_unique<C>(tile_obj, "Temperature");
+    }
+    if (basic_chart) {
+      basic_chart->render();
+    }
+  }
   //
-  virtual void onDeactivate() override {}
+  virtual void onDeactivate() override {
+    if (basic_chart) {
+      basic_chart.reset();
+    }
+  }
   //
   virtual void update() override;
 };
@@ -435,15 +458,12 @@ public:
 // 相対湿度
 //
 class RelativeHumidityChart final : public TileBase {
-private:
-  using Measurements = std::tuple<std::optional<Sensor::MeasurementBme280>,
-                                  std::optional<Sensor::MeasurementScd30>,
-                                  std::optional<Sensor::MeasurementScd41>,
-                                  std::optional<Sensor::MeasurementM5Env3>>;
-  Measurements latest{};
   //
   class C : public BasicChart<double> {
   public:
+    //
+    C(lv_obj_t *parent_obj, std::string_view inSubheading)
+        : BasicChart<double>(parent_obj, inSubheading) {}
     // データーベースからデーターを得る
     virtual size_t read_measurements_from_database(
         Database::OrderBy order, system_clock::time_point at_begin,
@@ -455,16 +475,40 @@ private:
     //
     virtual void
     chart_draw_part_tick_label(lv_obj_draw_part_dsc_t *dsc) override;
-  } basic_chart;
+  };
+
+private:
+  using Measurements = std::tuple<std::optional<Sensor::MeasurementBme280>,
+                                  std::optional<Sensor::MeasurementScd30>,
+                                  std::optional<Sensor::MeasurementScd41>,
+                                  std::optional<Sensor::MeasurementM5Env3>>;
+  Measurements latest{};
+  std::unique_ptr<C> basic_chart;
 
 public:
   RelativeHumidityChart(RelativeHumidityChart &&) = delete;
   RelativeHumidityChart &operator=(const RelativeHumidityChart &) = delete;
   RelativeHumidityChart(InitArg init);
   //
-  virtual void onActivate() override { basic_chart.render(); }
+  virtual void onActivate() override {
+    if (tile_obj == nullptr) {
+      M5_LOGE("tile had null");
+      return;
+    }
+    if (!basic_chart) {
+      // create
+      basic_chart = std::make_unique<C>(tile_obj, "Relative Humidity");
+    }
+    if (basic_chart) {
+      basic_chart->render();
+    }
+  }
   //
-  virtual void onDeactivate() override {}
+  virtual void onDeactivate() override {
+    if (basic_chart) {
+      basic_chart.reset();
+    }
+  }
   //
   virtual void update() override;
 };
@@ -473,13 +517,12 @@ public:
 // 気圧
 //
 class PressureChart final : public TileBase {
-private:
-  using Measurements = std::tuple<std::optional<Sensor::MeasurementBme280>,
-                                  std::optional<Sensor::MeasurementM5Env3>>;
-  Measurements latest{};
   //
   class C : public BasicChart<double> {
   public:
+    //
+    C(lv_obj_t *parent_obj, std::string_view inSubheading)
+        : BasicChart<double>(parent_obj, inSubheading) {}
     // データーベースからデーターを得る
     virtual size_t read_measurements_from_database(
         Database::OrderBy order, system_clock::time_point at_begin,
@@ -493,16 +536,38 @@ private:
     //
     virtual void
     chart_draw_part_tick_label(lv_obj_draw_part_dsc_t *dsc) override;
-  } basic_chart;
+  };
+
+private:
+  using Measurements = std::tuple<std::optional<Sensor::MeasurementBme280>,
+                                  std::optional<Sensor::MeasurementM5Env3>>;
+  Measurements latest{};
+  std::unique_ptr<C> basic_chart;
 
 public:
   PressureChart(PressureChart &&) = delete;
   PressureChart &operator=(const PressureChart &) = delete;
   PressureChart(InitArg init);
   //
-  virtual void onActivate() override { basic_chart.render(); }
+  virtual void onActivate() override {
+    if (tile_obj == nullptr) {
+      M5_LOGE("tile had null");
+      return;
+    }
+    if (!basic_chart) {
+      // create
+      basic_chart = std::make_unique<C>(tile_obj, "Pressure");
+    }
+    if (basic_chart) {
+      basic_chart->render();
+    }
+  }
   //
-  virtual void onDeactivate() override {}
+  virtual void onDeactivate() override {
+    if (basic_chart) {
+      basic_chart.reset();
+    }
+  }
   //
   virtual void update() override;
 };
@@ -511,14 +576,12 @@ public:
 // Co2 / ECo2
 //
 class CarbonDeoxidesChart final : public TileBase {
-private:
-  using Measurements = std::tuple<std::optional<Sensor::MeasurementSgp30>,
-                                  std::optional<Sensor::MeasurementScd30>,
-                                  std::optional<Sensor::MeasurementScd41>>;
-  Measurements latest{};
   //
   class C : public BasicChart<uint16_t> {
   public:
+    //
+    C(lv_obj_t *parent_obj, std::string_view inSubheading)
+        : BasicChart<uint16_t>(parent_obj, inSubheading) {}
     // データーベースからデーターを得る
     virtual size_t read_measurements_from_database(
         Database::OrderBy order, system_clock::time_point at_begin,
@@ -530,16 +593,39 @@ private:
     //
     virtual void
     chart_draw_part_tick_label(lv_obj_draw_part_dsc_t *dsc) override;
-  } basic_chart;
+  };
+
+private:
+  using Measurements = std::tuple<std::optional<Sensor::MeasurementSgp30>,
+                                  std::optional<Sensor::MeasurementScd30>,
+                                  std::optional<Sensor::MeasurementScd41>>;
+  Measurements latest{};
+  std::unique_ptr<C> basic_chart;
 
 public:
   CarbonDeoxidesChart(CarbonDeoxidesChart &&) = delete;
   CarbonDeoxidesChart &operator=(const CarbonDeoxidesChart &) = delete;
   CarbonDeoxidesChart(InitArg init);
   //
-  virtual void onActivate() override { basic_chart.render(); }
+  virtual void onActivate() override {
+    if (tile_obj == nullptr) {
+      M5_LOGE("tile had null");
+      return;
+    }
+    if (!basic_chart) {
+      // create
+      basic_chart = std::make_unique<C>(tile_obj, "CO2");
+    }
+    if (basic_chart) {
+      basic_chart->render();
+    }
+  }
   //
-  virtual void onDeactivate() override {}
+  virtual void onDeactivate() override {
+    if (basic_chart) {
+      basic_chart.reset();
+    }
+  }
   //
   virtual void update() override;
 };
@@ -548,11 +634,12 @@ public:
 // Total VOC
 //
 class TotalVocChart final : public TileBase {
-private:
-  std::optional<Sensor::MeasurementSgp30> latest{};
   //
   class C : public BasicChart<uint16_t> {
   public:
+    //
+    C(lv_obj_t *parent_obj, std::string_view inSubheading)
+        : BasicChart<uint16_t>(parent_obj, inSubheading) {}
     // データーベースからデーターを得る
     virtual size_t read_measurements_from_database(
         Database::OrderBy order, system_clock::time_point at_begin,
@@ -566,16 +653,36 @@ private:
     //
     virtual void
     chart_draw_part_tick_label(lv_obj_draw_part_dsc_t *dsc) override;
-  } basic_chart;
+  };
+
+private:
+  std::optional<Sensor::MeasurementSgp30> latest{};
+  std::unique_ptr<C> basic_chart;
 
 public:
   TotalVocChart(TotalVocChart &&) = delete;
   TotalVocChart &operator=(const TotalVocChart &) = delete;
   TotalVocChart(InitArg init);
   //
-  virtual void onActivate() override { basic_chart.render(); }
+  virtual void onActivate() override {
+    if (tile_obj == nullptr) {
+      M5_LOGE("tile had null");
+      return;
+    }
+    if (!basic_chart) {
+      // create
+      basic_chart = std::make_unique<C>(tile_obj, "Total VOC");
+    }
+    if (basic_chart) {
+      basic_chart->render();
+    }
+  }
   //
-  virtual void onDeactivate() override {}
+  virtual void onDeactivate() override {
+    if (basic_chart) {
+      basic_chart.reset();
+    }
+  }
   //
   virtual void update() override;
 };
@@ -610,7 +717,7 @@ public:
 class Gui {
 public:
   constexpr static auto PERIODIC_TIMER_INTERVAL = std::chrono::milliseconds{30};
-  constexpr static uint16_t CHART_X_POINT_COUNT = 360;
+  constexpr static uint16_t CHART_X_POINT_COUNT = 120;
   Gui(M5GFX &gfx) : gfx{gfx} {}
   //
   bool begin();

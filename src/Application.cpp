@@ -44,7 +44,7 @@ bool Application::task_handler() {
   //
   if (now_tp - before_db_tp >= 333s) {
     // データベースの整理
-    system_clock::time_point tp = now_tp - 24h;
+    system_clock::time_point tp = now_tp - minutes{Gui::CHART_X_POINT_COUNT};
     if (_measurements_database.delete_old_measurements_from_database(
             std::chrono::floor<minutes>(tp)) == false) {
       M5_LOGE("delete old measurements failed.");
