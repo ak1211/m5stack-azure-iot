@@ -959,8 +959,8 @@ const std::unordered_map<SensorId, lv_color_t> Widget::LINE_COLOR_MAP{
 
 //
 template <typename T>
-void Widget::BasicChart<T>::createWidgets(lv_obj_t *parent_obj,
-                                          std::string_view inSubheading) {
+Widget::BasicChart<T>::BasicChart(lv_obj_t *parent_obj,
+                                  std::string_view inSubheading) {
   if (parent_obj == nullptr) {
     M5_LOGE("null");
     return;
@@ -1058,6 +1058,22 @@ void Widget::BasicChart<T>::createWidgets(lv_obj_t *parent_obj,
 }
 
 //
+template <typename T> Widget::BasicChart<T>::~BasicChart() {
+  //
+  if (chart_obj) {
+    lv_obj_remove_event_cb(chart_obj, nullptr);
+    chart_series_vect.clear();
+    lv_obj_del(chart_obj);
+  }
+  if (label_obj) {
+    lv_obj_del(label_obj);
+  }
+  if (title_obj) {
+    lv_obj_del(title_obj);
+  }
+}
+
+//
 template <typename T> void Widget::BasicChart<T>::render() {
   if (chart_obj == nullptr) {
     M5_LOGE("chart had null");
@@ -1149,12 +1165,6 @@ Widget::TemperatureChart::TemperatureChart(InitArg init) : TileBase{init} {
     M5_LOGE("tileview had null");
     return;
   }
-  if (tile_obj == nullptr) {
-    M5_LOGE("tile had null");
-    return;
-  }
-  // create
-  basic_chart.createWidgets(tile_obj, "Temperature");
 }
 
 //
@@ -1211,9 +1221,11 @@ void Widget::TemperatureChart::update() {
                            .meas = m5env3->second.temperature};
       oss << s << "  ";
     }
-    lv_label_set_text(basic_chart.getLabelObj(), oss.str().c_str());
-    //
-    basic_chart.render();
+    if (basic_chart) {
+      lv_label_set_text(basic_chart->getLabelObj(), oss.str().c_str());
+      //
+      basic_chart->render();
+    }
   }
 }
 
@@ -1275,12 +1287,6 @@ Widget::RelativeHumidityChart::RelativeHumidityChart(InitArg init)
     M5_LOGE("tileview had null");
     return;
   }
-  if (tile_obj == nullptr) {
-    M5_LOGE("tile had null");
-    return;
-  }
-  // create
-  basic_chart.createWidgets(tile_obj, "Relative Humidity");
 }
 
 //
@@ -1339,9 +1345,11 @@ void Widget::RelativeHumidityChart::update() {
                             .meas = m5env3->second.relative_humidity};
       oss << s << "  ";
     }
-    lv_label_set_text(basic_chart.getLabelObj(), oss.str().c_str());
-    //
-    basic_chart.render();
+    if (basic_chart) {
+      lv_label_set_text(basic_chart->getLabelObj(), oss.str().c_str());
+      //
+      basic_chart->render();
+    }
   }
 }
 
@@ -1401,12 +1409,6 @@ Widget::PressureChart::PressureChart(InitArg init) : TileBase{init} {
     M5_LOGE("tileview had null");
     return;
   }
-  if (tile_obj == nullptr) {
-    M5_LOGE("tile had null");
-    return;
-  }
-  // create
-  basic_chart.createWidgets(tile_obj, "Pressure");
 }
 
 //
@@ -1447,9 +1449,11 @@ void Widget::PressureChart::update() {
                               .meas = m5env3->second.pressure};
       oss << s << "  ";
     }
-    lv_label_set_text(basic_chart.getLabelObj(), oss.str().c_str());
-    //
-    basic_chart.render();
+    if (basic_chart) {
+      lv_label_set_text(basic_chart->getLabelObj(), oss.str().c_str());
+      //
+      basic_chart->render();
+    }
   }
 }
 
@@ -1512,12 +1516,6 @@ Widget::CarbonDeoxidesChart::CarbonDeoxidesChart(InitArg init)
     M5_LOGE("tileview had null");
     return;
   }
-  if (tile_obj == nullptr) {
-    M5_LOGE("tile had null");
-    return;
-  }
-  // create
-  basic_chart.createWidgets(tile_obj, "CO2");
 }
 
 void Widget::CarbonDeoxidesChart::update() {
@@ -1564,9 +1562,11 @@ void Widget::CarbonDeoxidesChart::update() {
                           .meas = scd41->second.co2};
       oss << s << "  ";
     }
-    lv_label_set_text(basic_chart.getLabelObj(), oss.str().c_str());
-    //
-    basic_chart.render();
+    if (basic_chart) {
+      lv_label_set_text(basic_chart->getLabelObj(), oss.str().c_str());
+      //
+      basic_chart->render();
+    }
   }
 }
 
@@ -1625,12 +1625,6 @@ Widget::TotalVocChart::TotalVocChart(InitArg init) : TileBase{init} {
     M5_LOGE("tileview had null");
     return;
   }
-  if (tile_obj == nullptr) {
-    M5_LOGE("tile had null");
-    return;
-  }
-  // create
-  basic_chart.createWidgets(tile_obj, "Total VOC");
 }
 
 void Widget::TotalVocChart::update() {
@@ -1659,9 +1653,11 @@ void Widget::TotalVocChart::update() {
                           .meas = sgp30->second.tvoc};
       oss << s << "  ";
     }
-    lv_label_set_text(basic_chart.getLabelObj(), oss.str().c_str());
-    //
-    basic_chart.render();
+    if (basic_chart) {
+      lv_label_set_text(basic_chart->getLabelObj(), oss.str().c_str());
+      //
+      basic_chart->render();
+    }
   }
 }
 
