@@ -174,7 +174,7 @@ void Gui::moveNext() {
 
 //
 void Gui::vibrate() {
-  constexpr auto MILLISECONDS = 100;
+  constexpr auto MILLISECONDS = 120;
   auto stop_the_vibration = [](lv_timer_t *) -> void {
     M5.Power.setVibration(0);
   };
@@ -1025,7 +1025,7 @@ Widget::BasicChart<T>::BasicChart(lv_obj_t *parent_obj,
       chart_obj, lv_palette_lighten(LV_PALETTE_LIGHT_GREEN, 2), LV_PART_MAIN);
   //
   constexpr auto X_TICK_LABEL_LEN = 30;
-  constexpr auto Y_TICK_LABEL_LEN = 50;
+  constexpr auto Y_TICK_LABEL_LEN = 60;
   lv_obj_set_size(chart_obj,
                   lv_obj_get_content_width(parent_obj) //
                       - MARGIN - Y_TICK_LABEL_LEN,
