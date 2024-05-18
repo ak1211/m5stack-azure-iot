@@ -218,7 +218,14 @@ public:
 //
 //
 //
-extern const std::unordered_map<SensorId, lv_color_t> LINE_COLOR_MAP;
+class ChartLineColor {
+public:
+  const static std::unordered_map<SensorId, lv_color_t> LINE_COLOR_MAP;
+  //
+  static std::optional<lv_color_t> getAssignedColor(SensorId sensor_id);
+  //
+  static std::optional<lv_color32_t> getAssignedColor32(SensorId sensor_id);
+};
 
 //
 //
@@ -284,11 +291,10 @@ public:
       M5_LOGE("chart had null");
       return;
     }
-    auto itr = LINE_COLOR_MAP.find(_sensor_id);
-    lv_color_t color =
-        itr != LINE_COLOR_MAP.end() ? itr->second : lv_color_black();
-    _chart_series =
-        lv_chart_add_series(_chart_obj, color, LV_CHART_AXIS_PRIMARY_Y);
+    auto color = ChartLineColor::getAssignedColor(_sensor_id);
+    _chart_series = lv_chart_add_series(
+        _chart_obj, color ? color.value() : lv_color_black(),
+        LV_CHART_AXIS_PRIMARY_Y);
   }
   //
   void chart_remove_series() {
@@ -440,9 +446,7 @@ public:
       // create
       basic_chart = std::make_unique<C>(tile_obj, "Temperature");
     }
-    if (basic_chart) {
-      basic_chart->render();
-    }
+    render();
   }
   //
   virtual void onDeactivate() override {
@@ -452,6 +456,8 @@ public:
   }
   //
   virtual void update() override;
+  //
+  void render();
 };
 
 //
@@ -499,9 +505,7 @@ public:
       // create
       basic_chart = std::make_unique<C>(tile_obj, "Relative Humidity");
     }
-    if (basic_chart) {
-      basic_chart->render();
-    }
+    render();
   }
   //
   virtual void onDeactivate() override {
@@ -511,6 +515,8 @@ public:
   }
   //
   virtual void update() override;
+  //
+  void render();
 };
 
 //
@@ -558,9 +564,7 @@ public:
       // create
       basic_chart = std::make_unique<C>(tile_obj, "Pressure");
     }
-    if (basic_chart) {
-      basic_chart->render();
-    }
+    render();
   }
   //
   virtual void onDeactivate() override {
@@ -570,6 +574,8 @@ public:
   }
   //
   virtual void update() override;
+  //
+  void render();
 };
 
 //
@@ -616,9 +622,7 @@ public:
       // create
       basic_chart = std::make_unique<C>(tile_obj, "CO2");
     }
-    if (basic_chart) {
-      basic_chart->render();
-    }
+    render();
   }
   //
   virtual void onDeactivate() override {
@@ -628,6 +632,8 @@ public:
   }
   //
   virtual void update() override;
+  //
+  void render();
 };
 
 //
@@ -673,9 +679,7 @@ public:
       // create
       basic_chart = std::make_unique<C>(tile_obj, "Total VOC");
     }
-    if (basic_chart) {
-      basic_chart->render();
-    }
+    render();
   }
   //
   virtual void onDeactivate() override {
@@ -685,6 +689,8 @@ public:
   }
   //
   virtual void update() override;
+  //
+  void render();
 };
 
 //
