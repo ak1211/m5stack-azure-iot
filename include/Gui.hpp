@@ -450,9 +450,9 @@ public:
   }
   //
   virtual void onDeactivate() override {
-    if (basic_chart) {
-      basic_chart.reset();
-    }
+    //    if (basic_chart) {
+    //      basic_chart.reset();
+    //    }
   }
   //
   virtual void update() override;
@@ -509,9 +509,9 @@ public:
   }
   //
   virtual void onDeactivate() override {
-    if (basic_chart) {
-      basic_chart.reset();
-    }
+    //    if (basic_chart) {
+    //      basic_chart.reset();
+    //    }
   }
   //
   virtual void update() override;
@@ -568,9 +568,9 @@ public:
   }
   //
   virtual void onDeactivate() override {
-    if (basic_chart) {
-      basic_chart.reset();
-    }
+    //    if (basic_chart) {
+    //      basic_chart.reset();
+    //    }
   }
   //
   virtual void update() override;
@@ -626,9 +626,9 @@ public:
   }
   //
   virtual void onDeactivate() override {
-    if (basic_chart) {
-      basic_chart.reset();
-    }
+    //    if (basic_chart) {
+    //      basic_chart.reset();
+    //    }
   }
   //
   virtual void update() override;
@@ -683,9 +683,9 @@ public:
   }
   //
   virtual void onDeactivate() override {
-    if (basic_chart) {
-      basic_chart.reset();
-    }
+    //    if (basic_chart) {
+    //      basic_chart.reset();
+    //    }
   }
   //
   virtual void update() override;
@@ -723,7 +723,7 @@ public:
 class Gui {
 public:
   constexpr static auto PERIODIC_TIMER_INTERVAL = std::chrono::milliseconds{30};
-  constexpr static uint16_t CHART_X_POINT_COUNT = 120;
+  constexpr static uint16_t CHART_X_POINT_COUNT = 180;
   Gui(M5GFX &gfx) : gfx{gfx} {}
   //
   bool begin();
