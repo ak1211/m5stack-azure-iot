@@ -305,16 +305,6 @@ public:
     }
   }
   //
-  bool chart_set_x_start_point(uint16_t id) {
-    if (_chart_series) {
-      lv_chart_set_x_start_point(_chart_obj, _chart_series, id);
-      return true;
-    } else {
-      M5_LOGE("chart_series had null");
-      return false;
-    }
-  }
-  //
   bool chart_set_value_by_id(uint16_t id, lv_coord_t value) {
     if (_chart_series) {
       lv_chart_set_value_by_id(_chart_obj, _chart_series, id, value);
@@ -335,9 +325,13 @@ template <typename T> struct ShowMeasured {
   std::string_view unit;
   T meas;
 };
+
+//
 template <typename T>
 std::ostream &operator<<(std::ostream &os, const ShowMeasured<T> &rhs);
 
+//
+//
 //
 template <typename T> class BasicChart {
 public:
@@ -359,25 +353,27 @@ public:
   //
   virtual ~BasicChart();
   //
-  lv_obj_t *getChartObj() const { return chart_obj; }
+  lv_obj_t *getChartObj() const { return _chart_obj; }
   //
-  lv_obj_t *getLabelObj() const { return label_obj; }
+  lv_obj_t *getLabelObj() const { return _label_obj; }
   //
-  system_clock::time_point getBeginX() const { return begin_x_tp; }
+  system_clock::time_point getBeginX() const { return _begin_x_tp; }
   //
   void render();
 
 private:
-  lv_obj_t *title_obj{nullptr};
-  lv_style_t label_style{};
-  lv_obj_t *label_obj{nullptr};
-  lv_obj_t *chart_obj{nullptr};
+  lv_obj_t *_title_obj{nullptr};
+  lv_style_t _label_style{};
+  lv_obj_t *_label_obj{nullptr};
+  lv_obj_t *_chart_obj{nullptr};
   //
-  std::unordered_map<SensorId, ChartSeriesWrapper> chart_series_map{};
+  std::unordered_map<SensorId, ChartSeriesWrapper> _chart_series_map{};
   //
-  system_clock::time_point begin_x_tp{};
+  system_clock::time_point _begin_x_tp{};
   //
-  std::string subheading{};
+  std::string _subheading{};
+  //
+  static void event_draw_part_begin_callback(lv_event_t *event);
 };
 
 //
@@ -429,9 +425,9 @@ public:
   }
   //
   virtual void onDeactivate() override {
-    //    if (basic_chart) {
-    //      basic_chart.reset();
-    //    }
+    if (basic_chart) {
+      basic_chart.reset();
+    }
   }
   //
   virtual void update() override;
@@ -488,9 +484,9 @@ public:
   }
   //
   virtual void onDeactivate() override {
-    //    if (basic_chart) {
-    //      basic_chart.reset();
-    //    }
+    if (basic_chart) {
+      basic_chart.reset();
+    }
   }
   //
   virtual void update() override;
@@ -547,9 +543,9 @@ public:
   }
   //
   virtual void onDeactivate() override {
-    //    if (basic_chart) {
-    //      basic_chart.reset();
-    //    }
+    if (basic_chart) {
+      basic_chart.reset();
+    }
   }
   //
   virtual void update() override;
@@ -605,9 +601,9 @@ public:
   }
   //
   virtual void onDeactivate() override {
-    //    if (basic_chart) {
-    //      basic_chart.reset();
-    //    }
+    if (basic_chart) {
+      basic_chart.reset();
+    }
   }
   //
   virtual void update() override;
@@ -662,9 +658,9 @@ public:
   }
   //
   virtual void onDeactivate() override {
-    //    if (basic_chart) {
-    //      basic_chart.reset();
-    //    }
+    if (basic_chart) {
+      basic_chart.reset();
+    }
   }
   //
   virtual void update() override;

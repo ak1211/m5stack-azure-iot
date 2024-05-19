@@ -985,94 +985,81 @@ Widget::BasicChart<T>::BasicChart(lv_obj_t *parent_obj,
     return;
   }
   constexpr auto MARGIN{8};
-  subheading.assign(inSubheading);
+  _subheading.assign(inSubheading);
   // create
-  if (title_obj = lv_label_create(parent_obj); title_obj == nullptr) {
+  if (_title_obj = lv_label_create(parent_obj); _title_obj == nullptr) {
     M5_LOGE("title had null");
     return;
   }
-  lv_obj_set_style_text_align(title_obj, LV_TEXT_ALIGN_LEFT, LV_STATE_DEFAULT);
-  lv_obj_set_style_text_font(title_obj, &lv_font_montserrat_16,
+  lv_obj_set_style_text_align(_title_obj, LV_TEXT_ALIGN_LEFT, LV_STATE_DEFAULT);
+  lv_obj_set_style_text_font(_title_obj, &lv_font_montserrat_16,
                              LV_STATE_DEFAULT);
-  lv_obj_set_size(title_obj, LV_PCT(100), lv_font_montserrat_16.line_height);
-  lv_obj_align(title_obj, LV_ALIGN_TOP_LEFT, MARGIN, MARGIN);
-  lv_label_set_text(title_obj, subheading.c_str());
+  lv_obj_set_size(_title_obj, LV_PCT(100), lv_font_montserrat_16.line_height);
+  lv_obj_align(_title_obj, LV_ALIGN_TOP_LEFT, MARGIN, MARGIN);
+  lv_label_set_text(_title_obj, _subheading.c_str());
   //
-  if (label_obj = lv_label_create(parent_obj); label_obj == nullptr) {
+  if (_label_obj = lv_label_create(parent_obj); _label_obj == nullptr) {
     M5_LOGE("label had null");
     return;
   }
   const lv_font_t *FONT{&lv_font_montserrat_24};
-  lv_obj_set_size(label_obj, lv_obj_get_content_width(parent_obj) - MARGIN * 2,
+  lv_obj_set_size(_label_obj, lv_obj_get_content_width(parent_obj) - MARGIN * 2,
                   FONT->line_height);
-  lv_obj_align_to(label_obj, title_obj, LV_ALIGN_OUT_BOTTOM_LEFT, 0, MARGIN);
-  lv_label_set_long_mode(label_obj, LV_LABEL_LONG_SCROLL_CIRCULAR);
-  lv_label_set_recolor(label_obj, true);
-  lv_obj_set_style_text_font(label_obj, FONT, LV_STATE_DEFAULT);
-  lv_style_init(&label_style);
-  lv_style_set_bg_opa(&label_style, LV_OPA_COVER);
-  lv_style_set_bg_color(&label_style, lv_palette_darken(LV_PALETTE_BROWN, 4));
-  lv_style_set_text_color(&label_style,
+  lv_obj_align_to(_label_obj, _title_obj, LV_ALIGN_OUT_BOTTOM_LEFT, 0, MARGIN);
+  lv_label_set_long_mode(_label_obj, LV_LABEL_LONG_SCROLL_CIRCULAR);
+  lv_label_set_recolor(_label_obj, true);
+  lv_obj_set_style_text_font(_label_obj, FONT, LV_STATE_DEFAULT);
+  lv_style_init(&_label_style);
+  lv_style_set_bg_opa(&_label_style, LV_OPA_COVER);
+  lv_style_set_bg_color(&_label_style, lv_palette_darken(LV_PALETTE_BROWN, 4));
+  lv_style_set_text_color(&_label_style,
                           lv_palette_lighten(LV_PALETTE_BROWN, 4));
-  lv_obj_add_style(label_obj, &label_style, LV_PART_MAIN);
-  lv_label_set_text(label_obj, "");
+  lv_obj_add_style(_label_obj, &_label_style, LV_PART_MAIN);
+  lv_label_set_text(_label_obj, "");
   //
-  if (chart_obj = lv_chart_create(parent_obj); chart_obj == nullptr) {
+  if (_chart_obj = lv_chart_create(parent_obj); _chart_obj == nullptr) {
     M5_LOGE("chart had null");
     return;
   }
   lv_obj_set_style_bg_color(
-      chart_obj, lv_palette_lighten(LV_PALETTE_LIGHT_GREEN, 2), LV_PART_MAIN);
+      _chart_obj, lv_palette_lighten(LV_PALETTE_LIGHT_GREEN, 2), LV_PART_MAIN);
   //
   constexpr auto X_TICK_LABEL_LEN = 30;
   constexpr auto Y_TICK_LABEL_LEN = 60;
-  lv_obj_set_size(chart_obj,
+  lv_obj_set_size(_chart_obj,
                   lv_obj_get_content_width(parent_obj) //
                       - MARGIN - Y_TICK_LABEL_LEN,
-                  lv_obj_get_content_height(parent_obj)           //
-                      - MARGIN * 2 - lv_obj_get_height(title_obj) //
-                      - MARGIN * 2 - lv_obj_get_height(label_obj) //
+                  lv_obj_get_content_height(parent_obj)            //
+                      - MARGIN * 2 - lv_obj_get_height(_title_obj) //
+                      - MARGIN * 2 - lv_obj_get_height(_label_obj) //
                       - MARGIN - X_TICK_LABEL_LEN);
-  lv_obj_align_to(chart_obj, label_obj, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, MARGIN);
+  lv_obj_align_to(_chart_obj, _label_obj, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, MARGIN);
   if constexpr (true) {
     // Do not display points on the data
-    lv_obj_set_style_size(chart_obj, 0, LV_PART_INDICATOR);
+    lv_obj_set_style_size(_chart_obj, 0, LV_PART_INDICATOR);
   }
-  lv_chart_set_update_mode(chart_obj, LV_CHART_UPDATE_MODE_SHIFT);
-  lv_chart_set_type(chart_obj, LV_CHART_TYPE_LINE);
-  lv_chart_set_range(chart_obj, LV_CHART_AXIS_PRIMARY_X, 0,
+  lv_chart_set_update_mode(_chart_obj, LV_CHART_UPDATE_MODE_SHIFT);
+  lv_chart_set_type(_chart_obj, LV_CHART_TYPE_LINE);
+  lv_chart_set_range(_chart_obj, LV_CHART_AXIS_PRIMARY_X, 0,
                      Gui::CHART_X_POINT_COUNT);
-  lv_chart_set_range(chart_obj, LV_CHART_AXIS_PRIMARY_Y, 0, 1);
+  lv_chart_set_range(_chart_obj, LV_CHART_AXIS_PRIMARY_Y, 0, 1);
   //
-  lv_chart_set_axis_tick(chart_obj, LV_CHART_AXIS_PRIMARY_X, 8, 4,
+  lv_chart_set_axis_tick(_chart_obj, LV_CHART_AXIS_PRIMARY_X, 8, 4,
                          X_AXIS_TICK_COUNT, 2, true, X_TICK_LABEL_LEN);
-  lv_chart_set_axis_tick(chart_obj, LV_CHART_AXIS_PRIMARY_Y, 4, 2,
+  lv_chart_set_axis_tick(_chart_obj, LV_CHART_AXIS_PRIMARY_Y, 4, 2,
                          Y_AXIS_TICK_COUNT, 2, true, Y_TICK_LABEL_LEN);
   // callback
-  lv_obj_add_event_cb(
-      chart_obj,
-      [](lv_event_t *event) -> void {
-        auto it = static_cast<Widget::BasicChart<T> *>(event->user_data);
-        if (it == nullptr) {
-          M5_LOGE("user_data had null");
-        }
-        lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
-        if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
-                                        LV_CHART_DRAW_PART_TICK_LABEL)) {
-          it->chart_draw_part_tick_label(dsc);
-        }
-      },
-      LV_EVENT_DRAW_PART_BEGIN, this);
+  lv_obj_add_event_cb(_chart_obj, event_draw_part_begin_callback,
+                      LV_EVENT_DRAW_PART_BEGIN, this);
   //
   for (const auto &sensor : Application::getSensors()) {
-    if (const auto p = sensor.get(); p) {
-      SensorId sensor_id{p->getSensorDescriptor()};
-      chart_series_map.emplace(sensor_id,
-                               ChartSeriesWrapper{sensor_id, chart_obj});
-      //
+    if (sensor) {
+      SensorId sensor_id{sensor->getSensorDescriptor()};
+      _chart_series_map.emplace(sensor_id,
+                                ChartSeriesWrapper{sensor_id, _chart_obj});
     }
   }
-  for (auto &pair : chart_series_map) {
+  for (auto &pair : _chart_series_map) {
     pair.second.chart_add_series();
   }
 }
@@ -1080,27 +1067,45 @@ Widget::BasicChart<T>::BasicChart(lv_obj_t *parent_obj,
 //
 template <typename T> Widget::BasicChart<T>::~BasicChart() {
   //
-  if (chart_obj) {
-    lv_obj_remove_event_cb(chart_obj, nullptr);
-    chart_series_map.clear();
-    lv_obj_del(chart_obj);
+  if (_chart_obj) {
+    auto c = _chart_obj;
+    _chart_obj = nullptr;
+    lv_obj_remove_event_cb(c, event_draw_part_begin_callback);
+    _chart_series_map.clear();
+    lv_obj_del(c);
   }
-  if (label_obj) {
-    lv_obj_del(label_obj);
+  if (_label_obj) {
+    lv_obj_del(_label_obj);
+    _label_obj = nullptr;
   }
-  if (title_obj) {
-    lv_obj_del(title_obj);
+  if (_title_obj) {
+    lv_obj_del(_title_obj);
+    _title_obj = nullptr;
+  }
+}
+
+//
+template <typename T>
+void Widget::BasicChart<T>::event_draw_part_begin_callback(lv_event_t *event) {
+  auto it = static_cast<Widget::BasicChart<T> *>(event->user_data);
+  if (it == nullptr) {
+    M5_LOGE("user_data had null");
+  }
+  lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
+  if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
+                                  LV_CHART_DRAW_PART_TICK_LABEL)) {
+    it->chart_draw_part_tick_label(dsc);
   }
 }
 
 //
 template <typename T> void Widget::BasicChart<T>::render() {
-  if (chart_obj == nullptr) {
+  if (_chart_obj == nullptr) {
     M5_LOGE("chart had null");
     return;
   }
   // 初期化
-  for (auto &pair : chart_series_map) {
+  for (auto &pair : _chart_series_map) {
     if (pair.second.available() == false) {
       M5_LOGE("chart series not available");
       return;
@@ -1110,16 +1115,16 @@ template <typename T> void Widget::BasicChart<T>::render() {
   }
   //
   system_clock::time_point now_min = floor<minutes>(system_clock::now());
-  begin_x_tp = now_min - minutes(Gui::CHART_X_POINT_COUNT);
+  _begin_x_tp = now_min - minutes(Gui::CHART_X_POINT_COUNT);
 
   // データーベースより測定データーを得て
   // 各々のsensoridのchart seriesにセットする関数
   auto coordinateChartSeries = [this](size_t counter, DataType item) -> bool {
     auto &[sensorid, tp, value] = item;
     // 各々のsensoridのchart seriesにセットする。
-    if (auto found_itr = chart_series_map.find(sensorid);
-        found_itr != chart_series_map.end()) {
-      auto coord = coordinateXY(begin_x_tp, item);
+    if (auto found_itr = _chart_series_map.find(sensorid);
+        found_itr != _chart_series_map.end()) {
+      auto coord = coordinateXY(_begin_x_tp, item);
       M5_LOGV("%d,%d", coord.x, coord.y);
       found_itr->second.chart_set_value_by_id(coord.x, coord.y);
     }
@@ -1141,12 +1146,12 @@ template <typename T> void Widget::BasicChart<T>::render() {
   };
 
   // データーベースより測定データーを得る
-  if (read_measurements_from_database(Database::OrderByAtAsc, begin_x_tp,
+  if (read_measurements_from_database(Database::OrderByAtAsc, _begin_x_tp,
                                       coordinateChartSeries) >= 1) {
     // 下限、上限
     auto y_min = std::numeric_limits<lv_coord_t>::max();
     auto y_max = std::numeric_limits<lv_coord_t>::min();
-    for (auto &pair : chart_series_map) {
+    for (auto &pair : _chart_series_map) {
       auto [min, max] = pair.second.getMinMaxOfYPoints();
       y_min = std::min(y_min, min);
       y_max = std::max(y_max, max);
@@ -1154,16 +1159,16 @@ template <typename T> void Widget::BasicChart<T>::render() {
     //
     if (y_min == std::numeric_limits<lv_coord_t>::max() &&
         y_max == std::numeric_limits<lv_coord_t>::min()) {
-      lv_chart_set_range(chart_obj, LV_CHART_AXIS_PRIMARY_Y, 0, 1);
+      lv_chart_set_range(_chart_obj, LV_CHART_AXIS_PRIMARY_Y, 0, 1);
     } else {
       y_min = floor(y_min / 500.0f) * 500.0f;
       y_max = ceil(y_max / 500.0f) * 500.0f;
-      lv_chart_set_range(chart_obj, LV_CHART_AXIS_PRIMARY_Y, y_min, y_max);
+      lv_chart_set_range(_chart_obj, LV_CHART_AXIS_PRIMARY_Y, y_min, y_max);
       M5_LOGV("y_min:%d, y_max:%d", y_min, y_max);
     }
   }
   //
-  lv_chart_refresh(chart_obj);
+  lv_chart_refresh(_chart_obj);
 }
 
 //
