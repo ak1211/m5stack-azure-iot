@@ -1016,14 +1016,16 @@ Widget::BasicChart<T>::BasicChart(lv_obj_t *parent_obj, lv_obj_t *title_obj) {
   //
   constexpr auto X_TICK_LABEL_LEN = 30;
   constexpr auto Y_TICK_LABEL_LEN = 60;
+  constexpr auto RIGHT_PADDING = 20;
   lv_obj_set_size(_chart_obj,
                   lv_obj_get_content_width(parent_obj)             //
-                      - MARGIN - Y_TICK_LABEL_LEN,                 //
+                      - MARGIN - RIGHT_PADDING - Y_TICK_LABEL_LEN, //
                   lv_obj_get_content_height(parent_obj)            //
                       - MARGIN * 2 - lv_obj_get_height(title_obj)  //
                       - MARGIN * 2 - lv_obj_get_height(_label_obj) //
                       - MARGIN - X_TICK_LABEL_LEN);
-  lv_obj_align_to(_chart_obj, _label_obj, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, MARGIN);
+  lv_obj_align_to(_chart_obj, _label_obj, LV_ALIGN_OUT_BOTTOM_RIGHT,
+                  -MARGIN - RIGHT_PADDING, MARGIN);
   if constexpr (true) {
     // Do not display points on the data
     lv_obj_set_style_size(_chart_obj, 0, LV_PART_INDICATOR);
@@ -1283,7 +1285,8 @@ void Widget::TemperatureChart::BC::chart_draw_part_tick_label(
       std::tm local_time;
       localtime_r(&time, &local_time);
       //
-      lv_snprintf(dsc->text, dsc->text_length, "%02d:%02d", local_time.tm_hour,
+      lv_snprintf(dsc->text, dsc->text_length, "%02d/%02d %02d:%02d",
+                  local_time.tm_mon, local_time.tm_mday, local_time.tm_hour,
                   local_time.tm_min);
     }
     break;
@@ -1426,7 +1429,8 @@ void Widget::RelativeHumidityChart::BC::chart_draw_part_tick_label(
       std::tm local_time;
       localtime_r(&time, &local_time);
       //
-      lv_snprintf(dsc->text, dsc->text_length, "%02d:%02d", local_time.tm_hour,
+      lv_snprintf(dsc->text, dsc->text_length, "%02d/%02d %02d:%02d",
+                  local_time.tm_mon, local_time.tm_mday, local_time.tm_hour,
                   local_time.tm_min);
     }
     break;
@@ -1553,7 +1557,8 @@ void Widget::PressureChart::BC::chart_draw_part_tick_label(
       std::tm local_time;
       localtime_r(&time, &local_time);
       //
-      lv_snprintf(dsc->text, dsc->text_length, "%02d:%02d", local_time.tm_hour,
+      lv_snprintf(dsc->text, dsc->text_length, "%02d/%02d %02d:%02d",
+                  local_time.tm_mon, local_time.tm_mday, local_time.tm_hour,
                   local_time.tm_min);
     }
     break;
@@ -1686,7 +1691,8 @@ void Widget::CarbonDeoxidesChart::BC::chart_draw_part_tick_label(
       std::tm local_time;
       localtime_r(&time, &local_time);
       //
-      lv_snprintf(dsc->text, dsc->text_length, "%02d:%02d", local_time.tm_hour,
+      lv_snprintf(dsc->text, dsc->text_length, "%02d/%02d %02d:%02d",
+                  local_time.tm_mon, local_time.tm_mday, local_time.tm_hour,
                   local_time.tm_min);
     }
     break;
@@ -1800,7 +1806,8 @@ void Widget::TotalVocChart::BC::chart_draw_part_tick_label(
       std::tm local_time;
       localtime_r(&time, &local_time);
       //
-      lv_snprintf(dsc->text, dsc->text_length, "%02d:%02d", local_time.tm_hour,
+      lv_snprintf(dsc->text, dsc->text_length, "%02d/%02d\n%02d:%02d",
+                  local_time.tm_mon, local_time.tm_mday, local_time.tm_hour,
                   local_time.tm_min);
     }
     break;

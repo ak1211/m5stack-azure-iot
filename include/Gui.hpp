@@ -281,7 +281,7 @@ std::ostream &operator<<(std::ostream &os, const ShowMeasured<T> &rhs);
 //
 template <typename T> class BasicChart {
 public:
-  constexpr static auto X_AXIS_TICK_COUNT{4};
+  constexpr static auto X_AXIS_TICK_COUNT{3};
   constexpr static auto Y_AXIS_TICK_COUNT{5};
   constexpr static auto MARGIN{8};
   //
@@ -652,7 +652,7 @@ public:
 class Gui {
 public:
   constexpr static auto PERIODIC_TIMER_INTERVAL = std::chrono::milliseconds{30};
-  constexpr static uint16_t CHART_X_POINT_COUNT = 180;
+  constexpr static uint16_t CHART_X_POINT_COUNT = 1440;
   Gui(M5GFX &gfx) : gfx{gfx} {}
   //
   bool begin();
