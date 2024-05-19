@@ -1806,7 +1806,7 @@ void Widget::TotalVocChart::BC::chart_draw_part_tick_label(
       std::tm local_time;
       localtime_r(&time, &local_time);
       //
-      lv_snprintf(dsc->text, dsc->text_length, "%02d/%02d\n%02d:%02d",
+      lv_snprintf(dsc->text, dsc->text_length, "%02d/%02d %02d:%02d",
                   local_time.tm_mon, local_time.tm_mday, local_time.tm_hour,
                   local_time.tm_min);
     }
