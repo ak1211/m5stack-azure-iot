@@ -1066,13 +1066,14 @@ Widget::BasicChart<T>::BasicChart(lv_obj_t *parent_obj,
   //
   for (const auto &sensor : Application::getSensors()) {
     if (const auto p = sensor.get(); p) {
-      chart_series_vect.emplace_back(
-          ChartSeriesWrapper{p->getSensorDescriptor(), chart_obj});
+      SensorId sensor_id{p->getSensorDescriptor()};
+      chart_series_map.emplace(sensor_id,
+                               ChartSeriesWrapper{sensor_id, chart_obj});
       //
     }
   }
-  for (auto &item : chart_series_vect) {
-    item.chart_add_series();
+  for (auto &pair : chart_series_map) {
+    pair.second.chart_add_series();
   }
 }
 
@@ -1081,7 +1082,7 @@ template <typename T> Widget::BasicChart<T>::~BasicChart() {
   //
   if (chart_obj) {
     lv_obj_remove_event_cb(chart_obj, nullptr);
-    chart_series_vect.clear();
+    chart_series_map.clear();
     lv_obj_del(chart_obj);
   }
   if (label_obj) {
@@ -1099,13 +1100,13 @@ template <typename T> void Widget::BasicChart<T>::render() {
     return;
   }
   // 初期化
-  for (auto &item : chart_series_vect) {
-    if (item.available() == false) {
+  for (auto &pair : chart_series_map) {
+    if (pair.second.available() == false) {
       M5_LOGE("chart series not available");
       return;
     }
-    item.chart_set_point_count(Gui::CHART_X_POINT_COUNT);
-    item.chart_set_all_value(LV_CHART_POINT_NONE);
+    pair.second.chart_set_point_count(Gui::CHART_X_POINT_COUNT);
+    pair.second.chart_set_all_value(LV_CHART_POINT_NONE);
   }
   //
   system_clock::time_point now_min = floor<minutes>(system_clock::now());
@@ -1116,12 +1117,11 @@ template <typename T> void Widget::BasicChart<T>::render() {
   auto coordinateChartSeries = [this](size_t counter, DataType item) -> bool {
     auto &[sensorid, tp, value] = item;
     // 各々のsensoridのchart seriesにセットする。
-    if (auto found_itr = std::find(chart_series_vect.begin(),
-                                   chart_series_vect.end(), sensorid);
-        found_itr != chart_series_vect.end()) {
+    if (auto found_itr = chart_series_map.find(sensorid);
+        found_itr != chart_series_map.end()) {
       auto coord = coordinateXY(begin_x_tp, item);
       M5_LOGV("%d,%d", coord.x, coord.y);
-      found_itr->chart_set_value_by_id(coord.x, coord.y);
+      found_itr->second.chart_set_value_by_id(coord.x, coord.y);
     }
     // データー表示(デバッグ用)
     if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_VERBOSE) {
@@ -1146,8 +1146,8 @@ template <typename T> void Widget::BasicChart<T>::render() {
     // 下限、上限
     auto y_min = std::numeric_limits<lv_coord_t>::max();
     auto y_max = std::numeric_limits<lv_coord_t>::min();
-    for (auto &item : chart_series_vect) {
-      auto [min, max] = item.getMinMaxOfYPoints();
+    for (auto &pair : chart_series_map) {
+      auto [min, max] = pair.second.getMinMaxOfYPoints();
       y_min = std::min(y_min, min);
       y_max = std::max(y_max, max);
     }
@@ -1161,16 +1161,6 @@ template <typename T> void Widget::BasicChart<T>::render() {
       lv_chart_set_range(chart_obj, LV_CHART_AXIS_PRIMARY_Y, y_min, y_max);
       M5_LOGV("y_min:%d, y_max:%d", y_min, y_max);
     }
-  }
-  // 横軸の開始位置
-  uint16_t x_start_point = 0;
-  for (auto &item : chart_series_vect) {
-    if (auto opt_x = item.getXStartPointForValidValues(); opt_x) {
-      x_start_point = std::max(x_start_point, *opt_x);
-    }
-  }
-  for (auto &item : chart_series_vect) {
-    item.chart_set_x_start_point(x_start_point);
   }
   //
   lv_chart_refresh(chart_obj);

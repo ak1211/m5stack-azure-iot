@@ -247,12 +247,6 @@ public:
   //
   virtual ~ChartSeriesWrapper() { chart_remove_series(); }
   //
-  bool operator==(const SensorId &other) const {
-    return this->_sensor_id == other;
-  }
-  //
-  bool operator!=(const SensorId &other) const { return !(*this == other); }
-  //
   std::pair<lv_coord_t, lv_coord_t> getMinMaxOfYPoints() {
     auto y_min = std::numeric_limits<lv_coord_t>::max();
     auto y_max = std::numeric_limits<lv_coord_t>::min();
@@ -270,21 +264,6 @@ public:
   }
   //
   bool available() const { return _chart_series != nullptr; }
-  //
-  std::optional<uint16_t> getXStartPointForValidValues() const {
-    if (_chart_obj == nullptr) {
-      return std::nullopt;
-    }
-    if (_chart_series == nullptr) {
-      return std::nullopt;
-    }
-    auto index = 0;
-    while (index < lv_chart_get_point_count(_chart_obj) &&
-           _chart_series->y_points[index] == LV_CHART_POINT_NONE) {
-      ++index;
-    }
-    return index;
-  }
   //
   void chart_add_series() {
     if (_chart_obj == nullptr) {
@@ -394,7 +373,7 @@ private:
   lv_obj_t *label_obj{nullptr};
   lv_obj_t *chart_obj{nullptr};
   //
-  std::vector<ChartSeriesWrapper> chart_series_vect{};
+  std::unordered_map<SensorId, ChartSeriesWrapper> chart_series_map{};
   //
   system_clock::time_point begin_x_tp{};
   //
