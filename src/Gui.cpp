@@ -978,26 +978,16 @@ Widget::ChartLineColor::getAssignedColor32(SensorId sensor_id) {
 
 //
 template <typename T>
-Widget::BasicChart<T>::BasicChart(lv_obj_t *parent_obj,
-                                  std::string_view inSubheading) {
+Widget::BasicChart<T>::BasicChart(lv_obj_t *parent_obj, lv_obj_t *title_obj) {
   if (parent_obj == nullptr) {
     M5_LOGE("null");
     return;
   }
-  constexpr auto MARGIN{8};
-  _subheading.assign(inSubheading);
-  // create
-  if (_title_obj = lv_label_create(parent_obj); _title_obj == nullptr) {
-    M5_LOGE("title had null");
+  if (title_obj == nullptr) {
+    M5_LOGE("null");
     return;
   }
-  lv_obj_set_style_text_align(_title_obj, LV_TEXT_ALIGN_LEFT, LV_STATE_DEFAULT);
-  lv_obj_set_style_text_font(_title_obj, &lv_font_montserrat_16,
-                             LV_STATE_DEFAULT);
-  lv_obj_set_size(_title_obj, LV_PCT(100), lv_font_montserrat_16.line_height);
-  lv_obj_align(_title_obj, LV_ALIGN_TOP_LEFT, MARGIN, MARGIN);
-  lv_label_set_text(_title_obj, _subheading.c_str());
-  //
+  // create
   if (_label_obj = lv_label_create(parent_obj); _label_obj == nullptr) {
     M5_LOGE("label had null");
     return;
@@ -1005,7 +995,7 @@ Widget::BasicChart<T>::BasicChart(lv_obj_t *parent_obj,
   const lv_font_t *FONT{&lv_font_montserrat_24};
   lv_obj_set_size(_label_obj, lv_obj_get_content_width(parent_obj) - MARGIN * 2,
                   FONT->line_height);
-  lv_obj_align_to(_label_obj, _title_obj, LV_ALIGN_OUT_BOTTOM_LEFT, 0, MARGIN);
+  lv_obj_align_to(_label_obj, title_obj, LV_ALIGN_OUT_BOTTOM_LEFT, 0, MARGIN);
   lv_label_set_long_mode(_label_obj, LV_LABEL_LONG_SCROLL_CIRCULAR);
   lv_label_set_recolor(_label_obj, true);
   lv_obj_set_style_text_font(_label_obj, FONT, LV_STATE_DEFAULT);
@@ -1027,10 +1017,10 @@ Widget::BasicChart<T>::BasicChart(lv_obj_t *parent_obj,
   constexpr auto X_TICK_LABEL_LEN = 30;
   constexpr auto Y_TICK_LABEL_LEN = 60;
   lv_obj_set_size(_chart_obj,
-                  lv_obj_get_content_width(parent_obj) //
-                      - MARGIN - Y_TICK_LABEL_LEN,
+                  lv_obj_get_content_width(parent_obj)             //
+                      - MARGIN - Y_TICK_LABEL_LEN,                 //
                   lv_obj_get_content_height(parent_obj)            //
-                      - MARGIN * 2 - lv_obj_get_height(_title_obj) //
+                      - MARGIN * 2 - lv_obj_get_height(title_obj)  //
                       - MARGIN * 2 - lv_obj_get_height(_label_obj) //
                       - MARGIN - X_TICK_LABEL_LEN);
   lv_obj_align_to(_chart_obj, _label_obj, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, MARGIN);
@@ -1055,33 +1045,34 @@ Widget::BasicChart<T>::BasicChart(lv_obj_t *parent_obj,
   for (const auto &sensor : Application::getSensors()) {
     if (sensor) {
       SensorId sensor_id{sensor->getSensorDescriptor()};
-      _chart_series_map.emplace(sensor_id,
-                                ChartSeriesWrapper{sensor_id, _chart_obj});
+      auto opt_color = ChartLineColor::getAssignedColor(sensor_id);
+      auto color = opt_color ? *opt_color : lv_color_black();
+      if (auto series =
+              lv_chart_add_series(_chart_obj, color, LV_CHART_AXIS_PRIMARY_Y);
+          series) {
+        auto chart_series_wrapper =
+            ChartSeriesWrapper{series, Gui::CHART_X_POINT_COUNT};
+        lv_chart_set_ext_y_array(_chart_obj, series,
+                                 chart_series_wrapper.y_points.data());
+        _chart_series_map.emplace(sensor_id, std::move(chart_series_wrapper));
+      }
     }
   }
-  for (auto &pair : _chart_series_map) {
-    pair.second.chart_add_series();
-  }
+  //
+  lv_chart_set_point_count(_chart_obj, Gui::CHART_X_POINT_COUNT);
 }
 
 //
 template <typename T> Widget::BasicChart<T>::~BasicChart() {
   //
   if (_chart_obj) {
-    auto c = _chart_obj;
-    _chart_obj = nullptr;
-    lv_obj_remove_event_cb(c, event_draw_part_begin_callback);
-    _chart_series_map.clear();
-    lv_obj_del(c);
+    lv_obj_del(_chart_obj);
   }
   if (_label_obj) {
     lv_obj_del(_label_obj);
-    _label_obj = nullptr;
   }
-  if (_title_obj) {
-    lv_obj_del(_title_obj);
-    _title_obj = nullptr;
-  }
+  _chart_obj = nullptr;
+  _label_obj = nullptr;
 }
 
 //
@@ -1106,12 +1097,7 @@ template <typename T> void Widget::BasicChart<T>::render() {
   }
   // 初期化
   for (auto &pair : _chart_series_map) {
-    if (pair.second.available() == false) {
-      M5_LOGE("chart series not available");
-      return;
-    }
-    pair.second.chart_set_point_count(Gui::CHART_X_POINT_COUNT);
-    pair.second.chart_set_all_value(LV_CHART_POINT_NONE);
+    pair.second.fill(LV_CHART_POINT_NONE);
   }
   //
   system_clock::time_point now_min = floor<minutes>(system_clock::now());
@@ -1126,7 +1112,7 @@ template <typename T> void Widget::BasicChart<T>::render() {
         found_itr != _chart_series_map.end()) {
       auto coord = coordinateXY(_begin_x_tp, item);
       M5_LOGV("%d,%d", coord.x, coord.y);
-      found_itr->second.chart_set_value_by_id(coord.x, coord.y);
+      found_itr->second.y_points.at(coord.x) = coord.y;
     }
     // データー表示(デバッグ用)
     if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_VERBOSE) {
@@ -1176,9 +1162,24 @@ template <typename T> void Widget::BasicChart<T>::render() {
 //
 Widget::TemperatureChart::TemperatureChart(InitArg init) : TileBase{init} {
   if (tileview_obj == nullptr) {
-    M5_LOGE("tileview had null");
+    M5_LOGE("tileview has null");
     return;
   }
+  if (tile_obj == nullptr) {
+    M5_LOGE("tile has null");
+    return;
+  }
+  // create
+  if (_title_obj = lv_label_create(tile_obj); _title_obj == nullptr) {
+    M5_LOGE("title has null");
+    return;
+  }
+  lv_obj_set_style_text_align(_title_obj, LV_TEXT_ALIGN_LEFT, LV_STATE_DEFAULT);
+  lv_obj_set_style_text_font(_title_obj, &lv_font_montserrat_16,
+                             LV_STATE_DEFAULT);
+  lv_obj_set_size(_title_obj, LV_PCT(100), lv_font_montserrat_16.line_height);
+  lv_obj_align(_title_obj, LV_ALIGN_TOP_LEFT, BC::MARGIN, BC::MARGIN);
+  lv_label_set_text(_title_obj, "Temperature");
 }
 
 //
@@ -1249,7 +1250,7 @@ void Widget::TemperatureChart::render() {
 }
 
 // データーベースからデーターを得る
-size_t Widget::TemperatureChart::C::read_measurements_from_database(
+size_t Widget::TemperatureChart::BC::read_measurements_from_database(
     Database::OrderBy order, system_clock::time_point at_begin,
     Database::ReadCallback<Database::TimePointAndDouble> callback) {
   return Application::getMeasurementsDatabase().read_temperatures(
@@ -1257,20 +1258,21 @@ size_t Widget::TemperatureChart::C::read_measurements_from_database(
 }
 
 // データを座標に変換する関数
-lv_point_t Widget::TemperatureChart::C::coordinateXY(
+lv_point_t Widget::TemperatureChart::BC::coordinateXY(
     system_clock::time_point tp_zero, const Database::TimePointAndDouble &in) {
   auto [sensorid, timepoint, fp_value] = in;
   auto degc = DegC(fp_value);
   auto centi_degc = std::chrono::duration_cast<CentiDegC>(degc);
   uint32_t timediff =
       duration_cast<minutes>(floor<minutes>(timepoint) - tp_zero).count();
-  lv_coord_t x = std::clamp(timediff, 0U, uint32_t(Gui::CHART_X_POINT_COUNT));
+  lv_coord_t x =
+      std::clamp(timediff, 0U, uint32_t(Gui::CHART_X_POINT_COUNT - 1));
   lv_coord_t y = static_cast<lv_coord_t>(centi_degc.count());
   return lv_point_t{.x = x, .y = y};
 };
 
 //
-void Widget::TemperatureChart::C::chart_draw_part_tick_label(
+void Widget::TemperatureChart::BC::chart_draw_part_tick_label(
     lv_obj_draw_part_dsc_t *dsc) {
   switch (dsc->id) {
   case LV_CHART_AXIS_PRIMARY_X:
@@ -1306,6 +1308,21 @@ Widget::RelativeHumidityChart::RelativeHumidityChart(InitArg init)
     M5_LOGE("tileview had null");
     return;
   }
+  if (tile_obj == nullptr) {
+    M5_LOGE("tile has null");
+    return;
+  }
+  // create
+  if (_title_obj = lv_label_create(tile_obj); _title_obj == nullptr) {
+    M5_LOGE("title has null");
+    return;
+  }
+  lv_obj_set_style_text_align(_title_obj, LV_TEXT_ALIGN_LEFT, LV_STATE_DEFAULT);
+  lv_obj_set_style_text_font(_title_obj, &lv_font_montserrat_16,
+                             LV_STATE_DEFAULT);
+  lv_obj_set_size(_title_obj, LV_PCT(100), lv_font_montserrat_16.line_height);
+  lv_obj_align(_title_obj, LV_ALIGN_TOP_LEFT, BC::MARGIN, BC::MARGIN);
+  lv_label_set_text(_title_obj, "Relative Humidity");
 }
 
 //
@@ -1377,7 +1394,7 @@ void Widget::RelativeHumidityChart::render() {
 }
 
 // データーベースからデーターを得る
-size_t Widget::RelativeHumidityChart::C::read_measurements_from_database(
+size_t Widget::RelativeHumidityChart::BC::read_measurements_from_database(
     Database::OrderBy order, system_clock::time_point at_begin,
     Database::ReadCallback<Database::TimePointAndDouble> callback) {
   return Application::getMeasurementsDatabase().read_relative_humidities(
@@ -1385,19 +1402,20 @@ size_t Widget::RelativeHumidityChart::C::read_measurements_from_database(
 }
 
 // データを座標に変換する関数
-lv_point_t Widget::RelativeHumidityChart::C::coordinateXY(
+lv_point_t Widget::RelativeHumidityChart::BC::coordinateXY(
     system_clock::time_point tp_zero, const Database::TimePointAndDouble &in) {
   auto [sensorid, timepoint, fp_value] = in;
   auto percentRelativeHumidity = PctRH(fp_value);
   auto rh = std::chrono::duration_cast<CentiRH>(percentRelativeHumidity);
   uint32_t timediff =
       duration_cast<minutes>(floor<minutes>(timepoint) - tp_zero).count();
-  lv_coord_t x = std::clamp(timediff, 0U, uint32_t(Gui::CHART_X_POINT_COUNT));
+  lv_coord_t x =
+      std::clamp(timediff, 0U, uint32_t(Gui::CHART_X_POINT_COUNT - 1));
   lv_coord_t y = static_cast<lv_coord_t>(rh.count());
   return lv_point_t{.x = x, .y = y};
 };
 
-void Widget::RelativeHumidityChart::C::chart_draw_part_tick_label(
+void Widget::RelativeHumidityChart::BC::chart_draw_part_tick_label(
     lv_obj_draw_part_dsc_t *dsc) {
   switch (dsc->id) {
   case LV_CHART_AXIS_PRIMARY_X:
@@ -1432,6 +1450,21 @@ Widget::PressureChart::PressureChart(InitArg init) : TileBase{init} {
     M5_LOGE("tileview had null");
     return;
   }
+  if (tile_obj == nullptr) {
+    M5_LOGE("tile has null");
+    return;
+  }
+  // create
+  if (_title_obj = lv_label_create(tile_obj); _title_obj == nullptr) {
+    M5_LOGE("title has null");
+    return;
+  }
+  lv_obj_set_style_text_align(_title_obj, LV_TEXT_ALIGN_LEFT, LV_STATE_DEFAULT);
+  lv_obj_set_style_text_font(_title_obj, &lv_font_montserrat_16,
+                             LV_STATE_DEFAULT);
+  lv_obj_set_size(_title_obj, LV_PCT(100), lv_font_montserrat_16.line_height);
+  lv_obj_align(_title_obj, LV_ALIGN_TOP_LEFT, BC::MARGIN, BC::MARGIN);
+  lv_label_set_text(_title_obj, "Pressure");
 }
 
 //
@@ -1487,7 +1520,7 @@ void Widget::PressureChart::render() {
 }
 
 // データーベースからデーターを得る
-size_t Widget::PressureChart::C::read_measurements_from_database(
+size_t Widget::PressureChart::BC::read_measurements_from_database(
     Database::OrderBy order, system_clock::time_point at_begin,
     Database::ReadCallback<Database::TimePointAndDouble> callback) {
   return Application::getMeasurementsDatabase().read_pressures(order, at_begin,
@@ -1495,21 +1528,21 @@ size_t Widget::PressureChart::C::read_measurements_from_database(
 }
 
 // データを座標に変換する関数
-lv_point_t
-Widget::PressureChart::C::coordinateXY(system_clock::time_point tp_zero,
-                                       const Database::TimePointAndDouble &in) {
+lv_point_t Widget::PressureChart::BC::coordinateXY(
+    system_clock::time_point tp_zero, const Database::TimePointAndDouble &in) {
   auto [sensorid, timepoint, fp_value] = in;
   auto hpa = HectoPa(fp_value);
   auto pascal = std::chrono::duration_cast<Pascal>(hpa - BIAS);
   uint32_t timediff =
       duration_cast<minutes>(floor<minutes>(timepoint) - tp_zero).count();
-  lv_coord_t x = std::clamp(timediff, 0U, uint32_t(Gui::CHART_X_POINT_COUNT));
+  lv_coord_t x =
+      std::clamp(timediff, 0U, uint32_t(Gui::CHART_X_POINT_COUNT - 1));
   lv_coord_t y = static_cast<lv_coord_t>(pascal.count());
   return lv_point_t{.x = x, .y = y};
 };
 
 //
-void Widget::PressureChart::C::chart_draw_part_tick_label(
+void Widget::PressureChart::BC::chart_draw_part_tick_label(
     lv_obj_draw_part_dsc_t *dsc) {
   switch (dsc->id) {
   case LV_CHART_AXIS_PRIMARY_X:
@@ -1545,6 +1578,21 @@ Widget::CarbonDeoxidesChart::CarbonDeoxidesChart(InitArg init)
     M5_LOGE("tileview had null");
     return;
   }
+  if (tile_obj == nullptr) {
+    M5_LOGE("tile has null");
+    return;
+  }
+  // create
+  if (_title_obj = lv_label_create(tile_obj); _title_obj == nullptr) {
+    M5_LOGE("title has null");
+    return;
+  }
+  lv_obj_set_style_text_align(_title_obj, LV_TEXT_ALIGN_LEFT, LV_STATE_DEFAULT);
+  lv_obj_set_style_text_font(_title_obj, &lv_font_montserrat_16,
+                             LV_STATE_DEFAULT);
+  lv_obj_set_size(_title_obj, LV_PCT(100), lv_font_montserrat_16.line_height);
+  lv_obj_align(_title_obj, LV_ALIGN_TOP_LEFT, BC::MARGIN, BC::MARGIN);
+  lv_label_set_text(_title_obj, "CO2");
 }
 
 //
@@ -1607,7 +1655,7 @@ void Widget::CarbonDeoxidesChart::render() {
 }
 
 // データーベースからデーターを得る
-size_t Widget::CarbonDeoxidesChart::C::read_measurements_from_database(
+size_t Widget::CarbonDeoxidesChart::BC::read_measurements_from_database(
     Database::OrderBy order, system_clock::time_point at_begin,
     Database::ReadCallback<Database::TimePointAndUInt16> callback) {
   return Application::getMeasurementsDatabase().read_carbon_deoxides(
@@ -1615,18 +1663,19 @@ size_t Widget::CarbonDeoxidesChart::C::read_measurements_from_database(
 }
 
 // データを座標に変換する関数
-lv_point_t Widget::CarbonDeoxidesChart::C::coordinateXY(
+lv_point_t Widget::CarbonDeoxidesChart::BC::coordinateXY(
     system_clock::time_point tp_zero, const Database::TimePointAndUInt16 &in) {
   auto [sensorid, timepoint, int_value] = in;
   uint32_t timediff =
       duration_cast<minutes>(floor<minutes>(timepoint) - tp_zero).count();
-  lv_coord_t x = std::clamp(timediff, 0U, uint32_t(Gui::CHART_X_POINT_COUNT));
+  lv_coord_t x =
+      std::clamp(timediff, 0U, uint32_t(Gui::CHART_X_POINT_COUNT - 1));
   lv_coord_t y = static_cast<lv_coord_t>(int_value);
   return lv_point_t{.x = x, .y = y};
 };
 
 //
-void Widget::CarbonDeoxidesChart::C::chart_draw_part_tick_label(
+void Widget::CarbonDeoxidesChart::BC::chart_draw_part_tick_label(
     lv_obj_draw_part_dsc_t *dsc) {
   switch (dsc->id) {
   case LV_CHART_AXIS_PRIMARY_X:
@@ -1661,6 +1710,21 @@ Widget::TotalVocChart::TotalVocChart(InitArg init) : TileBase{init} {
     M5_LOGE("tileview had null");
     return;
   }
+  if (tile_obj == nullptr) {
+    M5_LOGE("tile has null");
+    return;
+  }
+  // create
+  if (_title_obj = lv_label_create(tile_obj); _title_obj == nullptr) {
+    M5_LOGE("title has null");
+    return;
+  }
+  lv_obj_set_style_text_align(_title_obj, LV_TEXT_ALIGN_LEFT, LV_STATE_DEFAULT);
+  lv_obj_set_style_text_font(_title_obj, &lv_font_montserrat_16,
+                             LV_STATE_DEFAULT);
+  lv_obj_set_size(_title_obj, LV_PCT(100), lv_font_montserrat_16.line_height);
+  lv_obj_align(_title_obj, LV_ALIGN_TOP_LEFT, BC::MARGIN, BC::MARGIN);
+  lv_label_set_text(_title_obj, "Total VOC");
 }
 
 //
@@ -1705,7 +1769,7 @@ void Widget::TotalVocChart::render() {
 }
 
 // データーベースからデーターを得る
-size_t Widget::TotalVocChart::C::read_measurements_from_database(
+size_t Widget::TotalVocChart::BC::read_measurements_from_database(
     Database::OrderBy order, system_clock::time_point at_begin,
     Database::ReadCallback<Database::TimePointAndUInt16> callback) {
   return Application::getMeasurementsDatabase().read_total_vocs(order, at_begin,
@@ -1713,19 +1777,19 @@ size_t Widget::TotalVocChart::C::read_measurements_from_database(
 }
 
 // データを座標に変換する関数
-lv_point_t
-Widget::TotalVocChart::C::coordinateXY(system_clock::time_point tp_zero,
-                                       const Database::TimePointAndUInt16 &in) {
+lv_point_t Widget::TotalVocChart::BC::coordinateXY(
+    system_clock::time_point tp_zero, const Database::TimePointAndUInt16 &in) {
   auto [sensorid, timepoint, int_value] = in;
   uint32_t timediff =
       duration_cast<minutes>(floor<minutes>(timepoint) - tp_zero).count();
-  lv_coord_t x = std::clamp(timediff, 0U, uint32_t(Gui::CHART_X_POINT_COUNT));
+  lv_coord_t x =
+      std::clamp(timediff, 0U, uint32_t(Gui::CHART_X_POINT_COUNT - 1));
   lv_coord_t y = static_cast<lv_coord_t>(int_value / DIVIDER);
   return lv_point_t{.x = x, .y = y};
 };
 
 //
-void Widget::TotalVocChart::C::chart_draw_part_tick_label(
+void Widget::TotalVocChart::BC::chart_draw_part_tick_label(
     lv_obj_draw_part_dsc_t *dsc) {
   switch (dsc->id) {
   case LV_CHART_AXIS_PRIMARY_X:
