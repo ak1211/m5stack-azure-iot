@@ -31,6 +31,15 @@ using namespace std::chrono;
 using namespace std::string_literals;
 
 //
+void Telemetry::EspMqttClientDeleter::operator()(esp_mqtt_client *ptr) const {
+  esp_err_t result_code = esp_mqtt_client_destroy(ptr);
+  if (result_code != ESP_OK) {
+    std::array<char, 256> buffer;
+    M5_LOGE("%s", esp_err_to_name_r(result_code, buffer.data(), buffer.size()));
+  }
+}
+
+//
 std::string Telemetry::to_absolute_sensor_id(SensorDescriptor descriptor) {
   return std::string(Credentials.device_id) + "-"s + descriptor.str();
 }
@@ -126,6 +135,7 @@ esp_err_t Telemetry::mqtt_event_handler(esp_mqtt_event_handle_t event) {
     return ESP_OK;
   }
   Telemetry &telemetry = *static_cast<Telemetry *>(event->user_context);
+  //
   switch (event->event_id) {
   case MQTT_EVENT_ERROR:
     M5_LOGD("MQTT event MQTT_EVENT_ERROR");
@@ -133,12 +143,14 @@ esp_err_t Telemetry::mqtt_event_handler(esp_mqtt_event_handle_t event) {
   case MQTT_EVENT_CONNECTED:
     M5_LOGD("MQTT event MQTT_EVENT_CONNECTED");
     telemetry._mqtt_connected = true;
-    if (telemetry.mqtt_client == nullptr) {
-      M5_LOGE("mqtt_client had null.");
+    // guard
+    if (!telemetry.mqtt_client) {
+      M5_LOGE("mqtt_client is null.");
       break;
     }
-    if (auto r = esp_mqtt_client_subscribe(
-            telemetry.mqtt_client, AZ_IOT_HUB_CLIENT_C2D_SUBSCRIBE_TOPIC, 1);
+    if (auto r =
+            esp_mqtt_client_subscribe(telemetry.mqtt_client.get(),
+                                      AZ_IOT_HUB_CLIENT_C2D_SUBSCRIBE_TOPIC, 1);
         r == -1) {
       M5_LOGE("Could not subscribe for cloud-to-device messages.");
     } else {
@@ -270,26 +282,27 @@ bool Telemetry::initializeMqttClient() {
   mqtt_config.user_context = this;
   mqtt_config.cert_pem = reinterpret_cast<const char *>(ca_pem);
 
-  if (mqtt_client) {
-    esp_mqtt_client_destroy(mqtt_client);
-  }
   _mqtt_connected = false;
-  mqtt_client = esp_mqtt_client_init(&mqtt_config);
+  if (esp_mqtt_client_handle_t p = esp_mqtt_client_init(&mqtt_config); p) {
+    // set mqtt client handle to smartpointer
+    mqtt_client.reset(p);
+  }
 
-  if (mqtt_client == nullptr) {
-    M5_LOGE("Failed creating mqtt client");
+  // guard
+  if (!mqtt_client) {
+    M5_LOGE("mqtt client is null");
     return false;
   }
 
-  esp_err_t start_result = esp_mqtt_client_start(mqtt_client);
-
-  if (start_result != ESP_OK) {
-    M5_LOGE("Could not start mqtt client; error code:%d", start_result);
+  esp_err_t result_code = esp_mqtt_client_start(mqtt_client.get());
+  if (result_code != ESP_OK) {
+    std::array<char, 256> buffer;
+    M5_LOGE("Could not start mqtt client; %s",
+            esp_err_to_name_r(result_code, buffer.data(), buffer.size()));
     return false;
-  } else {
-    M5_LOGI("MQTT client started");
-    return true;
   }
+  M5_LOGI("MQTT client started");
+  return true;
 }
 
 //
@@ -315,35 +328,27 @@ bool Telemetry::reconnect() {
 
 //
 bool Telemetry::terminate() {
-  if (esp_mqtt_client_destroy(mqtt_client) != ESP_OK) {
-    mqtt_client = nullptr;
-    M5_LOGE("esp_mqtt_client_destroy failure.");
-    return false;
-  }
-  mqtt_client = nullptr;
+  mqtt_client.reset();
   return true;
 }
 
 //
 bool Telemetry::task_handler() {
-  if (mqtt_client == nullptr) {
-    return false;
-  }
   if (_mqtt_connected == false) {
-    if (esp_mqtt_client_destroy(mqtt_client) != ESP_OK) {
-      M5_LOGE("esp_mqtt_client_destroy failure.");
-    }
-    mqtt_client = nullptr;
     return false;
   }
   if (optAzIoTSasToken.has_value() && optAzIoTSasToken->IsExpired()) {
     M5_LOGI("SAS token expired; reconnecting with a new one.");
-    if (mqtt_client && esp_mqtt_client_destroy(mqtt_client) != ESP_OK) {
-      M5_LOGE("esp_mqtt_client_destroy failure.");
-    }
-    mqtt_client = nullptr;
+    mqtt_client.reset();
     return initializeMqttClient();
   }
+
+  // guard
+  if (!mqtt_client) {
+    M5_LOGE("mqtt client is null");
+    return false;
+  }
+
   // The topic could be obtained just once during setup,
   // however if properties are used the topic need to be generated again to
   // reflect the current values of the properties.
@@ -367,8 +372,8 @@ bool Telemetry::task_handler() {
         std::visit([this](const auto &x) { return to_json_message(x); }, item);
     // MQTT待ち行列に入れる
     if (auto message_id = esp_mqtt_client_enqueue(
-            mqtt_client, telemetry_topic.data(), datum.data(), datum.length(),
-            MQTT_QOS, DO_NOT_RETAIN_MSG, true);
+            mqtt_client.get(), telemetry_topic.data(), datum.data(),
+            datum.length(), MQTT_QOS, DO_NOT_RETAIN_MSG, true);
         message_id < 0) {
       M5_LOGE("Failed publishing");
       return false;
