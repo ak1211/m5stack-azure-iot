@@ -603,18 +603,18 @@ struct Database::Transaction {
   Transaction(Sqlite3PointerUnique &in) : db{in} {}
   //
   bool begin() {
+    char *errmsg{nullptr};
     if (db) {
-      char *errmsg{nullptr};
-      if (sqlite3_exec(db.get(), "BEGIN;", nullptr, nullptr, &errmsg) !=
+      if (sqlite3_exec(db.get(), "BEGIN;", nullptr, nullptr, &errmsg) ==
           SQLITE_OK) {
-        if (errmsg) {
-          M5_LOGE("%s", errmsg);
-        }
-        sqlite3_free(errmsg);
-        return (onTransaction = false);
+        return (onTransaction = true);
       }
     }
-    return (onTransaction = true);
+    if (errmsg) {
+      M5_LOGE("%s", errmsg);
+    }
+    sqlite3_free(errmsg);
+    return (onTransaction = false);
   }
   //
   ~Transaction() {
