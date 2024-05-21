@@ -570,18 +570,43 @@ Database::read_total_vocs(OrderBy order, SensorId sensor_id, size_t limit) {
 //
 //
 //
+void Database::Sqlite3Deleter::operator()(sqlite3 *ptr) const {
+  if (auto result = sqlite3_close(ptr); result != SQLITE_OK) {
+    M5_LOGE("sqlite3_close() failure: %d", result);
+  }
+}
+
+//
+//
+//
+void Database::Sqlite3StmtDeleter::operator()(sqlite3_stmt *ptr) const {
+  auto code = sqlite3_finalize(ptr);
+  switch (code) {
+  case SQLITE_DONE:
+    [[fallthrough]];
+  case SQLITE_OK:
+    /* No error exit */
+    break;
+  default:
+    M5_LOGE("%s", sqlite3_errstr(code));
+    break;
+  }
+}
+
+//
+//
+//
 struct Database::Transaction {
   bool onTransaction{false};
-  sqlite3 *db{};
-  Transaction(sqlite3 *p) : db{p} {
-    if (p == nullptr) {
-      M5_LOGE("sqlite3 handle is null");
-    }
-  }
+  Sqlite3PointerUnique &db;
+  //
+  Transaction(Sqlite3PointerUnique &in) : db{in} {}
+  //
   bool begin() {
     if (db) {
       char *errmsg{nullptr};
-      if (sqlite3_exec(db, "BEGIN;", nullptr, nullptr, &errmsg) != SQLITE_OK) {
+      if (sqlite3_exec(db.get(), "BEGIN;", nullptr, nullptr, &errmsg) !=
+          SQLITE_OK) {
         if (errmsg) {
           M5_LOGE("%s", errmsg);
         }
@@ -591,10 +616,12 @@ struct Database::Transaction {
     }
     return (onTransaction = true);
   }
+  //
   ~Transaction() {
     if (onTransaction) {
       char *errmsg{nullptr};
-      if (sqlite3_exec(db, "COMMIT;", nullptr, nullptr, &errmsg) != SQLITE_OK) {
+      if (sqlite3_exec(db.get(), "COMMIT;", nullptr, nullptr, &errmsg) !=
+          SQLITE_OK) {
         if (errmsg) {
           M5_LOGE("%s", errmsg);
         }
@@ -608,9 +635,6 @@ struct Database::Transaction {
 //
 //
 bool Database::begin(const std::string &database_filename) {
-  if (_sqlite3_db) {
-    terminate();
-  }
   //
   if (psramFound()) {
     //
@@ -636,7 +660,6 @@ bool Database::begin(const std::string &database_filename) {
               DATABASE_USE_PREALLOCATED_MEMORY_SIZE, 64);
           result != SQLITE_OK) {
         M5_LOGE("sqlite3_config() failure: %d", result);
-        terminate();
         return false;
       }
     }
@@ -646,54 +669,57 @@ bool Database::begin(const std::string &database_filename) {
   if (auto result = sqlite3_config(SQLITE_CONFIG_URI, true);
       result != SQLITE_OK) {
     M5_LOGE("sqlite3_config() failure: %d", result);
-    terminate();
     return false;
   }
 
   //
   if (auto result = sqlite3_initialize(); result != SQLITE_OK) {
     M5_LOGE("sqlite3_initialize() failure: %d", result);
-    terminate();
     return false;
   }
 
-  //
   M5_LOGD("sqlite3 open file : %s", database_filename.c_str());
-  if (auto result = sqlite3_open_v2(database_filename.c_str(), &_sqlite3_db,
-                                    SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE |
-                                        SQLITE_OPEN_URI,
-                                    nullptr);
-      result != SQLITE_OK) {
-    M5_LOGE("sqlite3_open_v2() failure: %d", result);
-    terminate();
-    return false;
+  //
+  {
+    sqlite3 *pDatabase{nullptr};
+    if (auto result = sqlite3_open_v2(
+            database_filename.c_str(), &pDatabase,
+            SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_URI,
+            nullptr);
+        result == SQLITE_OK) {
+      // set db handle to smartpointer
+      _sqlite3_db.reset(pDatabase);
+    } else {
+      M5_LOGE("sqlite3_open_v2() failure: %d", result);
+      return false;
+    }
   }
 
-  if (_sqlite3_db == nullptr) {
+  // guard
+  if (!_sqlite3_db) {
     M5_LOGE("sqlite3_db is null");
-  }
-
-  //
-  if (char *error_msg{};
-      sqlite3_exec(_sqlite3_db, "PRAGMA auto_vacuum = full;", nullptr, nullptr,
-                   &error_msg) != SQLITE_OK) {
-    if (error_msg) {
-      M5_LOGE("%s", error_msg);
-    }
-    sqlite3_free(error_msg);
-    terminate();
     return false;
   }
 
   //
   if (char *error_msg{};
-      sqlite3_exec(_sqlite3_db, "PRAGMA temp_store = 2;", nullptr, nullptr,
-                   &error_msg) != SQLITE_OK) {
+      sqlite3_exec(_sqlite3_db.get(), "PRAGMA auto_vacuum = full;", nullptr,
+                   nullptr, &error_msg) != SQLITE_OK) {
     if (error_msg) {
       M5_LOGE("%s", error_msg);
     }
     sqlite3_free(error_msg);
-    terminate();
+    return false;
+  }
+
+  //
+  if (char *error_msg{};
+      sqlite3_exec(_sqlite3_db.get(), "PRAGMA temp_store = 2;", nullptr,
+                   nullptr, &error_msg) != SQLITE_OK) {
+    if (error_msg) {
+      M5_LOGE("%s", error_msg);
+    }
+    sqlite3_free(error_msg);
     return false;
   }
 
@@ -708,38 +734,31 @@ bool Database::begin(const std::string &database_filename) {
         schema_carbon_dioxide, schema_total_voc}) {
     M5_LOGV("%s", query.data());
     if (char *error_msg{nullptr};
-        sqlite3_exec(_sqlite3_db, query.data(), nullptr, nullptr, &error_msg) !=
-        SQLITE_OK) {
+        sqlite3_exec(_sqlite3_db.get(), query.data(), nullptr, nullptr,
+                     &error_msg) != SQLITE_OK) {
       M5_LOGE("create table error");
       if (error_msg) {
         M5_LOGE("%s", error_msg);
       }
       sqlite3_free(error_msg);
-      terminate();
       return false;
     }
   }
 
   // succsessfully exit
-  return (_available = true);
+  return true;
 }
 
 //
 //
 //
 void Database::terminate() {
-  if (_sqlite3_db) {
-    if (auto result = sqlite3_close(_sqlite3_db); result != SQLITE_OK) {
-      M5_LOGE("sqlite3_close() failure: %d", result);
-    }
-  }
+  _sqlite3_db.reset();
   sqlite3_shutdown();
 #ifdef SQLITE_ENABLE_MEMSYS5
   free(_database_use_preallocated_memory);
   _database_use_preallocated_memory = nullptr;
 #endif
-  _sqlite3_db = nullptr;
-  _available = false;
 }
 
 //
@@ -754,7 +773,8 @@ bool Database::delete_old_measurements_from_database(
       {"DELETE FROM total_voc WHERE at < ?;"},         // placeholder#1
   };
 
-  if (!available()) {
+  // guard
+  if (!_sqlite3_db) {
     M5_LOGI("sqlite3_db is not available.");
     return false;
   }
@@ -768,35 +788,23 @@ bool Database::delete_old_measurements_from_database(
 
   // delete old rows
   for (auto &query : queries) {
-    struct Finalizer {
-      sqlite3 *db{nullptr};
-      sqlite3_stmt *stmt{nullptr};
-      Finalizer(sqlite3 *p) : db{p} {}
-      ~Finalizer() {
-        sqlite3_finalize(stmt);
-        switch (auto code = sqlite3_errcode(db); code) {
-        case SQLITE_DONE:
-          [[fallthrough]];
-        case SQLITE_OK:
-          /* No error exit */
-          break;
-        default:
-          M5_LOGE("%s", sqlite3_errstr(code));
-          break;
-        }
+    Sqlite3StmtPointerUnique stmt;
+    if (sqlite3_stmt * pStmt{nullptr};
+        sqlite3_prepare_v2(_sqlite3_db.get(), query.data(), -1, &pStmt,
+                           nullptr) == SQLITE_OK) {
+      // set statement handle to smartpointer
+      if (pStmt) {
+        stmt.reset(pStmt);
       }
-    } fin{_sqlite3_db};
-    //
-    if (sqlite3_prepare_v2(_sqlite3_db, query.data(), -1, &fin.stmt, nullptr) !=
-        SQLITE_OK) {
-      M5_LOGE("%s", sqlite3_errmsg(_sqlite3_db));
+    } else {
+      M5_LOGE("%s", sqlite3_errmsg(_sqlite3_db.get()));
       M5_LOGE("%s", query.data());
       return false;
     }
-    if (sqlite3_bind_int64(fin.stmt, 1,
+    if (sqlite3_bind_int64(stmt.get(), 1,
                            static_cast<int64_t>(system_clock::to_time_t(
                                delete_of_older_than_tp))) != SQLITE_OK) {
-      M5_LOGE("%s", sqlite3_errmsg(_sqlite3_db));
+      M5_LOGE("%s", sqlite3_errmsg(_sqlite3_db.get()));
       return false;
     }
     // SQL表示(デバッグ用)
@@ -806,7 +814,7 @@ bool Database::delete_old_measurements_from_database(
       localtime_r(&time, &local_time);
       std::ostringstream oss;
       //
-      if (auto p = sqlite3_expanded_sql(fin.stmt); p) {
+      if (auto p = sqlite3_expanded_sql(stmt.get()); p) {
         oss << std::string_view(p);
         sqlite3_free(p);
       }
@@ -818,13 +826,13 @@ bool Database::delete_old_measurements_from_database(
     //
     auto timeover{steady_clock::now() + RETRY_TIMEOUT};
     while (steady_clock::now() < timeover &&
-           sqlite3_step(fin.stmt) != SQLITE_DONE) {
+           sqlite3_step(stmt.get()) != SQLITE_DONE) {
       /**/
     }
     if (steady_clock::now() > timeover) {
       M5_LOGE("sqlite3_step() timeover");
       M5_LOGE("query is \"%s\"", query.data());
-      M5_LOGE("%s", sqlite3_errmsg(_sqlite3_db));
+      M5_LOGE("%s", sqlite3_errmsg(_sqlite3_db.get()));
       return false;
     }
   }
@@ -836,7 +844,8 @@ bool Database::delete_old_measurements_from_database(
 //
 //
 bool Database::insert(const Sensor::MeasurementBme280 &m) {
-  if (!available()) {
+  // guard
+  if (!_sqlite3_db) {
     M5_LOGI("sqlite3_db is not available.");
     return false;
   }
@@ -873,7 +882,8 @@ bool Database::insert(const Sensor::MeasurementBme280 &m) {
 //
 //
 bool Database::insert(const Sensor::MeasurementSgp30 &m) {
-  if (!available()) {
+  // guard
+  if (!_sqlite3_db) {
     M5_LOGI("sqlite3_db is not available.");
     return false;
   }
@@ -914,7 +924,8 @@ bool Database::insert(const Sensor::MeasurementSgp30 &m) {
 //
 //
 bool Database::insert(const Sensor::MeasurementScd30 &m) {
-  if (!available()) {
+  // guard
+  if (!_sqlite3_db) {
     M5_LOGI("sqlite3_db is not available.");
     return false;
   }
@@ -951,7 +962,8 @@ bool Database::insert(const Sensor::MeasurementScd30 &m) {
 //
 //
 bool Database::insert(const Sensor::MeasurementScd41 &m) {
-  if (!available()) {
+  // guard
+  if (!_sqlite3_db) {
     M5_LOGI("sqlite3_db is not available.");
     return false;
   }
@@ -988,7 +1000,8 @@ bool Database::insert(const Sensor::MeasurementScd41 &m) {
 //
 //
 bool Database::insert(const Sensor::MeasurementM5Env3 &m) {
-  if (!available()) {
+  // guard
+  if (!_sqlite3_db) {
     M5_LOGI("sqlite3_db is not available.");
     return false;
   }
@@ -1027,48 +1040,36 @@ bool Database::insert_values(std::string_view query,
   auto [sensor_id_to_insert, tp_to_insert, fp_value_to_insert] =
       values_to_insert;
 
-  if (_sqlite3_db == nullptr) {
+  // guard
+  if (!_sqlite3_db) {
     M5_LOGE("sqlite3_db is null");
     return false;
   }
 
-  struct Finalizer {
-    sqlite3 *db{nullptr};
-    sqlite3_stmt *stmt{nullptr};
-    Finalizer(sqlite3 *p) : db{p} {}
-    ~Finalizer() {
-      sqlite3_finalize(stmt);
-      switch (auto code = sqlite3_errcode(db); code) {
-      case SQLITE_DONE:
-        [[fallthrough]];
-      case SQLITE_OK:
-        /* No error exit */
-        break;
-      default:
-        M5_LOGE("%s", sqlite3_errstr(code));
-        break;
-      }
+  Sqlite3StmtPointerUnique stmt;
+  if (sqlite3_stmt * pStmt{nullptr};
+      sqlite3_prepare_v2(_sqlite3_db.get(), query.data(), -1, &pStmt,
+                         nullptr) == SQLITE_OK) {
+    // set statement handle to smartpointer
+    if (pStmt) {
+      stmt.reset(pStmt);
     }
-  } fin{_sqlite3_db};
-
-  //
-  if (sqlite3_prepare_v2(_sqlite3_db, query.data(), -1, &fin.stmt, nullptr) !=
-      SQLITE_OK) {
-    M5_LOGE("query");
+  } else {
+    M5_LOGE("%s", sqlite3_errmsg(_sqlite3_db.get()));
     M5_LOGE("%s", query.data());
     return false;
   }
 
   //
-  if (sqlite3_bind_int64(fin.stmt, 1, sensor_id_to_insert) != SQLITE_OK) {
+  if (sqlite3_bind_int64(stmt.get(), 1, sensor_id_to_insert) != SQLITE_OK) {
     return false;
   }
-  if (sqlite3_bind_int64(fin.stmt, 2,
+  if (sqlite3_bind_int64(stmt.get(), 2,
                          static_cast<int64_t>(system_clock::to_time_t(
                              tp_to_insert))) != SQLITE_OK) {
     return false;
   }
-  if (sqlite3_bind_double(fin.stmt, 3, fp_value_to_insert) != SQLITE_OK) {
+  if (sqlite3_bind_double(stmt.get(), 3, fp_value_to_insert) != SQLITE_OK) {
     return false;
   }
 
@@ -1080,7 +1081,7 @@ bool Database::insert_values(std::string_view query,
     localtime_r(&time, &local_time);
     std::ostringstream oss;
     //
-    if (auto p = sqlite3_expanded_sql(fin.stmt); p) {
+    if (auto p = sqlite3_expanded_sql(stmt.get()); p) {
       oss << std::string_view(p);
       sqlite3_free(p);
     }
@@ -1093,13 +1094,13 @@ bool Database::insert_values(std::string_view query,
   //
   auto timeover{steady_clock::now() + RETRY_TIMEOUT};
   while (steady_clock::now() < timeover &&
-         sqlite3_step(fin.stmt) != SQLITE_DONE) {
+         sqlite3_step(stmt.get()) != SQLITE_DONE) {
     /**/
   }
   if (steady_clock::now() > timeover) {
     M5_LOGE("sqlite3_step() timeover");
     M5_LOGE("query is \"%s\"", query.data());
-    M5_LOGE("%s", sqlite3_errmsg(_sqlite3_db));
+    M5_LOGE("%s", sqlite3_errmsg(_sqlite3_db.get()));
     return false;
   }
 
@@ -1113,56 +1114,45 @@ bool Database::insert_values(std::string_view query,
   auto [sensor_id_to_insert, tp_to_insert, u16_value_to_insert,
         optional_u16_value_to_insert] = values_to_insert;
 
-  if (_sqlite3_db == nullptr) {
+  // guard
+  if (!_sqlite3_db) {
     M5_LOGE("sqlite3_db is null");
     return false;
   }
 
-  struct Finalizer {
-    sqlite3 *db{nullptr};
-    sqlite3_stmt *stmt{nullptr};
-    Finalizer(sqlite3 *p) : db{p} {}
-    ~Finalizer() {
-      sqlite3_finalize(stmt);
-      switch (auto code = sqlite3_errcode(db); code) {
-      case SQLITE_DONE:
-        [[fallthrough]];
-      case SQLITE_OK:
-        /* No error exit */
-        break;
-      default:
-        M5_LOGE("%s", sqlite3_errstr(code));
-        break;
-      }
+  Sqlite3StmtPointerUnique stmt;
+  if (sqlite3_stmt * pStmt{nullptr};
+      sqlite3_prepare_v2(_sqlite3_db.get(), query.data(), -1, &pStmt,
+                         nullptr) == SQLITE_OK) {
+    // set statement handle to smartpointer
+    if (pStmt) {
+      stmt.reset(pStmt);
     }
-  } fin{_sqlite3_db};
-
-  //
-  if (sqlite3_prepare_v2(_sqlite3_db, query.data(), -1, &fin.stmt, nullptr) !=
-      SQLITE_OK) {
-    M5_LOGE("query");
+  } else {
+    M5_LOGE("%s", sqlite3_errmsg(_sqlite3_db.get()));
     M5_LOGE("%s", query.data());
     return false;
   }
+
   //
-  if (sqlite3_bind_int64(fin.stmt, 1, sensor_id_to_insert) != SQLITE_OK) {
+  if (sqlite3_bind_int64(stmt.get(), 1, sensor_id_to_insert) != SQLITE_OK) {
     return false;
   }
-  if (sqlite3_bind_int64(fin.stmt, 2,
+  if (sqlite3_bind_int64(stmt.get(), 2,
                          static_cast<int64_t>(system_clock::to_time_t(
                              tp_to_insert))) != SQLITE_OK) {
     return false;
   }
-  if (sqlite3_bind_int(fin.stmt, 3, u16_value_to_insert) != SQLITE_OK) {
+  if (sqlite3_bind_int(stmt.get(), 3, u16_value_to_insert) != SQLITE_OK) {
     return false;
   }
   if (optional_u16_value_to_insert.has_value()) {
-    if (sqlite3_bind_int(fin.stmt, 4, *optional_u16_value_to_insert) !=
+    if (sqlite3_bind_int(stmt.get(), 4, *optional_u16_value_to_insert) !=
         SQLITE_OK) {
       return false;
     }
   } else {
-    if (sqlite3_bind_null(fin.stmt, 4) != SQLITE_OK) {
+    if (sqlite3_bind_null(stmt.get(), 4) != SQLITE_OK) {
       return false;
     }
   }
@@ -1174,7 +1164,7 @@ bool Database::insert_values(std::string_view query,
     localtime_r(&time, &local_time);
     std::ostringstream oss;
     //
-    if (auto p = sqlite3_expanded_sql(fin.stmt); p) {
+    if (auto p = sqlite3_expanded_sql(stmt.get()); p) {
       oss << std::string_view(p);
       sqlite3_free(p);
     }
@@ -1187,13 +1177,13 @@ bool Database::insert_values(std::string_view query,
   //
   auto timeover{steady_clock::now() + RETRY_TIMEOUT};
   while (steady_clock::now() < timeover &&
-         sqlite3_step(fin.stmt) != SQLITE_DONE) {
+         sqlite3_step(stmt.get()) != SQLITE_DONE) {
     /**/
   }
   if (steady_clock::now() > timeover) {
     M5_LOGE("sqlite3_step() timeover");
     M5_LOGE("query is \"%s\"", query.data());
-    M5_LOGE("%s", sqlite3_errmsg(_sqlite3_db));
+    M5_LOGE("%s", sqlite3_errmsg(_sqlite3_db.get()));
     return false;
   }
 
@@ -1208,40 +1198,29 @@ Database::read_values(std::string_view query,
                       ReadCallback<TimePointAndDouble> callback) {
   auto [at_begin, orderby] = placeholder;
 
-  if (_sqlite3_db == nullptr) {
+  // guard
+  if (!_sqlite3_db) {
     M5_LOGE("sqlite3_db is null");
     return std::nullopt;
   }
 
-  struct Finalizer {
-    sqlite3 *db{nullptr};
-    sqlite3_stmt *stmt{nullptr};
-    Finalizer(sqlite3 *p) : db{p} {}
-    ~Finalizer() {
-      sqlite3_finalize(stmt);
-      switch (auto code = sqlite3_errcode(db); code) {
-      case SQLITE_DONE:
-        [[fallthrough]];
-      case SQLITE_OK:
-        /* No error exit */
-        break;
-      default:
-        M5_LOGE("%s", sqlite3_errstr(code));
-        break;
-      }
+  Sqlite3StmtPointerUnique stmt;
+  if (sqlite3_stmt * pStmt{nullptr};
+      sqlite3_prepare_v2(_sqlite3_db.get(), query.data(), -1, &pStmt,
+                         nullptr) == SQLITE_OK) {
+    // set statement handle to smartpointer
+    if (pStmt) {
+      stmt.reset(pStmt);
     }
-  } fin{_sqlite3_db};
-
-  //
-  if (sqlite3_prepare_v2(_sqlite3_db, query.data(), -1, &fin.stmt, nullptr) !=
-      SQLITE_OK) {
-    M5_LOGE("query");
+  } else {
+    M5_LOGE("%s", sqlite3_errmsg(_sqlite3_db.get()));
     M5_LOGE("%s", query.data());
     return std::nullopt;
   }
+
   //
   if (sqlite3_bind_int64(
-          fin.stmt, sqlite3_bind_parameter_index(fin.stmt, ":at_begin"),
+          stmt.get(), sqlite3_bind_parameter_index(stmt.get(), ":at_begin"),
           static_cast<int64_t>(system_clock::to_time_t(at_begin))) !=
       SQLITE_OK) {
     return std::nullopt;
@@ -1249,26 +1228,26 @@ Database::read_values(std::string_view query,
   {
     std::string_view order_text{orderby == OrderByAtDesc ? "at DESC"
                                                          : "at ASC"};
-    if (sqlite3_bind_text(fin.stmt,
-                          sqlite3_bind_parameter_index(fin.stmt, ":order_by"),
+    if (sqlite3_bind_text(stmt.get(),
+                          sqlite3_bind_parameter_index(stmt.get(), ":order_by"),
                           order_text.data(), -1, SQLITE_STATIC) != SQLITE_OK) {
       return std::nullopt;
     }
   }
   // SQL表示(デバッグ用)
   if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_DEBUG) {
-    if (auto p = sqlite3_expanded_sql(fin.stmt); p) {
+    if (auto p = sqlite3_expanded_sql(stmt.get()); p) {
       M5_LOGD("%s", p);
       sqlite3_free(p);
     }
   }
   //
   size_t counter{1}; // 1 start
-  while (sqlite3_step(fin.stmt) == SQLITE_ROW) {
+  while (sqlite3_step(stmt.get()) == SQLITE_ROW) {
     // number 0 is sensor_id
-    int64_t sensor_id = sqlite3_column_int64(fin.stmt, 0);
-    int64_t at = sqlite3_column_int64(fin.stmt, 1);
-    double fp_value = sqlite3_column_double(fin.stmt, 2);
+    int64_t sensor_id = sqlite3_column_int64(stmt.get(), 0);
+    int64_t at = sqlite3_column_int64(stmt.get(), 1);
+    double fp_value = sqlite3_column_double(stmt.get(), 2);
     TimePointAndDouble values{sensor_id, system_clock::from_time_t(at),
                               fp_value};
     if (bool _continue = callback(counter, values); _continue == false) {
@@ -1287,70 +1266,60 @@ Database::read_values(std::string_view query,
                       ReadCallback<TimePointAndDouble> callback) {
   auto [sensorid, orderby, limit] = placeholder;
 
-  if (_sqlite3_db == nullptr) {
+  // guard
+  if (!_sqlite3_db) {
     M5_LOGE("sqlite3_db is null");
     return std::nullopt;
   }
 
-  struct Finalizer {
-    sqlite3 *db{nullptr};
-    sqlite3_stmt *stmt{nullptr};
-    Finalizer(sqlite3 *p) : db{p} {}
-    ~Finalizer() {
-      sqlite3_finalize(stmt);
-      switch (auto code = sqlite3_errcode(db); code) {
-      case SQLITE_DONE:
-        [[fallthrough]];
-      case SQLITE_OK:
-        /* No error exit */
-        break;
-      default:
-        M5_LOGE("%s", sqlite3_errstr(code));
-        break;
-      }
+  Sqlite3StmtPointerUnique stmt;
+  if (sqlite3_stmt * pStmt{nullptr};
+      sqlite3_prepare_v2(_sqlite3_db.get(), query.data(), -1, &pStmt,
+                         nullptr) == SQLITE_OK) {
+    // set statement handle to smartpointer
+    if (pStmt) {
+      stmt.reset(pStmt);
     }
-  } fin{_sqlite3_db};
-
-  if (sqlite3_prepare_v2(_sqlite3_db, query.data(), -1, &fin.stmt, nullptr) !=
-      SQLITE_OK) {
-    M5_LOGE("query");
+  } else {
+    M5_LOGE("%s", sqlite3_errmsg(_sqlite3_db.get()));
     M5_LOGE("%s", query.data());
     return std::nullopt;
   }
+
   //
-  if (sqlite3_bind_int64(fin.stmt,
-                         sqlite3_bind_parameter_index(fin.stmt, ":sensor_id"),
+  if (sqlite3_bind_int64(stmt.get(),
+                         sqlite3_bind_parameter_index(stmt.get(), ":sensor_id"),
                          sensorid) != SQLITE_OK) {
     return std::nullopt;
   }
   {
     std::string_view order_text{orderby == OrderByAtDesc ? "at DESC"
                                                          : "at ASC"};
-    if (sqlite3_bind_text(fin.stmt,
-                          sqlite3_bind_parameter_index(fin.stmt, ":order_by"),
+    if (sqlite3_bind_text(stmt.get(),
+                          sqlite3_bind_parameter_index(stmt.get(), ":order_by"),
                           order_text.data(), -1, SQLITE_STATIC) != SQLITE_OK) {
       return std::nullopt;
     }
   }
-  if (sqlite3_bind_int(fin.stmt,
-                       sqlite3_bind_parameter_index(fin.stmt, ":limit"),
+  if (sqlite3_bind_int(stmt.get(),
+                       sqlite3_bind_parameter_index(stmt.get(), ":limit"),
                        limit) != SQLITE_OK) {
     return std::nullopt;
   }
   // SQL表示(デバッグ用)
   if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_DEBUG) {
-    if (auto p = sqlite3_expanded_sql(fin.stmt); p) {
+    if (auto p = sqlite3_expanded_sql(stmt.get()); p) {
       M5_LOGD("%s", p);
       sqlite3_free(p);
     }
   }
   //
   size_t counter{1}; // 1 start
-  while (sqlite3_step(fin.stmt) == SQLITE_ROW) {
+  while (sqlite3_step(stmt.get()) == SQLITE_ROW) {
     // number 0 is sensor_id
-    int64_t sensor_id = sqlite3_column_int64(fin.stmt, 0);
-    int64_t at = sqlite3_column_int64(fin.stmt, 1);
-    double fp_value = sqlite3_column_double(fin.stmt, 2);
+    int64_t sensor_id = sqlite3_column_int64(stmt.get(), 0);
+    int64_t at = sqlite3_column_int64(stmt.get(), 1);
+    double fp_value = sqlite3_column_double(stmt.get(), 2);
     TimePointAndDouble values{sensor_id, system_clock::from_time_t(at),
                               fp_value};
     if (bool _continue = callback(counter, values); _continue == false) {
@@ -1369,40 +1338,29 @@ Database::read_values(std::string_view query,
                       ReadCallback<TimePointAndUInt16> callback) {
   auto [at_begin, orderby] = placeholder;
 
-  if (_sqlite3_db == nullptr) {
+  // guard
+  if (!_sqlite3_db) {
     M5_LOGE("sqlite3_db is null");
     return std::nullopt;
   }
 
-  struct Finalizer {
-    sqlite3 *db{nullptr};
-    sqlite3_stmt *stmt{nullptr};
-    Finalizer(sqlite3 *p) : db{p} {}
-    ~Finalizer() {
-      sqlite3_finalize(stmt);
-      switch (auto code = sqlite3_errcode(db); code) {
-      case SQLITE_DONE:
-        [[fallthrough]];
-      case SQLITE_OK:
-        /* No error exit */
-        break;
-      default:
-        M5_LOGE("%s", sqlite3_errstr(code));
-        break;
-      }
+  Sqlite3StmtPointerUnique stmt;
+  if (sqlite3_stmt * pStmt{nullptr};
+      sqlite3_prepare_v2(_sqlite3_db.get(), query.data(), -1, &pStmt,
+                         nullptr) == SQLITE_OK) {
+    // set statement handle to smartpointer
+    if (pStmt) {
+      stmt.reset(pStmt);
     }
-  } fin{_sqlite3_db};
-
-  //
-  if (sqlite3_prepare_v2(_sqlite3_db, query.data(), -1, &fin.stmt, nullptr) !=
-      SQLITE_OK) {
-    M5_LOGE("query");
+  } else {
+    M5_LOGE("%s", sqlite3_errmsg(_sqlite3_db.get()));
     M5_LOGE("%s", query.data());
     return std::nullopt;
   }
+
   //
   if (sqlite3_bind_int64(
-          fin.stmt, sqlite3_bind_parameter_index(fin.stmt, ":at_begin"),
+          stmt.get(), sqlite3_bind_parameter_index(stmt.get(), ":at_begin"),
           static_cast<int64_t>(system_clock::to_time_t(at_begin))) !=
       SQLITE_OK) {
     return std::nullopt;
@@ -1410,26 +1368,26 @@ Database::read_values(std::string_view query,
   {
     std::string_view order_text{orderby == OrderByAtDesc ? "at DESC"
                                                          : "at ASC"};
-    if (sqlite3_bind_text(fin.stmt,
-                          sqlite3_bind_parameter_index(fin.stmt, ":order_by"),
+    if (sqlite3_bind_text(stmt.get(),
+                          sqlite3_bind_parameter_index(stmt.get(), ":order_by"),
                           order_text.data(), -1, SQLITE_STATIC) != SQLITE_OK) {
       return std::nullopt;
     }
   }
   // SQL表示(デバッグ用)
   if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_DEBUG) {
-    if (auto p = sqlite3_expanded_sql(fin.stmt); p) {
+    if (auto p = sqlite3_expanded_sql(stmt.get()); p) {
       M5_LOGD("%s", p);
       sqlite3_free(p);
     }
   }
   //
   size_t counter{1}; // 1 start
-  while (sqlite3_step(fin.stmt) == SQLITE_ROW) {
+  while (sqlite3_step(stmt.get()) == SQLITE_ROW) {
     // number 0 is sensor_id
-    int64_t sensor_id = sqlite3_column_int64(fin.stmt, 0);
-    int64_t at = sqlite3_column_int64(fin.stmt, 1);
-    int int_value = sqlite3_column_int(fin.stmt, 2);
+    int64_t sensor_id = sqlite3_column_int64(stmt.get(), 0);
+    int64_t at = sqlite3_column_int64(stmt.get(), 1);
+    int int_value = sqlite3_column_int(stmt.get(), 2);
     TimePointAndUInt16 values{sensor_id, system_clock::from_time_t(at),
                               int_value};
     if (bool _continue = callback(counter, values); _continue == false) {
@@ -1448,40 +1406,29 @@ Database::read_values(std::string_view query,
                       ReadCallback<TimePointAndIntAndOptInt> callback) {
   auto [at_begin, orderby] = placeholder;
 
-  if (_sqlite3_db == nullptr) {
+  // guard
+  if (!_sqlite3_db) {
     M5_LOGE("sqlite3_db is null");
     return std::nullopt;
   }
 
-  struct Finalizer {
-    sqlite3 *db{nullptr};
-    sqlite3_stmt *stmt{nullptr};
-    Finalizer(sqlite3 *p) : db{p} {}
-    ~Finalizer() {
-      sqlite3_finalize(stmt);
-      switch (auto code = sqlite3_errcode(db); code) {
-      case SQLITE_DONE:
-        [[fallthrough]];
-      case SQLITE_OK:
-        /* No error exit */
-        break;
-      default:
-        M5_LOGE("%s", sqlite3_errstr(code));
-        break;
-      }
+  Sqlite3StmtPointerUnique stmt;
+  if (sqlite3_stmt * pStmt{nullptr};
+      sqlite3_prepare_v2(_sqlite3_db.get(), query.data(), -1, &pStmt,
+                         nullptr) == SQLITE_OK) {
+    // set statement handle to smartpointer
+    if (pStmt) {
+      stmt.reset(pStmt);
     }
-  } fin{_sqlite3_db};
-
-  //
-  if (sqlite3_prepare_v2(_sqlite3_db, query.data(), -1, &fin.stmt, nullptr) !=
-      SQLITE_OK) {
-    M5_LOGE("query");
+  } else {
+    M5_LOGE("%s", sqlite3_errmsg(_sqlite3_db.get()));
     M5_LOGE("%s", query.data());
     return std::nullopt;
   }
+
   //
   if (sqlite3_bind_int64(
-          fin.stmt, sqlite3_bind_parameter_index(fin.stmt, ":at_begin"),
+          stmt.get(), sqlite3_bind_parameter_index(stmt.get(), ":at_begin"),
           static_cast<int64_t>(system_clock::to_time_t(at_begin))) !=
       SQLITE_OK) {
     return std::nullopt;
@@ -1489,29 +1436,29 @@ Database::read_values(std::string_view query,
   {
     std::string_view order_text{orderby == OrderByAtDesc ? "at DESC"
                                                          : "at ASC"};
-    if (sqlite3_bind_text(fin.stmt,
-                          sqlite3_bind_parameter_index(fin.stmt, ":order_by"),
+    if (sqlite3_bind_text(stmt.get(),
+                          sqlite3_bind_parameter_index(stmt.get(), ":order_by"),
                           order_text.data(), -1, SQLITE_STATIC) != SQLITE_OK) {
       return std::nullopt;
     }
   }
   // SQL表示(デバッグ用)
   if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_DEBUG) {
-    if (auto p = sqlite3_expanded_sql(fin.stmt); p) {
+    if (auto p = sqlite3_expanded_sql(stmt.get()); p) {
       M5_LOGD("%s", p);
       sqlite3_free(p);
     }
   }
   //
   size_t counter{1}; // 1 start
-  while (sqlite3_step(fin.stmt) == SQLITE_ROW) {
+  while (sqlite3_step(stmt.get()) == SQLITE_ROW) {
     // number 0 is sensor_id
-    int64_t sensor_id = sqlite3_column_int64(fin.stmt, 0);
-    int64_t at = sqlite3_column_int64(fin.stmt, 1);
-    int int_value = sqlite3_column_int(fin.stmt, 2);
+    int64_t sensor_id = sqlite3_column_int64(stmt.get(), 0);
+    int64_t at = sqlite3_column_int64(stmt.get(), 1);
+    int int_value = sqlite3_column_int(stmt.get(), 2);
     std::optional<uint16_t> optional_int_value{
-        sqlite3_column_type(fin.stmt, 3) == SQLITE_INTEGER
-            ? std::make_optional(sqlite3_column_int(fin.stmt, 3))
+        sqlite3_column_type(stmt.get(), 3) == SQLITE_INTEGER
+            ? std::make_optional(sqlite3_column_int(stmt.get(), 3))
             : std::nullopt};
     TimePointAndIntAndOptInt values{sensor_id, system_clock::from_time_t(at),
                                     int_value, optional_int_value};
@@ -1531,71 +1478,61 @@ Database::read_values(std::string_view query,
                       ReadCallback<TimePointAndIntAndOptInt> callback) {
   auto [sensorid, orderby, limit] = placeholder;
 
-  if (_sqlite3_db == nullptr) {
+  // guard
+  if (!_sqlite3_db) {
     M5_LOGE("sqlite3 sqlite3_db is null");
     return std::nullopt;
   }
 
-  struct Finalizer {
-    sqlite3 *db{nullptr};
-    sqlite3_stmt *stmt{nullptr};
-    Finalizer(sqlite3 *p) : db{p} {}
-    ~Finalizer() {
-      sqlite3_finalize(stmt);
-      switch (auto code = sqlite3_errcode(db); code) {
-      case SQLITE_DONE:
-        [[fallthrough]];
-      case SQLITE_OK:
-        /* No error exit */
-        break;
-      default:
-        M5_LOGE("%s", sqlite3_errstr(code));
-        break;
-      }
+  Sqlite3StmtPointerUnique stmt;
+  if (sqlite3_stmt * pStmt{nullptr};
+      sqlite3_prepare_v2(_sqlite3_db.get(), query.data(), -1, &pStmt,
+                         nullptr) == SQLITE_OK) {
+    // set statement handle to smartpointer
+    if (pStmt) {
+      stmt.reset(pStmt);
     }
-  } fin{_sqlite3_db};
-
-  if (sqlite3_prepare_v2(_sqlite3_db, query.data(), -1, &fin.stmt, nullptr) !=
-      SQLITE_OK) {
-    M5_LOGE("query");
+  } else {
+    M5_LOGE("%s", sqlite3_errmsg(_sqlite3_db.get()));
     M5_LOGE("%s", query.data());
     return std::nullopt;
   }
+
   //
-  if (sqlite3_bind_int64(fin.stmt,
-                         sqlite3_bind_parameter_index(fin.stmt, ":sensor_id"),
+  if (sqlite3_bind_int64(stmt.get(),
+                         sqlite3_bind_parameter_index(stmt.get(), ":sensor_id"),
                          sensorid) != SQLITE_OK) {
     return std::nullopt;
   }
   if (std::string_view order_text{orderby == OrderByAtDesc ? "at DESC"
                                                            : "at ASC"};
-      sqlite3_bind_text(fin.stmt,
-                        sqlite3_bind_parameter_index(fin.stmt, ":order_by"),
+      sqlite3_bind_text(stmt.get(),
+                        sqlite3_bind_parameter_index(stmt.get(), ":order_by"),
                         order_text.data(), -1, SQLITE_STATIC) != SQLITE_OK) {
     return std::nullopt;
   }
-  if (sqlite3_bind_int(fin.stmt,
-                       sqlite3_bind_parameter_index(fin.stmt, ":limit"),
+  if (sqlite3_bind_int(stmt.get(),
+                       sqlite3_bind_parameter_index(stmt.get(), ":limit"),
                        limit) != SQLITE_OK) {
     return std::nullopt;
   }
   // SQL表示(デバッグ用)
   if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_DEBUG) {
-    if (auto p = sqlite3_expanded_sql(fin.stmt); p) {
+    if (auto p = sqlite3_expanded_sql(stmt.get()); p) {
       M5_LOGD("%s", p);
       sqlite3_free(p);
     }
   }
   //
   size_t counter{1}; // 1 start
-  while (sqlite3_step(fin.stmt) == SQLITE_ROW) {
+  while (sqlite3_step(stmt.get()) == SQLITE_ROW) {
     // number 0 is sensor_id
-    int64_t sensor_id = sqlite3_column_int64(fin.stmt, 0);
-    int64_t at = sqlite3_column_int64(fin.stmt, 1);
-    int int_value = sqlite3_column_int(fin.stmt, 2);
+    int64_t sensor_id = sqlite3_column_int64(stmt.get(), 0);
+    int64_t at = sqlite3_column_int64(stmt.get(), 1);
+    int int_value = sqlite3_column_int(stmt.get(), 2);
     std::optional<uint16_t> optional_int_value{
-        sqlite3_column_type(fin.stmt, 3) == SQLITE_INTEGER
-            ? std::make_optional(sqlite3_column_int(fin.stmt, 3))
+        sqlite3_column_type(stmt.get(), 3) == SQLITE_INTEGER
+            ? std::make_optional(sqlite3_column_int(stmt.get(), 3))
             : std::nullopt};
     TimePointAndIntAndOptInt values{sensor_id, system_clock::from_time_t(at),
                                     int_value, optional_int_value};

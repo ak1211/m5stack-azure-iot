@@ -17,12 +17,23 @@
 //
 //
 class Database final {
+  //
+  struct Sqlite3Deleter {
+    void operator()(sqlite3 *ptr) const;
+  };
+  using Sqlite3PointerUnique = std::unique_ptr<sqlite3, Sqlite3Deleter>;
+  //
+  struct Sqlite3StmtDeleter {
+    void operator()(sqlite3_stmt *ptr) const;
+  };
+  using Sqlite3StmtPointerUnique =
+      std::unique_ptr<sqlite3_stmt, Sqlite3StmtDeleter>;
+  //
   struct Transaction;
 
 private:
   const static sqlite3_mem_methods _custom_mem_methods;
-  bool _available{false};
-  sqlite3 *_sqlite3_db{nullptr};
+  Sqlite3PointerUnique _sqlite3_db{};
 #ifdef SQLITE_ENABLE_MEMSYS5
   constexpr static size_t DATABASE_USE_PREALLOCATED_MEMORY_SIZE =
       3 * 1024 * 1024;
@@ -56,7 +67,7 @@ public:
   //
   virtual ~Database() { terminate(); }
   //
-  bool available() const { return _available; }
+  bool available() const { return static_cast<bool>(_sqlite3_db); }
   //
   bool begin(const std::string &database_filename);
   //
