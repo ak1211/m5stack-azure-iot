@@ -21,41 +21,58 @@
 namespace Widget {
 using namespace std::chrono;
 // init argument for "lv_tileview_add_tile()"
-using InitArg = std::tuple<lv_obj_t *, uint8_t, uint8_t, lv_dir_t>;
+using InitArg =
+    std::tuple<std::shared_ptr<lv_obj_t>, uint8_t, uint8_t, lv_dir_t>;
 
+//
 class TileBase {
   // LVGL timer
   lv_timer_t *periodic_timer{nullptr};
 
 protected:
-  lv_obj_t *tileview_obj{nullptr};
-  lv_obj_t *tile_obj{nullptr};
+  std::shared_ptr<lv_obj_t> _tileview_obj;
+  std::shared_ptr<lv_obj_t> _tile_obj;
 
 public:
   constexpr static auto PERIODIC_TIMER_INTERVAL = std::chrono::milliseconds{60};
   //
-  TileBase(InitArg init) {
-    if (tileview_obj = std::get<0>(init); tileview_obj) {
-      tile_obj = std::apply(lv_tileview_add_tile, init);
+  TileBase(InitArg init) : _tileview_obj{std::get<0>(init)} {
+    auto &[_, col_id, row_id, dir] = init;
+    if (_tileview_obj) {
+      _tile_obj.reset(
+          lv_tileview_add_tile(_tileview_obj.get(), col_id, row_id, dir),
+          lv_obj_del);
       // set value changed callback
-      lv_obj_add_event_cb(tileview_obj, event_value_changed_callback,
+      lv_obj_add_event_cb(_tileview_obj.get(), event_value_changed_callback,
                           LV_EVENT_VALUE_CHANGED, this);
+    } else {
+      M5_LOGE("null");
     }
   }
   //
   virtual ~TileBase() {
     delTimer();
-    lv_obj_remove_event_cb(tileview_obj, event_value_changed_callback);
-    if (tile_obj) {
-      lv_obj_del(tile_obj);
+    if (_tileview_obj) {
+      lv_obj_remove_event_cb(_tileview_obj.get(), event_value_changed_callback);
     }
   };
   //
   bool isActiveTile() const {
-    return tile_obj == lv_tileview_get_tile_act(tileview_obj);
+    if (_tileview_obj && _tile_obj) {
+      return _tile_obj.get() == lv_tileview_get_tile_act(_tileview_obj.get());
+    } else {
+      M5_LOGE("null");
+      return false;
+    }
   }
   //
-  void setActiveTile() { lv_obj_set_tile(tileview_obj, tile_obj, LV_ANIM_ON); }
+  void setActiveTile() {
+    if (_tileview_obj && _tile_obj) {
+      lv_obj_set_tile(_tileview_obj.get(), _tile_obj.get(), LV_ANIM_ON);
+    } else {
+      M5_LOGE("null");
+    }
+  }
   //
   bool createTimer() {
     if (timer_callback) {
@@ -78,7 +95,8 @@ public:
   //
   static void timer_callback(lv_timer_t *timer) {
     if (timer) {
-      if (auto *it = static_cast<TileBase *>(timer->user_data); it) {
+      auto it = static_cast<TileBase *>(timer->user_data);
+      if (it) {
         it->update();
       }
     }
@@ -86,8 +104,10 @@ public:
   //
   static void event_value_changed_callback(lv_event_t *event) {
     if (event) {
-      if (auto it = static_cast<TileBase *>(event->user_data); it) {
-        if (lv_tileview_get_tile_act(it->tileview_obj) == it->tile_obj) {
+      auto it = static_cast<TileBase *>(event->user_data);
+      if (it && it->_tileview_obj && it->_tile_obj) {
+        if (lv_tileview_get_tile_act(it->_tileview_obj.get()) ==
+            it->_tile_obj.get()) {
           M5_LOGV("event_value_changed_callback: active");
           // active
           it->onActivate();
@@ -113,8 +133,8 @@ public:
 //
 //
 class BootMessage final : public TileBase {
-  lv_obj_t *message_label_obj{nullptr};
-  std::string latest{};
+  std::shared_ptr<lv_obj_t> _message_label_obj;
+  std::string _latest{};
 
 public:
   BootMessage(BootMessage &&) = delete;
@@ -134,14 +154,14 @@ public:
 //
 //
 class Summary final : public TileBase {
-  lv_obj_t *table_obj{nullptr};
+  std::shared_ptr<lv_obj_t> _table_obj;
   //
   using Measurements = std::tuple<std::optional<Sensor::MeasurementBme280>,
                                   std::optional<Sensor::MeasurementSgp30>,
                                   std::optional<Sensor::MeasurementScd30>,
                                   std::optional<Sensor::MeasurementScd41>,
                                   std::optional<Sensor::MeasurementM5Env3>>;
-  Measurements latest{};
+  Measurements _latest{};
 
 public:
   Summary(Summary &&) = delete;
@@ -161,13 +181,13 @@ public:
 //
 //
 class Clock final : public TileBase {
-  lv_obj_t *meter_obj{nullptr};
-  lv_meter_scale_t *sec_scale{nullptr};
-  lv_meter_scale_t *min_scale{nullptr};
-  lv_meter_scale_t *hour_scale{nullptr};
-  lv_meter_indicator_t *sec_indic{nullptr};
-  lv_meter_indicator_t *min_indic{nullptr};
-  lv_meter_indicator_t *hour_indic{nullptr};
+  std::shared_ptr<lv_obj_t> _meter_obj;
+  std::shared_ptr<lv_meter_scale_t> _sec_scale;
+  std::shared_ptr<lv_meter_scale_t> _min_scale;
+  std::shared_ptr<lv_meter_scale_t> _hour_scale;
+  std::shared_ptr<lv_meter_indicator_t> _sec_indic;
+  std::shared_ptr<lv_meter_indicator_t> _min_indic;
+  std::shared_ptr<lv_meter_indicator_t> _hour_indic;
 
 public:
   Clock(Clock &&) = delete;
@@ -296,13 +316,14 @@ public:
   // 軸目盛関数
   virtual void chart_draw_part_tick_label(lv_obj_draw_part_dsc_t *dsc) = 0;
   //
-  BasicChart(lv_obj_t *parent_obj, lv_obj_t *title_obj);
+  BasicChart(std::shared_ptr<lv_obj_t> parent_obj,
+             std::shared_ptr<lv_obj_t> title_obj);
   //
-  virtual ~BasicChart();
+  virtual ~BasicChart() { /* nothing to do */ }
   //
-  lv_obj_t *getChartObj() const { return _chart_obj; }
+  std::shared_ptr<lv_obj_t> getLabelObj() { return _label_obj; }
   //
-  lv_obj_t *getLabelObj() const { return _label_obj; }
+  std::shared_ptr<lv_obj_t> getChartObj() { return _chart_obj; }
   //
   system_clock::time_point getBeginX() const { return _begin_x_tp; }
   //
@@ -310,8 +331,8 @@ public:
 
 private:
   lv_style_t _label_style{};
-  lv_obj_t *_label_obj{nullptr};
-  lv_obj_t *_chart_obj{nullptr};
+  std::shared_ptr<lv_obj_t> _label_obj;
+  std::shared_ptr<lv_obj_t> _chart_obj;
   //
   std::unordered_map<SensorId, ChartSeriesWrapper> _chart_series_map{};
   //
@@ -328,7 +349,8 @@ class TemperatureChart final : public TileBase {
   class BC : public BasicChart<double> {
   public:
     //
-    BC(lv_obj_t *parent_obj, lv_obj_t *title_obj)
+    BC(std::shared_ptr<lv_obj_t> parent_obj,
+       std::shared_ptr<lv_obj_t> title_obj)
         : BasicChart<double>(parent_obj, title_obj) {}
     // データーベースからデーターを得る
     virtual size_t read_measurements_from_database(
@@ -344,7 +366,7 @@ class TemperatureChart final : public TileBase {
   };
 
 private:
-  lv_obj_t *_title_obj{nullptr};
+  std::shared_ptr<lv_obj_t> _title_obj;
   //
   using Measurements = std::tuple<std::optional<Sensor::MeasurementBme280>,
                                   std::optional<Sensor::MeasurementScd30>,
@@ -359,13 +381,13 @@ public:
   TemperatureChart(InitArg init);
   //
   virtual void onActivate() override {
-    if (tile_obj == nullptr) {
+    if (_tile_obj == nullptr) {
       M5_LOGE("tile had null");
       return;
     }
     if (!basic_chart) {
       // create
-      basic_chart = std::make_unique<BC>(tile_obj, _title_obj);
+      basic_chart = std::make_unique<BC>(_tile_obj, _title_obj);
     }
     render();
   }
@@ -389,7 +411,8 @@ class RelativeHumidityChart final : public TileBase {
   class BC : public BasicChart<double> {
   public:
     //
-    BC(lv_obj_t *parent_obj, lv_obj_t *title_obj)
+    BC(std::shared_ptr<lv_obj_t> parent_obj,
+       std::shared_ptr<lv_obj_t> title_obj)
         : BasicChart<double>(parent_obj, title_obj) {}
     // データーベースからデーターを得る
     virtual size_t read_measurements_from_database(
@@ -405,7 +428,7 @@ class RelativeHumidityChart final : public TileBase {
   };
 
 private:
-  lv_obj_t *_title_obj{nullptr};
+  std::shared_ptr<lv_obj_t> _title_obj;
   //
   using Measurements = std::tuple<std::optional<Sensor::MeasurementBme280>,
                                   std::optional<Sensor::MeasurementScd30>,
@@ -420,13 +443,13 @@ public:
   RelativeHumidityChart(InitArg init);
   //
   virtual void onActivate() override {
-    if (tile_obj == nullptr) {
+    if (_tile_obj == nullptr) {
       M5_LOGE("tile had null");
       return;
     }
     if (!basic_chart) {
       // create
-      basic_chart = std::make_unique<BC>(tile_obj, _title_obj);
+      basic_chart = std::make_unique<BC>(_tile_obj, _title_obj);
     }
     render();
   }
@@ -450,7 +473,8 @@ class PressureChart final : public TileBase {
   class BC : public BasicChart<double> {
   public:
     //
-    BC(lv_obj_t *parent_obj, lv_obj_t *title_obj)
+    BC(std::shared_ptr<lv_obj_t> parent_obj,
+       std::shared_ptr<lv_obj_t> title_obj)
         : BasicChart<double>(parent_obj, title_obj) {}
     // データーベースからデーターを得る
     virtual size_t read_measurements_from_database(
@@ -468,7 +492,7 @@ class PressureChart final : public TileBase {
   };
 
 private:
-  lv_obj_t *_title_obj{nullptr};
+  std::shared_ptr<lv_obj_t> _title_obj;
   //
   using Measurements = std::tuple<std::optional<Sensor::MeasurementBme280>,
                                   std::optional<Sensor::MeasurementM5Env3>>;
@@ -481,13 +505,13 @@ public:
   PressureChart(InitArg init);
   //
   virtual void onActivate() override {
-    if (tile_obj == nullptr) {
+    if (_tile_obj == nullptr) {
       M5_LOGE("tile had null");
       return;
     }
     if (!basic_chart) {
       // create
-      basic_chart = std::make_unique<BC>(tile_obj, _title_obj);
+      basic_chart = std::make_unique<BC>(_tile_obj, _title_obj);
     }
     render();
   }
@@ -511,7 +535,8 @@ class CarbonDeoxidesChart final : public TileBase {
   class BC : public BasicChart<uint16_t> {
   public:
     //
-    BC(lv_obj_t *parent_obj, lv_obj_t *title_obj)
+    BC(std::shared_ptr<lv_obj_t> parent_obj,
+       std::shared_ptr<lv_obj_t> title_obj)
         : BasicChart<uint16_t>(parent_obj, title_obj) {}
     // データーベースからデーターを得る
     virtual size_t read_measurements_from_database(
@@ -527,7 +552,7 @@ class CarbonDeoxidesChart final : public TileBase {
   };
 
 private:
-  lv_obj_t *_title_obj{nullptr};
+  std::shared_ptr<lv_obj_t> _title_obj;
   //
   using Measurements = std::tuple<std::optional<Sensor::MeasurementSgp30>,
                                   std::optional<Sensor::MeasurementScd30>,
@@ -541,13 +566,13 @@ public:
   CarbonDeoxidesChart(InitArg init);
   //
   virtual void onActivate() override {
-    if (tile_obj == nullptr) {
+    if (_tile_obj == nullptr) {
       M5_LOGE("tile had null");
       return;
     }
     if (!basic_chart) {
       // create
-      basic_chart = std::make_unique<BC>(tile_obj, _title_obj);
+      basic_chart = std::make_unique<BC>(_tile_obj, _title_obj);
     }
     render();
   }
@@ -571,7 +596,8 @@ class TotalVocChart final : public TileBase {
   class BC : public BasicChart<uint16_t> {
   public:
     //
-    BC(lv_obj_t *parent_obj, lv_obj_t *title_obj)
+    BC(std::shared_ptr<lv_obj_t> parent_obj,
+       std::shared_ptr<lv_obj_t> title_obj)
         : BasicChart<uint16_t>(parent_obj, title_obj) {}
     // データーベースからデーターを得る
     virtual size_t read_measurements_from_database(
@@ -589,7 +615,7 @@ class TotalVocChart final : public TileBase {
   };
 
 private:
-  lv_obj_t *_title_obj{nullptr};
+  std::shared_ptr<lv_obj_t> _title_obj;
   //
   std::optional<Sensor::MeasurementSgp30> latest{};
   std::unique_ptr<BC> basic_chart;
@@ -600,13 +626,13 @@ public:
   TotalVocChart(InitArg init);
   //
   virtual void onActivate() override {
-    if (tile_obj == nullptr) {
+    if (_tile_obj == nullptr) {
       M5_LOGE("tile had null");
       return;
     }
     if (!basic_chart) {
       // create
-      basic_chart = std::make_unique<BC>(tile_obj, _title_obj);
+      basic_chart = std::make_unique<BC>(_tile_obj, _title_obj);
     }
     render();
   }
@@ -626,18 +652,17 @@ public:
 //
 //
 class Startup final {
-  lv_style_t title_style{};
-  lv_style_t label_style{};
-  lv_obj_t *container_obj{nullptr};
-  lv_obj_t *title_obj{nullptr};
-  lv_obj_t *label_obj{nullptr};
-  lv_obj_t *bar_obj{nullptr};
+  lv_style_t _title_style{};
+  lv_style_t _label_style{};
+  std::shared_ptr<lv_obj_t> _container_obj;
+  std::shared_ptr<lv_obj_t> _title_obj;
+  std::shared_ptr<lv_obj_t> _label_obj;
+  std::shared_ptr<lv_obj_t> _bar_obj;
 
 public:
   Startup(Startup &&) = delete;
   Startup &operator=(const Startup &) = delete;
   Startup(lv_coord_t display_width, lv_coord_t display_height);
-  ~Startup();
   //
   void updateMessage(const std::string &s);
   //
@@ -688,7 +713,7 @@ private:
   //
   std::unique_ptr<Widget::Startup> _startup_widget{};
   //
-  lv_obj_t *tileview_obj{nullptr};
+  std::shared_ptr<lv_obj_t> _tileview_obj;
   // tile widget
   std::vector<std::unique_ptr<Widget::TileBase>> tile_vector{};
   //
