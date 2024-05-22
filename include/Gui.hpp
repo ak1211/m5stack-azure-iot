@@ -175,6 +175,8 @@ public:
   virtual void update() override;
   //
   void render();
+  //
+  static void event_draw_part_begin_callback(lv_event_t *event);
 };
 
 //
@@ -207,19 +209,7 @@ public:
 //
 //
 class SystemHealthy final : public TileBase {
-  lv_obj_t *cont_col_obj{nullptr};
-  //
-  lv_style_t label_style;
-  //
-  lv_obj_t *time_label_obj{nullptr};
-  lv_obj_t *status_label_obj{nullptr};
-  lv_obj_t *battery_label_obj{nullptr};
-  lv_obj_t *battery_charging_label_obj{nullptr};
-  lv_obj_t *available_heap_label_obj{nullptr};
-  lv_obj_t *available_internal_heap_label_obj{nullptr};
-  lv_obj_t *minimum_free_heap_label_obj{nullptr};
-  lv_obj_t *lvgl_task_stack_mark_label_obj{nullptr};
-  lv_obj_t *app_task_stack_mark_label_obj{nullptr};
+  std::shared_ptr<lv_obj_t> _table_obj;
 
 public:
   SystemHealthy(SystemHealthy &&) = delete;
@@ -233,6 +223,8 @@ public:
   virtual void update() override { render(); }
   //
   void render();
+  //
+  static void event_draw_part_begin_callback(lv_event_t *event);
 };
 
 //

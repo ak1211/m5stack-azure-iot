@@ -300,6 +300,20 @@ Widget::Summary::Summary(Widget::InitArg init) : TileBase{init} {
   if (_tile_obj) {
     // create
     _table_obj.reset(lv_table_create(_tile_obj.get()), lv_obj_del);
+    //
+    auto w = lv_obj_get_content_width(_tile_obj.get());
+    lv_table_set_col_width(_table_obj.get(), 0, w * 6 / 12);
+    lv_table_set_col_width(_table_obj.get(), 1, w * 3 / 12);
+    lv_table_set_col_width(_table_obj.get(), 2, w * 3 / 12);
+    lv_obj_set_width(_table_obj.get(), w);
+    lv_obj_set_height(_table_obj.get(),
+                      lv_obj_get_content_height(_tile_obj.get()));
+    lv_obj_center(_table_obj.get());
+    lv_obj_set_style_text_font(_table_obj.get(), &lv_font_montserrat_16,
+                               LV_PART_ITEMS | LV_STATE_DEFAULT);
+    //
+    lv_obj_add_event_cb(_table_obj.get(), event_draw_part_begin_callback,
+                        LV_EVENT_DRAW_PART_BEGIN, nullptr);
   } else {
     M5_LOGE("null pointer");
     return;
@@ -320,7 +334,7 @@ void Widget::Summary::update() {
 }
 
 void Widget::Summary::render() {
-  if (_tile_obj && _table_obj) {
+  if (_table_obj) {
     std::ostringstream oss;
     oss << std::fixed << std::setprecision(2);
     auto row = 0;
@@ -549,53 +563,41 @@ void Widget::Summary::render() {
         break;
       }
     }
-    //
-    auto w = lv_obj_get_content_width(_tile_obj.get());
-    lv_table_set_col_width(_table_obj.get(), 0, w * 6 / 12);
-    lv_table_set_col_width(_table_obj.get(), 1, w * 3 / 12);
-    lv_table_set_col_width(_table_obj.get(), 2, w * 3 / 12);
-    lv_obj_set_width(_table_obj.get(), w);
-    lv_obj_set_height(_table_obj.get(),
-                      lv_obj_get_content_height(_tile_obj.get()));
-    lv_obj_center(_table_obj.get());
-    lv_obj_set_style_text_font(_table_obj.get(), &lv_font_montserrat_16,
-                               LV_PART_ITEMS | LV_STATE_DEFAULT);
-    //
-    lv_obj_add_event_cb(
-        _table_obj.get(),
-        [](lv_event_t *event) -> void {
-          lv_obj_t *obj = lv_event_get_target(event);
-          lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
-          if (dsc->part == LV_PART_ITEMS) {
-            uint32_t row = dsc->id / lv_table_get_col_cnt(obj);
-            uint32_t col = dsc->id - row * lv_table_get_col_cnt(obj);
-            //
-            switch (col) {
-            case 0:
-              dsc->label_dsc->align = LV_TEXT_ALIGN_LEFT;
-              break;
-            case 1:
-              dsc->label_dsc->align = LV_TEXT_ALIGN_RIGHT;
-              break;
-            case 2:
-              [[fallthrough]];
-            default:
-              dsc->label_dsc->align = LV_TEXT_ALIGN_LEFT;
-              break;
-            }
-            if (row % 2 == 0) {
-              dsc->rect_dsc->bg_color =
-                  lv_color_mix(lv_palette_main(LV_PALETTE_GREY),
-                               lv_color_white(), LV_OPA_30);
-              dsc->rect_dsc->bg_opa = LV_OPA_COVER;
-            } else {
-              dsc->rect_dsc->bg_color = lv_color_white();
-            }
-          }
-        },
-        LV_EVENT_DRAW_PART_BEGIN, nullptr);
   } else {
     M5_LOGE("null pointer");
+  }
+}
+
+//
+void Widget::Summary::event_draw_part_begin_callback(lv_event_t *event) {
+  if (event) {
+    lv_obj_t *obj = lv_event_get_target(event);
+    lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
+    if (dsc->part == LV_PART_ITEMS) {
+      uint32_t row = dsc->id / lv_table_get_col_cnt(obj);
+      uint32_t col = dsc->id - row * lv_table_get_col_cnt(obj);
+      //
+      switch (col) {
+      case 0:
+        dsc->label_dsc->align = LV_TEXT_ALIGN_LEFT;
+        break;
+      case 1:
+        dsc->label_dsc->align = LV_TEXT_ALIGN_RIGHT;
+        break;
+      case 2:
+        [[fallthrough]];
+      default:
+        dsc->label_dsc->align = LV_TEXT_ALIGN_LEFT;
+        break;
+      }
+      if (row % 2 == 0) {
+        dsc->rect_dsc->bg_color = lv_color_mix(lv_palette_main(LV_PALETTE_GREY),
+                                               lv_color_white(), LV_OPA_30);
+        dsc->rect_dsc->bg_opa = LV_OPA_COVER;
+      } else {
+        dsc->rect_dsc->bg_color = lv_color_white();
+      }
+    }
   }
 }
 
@@ -691,229 +693,261 @@ void Widget::Clock::render(const std::tm &tm) {
 Widget::SystemHealthy::SystemHealthy(Widget::InitArg init) : TileBase{init} {
   if (_tile_obj) {
     // create
-    if (cont_col_obj = lv_obj_create(_tile_obj.get()); cont_col_obj) {
-      lv_obj_set_size(cont_col_obj, LV_PCT(100), LV_PCT(100));
-      lv_obj_align(cont_col_obj, LV_ALIGN_CENTER, 0, 0);
-      lv_obj_set_flex_flow(cont_col_obj, LV_FLEX_FLOW_COLUMN);
-      //
-      auto create = [](lv_obj_t *parent, lv_style_t *style,
-                       lv_text_align_t align =
-                           LV_TEXT_ALIGN_LEFT) -> lv_obj_t * {
-        if (lv_obj_t *label = lv_label_create(parent); label) {
-          lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP);
-          lv_obj_set_style_text_align(label, align, 0);
-          lv_obj_add_style(label, style, 0);
-          lv_obj_set_width(label, LV_PCT(100));
-          lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
-          return label;
-        } else {
-          return nullptr;
-        }
-      };
-      //
-      lv_style_init(&label_style);
-      lv_style_set_text_font(&label_style, &lv_font_montserrat_16);
-      //
-      if (time_label_obj = create(cont_col_obj, &label_style);
-          time_label_obj == nullptr) {
-        M5_LOGE("time_label_obj had null");
-        return;
-      }
-      if (status_label_obj = create(cont_col_obj, &label_style);
-          status_label_obj == nullptr) {
-        M5_LOGE("status_label_obj had null");
-        return;
-      }
-      if (battery_label_obj = create(cont_col_obj, &label_style);
-          battery_label_obj == nullptr) {
-        M5_LOGE("battery_label_obj had null");
-        return;
-      }
-      if (battery_charging_label_obj = create(cont_col_obj, &label_style);
-          battery_charging_label_obj == nullptr) {
-        M5_LOGE("battery_charging_label_obj had null");
-        return;
-      }
-      if (available_heap_label_obj = create(cont_col_obj, &label_style);
-          available_heap_label_obj == nullptr) {
-        M5_LOGE("available_heap_label_obj had null");
-        return;
-      }
-      if (available_internal_heap_label_obj =
-              create(cont_col_obj, &label_style);
-          available_internal_heap_label_obj == nullptr) {
-        M5_LOGE("available_heap_label_obj had null");
-        return;
-      }
-      if (minimum_free_heap_label_obj = create(cont_col_obj, &label_style);
-          minimum_free_heap_label_obj == nullptr) {
-        M5_LOGE("minimum_free_heap_label_obj had null");
-        return;
-      }
-      if (lvgl_task_stack_mark_label_obj = create(cont_col_obj, &label_style);
-          lvgl_task_stack_mark_label_obj == nullptr) {
-        M5_LOGE("lvgl_task_stack_mark_label_obj had null");
-        return;
-      }
-      if (app_task_stack_mark_label_obj = create(cont_col_obj, &label_style);
-          app_task_stack_mark_label_obj == nullptr) {
-        M5_LOGE("app_task_stack_mark_label_obj had null");
-        return;
-      }
-    }
+    _table_obj.reset(lv_table_create(_tile_obj.get()), lv_obj_del);
+    //
+    auto w = lv_obj_get_content_width(_tile_obj.get());
+    lv_table_set_col_width(_table_obj.get(), 0, w * 6 / 12);
+    lv_table_set_col_width(_table_obj.get(), 1, w * 6 / 12);
+    lv_obj_set_width(_table_obj.get(), w);
+    lv_obj_set_height(_table_obj.get(),
+                      lv_obj_get_content_height(_tile_obj.get()));
+    lv_obj_center(_table_obj.get());
+    lv_obj_set_style_text_font(_table_obj.get(), &lv_font_montserrat_14,
+                               LV_PART_ITEMS | LV_STATE_DEFAULT);
+    //
+    lv_obj_add_event_cb(_table_obj.get(), event_draw_part_begin_callback,
+                        LV_EVENT_DRAW_PART_BEGIN, nullptr);
   } else {
-    M5_LOGE("tile had null");
+    M5_LOGE("null pointer");
     return;
   }
 }
 
 //
 void Widget::SystemHealthy::render() {
-  if (time_label_obj == nullptr) {
-    M5_LOGE("time_label_obj had null");
-    return;
-  }
-  if (status_label_obj == nullptr) {
-    M5_LOGE("status_label_obj had null");
-    return;
-  }
-  if (battery_label_obj == nullptr) {
-    M5_LOGE("battery_label_obj had null");
-    return;
-  }
-  if (battery_charging_label_obj == nullptr) {
-    M5_LOGE("battery_charging_label_obj had null");
-    return;
-  }
-  if (available_heap_label_obj == nullptr) {
-    M5_LOGE("available_heap_label_obj had null");
-    return;
-  }
-  if (available_internal_heap_label_obj == nullptr) {
-    M5_LOGE("available_heap_label_obj had null");
-    return;
-  }
-  if (minimum_free_heap_label_obj == nullptr) {
-    M5_LOGE("minimum_free_heap_label_obj had null");
-    return;
-  }
-  if (lvgl_task_stack_mark_label_obj == nullptr) {
-    M5_LOGE("lvgl_stack_mark_label_obj had null");
-    return;
-  }
-  if (app_task_stack_mark_label_obj == nullptr) {
-    M5_LOGE("app_stack_mark_label_obj had null");
-    return;
-  }
-  const seconds uptime = Application::uptime();
-  const int16_t sec = uptime.count() % 60;
-  const int16_t min = uptime.count() / 60 % 60;
-  const int16_t hour = uptime.count() / (60 * 60) % 24;
-  const int32_t days = uptime.count() / (60 * 60 * 24);
-  //
-  { // now time
-    std::ostringstream oss;
+  if (_table_obj) {
+    auto row = 0;
+    //
     const auto now = system_clock::now();
-    std::time_t time =
-        (Application::isTimeSynced()) ? system_clock::to_time_t(now) : 0;
-    {
+    //
+    { // Battery Level
+      lv_table_set_cell_value(_table_obj.get(), row, 0, "Battery Level");
+      std::ostringstream oss;
+      auto battery_level = M5.Power.getBatteryLevel();
+      oss << std::setfill(' ') << std::setw(3) << +battery_level << "%";
+      lv_table_set_cell_value(_table_obj.get(), row, 1, oss.str().c_str());
+    }
+    row++;
+    { // Battery Charging?
+      lv_table_set_cell_value(_table_obj.get(), row, 0, "Battery Status");
+      switch (M5.Power.isCharging()) {
+      case m5::Power_Class::is_charging_t::is_discharging:
+        lv_table_set_cell_value(_table_obj.get(), row, 1, "discharging");
+        break;
+      case m5::Power_Class::is_charging_t::is_charging:
+        lv_table_set_cell_value(_table_obj.get(), row, 1, "charging");
+        break;
+      case m5::Power_Class::is_charging_t::charge_unknown:
+      [[fallthrough]]
+      default:
+        lv_table_set_cell_value(_table_obj.get(), row, 1, "unknown");
+      }
+    }
+    row++;
+    { // Battery Voltage
+      lv_table_set_cell_value(_table_obj.get(), row, 0, "Battery Voltage");
+      std::ostringstream oss;
+      auto battery_voltage = M5.Power.getBatteryVoltage();
+      oss << std::setfill(' ') << std::fixed << std::setw(5)
+          << std::setprecision(3) << battery_voltage << "mV";
+      lv_table_set_cell_value(_table_obj.get(), row, 1, oss.str().c_str());
+    }
+    row++;
+    { // Battery Current
+      lv_table_set_cell_value(_table_obj.get(), row, 0, "Battery Current");
+      std::ostringstream oss;
+      auto battery_current = M5.Power.getBatteryCurrent();
+      oss << std::setw(5) << std::setprecision(3) << battery_current << "mA";
+      lv_table_set_cell_value(_table_obj.get(), row, 1, oss.str().c_str());
+    }
+    row++;
+    { // WiFi
+      lv_table_set_cell_value(_table_obj.get(), row, 0, "WiFi");
+      std::ostringstream oss;
+      if (WiFi.status() == WL_CONNECTED) {
+        oss << "connected" << std::endl << WiFi.localIP().toString().c_str();
+      } else {
+        oss << "No connection";
+      }
+      lv_table_set_cell_value(_table_obj.get(), row, 1, oss.str().c_str());
+    }
+    row++;
+    { // Time is Synced?
+      lv_table_set_cell_value(_table_obj.get(), row, 0, "Time Server");
+      if (Application::isTimeSynced()) {
+        lv_table_set_cell_value(_table_obj.get(), row, 1, "sync completed");
+      } else {
+        lv_table_set_cell_value(_table_obj.get(), row, 1, "NOT synced");
+      }
+    }
+    row++;
+    { // UTC time
+      lv_table_set_cell_value(_table_obj.get(), row, 0, "Time(UTC)");
+      std::ostringstream oss;
+      std::time_t time =
+          (Application::isTimeSynced()) ? system_clock::to_time_t(now) : 0;
       std::tm utc_time;
       gmtime_r(&time, &utc_time);
-      oss << std::put_time(&utc_time, "%F %T UTC");
+      oss << std::put_time(&utc_time, "%F\n%T UTC");
+      lv_table_set_cell_value(_table_obj.get(), row, 1, oss.str().c_str());
     }
-    oss << std::endl;
-    {
+    row++;
+    { // Local time
+      lv_table_set_cell_value(_table_obj.get(), row, 0, "Time (Local)");
+      std::ostringstream oss;
+      std::time_t time =
+          (Application::isTimeSynced()) ? system_clock::to_time_t(now) : 0;
       std::tm local_time;
       localtime_r(&time, &local_time);
-      oss << std::put_time(&local_time, "%F %T %Z");
+      oss << std::put_time(&local_time, "%F\n%T %Z");
+      lv_table_set_cell_value(_table_obj.get(), row, 1, oss.str().c_str());
     }
-    oss << std::endl;
-    if (Application::isTimeSynced()) {
-      oss << "Sync completed, based on SNTP";
-    } else {
-      oss << "Time is not synced";
+    row++;
+    { // Uptime
+      lv_table_set_cell_value(_table_obj.get(), row, 0, "Uptime");
+      std::ostringstream oss;
+      const seconds uptime = Application::uptime();
+      const int16_t sec = uptime.count() % 60;
+      const int16_t min = uptime.count() / 60 % 60;
+      const int16_t hour = uptime.count() / (60 * 60) % 24;
+      const int32_t days = uptime.count() / (60 * 60 * 24);
+      oss << std::setfill(' ')           //
+          << days << " days"             //
+          << std::endl                   //
+          << std::setfill('0')           //
+          << std::setw(2) << hour << ":" //
+          << std::setw(2) << min << ":"  //
+          << std::setw(2) << sec;        //
+      lv_table_set_cell_value(_table_obj.get(), row, 1, oss.str().c_str());
     }
-    lv_label_set_text(time_label_obj, oss.str().c_str());
-  }
-  { // status
-    std::ostringstream oss;
-    if (WiFi.status() == WL_CONNECTED) {
-      oss << "WiFi connected.IP : ";
-      oss << WiFi.localIP().toString().c_str();
-    } else {
-      oss << "No WiFi connection.";
+    row++;
+    { // Free Heap Memory
+      lv_table_set_cell_value(_table_obj.get(), row, 0, "Free Heap");
+      std::ostringstream oss;
+      uint32_t memfree = esp_get_free_heap_size();
+      oss << +memfree << "B";
+      lv_table_set_cell_value(_table_obj.get(), row, 1, oss.str().c_str());
     }
-    oss << std::endl                     //
-        << std::setfill(' ')             //
-        << "uptime " << days << " days," //
-        << std::setfill('0')             //
-        << std::setw(2) << hour << ":"   //
-        << std::setw(2) << min << ":"    //
-        << std::setw(2) << sec;          //
-    lv_label_set_text(status_label_obj, oss.str().c_str());
-  }
-  { // battery status
-    auto battery_level = M5.Power.getBatteryLevel();
-    auto battery_current = M5.Power.getBatteryCurrent();
-    auto battery_voltage = M5.Power.getBatteryVoltage();
-    std::ostringstream oss;
-    oss << "Battery "                                                  //
-        << std::setfill(' ') << std::setw(3) << +battery_level << "% " //
-        << std::setfill(' ') << std::fixed                             //
-        << std::setw(5) << std::setprecision(3)                        //
-        << battery_voltage << "mV "                                    //
-        << std::setw(5) << std::setprecision(3)                        //
-        << battery_current << "mA ";                                   //
-    lv_label_set_text(battery_label_obj, oss.str().c_str());
-  }
-  { // battery charging
-    std::ostringstream oss;
-    switch (M5.Power.isCharging()) {
-    case M5.Power.is_charging_t::is_discharging: {
-      oss << "DISCHARGING"sv;
-    } break;
-    case M5.Power.is_charging_t::is_charging: {
-      oss << "CHARGING"sv;
-    } break;
-    default: {
-    } break;
+    row++;
+    { // Free Internal Heap Memory
+      lv_table_set_cell_value(_table_obj.get(), row, 0, "Internal Free Heap");
+      std::ostringstream oss;
+      uint32_t free_heap = esp_get_free_internal_heap_size();
+      oss << +free_heap << "B";
+      lv_table_set_cell_value(_table_obj.get(), row, 1, oss.str().c_str());
     }
-    lv_label_set_text(battery_charging_label_obj, oss.str().c_str());
-  }
-  { // available heap memory
-    uint32_t memfree = esp_get_free_heap_size();
-    std::ostringstream oss;
-    oss << "available heap size: " << memfree;
-    lv_label_set_text(available_heap_label_obj, oss.str().c_str());
-  }
-  { // available internal heap memory
-    uint32_t memfree = esp_get_free_internal_heap_size();
-    std::ostringstream oss;
-    oss << "available internal heap size: " << memfree;
-    lv_label_set_text(available_internal_heap_label_obj, oss.str().c_str());
-  }
-  { // minumum free heap memory
-    uint32_t memfree = esp_get_minimum_free_heap_size();
-    std::ostringstream oss;
-    oss << "minimum free heap size: " << memfree;
-    lv_label_set_text(minimum_free_heap_label_obj, oss.str().c_str());
-  }
-  { // lvgl task stack mark
-    auto stack_mark =
-        uxTaskGetStackHighWaterMark(Application::getLvglTaskHandle());
-    std::ostringstream oss;
-    oss << "LVGL task stack high water mark: " << stack_mark;
-    lv_label_set_text(lvgl_task_stack_mark_label_obj, oss.str().c_str());
-  }
-  { // application task stack mark
-    auto stack_mark =
-        uxTaskGetStackHighWaterMark(Application::getApplicationTaskHandle());
-    std::ostringstream oss;
-    oss << "APP task stack high water mark: " << stack_mark;
-    lv_label_set_text(app_task_stack_mark_label_obj, oss.str().c_str());
+    row++;
+    { // Minimum Free Heap Memory
+      lv_table_set_cell_value(_table_obj.get(), row, 0, "Minimum Free Heap");
+      std::ostringstream oss;
+      uint32_t free_heap = esp_get_minimum_free_heap_size();
+      oss << +free_heap << "B";
+      lv_table_set_cell_value(_table_obj.get(), row, 1, oss.str().c_str());
+    }
+    row++;
+    { // SPIRAM Used Percentage
+      lv_table_set_cell_value(_table_obj.get(), row, 0, "SPIRAM Used");
+      std::ostringstream oss;
+      uint32_t total_size = heap_caps_get_total_size(MALLOC_CAP_SPIRAM);
+      uint32_t free_size = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+      float_t slope = static_cast<float_t>(total_size - free_size) /
+                      static_cast<float_t>(total_size);
+      oss << std::setw(5) << std::setprecision(3) << +(slope * 100.0f) << "%";
+      lv_table_set_cell_value(_table_obj.get(), row, 1, oss.str().c_str());
+    }
+    row++;
+    { // SPIRAM Total Size
+      lv_table_set_cell_value(_table_obj.get(), row, 0, "SPIRAM Total Size");
+      std::ostringstream oss;
+      uint32_t total_size = heap_caps_get_total_size(MALLOC_CAP_SPIRAM);
+      oss << +total_size << "B";
+      lv_table_set_cell_value(_table_obj.get(), row, 1, oss.str().c_str());
+    }
+    row++;
+    { // SPIRAM Free Size
+      lv_table_set_cell_value(_table_obj.get(), row, 0, "SPIRAM Free Size");
+      std::ostringstream oss;
+      uint32_t free_size = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+      oss << +free_size << "B";
+      lv_table_set_cell_value(_table_obj.get(), row, 1, oss.str().c_str());
+    }
+    row++;
+    { // SPIRAM Minimum Free Size
+      lv_table_set_cell_value(_table_obj.get(), row, 0,
+                              "SPIRAM Minimum Free Size");
+      std::ostringstream oss;
+      uint32_t minimum_free =
+          heap_caps_get_minimum_free_size(MALLOC_CAP_SPIRAM);
+      oss << +minimum_free << "B";
+      lv_table_set_cell_value(_table_obj.get(), row, 1, oss.str().c_str());
+    }
+    row++;
+    { // SPIRAM Largest Free Block
+      lv_table_set_cell_value(_table_obj.get(), row, 0,
+                              "SPIRAM Largest Free Block");
+      std::ostringstream oss;
+      uint32_t largest_free =
+          heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM);
+      oss << +largest_free << "B";
+      lv_table_set_cell_value(_table_obj.get(), row, 1, oss.str().c_str());
+    }
+    row++;
+    { // LVGL task stack mark
+      lv_table_set_cell_value(_table_obj.get(), row, 0,
+                              "Stack High Mark(LVGL Task)");
+      std::ostringstream oss;
+      uint32_t stack_mark =
+          uxTaskGetStackHighWaterMark(Application::getLvglTaskHandle());
+      oss << +stack_mark << "B";
+      lv_table_set_cell_value(_table_obj.get(), row, 1, oss.str().c_str());
+    }
+    row++;
+    { // Application task stack mark
+      lv_table_set_cell_value(_table_obj.get(), row, 0,
+                              "Stack High Mark(Main Task)");
+      std::ostringstream oss;
+      auto stack_mark =
+          uxTaskGetStackHighWaterMark(Application::getApplicationTaskHandle());
+      oss << +stack_mark << "B";
+      lv_table_set_cell_value(_table_obj.get(), row, 1, oss.str().c_str());
+    }
+  } else {
+    M5_LOGE("null pointer");
   }
 }
 
+//
+void Widget::SystemHealthy::event_draw_part_begin_callback(lv_event_t *event) {
+  if (event) {
+    lv_obj_t *obj = lv_event_get_target(event);
+    lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
+    if (dsc->part == LV_PART_ITEMS) {
+      uint32_t row = dsc->id / lv_table_get_col_cnt(obj);
+      uint32_t col = dsc->id - row * lv_table_get_col_cnt(obj);
+      //
+      switch (col) {
+      case 0:
+        dsc->label_dsc->align = LV_TEXT_ALIGN_LEFT;
+        break;
+      case 1:
+        dsc->label_dsc->align = LV_TEXT_ALIGN_RIGHT;
+        break;
+      case 2:
+        [[fallthrough]];
+      default:
+        dsc->label_dsc->align = LV_TEXT_ALIGN_LEFT;
+        break;
+      }
+      if (row % 2 == 0) {
+        dsc->rect_dsc->bg_color = lv_color_mix(
+            lv_palette_main(LV_PALETTE_PURPLE), lv_color_white(), LV_OPA_10);
+        dsc->rect_dsc->bg_opa = LV_OPA_COVER;
+      } else {
+        dsc->rect_dsc->bg_color = lv_color_white();
+      }
+    }
+  }
+}
 //
 template <>
 std::ostream &Widget::operator<<(std::ostream &os,
@@ -1096,14 +1130,16 @@ Widget::BasicChart<T>::BasicChart(std::shared_ptr<lv_obj_t> parent_obj,
 //
 template <typename T>
 void Widget::BasicChart<T>::event_draw_part_begin_callback(lv_event_t *event) {
-  auto it = static_cast<Widget::BasicChart<T> *>(event->user_data);
-  if (it == nullptr) {
-    M5_LOGE("user_data had null");
-  }
-  lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
-  if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
-                                  LV_CHART_DRAW_PART_TICK_LABEL)) {
-    it->chart_draw_part_tick_label(dsc);
+  if (event) {
+    auto it = static_cast<Widget::BasicChart<T> *>(event->user_data);
+    if (it == nullptr) {
+      M5_LOGE("user_data had null");
+    }
+    lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
+    if (lv_obj_draw_part_check_type(dsc, &lv_chart_class,
+                                    LV_CHART_DRAW_PART_TICK_LABEL)) {
+      it->chart_draw_part_tick_label(dsc);
+    }
   }
 }
 
