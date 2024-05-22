@@ -34,6 +34,13 @@ class Telemetry {
     std::string device_id{};
     std::string device_key{};
   };
+  //
+  struct EspMqttClientDeleter {
+    void operator()(esp_mqtt_client *ptr) const;
+  };
+  using EspMqttClientPointerUnique =
+      std::unique_ptr<esp_mqtt_client, EspMqttClientDeleter>;
+  //
 
 private:
   //
@@ -42,7 +49,9 @@ private:
   az_iot_hub_client iot_hub_client{};
   az_iot_hub_client_options iot_hub_client_options{
       az_iot_hub_client_options_default()};
-  esp_mqtt_client_handle_t mqtt_client{};
+  //
+  EspMqttClientPointerUnique mqtt_client;
+  //
   std::string mqtt_broker_uri{};
   std::string mqtt_client_id{};
   std::string mqtt_username{};
