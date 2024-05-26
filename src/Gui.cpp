@@ -453,11 +453,11 @@ Widget::Summary::Summary(Widget::InitArg init) : TileBase{init, "Summary"} {
 
 void Widget::Summary::update() {
   auto present = Measurements{
-      Application::getMeasurementsDatabase().getLatestMeasurementBme280(),
-      Application::getMeasurementsDatabase().getLatestMeasurementSgp30(),
-      Application::getMeasurementsDatabase().getLatestMeasurementScd30(),
-      Application::getMeasurementsDatabase().getLatestMeasurementScd41(),
-      Application::getMeasurementsDatabase().getLatestMeasurementM5Env3()};
+      Application::getDataAcquisitionDB().getLatestMeasurementBme280(),
+      Application::getDataAcquisitionDB().getLatestMeasurementSgp30(),
+      Application::getDataAcquisitionDB().getLatestMeasurementScd30(),
+      Application::getDataAcquisitionDB().getLatestMeasurementScd41(),
+      Application::getDataAcquisitionDB().getLatestMeasurementM5Env3()};
   if (present != _latest) {
     render();
     _latest = present;
@@ -476,7 +476,7 @@ void Widget::Summary::render() {
       switch (p->getSensorDescriptor()) {
       case Application::SENSOR_DESCRIPTOR_M5ENV3: { // M5 unit ENV3
         auto m5env3 =
-            Application::getMeasurementsDatabase().getLatestMeasurementM5Env3();
+            Application::getDataAcquisitionDB().getLatestMeasurementM5Env3();
         lv_table_set_cell_value(_table_obj.get(), row, 0, "ENV3 Temp");
         if (auto temp = m5env3 ? std::make_optional(m5env3->second.temperature)
                                : std::nullopt;
@@ -522,7 +522,7 @@ void Widget::Summary::render() {
       } break;
       case Application::SENSOR_DESCRIPTOR_BME280: { // BME280
         auto bme280 =
-            Application::getMeasurementsDatabase().getLatestMeasurementBme280();
+            Application::getDataAcquisitionDB().getLatestMeasurementBme280();
         lv_table_set_cell_value(_table_obj.get(), row, 0, "BME280 Temp");
         if (auto temp = bme280 ? std::make_optional(bme280->second.temperature)
                                : std::nullopt;
@@ -568,7 +568,7 @@ void Widget::Summary::render() {
       } break;
       case Application::SENSOR_DESCRIPTOR_SCD30: { // SCD30
         auto scd30 =
-            Application::getMeasurementsDatabase().getLatestMeasurementScd30();
+            Application::getDataAcquisitionDB().getLatestMeasurementScd30();
         lv_table_set_cell_value(_table_obj.get(), row, 0, "SCD30 Temp");
         if (auto temp = scd30 ? std::make_optional(scd30->second.temperature)
                               : std::nullopt;
@@ -614,7 +614,7 @@ void Widget::Summary::render() {
       } break;
       case Application::SENSOR_DESCRIPTOR_SCD41: { // SCD41
         auto scd41 =
-            Application::getMeasurementsDatabase().getLatestMeasurementScd41();
+            Application::getDataAcquisitionDB().getLatestMeasurementScd41();
         lv_table_set_cell_value(_table_obj.get(), row, 0, "SCD41 Temp");
         if (auto temp = scd41 ? std::make_optional(scd41->second.temperature)
                               : std::nullopt;
@@ -660,7 +660,7 @@ void Widget::Summary::render() {
       } break;
       case Application::SENSOR_DESCRIPTOR_SGP30: { // SGP30
         auto sgp30 =
-            Application::getMeasurementsDatabase().getLatestMeasurementSgp30();
+            Application::getDataAcquisitionDB().getLatestMeasurementSgp30();
         lv_table_set_cell_value(_table_obj.get(), row, 0, "SGP30 eCO2");
         if (auto equivalent_carbon_dioxide =
                 sgp30 ? std::make_optional(sgp30->second.eCo2) : std::nullopt;
@@ -1202,6 +1202,11 @@ void Widget::ExportImportData::showExportMessageBox() {
           switch (button_id) {
           case 0:
             M5_LOGD("Export: OK");
+            if (auto err_msg = Application::getDataAcquisitionDB().save_to_file(
+                    Application::EXPORT_IMPORT_DATABASE_FILE_URI);
+                err_msg) {
+              M5_LOGE("%s", err_msg->c_str());
+            }
             break;
           case 1:
             M5_LOGD("Export: Cancel");
@@ -1222,6 +1227,12 @@ void Widget::ExportImportData::showImportMessageBox() {
           switch (button_id) {
           case 0:
             M5_LOGD("Import: OK");
+            if (auto err_msg =
+                    Application::getDataAcquisitionDB().restore_from_file(
+                        Application::EXPORT_IMPORT_DATABASE_FILE_URI);
+                err_msg) {
+              M5_LOGE("%s", err_msg->c_str());
+            }
             break;
           case 1:
             M5_LOGD("Import: Cancel");
@@ -1534,13 +1545,11 @@ Widget::TemperatureChart::TemperatureChart(InitArg init)
 //
 void Widget::TemperatureChart::update() {
   auto bme280 =
-      Application::getMeasurementsDatabase().getLatestMeasurementBme280();
-  auto scd30 =
-      Application::getMeasurementsDatabase().getLatestMeasurementScd30();
-  auto scd41 =
-      Application::getMeasurementsDatabase().getLatestMeasurementScd41();
+      Application::getDataAcquisitionDB().getLatestMeasurementBme280();
+  auto scd30 = Application::getDataAcquisitionDB().getLatestMeasurementScd30();
+  auto scd41 = Application::getDataAcquisitionDB().getLatestMeasurementScd41();
   auto m5env3 =
-      Application::getMeasurementsDatabase().getLatestMeasurementM5Env3();
+      Application::getDataAcquisitionDB().getLatestMeasurementM5Env3();
   auto present = Measurements{bme280, scd30, scd41, m5env3};
 
   //
@@ -1605,8 +1614,8 @@ void Widget::TemperatureChart::render() {
 size_t Widget::TemperatureChart::BC::read_measurements_from_database(
     Database::OrderBy order, system_clock::time_point at_begin,
     Database::ReadCallback<Database::TimePointAndDouble> callback) {
-  return Application::getMeasurementsDatabase().read_temperatures(
-      order, at_begin, callback);
+  return Application::getDataAcquisitionDB().read_temperatures(order, at_begin,
+                                                               callback);
 }
 
 // データを座標に変換する関数
@@ -1661,13 +1670,11 @@ Widget::RelativeHumidityChart::RelativeHumidityChart(InitArg init)
 //
 void Widget::RelativeHumidityChart::update() {
   auto bme280 =
-      Application::getMeasurementsDatabase().getLatestMeasurementBme280();
-  auto scd30 =
-      Application::getMeasurementsDatabase().getLatestMeasurementScd30();
-  auto scd41 =
-      Application::getMeasurementsDatabase().getLatestMeasurementScd41();
+      Application::getDataAcquisitionDB().getLatestMeasurementBme280();
+  auto scd30 = Application::getDataAcquisitionDB().getLatestMeasurementScd30();
+  auto scd41 = Application::getDataAcquisitionDB().getLatestMeasurementScd41();
   auto m5env3 =
-      Application::getMeasurementsDatabase().getLatestMeasurementM5Env3();
+      Application::getDataAcquisitionDB().getLatestMeasurementM5Env3();
   auto present = Measurements{bme280, scd30, scd41, m5env3};
 
   //
@@ -1733,7 +1740,7 @@ void Widget::RelativeHumidityChart::render() {
 size_t Widget::RelativeHumidityChart::BC::read_measurements_from_database(
     Database::OrderBy order, system_clock::time_point at_begin,
     Database::ReadCallback<Database::TimePointAndDouble> callback) {
-  return Application::getMeasurementsDatabase().read_relative_humidities(
+  return Application::getDataAcquisitionDB().read_relative_humidities(
       order, at_begin, callback);
 }
 
@@ -1788,9 +1795,9 @@ Widget::PressureChart::PressureChart(InitArg init)
 //
 void Widget::PressureChart::update() {
   auto bme280 =
-      Application::getMeasurementsDatabase().getLatestMeasurementBme280();
+      Application::getDataAcquisitionDB().getLatestMeasurementBme280();
   auto m5env3 =
-      Application::getMeasurementsDatabase().getLatestMeasurementM5Env3();
+      Application::getDataAcquisitionDB().getLatestMeasurementM5Env3();
   auto present = Measurements{bme280, m5env3};
 
   //
@@ -1844,8 +1851,8 @@ void Widget::PressureChart::render() {
 size_t Widget::PressureChart::BC::read_measurements_from_database(
     Database::OrderBy order, system_clock::time_point at_begin,
     Database::ReadCallback<Database::TimePointAndDouble> callback) {
-  return Application::getMeasurementsDatabase().read_pressures(order, at_begin,
-                                                               callback);
+  return Application::getDataAcquisitionDB().read_pressures(order, at_begin,
+                                                            callback);
 }
 
 // データを座標に変換する関数
@@ -1899,12 +1906,9 @@ Widget::CarbonDeoxidesChart::CarbonDeoxidesChart(InitArg init)
 
 //
 void Widget::CarbonDeoxidesChart::update() {
-  auto sgp30 =
-      Application::getMeasurementsDatabase().getLatestMeasurementSgp30();
-  auto scd30 =
-      Application::getMeasurementsDatabase().getLatestMeasurementScd30();
-  auto scd41 =
-      Application::getMeasurementsDatabase().getLatestMeasurementScd41();
+  auto sgp30 = Application::getDataAcquisitionDB().getLatestMeasurementSgp30();
+  auto scd30 = Application::getDataAcquisitionDB().getLatestMeasurementScd30();
+  auto scd41 = Application::getDataAcquisitionDB().getLatestMeasurementScd41();
   auto present = Measurements{sgp30, scd30, scd41};
 
   //
@@ -1963,7 +1967,7 @@ void Widget::CarbonDeoxidesChart::render() {
 size_t Widget::CarbonDeoxidesChart::BC::read_measurements_from_database(
     Database::OrderBy order, system_clock::time_point at_begin,
     Database::ReadCallback<Database::TimePointAndUInt16> callback) {
-  return Application::getMeasurementsDatabase().read_carbon_deoxides(
+  return Application::getDataAcquisitionDB().read_carbon_deoxides(
       order, at_begin, callback);
 }
 
@@ -2016,8 +2020,7 @@ Widget::TotalVocChart::TotalVocChart(InitArg init)
 
 //
 void Widget::TotalVocChart::update() {
-  auto sgp30 =
-      Application::getMeasurementsDatabase().getLatestMeasurementSgp30();
+  auto sgp30 = Application::getDataAcquisitionDB().getLatestMeasurementSgp30();
   auto present = sgp30;
 
   //
@@ -2062,8 +2065,8 @@ void Widget::TotalVocChart::render() {
 size_t Widget::TotalVocChart::BC::read_measurements_from_database(
     Database::OrderBy order, system_clock::time_point at_begin,
     Database::ReadCallback<Database::TimePointAndUInt16> callback) {
-  return Application::getMeasurementsDatabase().read_total_vocs(order, at_begin,
-                                                                callback);
+  return Application::getDataAcquisitionDB().read_total_vocs(order, at_begin,
+                                                             callback);
 }
 
 // データを座標に変換する関数

@@ -32,10 +32,10 @@ public:
   constexpr static std::string_view SETTINGS_FILE_PATH{"/settings.json"};
   //
   constexpr static std::string_view EXPORT_IMPORT_DATABASE_FILE_PATH{
-      "/sd/measurements.sqlite3"};
+      "/sd/data_aquisition_log.sqlite3"};
   //
   constexpr static std::string_view DATA_ACQUISITION_DATABASE_FILE_URI{
-      "file:/measurements.sqlite3?pow=0&mode=memory"};
+      "file:/data_aquisition_log.sqlite3?pow=0&mode=memory"};
   //
   const static inline std::string EXPORT_IMPORT_DATABASE_FILE_URI{
       std::string{"file:"} + std::string{EXPORT_IMPORT_DATABASE_FILE_PATH}};
@@ -72,8 +72,8 @@ public:
   //
   static RgbLed &getRgbLed() { return getInstance()->_rgb_led; }
   //
-  static Database &getMeasurementsDatabase() {
-    return getInstance()->_measurements_database;
+  static Database &getDataAcquisitionDB() {
+    return getInstance()->_data_acquisition_db;
   }
   //
   static Telemetry &getTelemetry() { return getInstance()->_telemetry; }
@@ -135,7 +135,7 @@ private:
   // LED
   RgbLed _rgb_led;
   // データーベース
-  Database _measurements_database;
+  Database _data_acquisition_db;
   // テレメトリ
   Telemetry _telemetry;
   // GUI
