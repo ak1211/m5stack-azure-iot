@@ -63,7 +63,6 @@ struct MeasuringTask::Visitor {
 // 測定
 void MeasuringTask::measure() {
   for (auto &sensor_device : Application::getSensors()) {
-    std::this_thread::yield();
     if (sensor_device->readyToRead()) {
       std::this_thread::sleep_for(1ms);
       sensor_device->read();
@@ -100,7 +99,6 @@ bool MeasuringTask::begin(std::chrono::system_clock::time_point nowtp) {
 // 測定関数
 void MeasuringTask::task_handler(std::chrono::system_clock::time_point nowtp) {
   if (nowtp >= next_queue_in_tp) {
-    //
     auto extra_sec =
         std::chrono::duration_cast<seconds>(nowtp.time_since_epoch()) % 60s;
     next_queue_in_tp = nowtp + 1min - extra_sec;
