@@ -5,7 +5,7 @@
 #include "Application.hpp"
 #include "Gui.hpp"
 #include <ArduinoOTA.h>
-#include <LITTLEFS.h>
+#include <LittleFS.h>
 #include <WiFi.h>
 #include <chrono>
 #include <esp_sntp.h>

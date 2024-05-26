@@ -6,7 +6,6 @@
 #include "AzIoTSasToken.h"
 #include "Sensor.hpp"
 #include "Telemetry.hpp"
-#include "credentials.h"
 #include <Arduinojson.h>
 #include <chrono>
 #include <cmath>
@@ -40,8 +39,9 @@ void Telemetry::EspMqttClientDeleter::operator()(esp_mqtt_client *ptr) const {
 }
 
 //
-std::string Telemetry::to_absolute_sensor_id(SensorDescriptor descriptor) {
-  return std::string(Credentials.device_id) + "-"s + descriptor.str();
+std::string Telemetry::to_absolute_sensor_id(const std::string &device_id,
+                                             SensorDescriptor descriptor) {
+  return device_id + "-"s + descriptor.str();
 }
 
 // 送信用メッセージに変換する
@@ -49,7 +49,8 @@ template <>
 std::string Telemetry::to_json_message<Sensor::MeasurementBme280>(
     const Sensor::MeasurementBme280 &in) {
   JsonDocument doc;
-  doc["sensorId"] = to_absolute_sensor_id(in.second.sensor_descriptor);
+  doc["sensorId"] =
+      to_absolute_sensor_id(config.device_id, in.second.sensor_descriptor);
   doc["measuredAt"] = Application::isoformatUTC(in.first);
   doc["temperature"] = DegC(in.second.temperature).count();
   doc["humidity"] = PctRH(in.second.relative_humidity).count();
@@ -64,7 +65,8 @@ template <>
 std::string Telemetry::to_json_message<Sensor::MeasurementM5Env3>(
     const Sensor::MeasurementM5Env3 &in) {
   JsonDocument doc;
-  doc["sensorId"] = to_absolute_sensor_id(in.second.sensor_descriptor);
+  doc["sensorId"] =
+      to_absolute_sensor_id(config.device_id, in.second.sensor_descriptor);
   doc["measuredAt"] = Application::isoformatUTC(in.first);
   doc["temperature"] = DegC(in.second.temperature).count();
   doc["humidity"] = PctRH(in.second.relative_humidity).count();
@@ -79,7 +81,8 @@ template <>
 std::string Telemetry::to_json_message<Sensor::MeasurementSgp30>(
     const Sensor::MeasurementSgp30 &in) {
   JsonDocument doc;
-  doc["sensorId"] = to_absolute_sensor_id(in.second.sensor_descriptor);
+  doc["sensorId"] =
+      to_absolute_sensor_id(config.device_id, in.second.sensor_descriptor);
   doc["measuredAt"] = Application::isoformatUTC(in.first);
   doc["tvoc"] = in.second.tvoc.value;
   doc["eCo2"] = in.second.eCo2.value;
@@ -99,7 +102,8 @@ template <>
 std::string Telemetry::to_json_message<Sensor::MeasurementScd30>(
     const Sensor::MeasurementScd30 &in) {
   JsonDocument doc;
-  doc["sensorId"] = to_absolute_sensor_id(in.second.sensor_descriptor);
+  doc["sensorId"] =
+      to_absolute_sensor_id(config.device_id, in.second.sensor_descriptor);
   doc["measuredAt"] = Application::isoformatUTC(in.first);
   doc["co2"] = in.second.co2.value;
   doc["temperature"] = DegC(in.second.temperature).count();
@@ -114,7 +118,8 @@ template <>
 std::string Telemetry::to_json_message<Sensor::MeasurementScd41>(
     const Sensor::MeasurementScd41 &in) {
   JsonDocument doc;
-  doc["sensorId"] = to_absolute_sensor_id(in.second.sensor_descriptor);
+  doc["sensorId"] =
+      to_absolute_sensor_id(config.device_id, in.second.sensor_descriptor);
   doc["measuredAt"] = Application::isoformatUTC(in.first);
   doc["co2"] = in.second.co2.value;
   doc["temperature"] = DegC(in.second.temperature).count();

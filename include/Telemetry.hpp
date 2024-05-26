@@ -98,7 +98,8 @@ private:
   bool initializeMqttClient();
   //
   static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event);
-  static std::string to_absolute_sensor_id(SensorDescriptor descriptor);
+  static std::string to_absolute_sensor_id(const std::string &device_id,
+                                           SensorDescriptor descriptor);
   // 送信用メッセージに変換する
   template <typename T> std::string to_json_message(const T &in);
 };
