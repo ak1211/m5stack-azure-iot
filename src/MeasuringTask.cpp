@@ -64,7 +64,6 @@ struct MeasuringTask::Visitor {
 void MeasuringTask::measure() {
   for (auto &sensor_device : Application::getSensors()) {
     if (sensor_device->readyToRead()) {
-      std::this_thread::sleep_for(1ms);
       sensor_device->read();
     }
   }
