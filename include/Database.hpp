@@ -81,9 +81,11 @@ public:
   bool delete_old_measurements_from_database(
       system_clock::time_point delete_of_older_than_tp);
   //
-  std::optional<std::string> save_to_file(std::string file_path);
+  using ErrorString = std::optional<std::string>;
   //
-  std::optional<std::string> restore_from_file(std::string file_path);
+  ErrorString save_to_file(std::string_view to_file_path);
+  //
+  ErrorString restore_from_file(std::string_view from_file_path);
   //
   bool insert(const Sensor::MeasurementBme280 &m);
   bool insert(const Sensor::MeasurementSgp30 &m);

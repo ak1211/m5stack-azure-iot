@@ -24,14 +24,14 @@ struct MeasuringTask::Visitor {
   bool operator()(const Sensor::Bme280 &in) {
     Sensor::MeasurementBme280 m = {time_point, in};
     Application::getTelemetry().enqueue(m);
-    Application::getMeasurementsDatabase().insert(m);
+    Application::getDataAcquisitionDB().insert(m);
     return true;
   }
   // Sensirion SGP30: Air Quality Sensor
   bool operator()(const Sensor::Sgp30 &in) {
     Sensor::MeasurementSgp30 m = {time_point, in};
     Application::getTelemetry().enqueue(m);
-    Application::getMeasurementsDatabase().insert(m);
+    Application::getDataAcquisitionDB().insert(m);
     return true;
   }
   // Sensirion SCD30: NDIR CO2 and Temperature and Humidity Sensor
@@ -41,21 +41,21 @@ struct MeasuringTask::Visitor {
     Application::getRgbLed().fill(RgbLed::colorFromCarbonDioxide(in.co2.value));
     //
     Application::getTelemetry().enqueue(m);
-    Application::getMeasurementsDatabase().insert(m);
+    Application::getDataAcquisitionDB().insert(m);
     return true;
   }
   // Sensirion SCD41: PASens CO2 and Temperature and Humidity Sensor
   bool operator()(const Sensor::Scd41 &in) {
     Sensor::MeasurementScd41 m = {time_point, in};
     Application::getTelemetry().enqueue(m);
-    Application::getMeasurementsDatabase().insert(m);
+    Application::getDataAcquisitionDB().insert(m);
     return true;
   }
   // M5Stack ENV.iii unit: Temperature and Humidity and Pressure Sensor
   bool operator()(const Sensor::M5Env3 &in) {
     Sensor::MeasurementM5Env3 m = {time_point, in};
     Application::getTelemetry().enqueue(m);
-    Application::getMeasurementsDatabase().insert(m);
+    Application::getDataAcquisitionDB().insert(m);
     return true;
   }
 };

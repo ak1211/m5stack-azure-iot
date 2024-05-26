@@ -6,6 +6,7 @@
 #include "Gui.hpp"
 #include <ArduinoOTA.h>
 #include <LittleFS.h>
+#include <SD.h>
 #include <WiFi.h>
 #include <chrono>
 #include <esp_sntp.h>
@@ -94,7 +95,7 @@ bool Application::task_handler() {
   if (now_tp - before_db_tp >= 333s) {
     // データベースの整理
     system_clock::time_point tp = now_tp - minutes{Gui::CHART_X_POINT_COUNT};
-    if (_measurements_database.delete_old_measurements_from_database(
+    if (_data_acquisition_db.delete_old_measurements_from_database(
             std::chrono::floor<minutes>(tp)) == false) {
       M5_LOGE("delete old measurements failed.");
     }
@@ -190,6 +191,11 @@ bool Application::startup() {
     auto cfg = M5.config();
     M5.begin(cfg);
     M5.Power.setVibration(0); // stop the vibration
+  }
+
+  // init SD
+  while (false == SD.begin(GPIO_NUM_4, SPI, 25000000)) {
+    delay(500);
   }
 
   //
@@ -339,32 +345,32 @@ bool Application::startup() {
                      DeciPa{1000}};
     Sensor::Bme280 z{SENSOR_DESCRIPTOR_BME280, CentiDegC{3700}, CentiRH{5000},
                      DeciPa{1000}};
-    _measurements_database.insert({tp - 25min, a});
-    _measurements_database.insert({tp - 24min, b});
-    _measurements_database.insert({tp - 23min, c});
-    _measurements_database.insert({tp - 22min, d});
-    _measurements_database.insert({tp - 21min, e});
-    _measurements_database.insert({tp - 20min, f});
-    _measurements_database.insert({tp - 19min, g});
-    _measurements_database.insert({tp - 18min, h});
-    _measurements_database.insert({tp - 17min, i});
-    _measurements_database.insert({tp - 16min, j});
-    _measurements_database.insert({tp - 15min, k});
-    _measurements_database.insert({tp - 14min, l});
-    _measurements_database.insert({tp - 13min, m});
-    _measurements_database.insert({tp - 12min, n});
-    _measurements_database.insert({tp - 11min, o});
-    _measurements_database.insert({tp - 10min, p});
-    _measurements_database.insert({tp - 9min, q});
-    _measurements_database.insert({tp - 8min, r});
-    _measurements_database.insert({tp - 7min, s});
-    _measurements_database.insert({tp - 6min, t});
-    _measurements_database.insert({tp - 5min, u});
-    _measurements_database.insert({tp - 4min, v});
-    _measurements_database.insert({tp - 3min, w});
-    _measurements_database.insert({tp - 2min, x});
-    _measurements_database.insert({tp - 1min, y});
-    _measurements_database.insert({tp - 0min, z});
+    _data_acquisition_db.insert({tp - 25min, a});
+    _data_acquisition_db.insert({tp - 24min, b});
+    _data_acquisition_db.insert({tp - 23min, c});
+    _data_acquisition_db.insert({tp - 22min, d});
+    _data_acquisition_db.insert({tp - 21min, e});
+    _data_acquisition_db.insert({tp - 20min, f});
+    _data_acquisition_db.insert({tp - 19min, g});
+    _data_acquisition_db.insert({tp - 18min, h});
+    _data_acquisition_db.insert({tp - 17min, i});
+    _data_acquisition_db.insert({tp - 16min, j});
+    _data_acquisition_db.insert({tp - 15min, k});
+    _data_acquisition_db.insert({tp - 14min, l});
+    _data_acquisition_db.insert({tp - 13min, m});
+    _data_acquisition_db.insert({tp - 12min, n});
+    _data_acquisition_db.insert({tp - 11min, o});
+    _data_acquisition_db.insert({tp - 10min, p});
+    _data_acquisition_db.insert({tp - 9min, q});
+    _data_acquisition_db.insert({tp - 8min, r});
+    _data_acquisition_db.insert({tp - 7min, s});
+    _data_acquisition_db.insert({tp - 6min, t});
+    _data_acquisition_db.insert({tp - 5min, u});
+    _data_acquisition_db.insert({tp - 4min, v});
+    _data_acquisition_db.insert({tp - 3min, w});
+    _data_acquisition_db.insert({tp - 2min, x});
+    _data_acquisition_db.insert({tp - 1min, y});
+    _data_acquisition_db.insert({tp - 0min, z});
   }
 
   //
@@ -540,7 +546,7 @@ bool Application::start_database(std::ostream &os) {
   M5_LOGI("start database.");
   //
   for (auto count = 1; count <= 2; ++count) {
-    if (Application::_measurements_database.begin(
+    if (Application::_data_acquisition_db.begin(
             std::string(DATA_ACQUISITION_DATABASE_FILE_URI))) {
       return true;
     }
@@ -559,7 +565,7 @@ bool Application::start_database(std::ostream &os) {
     }
   }
   //
-  if (Application::_measurements_database.available()) {
+  if (Application::_data_acquisition_db.available()) {
     os << "Database is available." << std::endl;
     return true;
   } else {

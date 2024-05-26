@@ -845,61 +845,90 @@ bool Database::delete_old_measurements_from_database(
 }
 
 //
-//
-//
-std::optional<std::string> Database::save_to_file(std::string file_path) {
-  constexpr static std::string_view query{
-      "VACUUM main INTO ?;"}; // placeholder#1
-
+Database::ErrorString Database::save_to_file(std::string_view to_file_path) {
   // guard
   if (!_sqlite3_db) {
     M5_LOGI("sqlite3_db is not available.");
     return std::make_optional("sqlite3_db is not available.");
   }
 
-  //
-  Sqlite3StmtPointerUnique stmt;
-  if (sqlite3_stmt * pStmt{nullptr};
-      sqlite3_prepare_v2(_sqlite3_db.get(), query.data(), -1, &pStmt,
-                         nullptr) == SQLITE_OK) {
-    // set statement handle to smartpointer
-    if (pStmt) {
-      stmt.reset(pStmt);
+  // Open a new one
+  Sqlite3PointerUnique dst_database;
+  {
+    sqlite3 *db{nullptr};
+    auto rc = sqlite3_open(to_file_path.data(), &db);
+    // set db handle to smartpointer
+    dst_database.reset(db);
+    if (rc != SQLITE_OK) {
+      M5_LOGE("destination file open error");
+      return std::make_optional(sqlite3_errstr(rc));
     }
+  }
+  if (!dst_database) {
+    M5_LOGE("nullptr");
+    return std::make_optional("nullptr");
+  }
+  // Backup
+  std::shared_ptr<sqlite3_backup> backup;
+  backup.reset(sqlite3_backup_init(dst_database.get(), "main",
+                                   _sqlite3_db.get(), "main"),
+               sqlite3_backup_finish);
+  if (backup) {
+    // Loop
+    while (sqlite3_backup_step(backup.get(), 1) != SQLITE_DONE) {
+      std::this_thread::yield();
+    }
+  }
+  // Done
+  if (auto rc = sqlite3_errcode(dst_database.get()); rc == SQLITE_OK) {
+    return std::nullopt; // OK
   } else {
-    M5_LOGE("%s", sqlite3_errmsg(_sqlite3_db.get()));
-    M5_LOGE("%s", query.data());
-    return std::make_optional(sqlite3_errmsg(_sqlite3_db.get()));
+    return std::make_optional(sqlite3_errstr(rc));
   }
-  if (sqlite3_bind_text(stmt.get(), 1, file_path.data(), file_path.length(),
-                        SQLITE_STATIC) != SQLITE_OK) {
-    M5_LOGE("%s", sqlite3_errmsg(_sqlite3_db.get()));
-    return std::make_optional(sqlite3_errmsg(_sqlite3_db.get()));
-  }
-  // SQL表示(デバッグ用)
-  if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_DEBUG) {
-    std::ostringstream oss;
-    //
-    if (auto p = sqlite3_expanded_sql(stmt.get()); p) {
-      oss << std::string_view(p);
-      sqlite3_free(p);
-    }
-    //
-    M5_LOGD("%s", oss.str().c_str());
-  }
-  //
-  auto timeover{steady_clock::now() + LOOP_TIMEOUT};
-  while (steady_clock::now() < timeover &&
-         sqlite3_step(stmt.get()) != SQLITE_DONE) {
-    std::this_thread::yield();
-  }
-  if (steady_clock::now() > timeover) {
-    M5_LOGE("sqlite3_step() timeover");
-    M5_LOGE("%s", sqlite3_errmsg(_sqlite3_db.get()));
-    return std::make_optional("timeover");
+}
+
+//
+Database::ErrorString
+Database::restore_from_file(std::string_view from_file_path) {
+  // guard
+  if (!_sqlite3_db) {
+    M5_LOGI("sqlite3_db is not available.");
+    return std::make_optional("sqlite3_db is not available.");
   }
 
-  return std::nullopt; // OK
+  // Open a new one
+  Sqlite3PointerUnique src_database;
+  {
+    sqlite3 *db{nullptr};
+    auto rc = sqlite3_open(from_file_path.data(), &db);
+    // set db handle to smartpointer
+    src_database.reset(db);
+    if (rc != SQLITE_OK) {
+      M5_LOGE("destination file open error");
+      return std::make_optional(sqlite3_errstr(rc));
+    }
+  }
+  if (!src_database) {
+    M5_LOGE("nullptr");
+    return std::make_optional("nullptr");
+  }
+  // Backup
+  std::shared_ptr<sqlite3_backup> backup;
+  backup.reset(sqlite3_backup_init(_sqlite3_db.get(), "main",
+                                   src_database.get(), "main"),
+               sqlite3_backup_finish);
+  if (backup) {
+    // Loop
+    while (sqlite3_backup_step(backup.get(), 1) != SQLITE_DONE) {
+      std::this_thread::yield();
+    }
+  }
+  // Done
+  if (auto rc = sqlite3_errcode(_sqlite3_db.get()); rc == SQLITE_OK) {
+    return std::nullopt; // OK
+  } else {
+    return std::make_optional(sqlite3_errstr(rc));
+  }
 }
 
 //
