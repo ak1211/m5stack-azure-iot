@@ -11,7 +11,8 @@ M5stack Core2 IoT開発キットにM5GO Bottom2を組み合わせたハードウ
 対応しているセンサーのどれか、または全部をPORT A(赤)に接続する。  
 
 ## 接続情報を用意する
-WiFiとAzureIotHubの接続情報をjson形式で用意する.
+WiFiとAzureIotHubの接続情報をjson形式で書いて`data/settings.json`ファイルに保存する。  
+(AzureIotHubの接続情報は書かなくても動作するが)  
 
 接続情報例(data/settings.json)
 ```
@@ -27,8 +28,6 @@ WiFiとAzureIotHubの接続情報をjson形式で用意する.
     }
 }
 ```
-
-接続情報を`data/settings.json`に保存する。
 
 ## ファームウエアの書込み
 M5StackCore2 + M5GO Bottom2 のセットまたは M5StackCore2 for AWS をUSB接続する。  
