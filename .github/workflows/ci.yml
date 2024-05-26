@@ -19,8 +19,9 @@ jobs:
         with:
             python-version: '3.11'
       - name : Install PlatformIO Core
-        run: pip install --upgrade platformio
-             pio pkg update
+        run: |
+          pip install --upgrade platformio
+          pio pkg update
       - name : Build PlatformIO Project
         run: pio run --environment m5stack-core2
 
