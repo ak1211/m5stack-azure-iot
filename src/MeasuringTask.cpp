@@ -63,10 +63,11 @@ struct MeasuringTask::Visitor {
 // 測定
 void MeasuringTask::measure() {
   for (auto &sensor_device : Application::getSensors()) {
-    auto ready = sensor_device->readyToRead();
-    std::this_thread::sleep_for(2ms);
-    auto measured = ready ? sensor_device->read() : std::monostate{};
-    std::this_thread::sleep_for(2ms);
+    std::this_thread::yield();
+    if (sensor_device->readyToRead()) {
+      std::this_thread::sleep_for(1ms);
+      sensor_device->read();
+    }
   }
 }
 

@@ -3,6 +3,7 @@
 // See LICENSE file in the project root for full license information.
 //
 #pragma once
+#define FASTLED_INTERNAL
 #include <FastLED.h>
 #include <array>
 

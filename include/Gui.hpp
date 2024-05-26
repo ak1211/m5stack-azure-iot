@@ -23,104 +23,41 @@ using namespace std::chrono;
 // init argument for "lv_tileview_add_tile()"
 using InitArg =
     std::tuple<std::shared_ptr<lv_obj_t>, uint8_t, uint8_t, lv_dir_t>;
+//
+constexpr static auto MARGIN{8};
 
 //
 class TileBase {
+  struct LvTimerDeleter {
+    void operator()(lv_timer_t *ptr) const;
+  };
   // LVGL timer
-  lv_timer_t *periodic_timer{nullptr};
+  std::unique_ptr<lv_timer_t, LvTimerDeleter> _periodic_timer;
 
 protected:
   std::shared_ptr<lv_obj_t> _tileview_obj;
   std::shared_ptr<lv_obj_t> _tile_obj;
+  std::shared_ptr<lv_obj_t> _title_obj;
+  lv_style_t _title_style{};
 
 public:
-  constexpr static auto PERIODIC_TIMER_INTERVAL = std::chrono::milliseconds{60};
+  constexpr static auto PERIODIC_TIMER_INTERVAL = std::chrono::milliseconds{30};
   //
-  TileBase(InitArg init) : _tileview_obj{std::get<0>(init)} {
-    auto &[_, col_id, row_id, dir] = init;
-    if (_tileview_obj) {
-      _tile_obj.reset(
-          lv_tileview_add_tile(_tileview_obj.get(), col_id, row_id, dir),
-          lv_obj_del);
-      // set value changed callback
-      lv_obj_add_event_cb(_tileview_obj.get(), event_value_changed_callback,
-                          LV_EVENT_VALUE_CHANGED, this);
-    } else {
-      M5_LOGE("null");
-    }
-  }
+  TileBase(InitArg init, std::string title);
   //
-  virtual ~TileBase() {
-    delTimer();
-    if (_tileview_obj) {
-      lv_obj_remove_event_cb(_tileview_obj.get(), event_value_changed_callback);
-    }
-  };
+  virtual ~TileBase();
   //
-  bool isActiveTile() const {
-    if (_tileview_obj && _tile_obj) {
-      return _tile_obj.get() == lv_tileview_get_tile_act(_tileview_obj.get());
-    } else {
-      M5_LOGE("null");
-      return false;
-    }
-  }
+  bool isActiveTile() const;
   //
-  void setActiveTile() {
-    if (_tileview_obj && _tile_obj) {
-      lv_obj_set_tile(_tileview_obj.get(), _tile_obj.get(), LV_ANIM_ON);
-    } else {
-      M5_LOGE("null");
-    }
-  }
+  void setActiveTile();
   //
-  bool createTimer() {
-    if (timer_callback) {
-      delTimer();
-      periodic_timer = lv_timer_create(
-          timer_callback,
-          duration_cast<milliseconds>(PERIODIC_TIMER_INTERVAL).count(), this);
-      return true;
-    } else {
-      return false;
-    }
-  }
+  bool createTimer();
   //
-  void delTimer() {
-    if (periodic_timer) {
-      lv_timer_del(periodic_timer);
-    }
-    periodic_timer = nullptr;
-  }
+  void delTimer();
   //
-  static void timer_callback(lv_timer_t *timer) {
-    if (timer) {
-      auto it = static_cast<TileBase *>(timer->user_data);
-      if (it) {
-        it->update();
-      }
-    }
-  }
+  static void timer_callback(lv_timer_t *timer);
   //
-  static void event_value_changed_callback(lv_event_t *event) {
-    if (event) {
-      auto it = static_cast<TileBase *>(event->user_data);
-      if (it && it->_tileview_obj && it->_tile_obj) {
-        if (lv_tileview_get_tile_act(it->_tileview_obj.get()) ==
-            it->_tile_obj.get()) {
-          M5_LOGV("event_value_changed_callback: active");
-          // active
-          it->onActivate();
-          it->createTimer();
-        } else {
-          M5_LOGV("event_value_changed_callback: inactive");
-          // inactive
-          it->delTimer();
-          it->onDeactivate();
-        }
-      }
-    }
-  }
+  static void event_value_changed_callback(lv_event_t *event);
   //
   virtual void onActivate() = 0;
   //
@@ -175,6 +112,8 @@ public:
   virtual void update() override;
   //
   void render();
+
+private:
   //
   static void event_draw_part_begin_callback(lv_event_t *event);
 };
@@ -223,8 +162,63 @@ public:
   virtual void update() override { render(); }
   //
   void render();
+
+private:
   //
   static void event_draw_part_begin_callback(lv_event_t *event);
+};
+
+//
+//
+//
+class MessageBox {
+  using ButtonClickCallback = std::function<void(uint16_t)>;
+
+public:
+  constexpr static auto GAP{36};
+  //
+  MessageBox(lv_obj_t *parent, std::string_view title, std::string_view text,
+             std::vector<const char *> buttons, ButtonClickCallback callback);
+
+private:
+  std::shared_ptr<lv_obj_t> _msgbox_obj;
+  std::vector<const char *> _msgbox_buttons;
+  ButtonClickCallback _button_click_callback;
+  //
+  static void event_all_callback(lv_event_t *event);
+};
+
+//
+//
+//
+class ExportImportData final : public TileBase {
+  std::shared_ptr<lv_obj_t> _export_button_obj;
+  std::shared_ptr<lv_obj_t> _import_button_obj;
+  std::shared_ptr<MessageBox> _messagebox;
+
+public:
+  constexpr static auto GUTTER{36};
+  ExportImportData(ExportImportData &&) = delete;
+  ExportImportData &operator=(const ExportImportData &) = delete;
+  ExportImportData(InitArg init);
+  //
+  virtual void onActivate() override {}
+  //
+  virtual void onDeactivate() override {}
+  //
+  virtual void update() override;
+
+private:
+  //
+  void doExport();
+  //
+  void showExportMessageBox();
+  //
+  void showImportMessageBox();
+  //
+  static void click_cloce_button_callback(lv_event_t *event);
+  //
+  static void event_all_callback(lv_event_t *event);
 };
 
 //
@@ -295,7 +289,6 @@ template <typename T> class BasicChart {
 public:
   constexpr static auto X_AXIS_TICK_COUNT{3};
   constexpr static auto Y_AXIS_TICK_COUNT{5};
-  constexpr static auto MARGIN{8};
   //
   using DataType = std::tuple<SensorId, system_clock::time_point, T>;
   // データーベースからデーターを得る
@@ -358,7 +351,6 @@ class TemperatureChart final : public TileBase {
   };
 
 private:
-  std::shared_ptr<lv_obj_t> _title_obj;
   //
   using Measurements = std::tuple<std::optional<Sensor::MeasurementBme280>,
                                   std::optional<Sensor::MeasurementScd30>,
@@ -420,7 +412,6 @@ class RelativeHumidityChart final : public TileBase {
   };
 
 private:
-  std::shared_ptr<lv_obj_t> _title_obj;
   //
   using Measurements = std::tuple<std::optional<Sensor::MeasurementBme280>,
                                   std::optional<Sensor::MeasurementScd30>,
@@ -484,7 +475,6 @@ class PressureChart final : public TileBase {
   };
 
 private:
-  std::shared_ptr<lv_obj_t> _title_obj;
   //
   using Measurements = std::tuple<std::optional<Sensor::MeasurementBme280>,
                                   std::optional<Sensor::MeasurementM5Env3>>;
@@ -544,7 +534,6 @@ class CarbonDeoxidesChart final : public TileBase {
   };
 
 private:
-  std::shared_ptr<lv_obj_t> _title_obj;
   //
   using Measurements = std::tuple<std::optional<Sensor::MeasurementSgp30>,
                                   std::optional<Sensor::MeasurementScd30>,
@@ -607,7 +596,6 @@ class TotalVocChart final : public TileBase {
   };
 
 private:
-  std::shared_ptr<lv_obj_t> _title_obj;
   //
   std::optional<Sensor::MeasurementSgp30> latest{};
   std::unique_ptr<BC> basic_chart;
@@ -668,7 +656,6 @@ public:
 //
 class Gui {
 public:
-  constexpr static auto PERIODIC_TIMER_INTERVAL = std::chrono::milliseconds{30};
   constexpr static uint16_t CHART_X_POINT_COUNT = 1440;
   Gui(M5GFX &gfx) : gfx{gfx} {}
   //

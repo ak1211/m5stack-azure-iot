@@ -5,6 +5,7 @@
 #include "Database.hpp"
 #include "Application.hpp"
 #include <chrono>
+#include <future>
 #include <memory>
 #include <optional>
 #include <string>
@@ -634,7 +635,7 @@ struct Database::Transaction {
 //
 //
 //
-bool Database::begin(const std::string &database_filename) {
+bool Database::begin(const std::string &database_file_path) {
   //
   if (psramFound()) {
     //
@@ -678,12 +679,12 @@ bool Database::begin(const std::string &database_filename) {
     return false;
   }
 
-  M5_LOGD("sqlite3 open file : %s", database_filename.c_str());
+  M5_LOGD("sqlite3 open file : %s", database_file_path.c_str());
   //
   {
     sqlite3 *pDatabase{nullptr};
     if (auto result = sqlite3_open_v2(
-            database_filename.c_str(), &pDatabase,
+            database_file_path.c_str(), &pDatabase,
             SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_URI,
             nullptr);
         result == SQLITE_OK) {
@@ -732,6 +733,7 @@ bool Database::begin(const std::string &database_filename) {
   for (auto &query :
        {schema_temperature, schema_relative_humidity, schema_pressure,
         schema_carbon_dioxide, schema_total_voc}) {
+    std::this_thread::yield();
     M5_LOGV("%s", query.data());
     if (char *error_msg{nullptr};
         sqlite3_exec(_sqlite3_db.get(), query.data(), nullptr, nullptr,
@@ -788,6 +790,8 @@ bool Database::delete_old_measurements_from_database(
 
   // delete old rows
   for (auto &query : queries) {
+    std::this_thread::yield();
+    //
     Sqlite3StmtPointerUnique stmt;
     if (sqlite3_stmt * pStmt{nullptr};
         sqlite3_prepare_v2(_sqlite3_db.get(), query.data(), -1, &pStmt,
@@ -824,10 +828,10 @@ bool Database::delete_old_measurements_from_database(
       M5_LOGD("%s", oss.str().c_str());
     }
     //
-    auto timeover{steady_clock::now() + RETRY_TIMEOUT};
+    auto timeover{steady_clock::now() + LOOP_TIMEOUT};
     while (steady_clock::now() < timeover &&
            sqlite3_step(stmt.get()) != SQLITE_DONE) {
-      /**/
+      std::this_thread::yield();
     }
     if (steady_clock::now() > timeover) {
       M5_LOGE("sqlite3_step() timeover");
@@ -838,6 +842,64 @@ bool Database::delete_old_measurements_from_database(
   }
 
   return true;
+}
+
+//
+//
+//
+std::optional<std::string> Database::save_to_file(std::string file_path) {
+  constexpr static std::string_view query{
+      "VACUUM main INTO ?;"}; // placeholder#1
+
+  // guard
+  if (!_sqlite3_db) {
+    M5_LOGI("sqlite3_db is not available.");
+    return std::make_optional("sqlite3_db is not available.");
+  }
+
+  //
+  Sqlite3StmtPointerUnique stmt;
+  if (sqlite3_stmt * pStmt{nullptr};
+      sqlite3_prepare_v2(_sqlite3_db.get(), query.data(), -1, &pStmt,
+                         nullptr) == SQLITE_OK) {
+    // set statement handle to smartpointer
+    if (pStmt) {
+      stmt.reset(pStmt);
+    }
+  } else {
+    M5_LOGE("%s", sqlite3_errmsg(_sqlite3_db.get()));
+    M5_LOGE("%s", query.data());
+    return std::make_optional(sqlite3_errmsg(_sqlite3_db.get()));
+  }
+  if (sqlite3_bind_text(stmt.get(), 1, file_path.data(), file_path.length(),
+                        SQLITE_STATIC) != SQLITE_OK) {
+    M5_LOGE("%s", sqlite3_errmsg(_sqlite3_db.get()));
+    return std::make_optional(sqlite3_errmsg(_sqlite3_db.get()));
+  }
+  // SQL表示(デバッグ用)
+  if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_DEBUG) {
+    std::ostringstream oss;
+    //
+    if (auto p = sqlite3_expanded_sql(stmt.get()); p) {
+      oss << std::string_view(p);
+      sqlite3_free(p);
+    }
+    //
+    M5_LOGD("%s", oss.str().c_str());
+  }
+  //
+  auto timeover{steady_clock::now() + LOOP_TIMEOUT};
+  while (steady_clock::now() < timeover &&
+         sqlite3_step(stmt.get()) != SQLITE_DONE) {
+    std::this_thread::yield();
+  }
+  if (steady_clock::now() > timeover) {
+    M5_LOGE("sqlite3_step() timeover");
+    M5_LOGE("%s", sqlite3_errmsg(_sqlite3_db.get()));
+    return std::make_optional("timeover");
+  }
+
+  return std::nullopt; // OK
 }
 
 //
@@ -1092,10 +1154,10 @@ bool Database::insert_values(std::string_view query,
   }
 
   //
-  auto timeover{steady_clock::now() + RETRY_TIMEOUT};
+  auto timeover{steady_clock::now() + LOOP_TIMEOUT};
   while (steady_clock::now() < timeover &&
          sqlite3_step(stmt.get()) != SQLITE_DONE) {
-    /**/
+    std::this_thread::yield();
   }
   if (steady_clock::now() > timeover) {
     M5_LOGE("sqlite3_step() timeover");
@@ -1175,10 +1237,10 @@ bool Database::insert_values(std::string_view query,
   }
 
   //
-  auto timeover{steady_clock::now() + RETRY_TIMEOUT};
+  auto timeover{steady_clock::now() + LOOP_TIMEOUT};
   while (steady_clock::now() < timeover &&
          sqlite3_step(stmt.get()) != SQLITE_DONE) {
-    /**/
+    std::this_thread::yield();
   }
   if (steady_clock::now() > timeover) {
     M5_LOGE("sqlite3_step() timeover");
@@ -1244,6 +1306,7 @@ Database::read_values(std::string_view query,
   //
   size_t counter{1}; // 1 start
   while (sqlite3_step(stmt.get()) == SQLITE_ROW) {
+    std::this_thread::yield();
     // number 0 is sensor_id
     int64_t sensor_id = sqlite3_column_int64(stmt.get(), 0);
     int64_t at = sqlite3_column_int64(stmt.get(), 1);
@@ -1316,6 +1379,7 @@ Database::read_values(std::string_view query,
   //
   size_t counter{1}; // 1 start
   while (sqlite3_step(stmt.get()) == SQLITE_ROW) {
+    std::this_thread::yield();
     // number 0 is sensor_id
     int64_t sensor_id = sqlite3_column_int64(stmt.get(), 0);
     int64_t at = sqlite3_column_int64(stmt.get(), 1);
@@ -1384,6 +1448,7 @@ Database::read_values(std::string_view query,
   //
   size_t counter{1}; // 1 start
   while (sqlite3_step(stmt.get()) == SQLITE_ROW) {
+    std::this_thread::yield();
     // number 0 is sensor_id
     int64_t sensor_id = sqlite3_column_int64(stmt.get(), 0);
     int64_t at = sqlite3_column_int64(stmt.get(), 1);
@@ -1452,6 +1517,7 @@ Database::read_values(std::string_view query,
   //
   size_t counter{1}; // 1 start
   while (sqlite3_step(stmt.get()) == SQLITE_ROW) {
+    std::this_thread::yield();
     // number 0 is sensor_id
     int64_t sensor_id = sqlite3_column_int64(stmt.get(), 0);
     int64_t at = sqlite3_column_int64(stmt.get(), 1);
@@ -1526,6 +1592,7 @@ Database::read_values(std::string_view query,
   //
   size_t counter{1}; // 1 start
   while (sqlite3_step(stmt.get()) == SQLITE_ROW) {
+    std::this_thread::yield();
     // number 0 is sensor_id
     int64_t sensor_id = sqlite3_column_int64(stmt.get(), 0);
     int64_t at = sqlite3_column_int64(stmt.get(), 1);

@@ -4,12 +4,11 @@
 //
 #include "Application.hpp"
 #include "Gui.hpp"
-#include "credentials.h"
-#include "esp_sntp.h"
 #include <ArduinoOTA.h>
 #include <LITTLEFS.h>
 #include <WiFi.h>
 #include <chrono>
+#include <esp_sntp.h>
 #include <functional>
 #include <future>
 #include <lvgl.h>
@@ -27,14 +26,64 @@ const steady_clock::time_point Application::_application_start_time{
     steady_clock::now()};
 
 //
+std::optional<std::string> Application::getSettings_wifi_SSID() {
+  if (settings_json.containsKey("wifi")) {
+    if (settings_json["wifi"].containsKey("SSID")) {
+      return settings_json["wifi"]["SSID"];
+    }
+  }
+  return std::nullopt;
+}
+
+//
+std::optional<std::string> Application::getSettings_wifi_password() {
+  if (settings_json.containsKey("wifi")) {
+    if (settings_json["wifi"].containsKey("password")) {
+      return settings_json["wifi"]["password"];
+    }
+  }
+  return std::nullopt;
+}
+
+//
+std::optional<std::string> Application::getSettings_AzureIoTHub_FQDN() {
+  if (settings_json.containsKey("AzureIoTHub")) {
+    if (settings_json["AzureIoTHub"].containsKey("FQDN")) {
+      return settings_json["AzureIoTHub"]["FQDN"];
+    }
+  }
+  return std::nullopt;
+}
+
+//
+std::optional<std::string> Application::getSettings_AzureIoTHub_DeviceID() {
+  if (settings_json.containsKey("AzureIoTHub")) {
+    if (settings_json["AzureIoTHub"].containsKey("DeviceID")) {
+      return settings_json["AzureIoTHub"]["DeviceID"];
+    }
+  }
+  return std::nullopt;
+}
+
+//
+std::optional<std::string> Application::getSettings_AzureIoTHub_DeviceKey() {
+  if (settings_json.containsKey("AzureIoTHub")) {
+    if (settings_json["AzureIoTHub"].containsKey("DeviceKey")) {
+      return settings_json["AzureIoTHub"]["DeviceKey"];
+    }
+  }
+  return std::nullopt;
+}
+
+//
 bool Application::task_handler() {
   ArduinoOTA.handle();
   M5.update();
-  if (M5.BtnA.wasReleased()) {
+  if (M5.BtnA.wasPressed()) {
     _gui.movePrev();
-  } else if (M5.BtnB.wasReleased()) {
+  } else if (M5.BtnB.wasPressed()) {
     _gui.home();
-  } else if (M5.BtnC.wasReleased()) {
+  } else if (M5.BtnC.wasPressed()) {
     _gui.moveNext();
   }
   static system_clock::time_point before_db_tp{};
@@ -66,7 +115,22 @@ bool Application::task_handler() {
 void Application::idle_task_handler() {
   if (WiFi.status() != WL_CONNECTED) {
     // WiFiが接続されていない場合は接続する。
-    WiFi.begin(Credentials.wifi_ssid, Credentials.wifi_password);
+    std::string ssid;
+    std::string password;
+    // guard
+    if (getSettings_wifi_SSID()) {
+      ssid = getSettings_wifi_SSID().value();
+    } else {
+      ESP_LOGE("%s", "wifi SSID not set");
+      return;
+    }
+    if (getSettings_wifi_password()) {
+      password = getSettings_wifi_password().value();
+    } else {
+      ESP_LOGE("%s", "wifi password not set");
+      return;
+    }
+    WiFi.begin(ssid.c_str(), password.c_str());
     return;
   }
   if (_telemetry.isConnected()) {
@@ -90,15 +154,18 @@ void Application::idle_task_handler() {
 bool Application::startup() {
   // 起動シーケンス
   std::vector<std::function<bool(std::ostream &)>> startup_sequence{
+      std::bind(&Application::read_settings_json, this, std::placeholders::_1),
       std::bind(&Application::start_wifi, this, std::placeholders::_1),
       std::bind(&Application::synchronize_ntp, this, std::placeholders::_1),
       std::bind(&Application::start_database, this, std::placeholders::_1),
+      /*
       std::bind(&Application::start_telemetry, this, std::placeholders::_1),
       std::bind(&Application::start_sensor_BME280, this, std::placeholders::_1),
       std::bind(&Application::start_sensor_SGP30, this, std::placeholders::_1),
       std::bind(&Application::start_sensor_SCD30, this, std::placeholders::_1),
       std::bind(&Application::start_sensor_SCD41, this, std::placeholders::_1),
       std::bind(&Application::start_sensor_M5ENV3, this, std::placeholders::_1),
+      */
   };
   //
   struct BufWithLogging : public std::stringbuf {
@@ -119,17 +186,6 @@ bool Application::startup() {
   };
   BufWithLogging buf{this};
   std::ostream oss(&buf);
-
-  // file system init
-  if (LittleFS.begin(true)) {
-    M5_LOGI("filesystem status : %lu / %lu.", LittleFS.usedBytes(),
-            LittleFS.totalBytes());
-  } else {
-    M5_LOGE("filesystem inititalize failed.");
-    M5.Display.print("filesystem inititalize failed.");
-    std::this_thread::sleep_for(1min);
-    esp_system_abort("filesystem inititalize failed.");
-  }
 
   // initializing M5Stack Core2 with M5Unified
   {
@@ -154,6 +210,17 @@ bool Application::startup() {
       .tv_sec = mktime(&local_tm), .tv_nsec = 0
     };
     clock_settime(CLOCK_REALTIME, &timespec);
+  }
+
+  // file system init
+  if (LittleFS.begin(true)) {
+    M5_LOGI("filesystem status : %lu / %lu.", LittleFS.usedBytes(),
+            LittleFS.totalBytes());
+  } else {
+    M5_LOGE("filesystem inititalize failed.");
+    M5.Display.print("filesystem inititalize failed.");
+    std::this_thread::sleep_for(1min);
+    esp_system_abort("filesystem inititalize failed.");
   }
 
   // LED
@@ -208,7 +275,7 @@ bool Application::startup() {
   _rgb_led.clear();
 
   //
-  if constexpr (false) {
+  if constexpr (true) {
     while (!isTimeSynced()) {
       std::this_thread::sleep_for(100ms);
     }
@@ -323,13 +390,79 @@ bool Application::startup() {
 }
 
 //
+bool Application::read_settings_json(std::ostream &os) {
+  //
+  if (auto file = LittleFS.open(SETTINGS_FILE_PATH.data())) {
+    DeserializationError error = deserializeJson(settings_json, file);
+    if (error == DeserializationError::Ok) {
+      std::ostringstream ss;
+      ss << "Setting file is \"" << SETTINGS_FILE_PATH << "\"";
+      os << ss.str() << std::endl;
+      M5_LOGI("%s", ss.str().c_str());
+    } else {
+      std::ostringstream ss;
+      ss << "Error; Read \"" << SETTINGS_FILE_PATH << "\" file.";
+      os << ss.str() << std::endl;
+      M5_LOGE("%s", ss.str().c_str());
+      goto error_halt;
+    }
+    file.close();
+    return true;
+  } else {
+    std::ostringstream ss;
+    ss << "Error; Open \"" << SETTINGS_FILE_PATH << "\" file.";
+    os << ss.str() << std::endl;
+    M5_LOGE("%s", ss.str().c_str());
+    goto error_halt;
+  }
+
+error_halt:
+  // halted
+  while (true) {
+    ArduinoOTA.handle();
+    M5.update();
+    delay(10);
+  }
+  return false;
+}
+
+//
 bool Application::start_wifi(std::ostream &os) {
-  os << "connect to WiFi \""s << Credentials.wifi_ssid << "\""s << std::endl;
-  M5_LOGI("connect to WiFi AP.");
+  os << "connect to WiFi" << std::endl;
+  M5_LOGI("connect to WiFi");
+  //
+  std::string ssid;
+  std::string password;
+  // guard
+  if (getSettings_wifi_SSID()) {
+    ssid = getSettings_wifi_SSID().value();
+  } else {
+    std::ostringstream ss;
+    ss << "wifi SSID not set";
+    os << ss.str() << std::endl;
+    M5_LOGE("%s", ss.str());
+    return false;
+  }
+  if (getSettings_wifi_password()) {
+    password = getSettings_wifi_password().value();
+  } else {
+    std::ostringstream ss;
+    ss << "wifi password not set";
+    os << ss.str() << std::endl;
+    M5_LOGE("%s", ss.str());
+    return false;
+  }
+  //
+  {
+    std::ostringstream ss;
+    ss << "WiFi AP SSID\""s << ssid << "\""s;
+    os << ss.str() << std::endl;
+    M5_LOGI("%s", ss.str());
+  }
   //  WiFi with Station mode
   WiFi.onEvent(wifi_event_callback);
   WiFi.mode(WIFI_STA);
-  WiFi.begin(Credentials.wifi_ssid, Credentials.wifi_password);
+  WiFi.begin(ssid.c_str(), password.c_str());
   // WiFi APとの接続待ち
   auto timeover{steady_clock::now() + TIMEOUT};
   while (WiFi.status() != WL_CONNECTED && steady_clock::now() < timeover) {
@@ -410,18 +543,21 @@ bool Application::start_database(std::ostream &os) {
   //
   for (auto count = 1; count <= 2; ++count) {
     if (Application::_measurements_database.begin(
-            std::string(MEASUREMENTS_DATABASE_FILE_NAME))) {
+            std::string(DATA_ACQUISITION_DATABASE_FILE_URI))) {
       return true;
     }
     // 失敗したらデータベースファイルを消去して再度初期化
-    if (!LittleFS.remove(MEASUREMENTS_DATABASE_FILE_NAME.data())) {
-      // ファイルの消去に失敗したらフォーマットする
-      M5_LOGI("format filesystem.");
-      if (LittleFS.format() == false) {
-        M5_LOGE("format failed.");
-      }
+    if (LittleFS.remove(DATA_ACQUISITION_DATABASE_FILE_URI.data())) {
+      os << "file \"" << DATA_ACQUISITION_DATABASE_FILE_URI << "\" removed."
+         << std::endl;
+      M5_LOGI("file \"%s\" removed.",
+              DATA_ACQUISITION_DATABASE_FILE_URI.data());
     } else {
-      M5_LOGI("file \"%s\" removed.", MEASUREMENTS_DATABASE_FILE_NAME.data());
+      os << "file \"" << DATA_ACQUISITION_DATABASE_FILE_URI
+         << "\" remove error." << std::endl;
+      M5_LOGE("file \"%s\" remove error.",
+              DATA_ACQUISITION_DATABASE_FILE_URI.data());
+      return false;
     }
   }
   //
@@ -437,12 +573,52 @@ bool Application::start_database(std::ostream &os) {
 
 //
 bool Application::start_telemetry(std::ostream &os) {
-  os << "start Telemetry." << std::endl;
-  M5_LOGI("start Telemetry.");
+  {
+    std::ostringstream ss;
+    ss << "start Telemetry.";
+    os << ss.str() << std::endl;
+    M5_LOGI("%s", ss.str());
+  }
   //
-  if (_telemetry.begin(Credentials.iothub_fqdn, Credentials.device_id,
-                       Credentials.device_key) == false) {
-    os << "MQTT subscribe failed." << std::endl;
+  std::string iothub_fqdn;
+  std::string iothub_device_id;
+  std::string iothub_device_key;
+  // guard
+  if (getSettings_AzureIoTHub_FQDN()) {
+    iothub_fqdn = getSettings_AzureIoTHub_FQDN().value();
+  } else {
+    std::ostringstream ss;
+    ss << "Azure IoT Hub FQDN not set";
+    os << ss.str() << std::endl;
+    M5_LOGE("%s", ss.str());
+    return false;
+  }
+  if (getSettings_AzureIoTHub_DeviceID()) {
+    iothub_device_id = getSettings_AzureIoTHub_DeviceID().value();
+  } else {
+    std::ostringstream ss;
+    ss << "Azure IoT Hub DeviceID not set";
+    os << ss.str() << std::endl;
+    M5_LOGE("%s", ss.str());
+    return false;
+  }
+  if (getSettings_AzureIoTHub_DeviceKey()) {
+    iothub_device_key = getSettings_AzureIoTHub_DeviceKey().value();
+  } else {
+    std::ostringstream ss;
+    ss << "Azure IoT Hub DeviceKey not set";
+    os << ss.str() << std::endl;
+    M5_LOGE("%s", ss.str());
+    return false;
+  }
+
+  //
+  if (_telemetry.begin(iothub_fqdn, iothub_device_id, iothub_device_key) ==
+      false) {
+    std::ostringstream ss;
+    ss << "MQTT subscribe failed.";
+    os << ss.str() << std::endl;
+    M5_LOGE("%s", ss.str());
     return false;
   }
   //
