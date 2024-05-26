@@ -1103,12 +1103,14 @@ void Widget::SystemHealthy::event_draw_part_begin_callback(lv_event_t *event) {
 Widget::MessageBox::MessageBox(lv_obj_t *parent, std::string_view title,
                                std::string_view text,
                                std::vector<const char *> buttons,
-                               ButtonClickCallback callback) {
-  _button_click_callback = callback;
-  _msgbox_buttons = buttons;
-  // LVGL message box がnull終端を要求するので
+                               ButtonClickCallback callback = nullptr)
+    : _title{title},
+      _text{text},
+      _msgbox_buttons{buttons},
+      _button_click_callback{callback} {
+  // LVGL message box がnull終端を要求するのでnullptrを追加する。
   _msgbox_buttons.push_back(nullptr);
-  _msgbox_obj.reset(lv_msgbox_create(parent, title.data(), text.data(),
+  _msgbox_obj.reset(lv_msgbox_create(parent, _title.c_str(), _text.c_str(),
                                      _msgbox_buttons.data(), false),
                     lv_msgbox_close);
 
@@ -1137,8 +1139,10 @@ void Widget::MessageBox::event_all_callback(lv_event_t *event) {
     case LV_EVENT_VALUE_CHANGED:
       if (current_target_obj) {
         auto button_id = lv_msgbox_get_active_btn(current_target_obj);
-        it->_msgbox_obj.reset();
-        it->_button_click_callback(button_id);
+        it->_msgbox_obj.reset(); // msgboxを消す
+        if (it->_button_click_callback) {
+          it->_button_click_callback(button_id);
+        }
       } else {
         M5_LOGE("null pointer");
       }
@@ -1191,21 +1195,28 @@ Widget::ExportImportData::ExportImportData(Widget::InitArg init)
 }
 
 //
-void Widget::ExportImportData::update() {}
+void Widget::ExportImportData::update() {
+  if (_tile_obj && _error_msg_at_exec) {
+    _messagebox.reset(new Widget::MessageBox(
+        _tile_obj.get(), "Error", _error_msg_at_exec->c_str(), {"OK"}));
+    _error_msg_at_exec = std::nullopt;
+  }
+}
 
 //
 void Widget::ExportImportData::showExportMessageBox() {
   if (_tile_obj) {
     _messagebox.reset(new Widget::MessageBox(
         _tile_obj.get(), "Export Data", "Insert SD card and click OK",
-        {"OK", "Cancel"}, [](uint16_t button_id) {
+        {"OK", "Cancel"}, [this](uint16_t button_id) {
           switch (button_id) {
           case 0:
             M5_LOGD("Export: OK");
-            if (auto err_msg = Application::getDataAcquisitionDB().save_to_file(
-                    Application::EXPORT_IMPORT_DATABASE_FILE_URI);
-                err_msg) {
-              M5_LOGE("%s", err_msg->c_str());
+            if (_error_msg_at_exec =
+                    Application::getDataAcquisitionDB().save_to_file(
+                        Application::EXPORT_IMPORT_DATABASE_FILE_URI);
+                _error_msg_at_exec) {
+              M5_LOGE("%s", _error_msg_at_exec->c_str());
             }
             break;
           case 1:
@@ -1223,15 +1234,15 @@ void Widget::ExportImportData::showImportMessageBox() {
   if (_tile_obj) {
     _messagebox.reset(new Widget::MessageBox(
         _tile_obj.get(), "Import Data", "Insert SD card and click OK",
-        {"OK", "Cancel"}, [](uint16_t button_id) {
+        {"OK", "Cancel"}, [this](uint16_t button_id) {
           switch (button_id) {
           case 0:
             M5_LOGD("Import: OK");
-            if (auto err_msg =
+            if (_error_msg_at_exec =
                     Application::getDataAcquisitionDB().restore_from_file(
                         Application::EXPORT_IMPORT_DATABASE_FILE_URI);
-                err_msg) {
-              M5_LOGE("%s", err_msg->c_str());
+                _error_msg_at_exec) {
+              M5_LOGE("%s", _error_msg_at_exec->c_str());
             }
             break;
           case 1:

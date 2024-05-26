@@ -153,6 +153,8 @@ private:
   //
   bool read_settings_json(std::ostream &os);
   //
+  bool start_SD(std::ostream &os);
+  //
   bool start_wifi(std::ostream &os);
   // インターネット時間サーバと同期する
   bool synchronize_ntp(std::ostream &os);

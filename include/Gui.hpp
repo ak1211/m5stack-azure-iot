@@ -181,6 +181,8 @@ public:
 private:
   std::shared_ptr<lv_obj_t> _msgbox_obj;
   std::vector<const char *> _msgbox_buttons;
+  std::string _title;
+  std::string _text;
   ButtonClickCallback _button_click_callback;
   //
   static void event_all_callback(lv_event_t *event);
@@ -193,6 +195,7 @@ class ExportImportData final : public TileBase {
   std::shared_ptr<lv_obj_t> _export_button_obj;
   std::shared_ptr<lv_obj_t> _import_button_obj;
   std::shared_ptr<MessageBox> _messagebox;
+  std::optional<std::string> _error_msg_at_exec;
 
 public:
   constexpr static auto GUTTER{36};
