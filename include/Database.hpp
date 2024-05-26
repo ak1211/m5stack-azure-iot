@@ -47,34 +47,43 @@ private:
   std::optional<Sensor::MeasurementM5Env3> _latestMeasurementM5Env3{};
 
 public:
+  //
   using system_clock = std::chrono::system_clock;
   //
   using TimePointAndDouble =
       std::tuple<SensorId, system_clock::time_point, double>;
+  //
   using TimePointAndUInt16 =
       std::tuple<SensorId, system_clock::time_point, uint16_t>;
+  //
   using TimePointAndIntAndOptInt =
       std::tuple<SensorId, system_clock::time_point, uint16_t,
                  std::optional<uint16_t>>;
+  //
   using CallbackRowTimeAndDouble =
       std::function<bool(size_t counter, std::time_t at, double v)>;
+  //
   template <typename T>
   using ReadCallback = std::function<bool(size_t counter, T)>;
-
+  //
   using OrderBy = enum { OrderByAtAsc = 0, OrderByAtDesc = 1 };
-
-  constexpr static std::chrono::seconds RETRY_TIMEOUT{60};
+  //
+  constexpr static std::chrono::minutes LOOP_TIMEOUT{1};
   //
   virtual ~Database() { terminate(); }
   //
   bool available() const { return static_cast<bool>(_sqlite3_db); }
   //
-  bool begin(const std::string &database_filename);
+  bool begin(const std::string &database_file_path);
   //
   void terminate();
   //
   bool delete_old_measurements_from_database(
       system_clock::time_point delete_of_older_than_tp);
+  //
+  std::optional<std::string> save_to_file(std::string file_path);
+  //
+  std::optional<std::string> restore_from_file(std::string file_path);
   //
   bool insert(const Sensor::MeasurementBme280 &m);
   bool insert(const Sensor::MeasurementSgp30 &m);

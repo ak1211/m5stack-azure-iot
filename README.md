@@ -9,6 +9,30 @@ M5stack Core2 IoT開発キットにM5GO Bottom2を組み合わせたハードウ
 - BME280
 
 対応しているセンサーのどれか、または全部をPORT A(赤)に接続する。  
-接続情報をinclude/credentials.h.exampleを参考にしてinclude/credentials.hを作る。  
-ビルド＆書き込む。
 
+## 接続情報を用意する
+WiFiとAzureIotHubの接続情報をjson形式で用意する.
+
+接続情報例(data/settings.json)
+```
+{
+    "wifi": {
+        "SSID": "************",
+        "password": "************"
+    },
+    "AzureIoTHub": {
+        "FQDN": "********************************",
+        "DeviceID": "*************",
+        "DeviceKey": "********************************************"
+    }
+}
+```
+
+接続情報を`data/settings.json`に保存する。
+
+## ファームウエアの書込み
+M5StackCore2 + M5GO Bottom2 のセットまたは M5StackCore2 for AWS をUSB接続する。  
+PlatformIO で Build & Upload する。
+
+## 接続情報の書込み
+PlatformIO で Upload Filesystem Image する。

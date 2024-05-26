@@ -9,6 +9,7 @@
 #include "RgbLed.hpp"
 #include "Sensor.hpp"
 #include "Telemetry.hpp"
+#include <ArduinoJson.h>
 #include <WiFi.h>
 #include <chrono>
 #include <esp_task.h>
@@ -28,8 +29,16 @@ public:
   // time zone = Asia_Tokyo(UTC+9)
   constexpr static auto TZ_TIME_ZONE = std::string_view{"JST-9"};
   //
-  constexpr static std::string_view MEASUREMENTS_DATABASE_FILE_NAME{
-      "file:/littlefs/measurements.db?pow=0&mode=memory"};
+  constexpr static std::string_view SETTINGS_FILE_PATH{"/settings.json"};
+  //
+  constexpr static std::string_view EXPORT_IMPORT_DATABASE_FILE_PATH{
+      "/sd/measurements.sqlite3"};
+  //
+  constexpr static std::string_view DATA_ACQUISITION_DATABASE_FILE_URI{
+      "file:/measurements.sqlite3?pow=0&mode=memory"};
+  //
+  const static inline std::string EXPORT_IMPORT_DATABASE_FILE_URI{
+      std::string{"file:"} + std::string{EXPORT_IMPORT_DATABASE_FILE_PATH}};
   //
   constexpr static auto BME280_I2C_ADDRESS = uint8_t{0x76};
   constexpr static auto SENSOR_DESCRIPTOR_BME280 =
@@ -107,6 +116,18 @@ private:
   static Application *_instance;
   //
   static const std::chrono::steady_clock::time_point _application_start_time;
+  // JSON形式設定ファイル
+  JsonDocument settings_json;
+  //
+  std::optional<std::string> getSettings_wifi_SSID();
+  //
+  std::optional<std::string> getSettings_wifi_password();
+  //
+  std::optional<std::string> getSettings_AzureIoTHub_FQDN();
+  //
+  std::optional<std::string> getSettings_AzureIoTHub_DeviceID();
+  //
+  std::optional<std::string> getSettings_AzureIoTHub_DeviceKey();
   // 起動時のログ
   std::string _startup_log;
   // インターネット時間サーバーに同期しているか
@@ -129,6 +150,8 @@ private:
   TaskHandle_t _rtos_application_task_handle{};
   //
   void idle_task_handler();
+  //
+  bool read_settings_json(std::ostream &os);
   //
   bool start_wifi(std::ostream &os);
   // インターネット時間サーバと同期する

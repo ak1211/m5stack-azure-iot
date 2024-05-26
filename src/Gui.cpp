@@ -5,15 +5,16 @@
 #include "Gui.hpp"
 #include "Application.hpp"
 #include "Database.hpp"
+#include <WebServer.h>
 #include <WiFi.h>
-#include <esp_system.h>
-
 #include <algorithm>
 #include <array>
 #include <chrono>
 #include <cmath>
 #include <ctime>
+#include <esp_system.h>
 #include <functional>
+#include <future>
 #include <iomanip>
 #include <sstream>
 #include <tuple>
@@ -115,6 +116,7 @@ bool Gui::startUi() {
     add_tile<Widget::Clock>({_tileview_obj, col++, 0, LV_DIR_HOR});
   }
   add_tile<Widget::SystemHealthy>({_tileview_obj, col++, 0, LV_DIR_HOR});
+  add_tile<Widget::ExportImportData>({_tileview_obj, col++, 0, LV_DIR_HOR});
   add_tile<Widget::Summary>({_tileview_obj, col++, 0, LV_DIR_HOR});
   add_tile<Widget::TemperatureChart>({_tileview_obj, col++, 0, LV_DIR_HOR});
   add_tile<Widget::RelativeHumidityChart>(
@@ -141,7 +143,7 @@ void Gui::home() {
     return;
   }
   vibrate();
-  constexpr auto COL_ID = 2;
+  constexpr auto COL_ID = 3;
   constexpr auto ROW_ID = 0;
   lv_obj_set_tile_id(_tileview_obj.get(), COL_ID, ROW_ID, LV_ANIM_OFF);
 }
@@ -185,6 +187,123 @@ void Gui::vibrate() {
       timer) {
     lv_timer_set_repeat_count(timer, 1); // one-shot timer
     M5.Power.setVibration(255);          // start vibrate
+  }
+}
+
+//
+//
+//
+void Widget::TileBase::LvTimerDeleter::operator()(lv_timer_t *ptr) const {
+  lv_timer_del(ptr);
+}
+
+//
+//
+//
+Widget::TileBase::TileBase(Widget::InitArg init, std::string title)
+    : _tileview_obj{std::get<0>(init)} {
+  auto &[_, col_id, row_id, dir] = init;
+  //
+  if (_tileview_obj) {
+    _tile_obj.reset(
+        lv_tileview_add_tile(_tileview_obj.get(), col_id, row_id, dir),
+        lv_obj_del);
+    // set value changed callback
+    lv_obj_add_event_cb(_tileview_obj.get(), event_value_changed_callback,
+                        LV_EVENT_VALUE_CHANGED, this);
+  } else {
+    M5_LOGE("null");
+  }
+  //
+  if (_tile_obj) {
+    _title_obj.reset(lv_label_create(_tile_obj.get()), lv_obj_del);
+  }
+  if (_title_obj) {
+    const lv_font_t *FONT{&lv_font_montserrat_16};
+    lv_style_init(&_title_style);
+    lv_style_set_bg_color(&_title_style,
+                          lv_palette_darken(LV_PALETTE_BROWN, 4));
+    lv_style_set_bg_opa(&_title_style, LV_OPA_COVER);
+    lv_obj_set_style_text_font(_title_obj.get(), FONT, LV_STATE_DEFAULT);
+    lv_obj_set_size(_title_obj.get(), lv_obj_get_content_width(_tile_obj.get()),
+                    FONT->line_height);
+    lv_obj_set_style_text_font(_title_obj.get(), &lv_font_montserrat_16,
+                               LV_STATE_DEFAULT);
+    lv_style_set_text_color(&_title_style,
+                            lv_palette_lighten(LV_PALETTE_BROWN, 4));
+    lv_obj_add_style(_title_obj.get(), &_title_style, LV_PART_MAIN);
+    lv_obj_align(_title_obj.get(), LV_ALIGN_TOP_LEFT, 0, 0);
+    lv_label_set_text(_title_obj.get(), (std::string{" "} + title).c_str());
+  } else {
+    M5_LOGE("null pointer");
+  }
+}
+
+//
+Widget::TileBase::~TileBase() {
+  delTimer();
+  if (_tileview_obj) {
+    lv_obj_remove_event_cb(_tileview_obj.get(), event_value_changed_callback);
+  }
+};
+
+//
+bool Widget::TileBase::isActiveTile() const {
+  if (_tileview_obj && _tile_obj) {
+    return _tile_obj.get() == lv_tileview_get_tile_act(_tileview_obj.get());
+  } else {
+    M5_LOGE("null");
+    return false;
+  }
+}
+
+//
+void Widget::TileBase::setActiveTile() {
+  if (_tileview_obj && _tile_obj) {
+    lv_obj_set_tile(_tileview_obj.get(), _tile_obj.get(), LV_ANIM_ON);
+  } else {
+    M5_LOGE("null");
+  }
+}
+
+//
+bool Widget::TileBase::createTimer() {
+  _periodic_timer.reset(lv_timer_create(
+      timer_callback,
+      duration_cast<milliseconds>(PERIODIC_TIMER_INTERVAL).count(), this));
+  return static_cast<bool>(_periodic_timer);
+}
+
+//
+void Widget::TileBase::delTimer() { _periodic_timer.reset(); }
+
+//
+void Widget::TileBase::timer_callback(lv_timer_t *timer) {
+  if (timer) {
+    if (auto it = static_cast<TileBase *>(timer->user_data); it) {
+      it->update();
+    }
+  }
+}
+
+//
+void Widget::TileBase::event_value_changed_callback(lv_event_t *event) {
+  if (event) {
+    auto it = static_cast<TileBase *>(event->user_data);
+    if (it && it->_tileview_obj && it->_tile_obj) {
+      if (lv_tileview_get_tile_act(it->_tileview_obj.get()) ==
+          it->_tile_obj.get()) {
+        M5_LOGV("event_value_changed_callback: activate");
+        // activate
+        it->onActivate();
+        it->createTimer();
+      } else {
+        M5_LOGV("event_value_changed_callback: deactivate");
+        // deactivate
+        it->delTimer();
+        it->onDeactivate();
+      }
+    }
   }
 }
 
@@ -266,13 +385,19 @@ void Widget::Startup::updateProgress(int16_t percent) {
 //
 //
 //
-Widget::BootMessage::BootMessage(Widget::InitArg init) : TileBase{init} {
-  if (_tile_obj) {
+Widget::BootMessage::BootMessage(Widget::InitArg init) : TileBase{init, "Log"} {
+  if (_tile_obj && _title_obj) {
     // create
     _message_label_obj.reset(lv_label_create(_tile_obj.get()), lv_obj_del);
-    if (_message_label_obj) {
-      lv_label_set_long_mode(_message_label_obj.get(), LV_LABEL_LONG_WRAP);
-    }
+  } else {
+    M5_LOGE("null pointer");
+  }
+  //
+  if (_message_label_obj) {
+    lv_obj_align_to(_message_label_obj.get(), _title_obj.get(),
+                    LV_ALIGN_OUT_BOTTOM_LEFT, 0, MARGIN);
+    lv_obj_set_x(_message_label_obj.get(), 0);
+    lv_label_set_long_mode(_message_label_obj.get(), LV_LABEL_LONG_WRAP);
   } else {
     M5_LOGE("null pointer");
   }
@@ -296,11 +421,15 @@ void Widget::BootMessage::render() {
 //
 //
 //
-Widget::Summary::Summary(Widget::InitArg init) : TileBase{init} {
+Widget::Summary::Summary(Widget::InitArg init) : TileBase{init, "Summary"} {
   if (_tile_obj) {
     // create
     _table_obj.reset(lv_table_create(_tile_obj.get()), lv_obj_del);
-    //
+  } else {
+    M5_LOGE("null pointer");
+  }
+  //
+  if (_table_obj && _title_obj) {
     auto w = lv_obj_get_content_width(_tile_obj.get());
     lv_table_set_col_width(_table_obj.get(), 0, w * 6 / 12);
     lv_table_set_col_width(_table_obj.get(), 1, w * 3 / 12);
@@ -311,12 +440,14 @@ Widget::Summary::Summary(Widget::InitArg init) : TileBase{init} {
     lv_obj_center(_table_obj.get());
     lv_obj_set_style_text_font(_table_obj.get(), &lv_font_montserrat_16,
                                LV_PART_ITEMS | LV_STATE_DEFAULT);
+    lv_obj_align_to(_table_obj.get(), _title_obj.get(),
+                    LV_ALIGN_OUT_BOTTOM_LEFT, 0, MARGIN);
+    lv_obj_set_x(_table_obj.get(), 0);
     //
     lv_obj_add_event_cb(_table_obj.get(), event_draw_part_begin_callback,
                         LV_EVENT_DRAW_PART_BEGIN, nullptr);
   } else {
     M5_LOGE("null pointer");
-    return;
   }
 }
 
@@ -570,9 +701,11 @@ void Widget::Summary::render() {
 
 //
 void Widget::Summary::event_draw_part_begin_callback(lv_event_t *event) {
-  if (event) {
-    lv_obj_t *obj = lv_event_get_target(event);
-    lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
+  lv_obj_t *obj{event ? lv_event_get_target(event) : nullptr};
+  lv_obj_draw_part_dsc_t *dsc{event ? lv_event_get_draw_part_dsc(event)
+                                    : nullptr};
+
+  if (obj && dsc) {
     if (dsc->part == LV_PART_ITEMS) {
       uint32_t row = dsc->id / lv_table_get_col_cnt(obj);
       uint32_t col = dsc->id - row * lv_table_get_col_cnt(obj);
@@ -598,16 +731,18 @@ void Widget::Summary::event_draw_part_begin_callback(lv_event_t *event) {
         dsc->rect_dsc->bg_color = lv_color_white();
       }
     }
+  } else {
+    M5_LOGE("null pointer");
   }
 }
 
 //
 //
 //
-Widget::Clock::Clock(Widget::InitArg init) : TileBase{init} {
+Widget::Clock::Clock(Widget::InitArg init) : TileBase{init, "Clock"} {
   auto no_op_deleter = [](void *ptr) { /* nothing to do*/ };
   //
-  if (_tile_obj) {
+  if (_tile_obj && _title_obj) {
     // create
     _meter_obj.reset(lv_meter_create(_tile_obj.get()), lv_obj_del);
     if (_meter_obj) {
@@ -615,6 +750,9 @@ Widget::Clock::Clock(Widget::InitArg init) : TileBase{init} {
                            lv_obj_get_content_height(_tile_obj.get()));
       lv_obj_set_size(_meter_obj.get(), size * 0.9, size * 0.9);
       lv_obj_center(_meter_obj.get());
+      lv_obj_align_to(_meter_obj.get(), _title_obj.get(),
+                      LV_ALIGN_OUT_BOTTOM_LEFT, 0, MARGIN);
+      lv_obj_set_x(_meter_obj.get(), 0);
       //
       _sec_scale.reset(lv_meter_add_scale(_meter_obj.get()), no_op_deleter);
       if (_sec_scale) {
@@ -690,11 +828,16 @@ void Widget::Clock::render(const std::tm &tm) {
 //
 //
 //
-Widget::SystemHealthy::SystemHealthy(Widget::InitArg init) : TileBase{init} {
+Widget::SystemHealthy::SystemHealthy(Widget::InitArg init)
+    : TileBase{init, "System"} {
   if (_tile_obj) {
     // create
     _table_obj.reset(lv_table_create(_tile_obj.get()), lv_obj_del);
-    //
+  } else {
+    M5_LOGE("null pointer");
+  }
+  //
+  if (_table_obj && _title_obj) {
     auto w = lv_obj_get_content_width(_tile_obj.get());
     lv_table_set_col_width(_table_obj.get(), 0, w * 6 / 12);
     lv_table_set_col_width(_table_obj.get(), 1, w * 6 / 12);
@@ -704,12 +847,14 @@ Widget::SystemHealthy::SystemHealthy(Widget::InitArg init) : TileBase{init} {
     lv_obj_center(_table_obj.get());
     lv_obj_set_style_text_font(_table_obj.get(), &lv_font_montserrat_14,
                                LV_PART_ITEMS | LV_STATE_DEFAULT);
+    lv_obj_align_to(_table_obj.get(), _title_obj.get(),
+                    LV_ALIGN_OUT_BOTTOM_LEFT, 0, MARGIN);
+    lv_obj_set_x(_table_obj.get(), 0);
     //
     lv_obj_add_event_cb(_table_obj.get(), event_draw_part_begin_callback,
                         LV_EVENT_DRAW_PART_BEGIN, nullptr);
   } else {
     M5_LOGE("null pointer");
-    return;
   }
 }
 
@@ -918,9 +1063,10 @@ void Widget::SystemHealthy::render() {
 
 //
 void Widget::SystemHealthy::event_draw_part_begin_callback(lv_event_t *event) {
-  if (event) {
-    lv_obj_t *obj = lv_event_get_target(event);
-    lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(event);
+  lv_obj_t *obj{event ? lv_event_get_target(event) : nullptr};
+  lv_obj_draw_part_dsc_t *dsc{event ? lv_event_get_draw_part_dsc(event)
+                                    : nullptr};
+  if (obj && dsc) {
     if (dsc->part == LV_PART_ITEMS) {
       uint32_t row = dsc->id / lv_table_get_col_cnt(obj);
       uint32_t col = dsc->id - row * lv_table_get_col_cnt(obj);
@@ -946,8 +1092,173 @@ void Widget::SystemHealthy::event_draw_part_begin_callback(lv_event_t *event) {
         dsc->rect_dsc->bg_color = lv_color_white();
       }
     }
+  } else {
+    M5_LOGE("null pointer");
   }
 }
+
+//
+//
+//
+Widget::MessageBox::MessageBox(lv_obj_t *parent, std::string_view title,
+                               std::string_view text,
+                               std::vector<const char *> buttons,
+                               ButtonClickCallback callback) {
+  _button_click_callback = callback;
+  _msgbox_buttons = buttons;
+  // LVGL message box がnull終端を要求するので
+  _msgbox_buttons.push_back(nullptr);
+  _msgbox_obj.reset(lv_msgbox_create(parent, title.data(), text.data(),
+                                     _msgbox_buttons.data(), false),
+                    lv_msgbox_close);
+
+  if (_msgbox_obj) {
+    lv_obj_add_event_cb(_msgbox_obj.get(), event_all_callback, LV_EVENT_ALL,
+                        this);
+    lv_obj_center(_msgbox_obj.get());
+  } else {
+    M5_LOGE("null pointer");
+  }
+}
+
+//
+void Widget::MessageBox::event_all_callback(lv_event_t *event) {
+  if (!event) {
+    M5_LOGE("null pointer");
+    return;
+  }
+  //
+  auto it{static_cast<Widget::MessageBox *>(event->user_data)};
+  //
+  if (it) {
+    lv_event_code_t code{lv_event_get_code(event)};
+    lv_obj_t *current_target_obj{lv_event_get_current_target(event)};
+    switch (code) {
+    case LV_EVENT_VALUE_CHANGED:
+      if (current_target_obj) {
+        auto button_id = lv_msgbox_get_active_btn(current_target_obj);
+        it->_msgbox_obj.reset();
+        it->_button_click_callback(button_id);
+      } else {
+        M5_LOGE("null pointer");
+      }
+      break;
+    default:
+      break;
+    }
+  } else {
+    M5_LOGE("null pointer");
+  }
+}
+
+//
+//
+//
+Widget::ExportImportData::ExportImportData(Widget::InitArg init)
+    : TileBase{init, "Export/Import Data"} {
+  //
+  if (_tile_obj) {
+    // create
+    _export_button_obj.reset(lv_btn_create(_tile_obj.get()));
+    _import_button_obj.reset(lv_btn_create(_tile_obj.get()));
+  } else {
+    M5_LOGE("null pointer");
+  }
+  //
+  if (_export_button_obj && _title_obj) {
+    if (lv_obj_t *label = lv_label_create(_export_button_obj.get()); label) {
+      lv_label_set_text(label, "Export Data to SD CARD");
+    }
+    lv_obj_add_event_cb(_export_button_obj.get(), event_all_callback,
+                        LV_EVENT_ALL, this);
+    lv_obj_align_to(_export_button_obj.get(), _title_obj.get(),
+                    LV_ALIGN_OUT_BOTTOM_MID, 0, GUTTER);
+  } else {
+    M5_LOGE("null pointer");
+  }
+  //
+  if (_import_button_obj && _export_button_obj) {
+    if (lv_obj_t *label = lv_label_create(_import_button_obj.get()); label) {
+      lv_label_set_text(label, "Import Data from SD CARD");
+    }
+    lv_obj_add_event_cb(_import_button_obj.get(), event_all_callback,
+                        LV_EVENT_ALL, this);
+    lv_obj_align_to(_import_button_obj.get(), _export_button_obj.get(),
+                    LV_ALIGN_OUT_BOTTOM_MID, 0, GUTTER);
+  } else {
+    M5_LOGE("null pointer");
+  }
+}
+
+//
+void Widget::ExportImportData::update() {}
+
+//
+void Widget::ExportImportData::showExportMessageBox() {
+  if (_tile_obj) {
+    _messagebox.reset(new Widget::MessageBox(
+        _tile_obj.get(), "Export Data", "Insert SD card and click OK",
+        {"OK", "Cancel"}, [](uint16_t button_id) {
+          switch (button_id) {
+          case 0:
+            M5_LOGD("Export: OK");
+            break;
+          case 1:
+            M5_LOGD("Export: Cancel");
+            break;
+          }
+        }));
+  } else {
+    M5_LOGE("null pointer");
+  }
+}
+
+//
+void Widget::ExportImportData::showImportMessageBox() {
+  if (_tile_obj) {
+    _messagebox.reset(new Widget::MessageBox(
+        _tile_obj.get(), "Import Data", "Insert SD card and click OK",
+        {"OK", "Cancel"}, [](uint16_t button_id) {
+          switch (button_id) {
+          case 0:
+            M5_LOGD("Import: OK");
+            break;
+          case 1:
+            M5_LOGD("Import: Cancel");
+            break;
+          }
+        }));
+  } else {
+    M5_LOGE("null pointer");
+  }
+}
+
+//
+void Widget::ExportImportData::event_all_callback(lv_event_t *event) {
+  auto it{event ? static_cast<Widget::ExportImportData *>(event->user_data)
+                : nullptr};
+  //
+  if (it) {
+    lv_event_code_t code{event ? lv_event_get_code(event) : LV_EVENT_ALL};
+    lv_obj_t *target_obj{event ? lv_event_get_target(event) : nullptr};
+    switch (code) {
+    case LV_EVENT_CLICKED:
+      if (target_obj == nullptr) {
+        M5_LOGE("null pointer");
+      } else if (target_obj == it->_export_button_obj.get()) {
+        it->showExportMessageBox();
+      } else if (target_obj == it->_import_button_obj.get()) {
+        it->showImportMessageBox();
+      }
+      break;
+    default:
+      break;
+    }
+  } else {
+    M5_LOGE("null pointer");
+  }
+}
+
 //
 template <>
 std::ostream &Widget::operator<<(std::ostream &os,
@@ -1045,85 +1356,86 @@ Widget::BasicChart<T>::BasicChart(std::shared_ptr<lv_obj_t> parent_obj,
   if (parent_obj && title_obj) {
     // create
     _label_obj.reset(lv_label_create(parent_obj.get()), lv_obj_del);
-    if (_label_obj) {
-      const lv_font_t *FONT{&lv_font_montserrat_24};
-      lv_obj_set_size(_label_obj.get(),
-                      lv_obj_get_content_width(parent_obj.get()) - MARGIN * 2,
-                      FONT->line_height);
-      lv_obj_align_to(_label_obj.get(), title_obj.get(),
-                      LV_ALIGN_OUT_BOTTOM_LEFT, 0, MARGIN);
-      lv_label_set_long_mode(_label_obj.get(), LV_LABEL_LONG_SCROLL_CIRCULAR);
-      lv_label_set_recolor(_label_obj.get(), true);
-      lv_obj_set_style_text_font(_label_obj.get(), FONT, LV_STATE_DEFAULT);
-      lv_style_init(&_label_style);
-      lv_style_set_bg_opa(&_label_style, LV_OPA_COVER);
-      lv_style_set_bg_color(&_label_style,
-                            lv_palette_darken(LV_PALETTE_BROWN, 4));
-      lv_style_set_text_color(&_label_style,
-                              lv_palette_lighten(LV_PALETTE_BROWN, 4));
-      lv_obj_add_style(_label_obj.get(), &_label_style, LV_PART_MAIN);
-      lv_label_set_text(_label_obj.get(), "");
-    }
-    //
     _chart_obj.reset(lv_chart_create(parent_obj.get()), lv_obj_del);
-    if (_chart_obj) {
-      lv_obj_set_style_bg_color(_chart_obj.get(),
-                                lv_palette_lighten(LV_PALETTE_LIGHT_GREEN, 2),
-                                LV_PART_MAIN);
-      //
-      constexpr auto X_TICK_LABEL_LEN = 30;
-      constexpr auto Y_TICK_LABEL_LEN = 60;
-      constexpr auto RIGHT_PADDING = 20;
-      lv_obj_set_size(_chart_obj.get(),
-                      lv_obj_get_content_width(parent_obj.get())             //
-                          - MARGIN - RIGHT_PADDING - Y_TICK_LABEL_LEN,       //
-                      lv_obj_get_content_height(parent_obj.get())            //
-                          - MARGIN * 2 - lv_obj_get_height(title_obj.get())  //
-                          - MARGIN * 2 - lv_obj_get_height(_label_obj.get()) //
-                          - MARGIN - X_TICK_LABEL_LEN);
-      lv_obj_align_to(_chart_obj.get(), _label_obj.get(),
-                      LV_ALIGN_OUT_BOTTOM_RIGHT, -MARGIN - RIGHT_PADDING,
-                      MARGIN);
-      if constexpr (true) {
-        // Do not display points on the data
-        lv_obj_set_style_size(_chart_obj.get(), 0, LV_PART_INDICATOR);
-      }
-      lv_chart_set_update_mode(_chart_obj.get(), LV_CHART_UPDATE_MODE_SHIFT);
-      lv_chart_set_type(_chart_obj.get(), LV_CHART_TYPE_LINE);
-      lv_chart_set_range(_chart_obj.get(), LV_CHART_AXIS_PRIMARY_X, 0,
-                         Gui::CHART_X_POINT_COUNT);
-      lv_chart_set_range(_chart_obj.get(), LV_CHART_AXIS_PRIMARY_Y, 0, 1);
-      //
-      lv_chart_set_axis_tick(_chart_obj.get(), LV_CHART_AXIS_PRIMARY_X, 8, 4,
-                             X_AXIS_TICK_COUNT, 2, true, X_TICK_LABEL_LEN);
-      lv_chart_set_axis_tick(_chart_obj.get(), LV_CHART_AXIS_PRIMARY_Y, 4, 2,
-                             Y_AXIS_TICK_COUNT, 2, true, Y_TICK_LABEL_LEN);
-      // callback
-      lv_obj_add_event_cb(_chart_obj.get(), event_draw_part_begin_callback,
-                          LV_EVENT_DRAW_PART_BEGIN, this);
-      //
-      for (const auto &sensor : Application::getSensors()) {
-        if (sensor) {
-          SensorId sensor_id{sensor->getSensorDescriptor()};
-          auto opt_color = ChartLineColor::getAssignedColor(sensor_id);
-          auto color = opt_color ? *opt_color : lv_color_black();
-          auto series = lv_chart_add_series(_chart_obj.get(), color,
-                                            LV_CHART_AXIS_PRIMARY_Y);
-          if (series) {
-            auto chart_series_wrapper =
-                ChartSeriesWrapper{series, Gui::CHART_X_POINT_COUNT};
-            lv_chart_set_ext_y_array(_chart_obj.get(), series,
-                                     chart_series_wrapper.y_points.data());
-            _chart_series_map.emplace(sensor_id,
-                                      std::move(chart_series_wrapper));
-          }
-        }
-      }
-      //
-      lv_chart_set_point_count(_chart_obj.get(), Gui::CHART_X_POINT_COUNT);
-    }
   } else {
     M5_LOGE("null pointer");
+  }
+
+  //
+  if (_label_obj) {
+    const lv_font_t *FONT{&lv_font_montserrat_24};
+    lv_obj_set_size(_label_obj.get(),
+                    lv_obj_get_content_width(parent_obj.get()) - MARGIN * 2,
+                    FONT->line_height);
+    lv_obj_align_to(_label_obj.get(), title_obj.get(), LV_ALIGN_OUT_BOTTOM_LEFT,
+                    MARGIN, MARGIN);
+    lv_label_set_long_mode(_label_obj.get(), LV_LABEL_LONG_SCROLL_CIRCULAR);
+    lv_label_set_recolor(_label_obj.get(), true);
+    lv_obj_set_style_text_font(_label_obj.get(), FONT, LV_STATE_DEFAULT);
+    lv_style_init(&_label_style);
+    lv_style_set_bg_opa(&_label_style, LV_OPA_COVER);
+    lv_style_set_bg_color(&_label_style,
+                          lv_palette_darken(LV_PALETTE_BROWN, 4));
+    lv_style_set_text_color(&_label_style,
+                            lv_palette_lighten(LV_PALETTE_BROWN, 4));
+    lv_obj_add_style(_label_obj.get(), &_label_style, LV_PART_MAIN);
+    lv_label_set_text(_label_obj.get(), "");
+  }
+
+  //
+  if (_chart_obj) {
+    lv_obj_set_style_bg_color(_chart_obj.get(),
+                              lv_palette_lighten(LV_PALETTE_LIGHT_GREEN, 2),
+                              LV_PART_MAIN);
+    //
+    constexpr auto X_TICK_LABEL_LEN = 30;
+    constexpr auto Y_TICK_LABEL_LEN = 60;
+    constexpr auto RIGHT_PADDING = 20;
+    lv_obj_set_size(_chart_obj.get(),
+                    lv_obj_get_content_width(parent_obj.get())             //
+                        - MARGIN - RIGHT_PADDING - Y_TICK_LABEL_LEN,       //
+                    lv_obj_get_content_height(parent_obj.get())            //
+                        - MARGIN * 2 - lv_obj_get_height(title_obj.get())  //
+                        - MARGIN * 2 - lv_obj_get_height(_label_obj.get()) //
+                        - MARGIN - X_TICK_LABEL_LEN);
+    lv_obj_align_to(_chart_obj.get(), _label_obj.get(),
+                    LV_ALIGN_OUT_BOTTOM_RIGHT, -MARGIN - RIGHT_PADDING, MARGIN);
+    if constexpr (true) {
+      // Do not display points on the data
+      lv_obj_set_style_size(_chart_obj.get(), 0, LV_PART_INDICATOR);
+    }
+    lv_chart_set_update_mode(_chart_obj.get(), LV_CHART_UPDATE_MODE_SHIFT);
+    lv_chart_set_type(_chart_obj.get(), LV_CHART_TYPE_LINE);
+    lv_chart_set_range(_chart_obj.get(), LV_CHART_AXIS_PRIMARY_X, 0,
+                       Gui::CHART_X_POINT_COUNT);
+    lv_chart_set_range(_chart_obj.get(), LV_CHART_AXIS_PRIMARY_Y, 0, 1);
+    //
+    lv_chart_set_axis_tick(_chart_obj.get(), LV_CHART_AXIS_PRIMARY_X, 8, 4,
+                           X_AXIS_TICK_COUNT, 2, true, X_TICK_LABEL_LEN);
+    lv_chart_set_axis_tick(_chart_obj.get(), LV_CHART_AXIS_PRIMARY_Y, 4, 2,
+                           Y_AXIS_TICK_COUNT, 2, true, Y_TICK_LABEL_LEN);
+    // callback
+    lv_obj_add_event_cb(_chart_obj.get(), event_draw_part_begin_callback,
+                        LV_EVENT_DRAW_PART_BEGIN, this);
+    //
+    for (const auto &sensor : Application::getSensors()) {
+      if (sensor) {
+        SensorId sensor_id{sensor->getSensorDescriptor()};
+        auto opt_color = ChartLineColor::getAssignedColor(sensor_id);
+        auto color = opt_color ? *opt_color : lv_color_black();
+        auto series = lv_chart_add_series(_chart_obj.get(), color,
+                                          LV_CHART_AXIS_PRIMARY_Y);
+        if (series) {
+          auto chart_series_wrapper =
+              ChartSeriesWrapper{series, Gui::CHART_X_POINT_COUNT};
+          lv_chart_set_ext_y_array(_chart_obj.get(), series,
+                                   chart_series_wrapper.y_points.data());
+          _chart_series_map.emplace(sensor_id, std::move(chart_series_wrapper));
+        }
+      }
+    }
+    //
+    lv_chart_set_point_count(_chart_obj.get(), Gui::CHART_X_POINT_COUNT);
   }
 }
 
@@ -1216,26 +1528,8 @@ template <typename T> void Widget::BasicChart<T>::render() {
 //
 // 気温
 //
-Widget::TemperatureChart::TemperatureChart(InitArg init) : TileBase{init} {
-  if (_tile_obj) {
-    // create
-    _title_obj.reset(lv_label_create(_tile_obj.get()), lv_obj_del);
-    if (_title_obj) {
-      lv_obj_set_style_text_align(_title_obj.get(), LV_TEXT_ALIGN_LEFT,
-                                  LV_STATE_DEFAULT);
-      lv_obj_set_style_text_font(_title_obj.get(), &lv_font_montserrat_16,
-                                 LV_STATE_DEFAULT);
-      lv_obj_set_size(_title_obj.get(), LV_PCT(100),
-                      lv_font_montserrat_16.line_height);
-      lv_obj_align(_title_obj.get(), LV_ALIGN_TOP_LEFT, BC::MARGIN, BC::MARGIN);
-      lv_label_set_text(_title_obj.get(), "Temperature");
-    } else {
-      M5_LOGE("null pointer");
-    }
-  } else {
-    M5_LOGE("null pointer");
-  }
-}
+Widget::TemperatureChart::TemperatureChart(InitArg init)
+    : TileBase{init, "Temperature"} {}
 
 //
 void Widget::TemperatureChart::update() {
@@ -1362,26 +1656,7 @@ void Widget::TemperatureChart::BC::chart_draw_part_tick_label(
 // 相対湿度
 //
 Widget::RelativeHumidityChart::RelativeHumidityChart(InitArg init)
-    : TileBase{init} {
-  if (_tile_obj) {
-    // create
-    _title_obj.reset(lv_label_create(_tile_obj.get()), lv_obj_del);
-    if (_title_obj) {
-      lv_obj_set_style_text_align(_title_obj.get(), LV_TEXT_ALIGN_LEFT,
-                                  LV_STATE_DEFAULT);
-      lv_obj_set_style_text_font(_title_obj.get(), &lv_font_montserrat_16,
-                                 LV_STATE_DEFAULT);
-      lv_obj_set_size(_title_obj.get(), LV_PCT(100),
-                      lv_font_montserrat_16.line_height);
-      lv_obj_align(_title_obj.get(), LV_ALIGN_TOP_LEFT, BC::MARGIN, BC::MARGIN);
-      lv_label_set_text(_title_obj.get(), "Relative Humidity");
-    } else {
-      M5_LOGE("null pointer");
-    }
-  } else {
-    M5_LOGE("null pointer");
-  }
-}
+    : TileBase{init, "Relative Humidity"} {}
 
 //
 void Widget::RelativeHumidityChart::update() {
@@ -1507,26 +1782,8 @@ void Widget::RelativeHumidityChart::BC::chart_draw_part_tick_label(
 //
 // 気圧
 //
-Widget::PressureChart::PressureChart(InitArg init) : TileBase{init} {
-  if (_tile_obj) {
-    // create
-    _title_obj.reset(lv_label_create(_tile_obj.get()), lv_obj_del);
-    if (_title_obj) {
-      lv_obj_set_style_text_align(_title_obj.get(), LV_TEXT_ALIGN_LEFT,
-                                  LV_STATE_DEFAULT);
-      lv_obj_set_style_text_font(_title_obj.get(), &lv_font_montserrat_16,
-                                 LV_STATE_DEFAULT);
-      lv_obj_set_size(_title_obj.get(), LV_PCT(100),
-                      lv_font_montserrat_16.line_height);
-      lv_obj_align(_title_obj.get(), LV_ALIGN_TOP_LEFT, BC::MARGIN, BC::MARGIN);
-      lv_label_set_text(_title_obj.get(), "Pressure");
-    } else {
-      M5_LOGE("null pointer");
-    }
-  } else {
-    M5_LOGE("null pointer");
-  }
-}
+Widget::PressureChart::PressureChart(InitArg init)
+    : TileBase{init, "Pressure"} {}
 
 //
 void Widget::PressureChart::update() {
@@ -1638,26 +1895,7 @@ void Widget::PressureChart::BC::chart_draw_part_tick_label(
 // Co2 / ECo2
 //
 Widget::CarbonDeoxidesChart::CarbonDeoxidesChart(InitArg init)
-    : TileBase{init} {
-  if (_tile_obj) {
-    // create
-    _title_obj.reset(lv_label_create(_tile_obj.get()), lv_obj_del);
-    if (_title_obj) {
-      lv_obj_set_style_text_align(_title_obj.get(), LV_TEXT_ALIGN_LEFT,
-                                  LV_STATE_DEFAULT);
-      lv_obj_set_style_text_font(_title_obj.get(), &lv_font_montserrat_16,
-                                 LV_STATE_DEFAULT);
-      lv_obj_set_size(_title_obj.get(), LV_PCT(100),
-                      lv_font_montserrat_16.line_height);
-      lv_obj_align(_title_obj.get(), LV_ALIGN_TOP_LEFT, BC::MARGIN, BC::MARGIN);
-      lv_label_set_text(_title_obj.get(), "CO2");
-    } else {
-      M5_LOGE("null pointer");
-    }
-  } else {
-    M5_LOGE("null pointer");
-  }
-}
+    : TileBase{init, "CO2"} {}
 
 //
 void Widget::CarbonDeoxidesChart::update() {
@@ -1773,26 +2011,8 @@ void Widget::CarbonDeoxidesChart::BC::chart_draw_part_tick_label(
 //
 // Total VOC
 //
-Widget::TotalVocChart::TotalVocChart(InitArg init) : TileBase{init} {
-  if (_tile_obj) {
-    // create
-    _title_obj.reset(lv_label_create(_tile_obj.get()), lv_obj_del);
-    if (_title_obj) {
-      lv_obj_set_style_text_align(_title_obj.get(), LV_TEXT_ALIGN_LEFT,
-                                  LV_STATE_DEFAULT);
-      lv_obj_set_style_text_font(_title_obj.get(), &lv_font_montserrat_16,
-                                 LV_STATE_DEFAULT);
-      lv_obj_set_size(_title_obj.get(), LV_PCT(100),
-                      lv_font_montserrat_16.line_height);
-      lv_obj_align(_title_obj.get(), LV_ALIGN_TOP_LEFT, BC::MARGIN, BC::MARGIN);
-      lv_label_set_text(_title_obj.get(), "Total VOC");
-    } else {
-      M5_LOGE("null pointer");
-    }
-  } else {
-    M5_LOGE("null pointer");
-  }
-}
+Widget::TotalVocChart::TotalVocChart(InitArg init)
+    : TileBase{init, "Total VOC"} {}
 
 //
 void Widget::TotalVocChart::update() {
