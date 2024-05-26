@@ -6,7 +6,7 @@
 #include "AzIoTSasToken.h"
 #include "Sensor.hpp"
 #include "Telemetry.hpp"
-#include <Arduinojson.h>
+#include <ArduinoJson.h>
 #include <chrono>
 #include <cmath>
 #include <ctime>
