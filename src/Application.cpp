@@ -156,6 +156,7 @@ bool Application::startup() {
   // 起動シーケンス
   std::vector<std::function<bool(std::ostream &)>> startup_sequence{
       std::bind(&Application::read_settings_json, this, std::placeholders::_1),
+      std::bind(&Application::start_SD, this, std::placeholders::_1),
       std::bind(&Application::start_wifi, this, std::placeholders::_1),
       std::bind(&Application::synchronize_ntp, this, std::placeholders::_1),
       std::bind(&Application::start_database, this, std::placeholders::_1),
@@ -191,11 +192,6 @@ bool Application::startup() {
     auto cfg = M5.config();
     M5.begin(cfg);
     M5.Power.setVibration(0); // stop the vibration
-  }
-
-  // init SD
-  while (false == SD.begin(GPIO_NUM_4, SPI, 25000000)) {
-    delay(500);
   }
 
   //
@@ -428,6 +424,32 @@ error_halt:
     delay(10);
   }
   return false;
+}
+
+//
+bool Application::start_SD(std::ostream &os) {
+  {
+    std::ostringstream ss;
+    ss << "start SD lib";
+    os << ss.str() << std::endl;
+    M5_LOGI("%s", ss.str());
+  }
+
+  // init SD
+  auto timeover{steady_clock::now() + TIMEOUT};
+  while (SD.begin(GPIO_NUM_4, SPI, 25000000) == false &&
+         steady_clock::now() < timeover) {
+    std::this_thread::sleep_for(500ms);
+  }
+  if (steady_clock::now() < timeover) {
+    return true;
+  } else {
+    std::ostringstream ss;
+    ss << "SD card not found";
+    os << ss.str() << std::endl;
+    M5_LOGE("%s", ss.str());
+    return false;
+  }
 }
 
 //
