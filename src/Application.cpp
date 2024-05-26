@@ -166,6 +166,7 @@ bool Application::startup() {
       std::bind(&Application::start_sensor_SCD30, this, std::placeholders::_1),
       std::bind(&Application::start_sensor_SCD41, this, std::placeholders::_1),
       std::bind(&Application::start_sensor_M5ENV3, this, std::placeholders::_1),
+      std::bind(&Application::start_measuring, this, std::placeholders::_1),
   };
   //
   struct BufWithLogging : public std::stringbuf {
@@ -275,104 +276,6 @@ bool Application::startup() {
   _rgb_led.clear();
 
   //
-  if constexpr (false) {
-    while (!isTimeSynced()) {
-      std::this_thread::sleep_for(100ms);
-    }
-    std::this_thread::sleep_for(1s);
-    std::unique_ptr<Sensor::Device> pdev =
-        std::make_unique<Sensor::Bme280Device>(SENSOR_DESCRIPTOR_BME280,
-                                               BME280_I2C_ADDRESS, Wire);
-    _sensors.push_back(std::move(pdev));
-    std::unique_ptr<Sensor::Device> pdev2 =
-        std::make_unique<Sensor::M5Env3Device>(SENSOR_DESCRIPTOR_M5ENV3, Wire,
-                                               32, 33);
-    _sensors.push_back(std::move(pdev2));
-    auto tp = floor<minutes>(system_clock::now());
-    Sensor::Bme280 a{SENSOR_DESCRIPTOR_BME280, CentiDegC{1100}, CentiRH{5000},
-                     DeciPa{1000}};
-    Sensor::Bme280 b{SENSOR_DESCRIPTOR_BME280, CentiDegC{1200}, CentiRH{5000},
-                     DeciPa{1000}};
-    Sensor::Bme280 c{SENSOR_DESCRIPTOR_BME280, CentiDegC{1300}, CentiRH{5000},
-                     DeciPa{1000}};
-    Sensor::Bme280 d{SENSOR_DESCRIPTOR_BME280, CentiDegC{1400}, CentiRH{5000},
-                     DeciPa{1000}};
-    Sensor::Bme280 e{SENSOR_DESCRIPTOR_BME280, CentiDegC{1600}, CentiRH{5000},
-                     DeciPa{1000}};
-    Sensor::Bme280 f{SENSOR_DESCRIPTOR_BME280, CentiDegC{1700}, CentiRH{5000},
-                     DeciPa{1000}};
-    Sensor::Bme280 g{SENSOR_DESCRIPTOR_BME280, CentiDegC{1800}, CentiRH{5000},
-                     DeciPa{1000}};
-    Sensor::Bme280 h{SENSOR_DESCRIPTOR_BME280, CentiDegC{1900}, CentiRH{5000},
-                     DeciPa{1000}};
-    Sensor::Bme280 i{SENSOR_DESCRIPTOR_BME280, CentiDegC{2000}, CentiRH{5000},
-                     DeciPa{1000}};
-    Sensor::Bme280 j{SENSOR_DESCRIPTOR_BME280, CentiDegC{2100}, CentiRH{5000},
-                     DeciPa{1000}};
-    Sensor::Bme280 k{SENSOR_DESCRIPTOR_BME280, CentiDegC{2200}, CentiRH{5000},
-                     DeciPa{1000}};
-    Sensor::Bme280 l{SENSOR_DESCRIPTOR_BME280, CentiDegC{2300}, CentiRH{5000},
-                     DeciPa{1000}};
-    Sensor::Bme280 m{SENSOR_DESCRIPTOR_BME280, CentiDegC{2400}, CentiRH{5000},
-                     DeciPa{1000}};
-    Sensor::Bme280 n{SENSOR_DESCRIPTOR_BME280, CentiDegC{2500}, CentiRH{5000},
-                     DeciPa{1000}};
-    Sensor::Bme280 o{SENSOR_DESCRIPTOR_BME280, CentiDegC{2600}, CentiRH{5000},
-                     DeciPa{1000}};
-    Sensor::Bme280 p{SENSOR_DESCRIPTOR_BME280, CentiDegC{2700}, CentiRH{5000},
-                     DeciPa{1000}};
-    Sensor::Bme280 q{SENSOR_DESCRIPTOR_BME280, CentiDegC{2800}, CentiRH{5000},
-                     DeciPa{1000}};
-    Sensor::Bme280 r{SENSOR_DESCRIPTOR_BME280, CentiDegC{2900}, CentiRH{5000},
-                     DeciPa{1000}};
-    Sensor::Bme280 s{SENSOR_DESCRIPTOR_BME280, CentiDegC{3000}, CentiRH{5000},
-                     DeciPa{1000}};
-    Sensor::Bme280 t{SENSOR_DESCRIPTOR_BME280, CentiDegC{3100}, CentiRH{5000},
-                     DeciPa{1000}};
-    Sensor::Bme280 u{SENSOR_DESCRIPTOR_BME280, CentiDegC{3200}, CentiRH{5000},
-                     DeciPa{1000}};
-    Sensor::Bme280 v{SENSOR_DESCRIPTOR_BME280, CentiDegC{3300}, CentiRH{5000},
-                     DeciPa{1000}};
-    Sensor::Bme280 w{SENSOR_DESCRIPTOR_BME280, CentiDegC{3400}, CentiRH{5000},
-                     DeciPa{1000}};
-    Sensor::Bme280 x{SENSOR_DESCRIPTOR_BME280, CentiDegC{3500}, CentiRH{5000},
-                     DeciPa{1000}};
-    Sensor::Bme280 y{SENSOR_DESCRIPTOR_BME280, CentiDegC{3600}, CentiRH{5000},
-                     DeciPa{1000}};
-    Sensor::Bme280 z{SENSOR_DESCRIPTOR_BME280, CentiDegC{3700}, CentiRH{5000},
-                     DeciPa{1000}};
-    _data_acquisition_db.insert({tp - 25min, a});
-    _data_acquisition_db.insert({tp - 24min, b});
-    _data_acquisition_db.insert({tp - 23min, c});
-    _data_acquisition_db.insert({tp - 22min, d});
-    _data_acquisition_db.insert({tp - 21min, e});
-    _data_acquisition_db.insert({tp - 20min, f});
-    _data_acquisition_db.insert({tp - 19min, g});
-    _data_acquisition_db.insert({tp - 18min, h});
-    _data_acquisition_db.insert({tp - 17min, i});
-    _data_acquisition_db.insert({tp - 16min, j});
-    _data_acquisition_db.insert({tp - 15min, k});
-    _data_acquisition_db.insert({tp - 14min, l});
-    _data_acquisition_db.insert({tp - 13min, m});
-    _data_acquisition_db.insert({tp - 12min, n});
-    _data_acquisition_db.insert({tp - 11min, o});
-    _data_acquisition_db.insert({tp - 10min, p});
-    _data_acquisition_db.insert({tp - 9min, q});
-    _data_acquisition_db.insert({tp - 8min, r});
-    _data_acquisition_db.insert({tp - 7min, s});
-    _data_acquisition_db.insert({tp - 6min, t});
-    _data_acquisition_db.insert({tp - 5min, u});
-    _data_acquisition_db.insert({tp - 4min, v});
-    _data_acquisition_db.insert({tp - 3min, w});
-    _data_acquisition_db.insert({tp - 2min, x});
-    _data_acquisition_db.insert({tp - 1min, y});
-    _data_acquisition_db.insert({tp - 0min, z});
-  }
-
-  //
-  _measuring_task.begin(std::chrono::system_clock::now());
-
-  //
   _gui.startUi();
 
   // create RTOS task for this Application
@@ -432,9 +335,8 @@ bool Application::start_SD(std::ostream &os) {
     std::ostringstream ss;
     ss << "start SD lib";
     os << ss.str() << std::endl;
-    M5_LOGI("%s", ss.str());
+    M5_LOGI("%s", ss.str().c_str());
   }
-
   // init SD
   auto timeover{steady_clock::now() + TIMEOUT};
   while (SD.begin(GPIO_NUM_4, SPI, 25000000) == false &&
@@ -447,7 +349,7 @@ bool Application::start_SD(std::ostream &os) {
     std::ostringstream ss;
     ss << "SD card not found";
     os << ss.str() << std::endl;
-    M5_LOGE("%s", ss.str());
+    M5_LOGE("%s", ss.str().c_str());
     return false;
   }
 }
@@ -466,7 +368,7 @@ bool Application::start_wifi(std::ostream &os) {
     std::ostringstream ss;
     ss << "wifi SSID not set";
     os << ss.str() << std::endl;
-    M5_LOGE("%s", ss.str());
+    M5_LOGE("%s", ss.str().c_str());
     return false;
   }
   if (getSettings_wifi_password()) {
@@ -475,7 +377,7 @@ bool Application::start_wifi(std::ostream &os) {
     std::ostringstream ss;
     ss << "wifi password not set";
     os << ss.str() << std::endl;
-    M5_LOGE("%s", ss.str());
+    M5_LOGE("%s", ss.str().c_str());
     return false;
   }
   //
@@ -483,7 +385,7 @@ bool Application::start_wifi(std::ostream &os) {
     std::ostringstream ss;
     ss << "WiFi AP SSID\""s << ssid << "\""s;
     os << ss.str() << std::endl;
-    M5_LOGI("%s", ss.str());
+    M5_LOGI("%s", ss.str().c_str());
   }
   //  WiFi with Station mode
   WiFi.onEvent(wifi_event_callback);
@@ -603,7 +505,7 @@ bool Application::start_telemetry(std::ostream &os) {
     std::ostringstream ss;
     ss << "start Telemetry.";
     os << ss.str() << std::endl;
-    M5_LOGI("%s", ss.str());
+    M5_LOGI("%s", ss.str().c_str());
   }
   //
   std::string iothub_fqdn;
@@ -616,7 +518,7 @@ bool Application::start_telemetry(std::ostream &os) {
     std::ostringstream ss;
     ss << "Azure IoT Hub FQDN not set";
     os << ss.str() << std::endl;
-    M5_LOGE("%s", ss.str());
+    M5_LOGE("%s", ss.str().c_str());
     return false;
   }
   if (getSettings_AzureIoTHub_DeviceID()) {
@@ -625,7 +527,7 @@ bool Application::start_telemetry(std::ostream &os) {
     std::ostringstream ss;
     ss << "Azure IoT Hub DeviceID not set";
     os << ss.str() << std::endl;
-    M5_LOGE("%s", ss.str());
+    M5_LOGE("%s", ss.str().c_str());
     return false;
   }
   if (getSettings_AzureIoTHub_DeviceKey()) {
@@ -634,7 +536,7 @@ bool Application::start_telemetry(std::ostream &os) {
     std::ostringstream ss;
     ss << "Azure IoT Hub DeviceKey not set";
     os << ss.str() << std::endl;
-    M5_LOGE("%s", ss.str());
+    M5_LOGE("%s", ss.str().c_str());
     return false;
   }
 
@@ -644,7 +546,7 @@ bool Application::start_telemetry(std::ostream &os) {
     std::ostringstream ss;
     ss << "MQTT subscribe failed.";
     os << ss.str() << std::endl;
-    M5_LOGE("%s", ss.str());
+    M5_LOGE("%s", ss.str().c_str());
     return false;
   }
   //
@@ -777,13 +679,43 @@ bool Application::start_sensor_M5ENV3(std::ostream &os) {
   return false;
 }
 
+//
+bool Application::start_measuring(std::ostream &os) {
+  {
+    std::ostringstream ss;
+    ss << "waiting for time sync";
+    os << ss.str() << std::endl;
+    M5_LOGI("%s", ss.str().c_str());
+  }
+  //
+  while (!isTimeSynced()) {
+    std::this_thread::sleep_for(100ms);
+  }
+  //
+  {
+    std::ostringstream ss;
+    ss << "time is synced.";
+    os << ss.str() << std::endl;
+    M5_LOGI("%s", ss.str().c_str());
+  }
+  //
+  {
+    std::ostringstream ss;
+    ss << "start measuring";
+    os << ss.str() << std::endl;
+    M5_LOGI("%s", ss.str().c_str());
+  }
+  _measuring_task.begin(std::chrono::system_clock::now());
+  return true;
+}
+
 // iso8601 format.
 std::string Application::isoformatUTC(std::time_t utctime) {
   struct tm tm;
   gmtime_r(&utctime, &tm);
   std::ostringstream oss;
   oss << std::put_time(&tm, "%FT%TZ");
-  return oss.str().c_str();
+  return oss.str();
 }
 
 //

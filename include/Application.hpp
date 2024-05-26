@@ -173,6 +173,8 @@ private:
   //
   bool start_sensor_M5ENV3(std::ostream &os);
   //
+  bool start_measuring(std::ostream &os);
+  //
   static void time_sync_notification_callback(struct timeval *time_val);
   //
   static void wifi_event_callback(WiFiEvent_t event);
