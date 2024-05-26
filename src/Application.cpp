@@ -158,14 +158,12 @@ bool Application::startup() {
       std::bind(&Application::start_wifi, this, std::placeholders::_1),
       std::bind(&Application::synchronize_ntp, this, std::placeholders::_1),
       std::bind(&Application::start_database, this, std::placeholders::_1),
-      /*
       std::bind(&Application::start_telemetry, this, std::placeholders::_1),
       std::bind(&Application::start_sensor_BME280, this, std::placeholders::_1),
       std::bind(&Application::start_sensor_SGP30, this, std::placeholders::_1),
       std::bind(&Application::start_sensor_SCD30, this, std::placeholders::_1),
       std::bind(&Application::start_sensor_SCD41, this, std::placeholders::_1),
       std::bind(&Application::start_sensor_M5ENV3, this, std::placeholders::_1),
-      */
   };
   //
   struct BufWithLogging : public std::stringbuf {
@@ -275,7 +273,7 @@ bool Application::startup() {
   _rgb_led.clear();
 
   //
-  if constexpr (true) {
+  if constexpr (false) {
     while (!isTimeSynced()) {
       std::this_thread::sleep_for(100ms);
     }

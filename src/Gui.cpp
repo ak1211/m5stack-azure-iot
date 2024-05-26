@@ -1177,7 +1177,6 @@ Widget::ExportImportData::ExportImportData(Widget::InitArg init)
     M5_LOGE("null pointer");
   }
   //
-  //
   if (_import_button_obj && _export_button_obj) {
     if (lv_obj_t *label = lv_label_create(_import_button_obj.get()); label) {
       lv_label_set_text(label, "Import Data from SD CARD");

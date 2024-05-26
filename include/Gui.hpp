@@ -175,8 +175,6 @@ class MessageBox {
   using ButtonClickCallback = std::function<void(uint16_t)>;
 
 public:
-  constexpr static auto GAP{36};
-  //
   MessageBox(lv_obj_t *parent, std::string_view title, std::string_view text,
              std::vector<const char *> buttons, ButtonClickCallback callback);
 
