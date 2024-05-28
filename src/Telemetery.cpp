@@ -384,7 +384,7 @@ bool Telemetry::task_handler() {
       return false;
     } else {
       M5_LOGD("MQTT enqueued; message id: %d", message_id);
-      M5_LOGV("MQTT enqueued; %s", datum.data());
+      M5_LOGV("MQTT enqueued; %s", datum.c_str());
       // MQTT待ち行列に送った後も、実際にMQTT送信が終わるまでポインタが指すメッセージの実体を保持しておく
       _sent_messages.insert({message_id, std::move(datum)});
       // MQTT待ち行列に送ったので送信用FIFO待ち行列から先頭のアイテムを消す
