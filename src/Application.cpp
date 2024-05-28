@@ -476,15 +476,16 @@ bool Application::start_database(std::ostream &os) {
     }
     // 失敗したらデータベースファイルを消去して再度初期化
     if (LittleFS.remove(DATA_ACQUISITION_DATABASE_FILE_URI.data())) {
-      os << "file \"" << DATA_ACQUISITION_DATABASE_FILE_URI << "\" removed."
-         << std::endl;
-      M5_LOGI("file \"%s\" removed.",
-              DATA_ACQUISITION_DATABASE_FILE_URI.data());
+      std::ostringstream ss;
+      ss << "file \"" << DATA_ACQUISITION_DATABASE_FILE_URI << "\" removed.";
+      os << ss.str() << std::endl;
+      M5_LOGI("%s", ss.str().c_str());
     } else {
-      os << "file \"" << DATA_ACQUISITION_DATABASE_FILE_URI
-         << "\" remove error." << std::endl;
-      M5_LOGE("file \"%s\" remove error.",
-              DATA_ACQUISITION_DATABASE_FILE_URI.data());
+      std::ostringstream ss;
+      ss << "file \"" << DATA_ACQUISITION_DATABASE_FILE_URI
+         << "\" remove error.";
+      os << ss.str() << std::endl;
+      M5_LOGE("%s", ss.str().c_str());
       return false;
     }
   }
