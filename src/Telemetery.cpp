@@ -339,7 +339,7 @@ bool Telemetry::terminate() {
 
 //
 bool Telemetry::task_handler() {
-  if (_mqtt_connected == false) {
+  if (!WiFi.isConnected() || !_mqtt_connected) {
     return false;
   }
   if (optAzIoTSasToken.has_value() && optAzIoTSasToken->IsExpired()) {
@@ -377,8 +377,8 @@ bool Telemetry::task_handler() {
         std::visit([this](const auto &x) { return to_json_message(x); }, item);
     // MQTT待ち行列に入れる
     if (auto message_id = esp_mqtt_client_enqueue(
-            mqtt_client.get(), telemetry_topic.data(), datum.data(),
-            datum.length(), MQTT_QOS, DO_NOT_RETAIN_MSG, true);
+            mqtt_client.get(), telemetry_topic.data(), datum.c_str(), 0,
+            MQTT_QOS, DO_NOT_RETAIN_MSG, true);
         message_id < 0) {
       M5_LOGE("Failed publishing");
       return false;

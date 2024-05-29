@@ -461,6 +461,13 @@ bool Application::synchronize_ntp(std::ostream &os) {
   configTzTime(TZ_TIME_ZONE.data(), "time.cloudflare.com",
                "ntp.jst.mfeed.ad.jp", "ntp.nict.jp");
   //
+  os << "waiting for time sync" << std::endl;
+  M5_LOGI("waiting for time sync");
+  //
+  while (!_time_is_synced) {
+    std::this_thread::sleep_for(100ms);
+  }
+  //
   return true;
 }
 
@@ -682,30 +689,15 @@ bool Application::start_sensor_M5ENV3(std::ostream &os) {
 
 //
 bool Application::start_measuring(std::ostream &os) {
-  {
-    std::ostringstream ss;
-    ss << "waiting for time sync";
-    os << ss.str() << std::endl;
-    M5_LOGI("%s", ss.str().c_str());
-  }
+  std::ostringstream ss;
+  ss << "start measuring";
+  os << ss.str() << std::endl;
+  M5_LOGI("%s", ss.str().c_str());
   //
-  while (!isTimeSynced()) {
+  while (!_time_is_synced) {
     std::this_thread::sleep_for(100ms);
   }
   //
-  {
-    std::ostringstream ss;
-    ss << "time is synced.";
-    os << ss.str() << std::endl;
-    M5_LOGI("%s", ss.str().c_str());
-  }
-  //
-  {
-    std::ostringstream ss;
-    ss << "start measuring";
-    os << ss.str() << std::endl;
-    M5_LOGI("%s", ss.str().c_str());
-  }
   _measuring_task.begin(std::chrono::system_clock::now());
   return true;
 }
