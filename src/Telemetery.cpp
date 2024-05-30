@@ -175,9 +175,9 @@ esp_err_t Telemetry::mqtt_event_handler(esp_mqtt_event_handle_t event) {
   case MQTT_EVENT_PUBLISHED:
     M5_LOGD("MQTT event MQTT_EVENT_PUBLISHED; message id:%d", event->msg_id);
     if (event->msg_id >= 0) {
-      if (auto itr = telemetry._sent_messages.find(event->msg_id);
-          itr != telemetry._sent_messages.end()) {
-        M5_LOGD("[PUBLISHED]:%s", itr->second.c_str());
+      auto found_itr = telemetry._sent_messages.find(event->msg_id);
+      if (found_itr != telemetry._sent_messages.end()) {
+        M5_LOGD("[PUBLISHED]:%s", found_itr->second.c_str());
       } else {
         M5_LOGE("PUBLISHED message ID is not found");
       }
@@ -313,6 +313,7 @@ bool Telemetry::initializeMqttClient() {
 //
 bool Telemetry::begin(std::string_view iothub_fqdn, std::string_view device_id,
                       std::string_view device_key) {
+  _sent_messages.clear();
   //
   iot_hub_client_options = az_iot_hub_client_options_default();
   iot_hub_client_options.user_agent =
@@ -328,11 +329,13 @@ bool Telemetry::begin(std::string_view iothub_fqdn, std::string_view device_id,
 
 //
 bool Telemetry::reconnect() {
+  _sent_messages.clear();
   return (initializeIoTHubClient() && initializeMqttClient());
 }
 
 //
 bool Telemetry::terminate() {
+  _sent_messages.clear();
   mqtt_client.reset();
   return true;
 }
@@ -376,7 +379,7 @@ bool Telemetry::task_handler() {
     std::string datum =
         std::visit([this](const auto &x) { return to_json_message(x); }, item);
     // MQTT待ち行列に入れる
-    if (auto message_id = esp_mqtt_client_enqueue(
+    if (MessageId message_id = esp_mqtt_client_enqueue(
             mqtt_client.get(), telemetry_topic.data(), datum.c_str(), 0,
             MQTT_QOS, DO_NOT_RETAIN_MSG, true);
         message_id < 0) {
