@@ -20,7 +20,7 @@ extern "C" {
 // MQTT通信
 class Telemetry {
   constexpr static int32_t MQTT_PORT{AZ_IOT_DEFAULT_MQTT_CONNECT_PORT};
-  constexpr static size_t MAX_SEND_FIFO_BUFFER_SIZE{64};
+  constexpr static size_t MAX_SEND_FIFO_BUFFER_SIZE{500};
   constexpr static int32_t SAS_TOKEN_DURATION_IN_MINUTES{60};
   using MessageId = int32_t;
   // 送信用

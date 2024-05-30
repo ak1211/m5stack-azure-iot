@@ -1497,7 +1497,12 @@ template <typename T> void Widget::BasicChart<T>::render() {
           found_itr != _chart_series_map.end()) {
         auto coord = coordinateXY(_begin_x_tp, item);
         M5_LOGV("%d,%d", coord.x, coord.y);
-        found_itr->second.y_points.at(coord.x) = coord.y;
+        try {
+          found_itr->second.y_points.at(coord.x) = coord.y;
+        } catch (std::out_of_range &ex) {
+          M5_LOGE("out of range:%d; (size:%d)", coord.x,
+                  found_itr->second.y_points.size());
+        }
       }
       // データー表示(デバッグ用)
       if constexpr (CORE_DEBUG_LEVEL >= ESP_LOG_VERBOSE) {
