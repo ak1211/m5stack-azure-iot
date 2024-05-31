@@ -295,7 +295,7 @@ bool Application::startup() {
 //
 bool Application::read_settings_json(std::ostream &os) {
   //
-  if (auto file = LittleFS.open(SETTINGS_FILE_PATH.data())) {
+  if (auto file = LittleFS.open(SETTINGS_FILE_PATH.data()); file) {
     DeserializationError error = deserializeJson(settings_json, file);
     file.close();
     if (error == DeserializationError::Ok) {
@@ -310,7 +310,6 @@ bool Application::read_settings_json(std::ostream &os) {
       M5_LOGE("%s", ss.str().c_str());
       goto error_halt;
     }
-    return true;
   } else {
     std::ostringstream ss;
     ss << "Error; Open \"" << SETTINGS_FILE_PATH << "\" file.";
@@ -318,6 +317,7 @@ bool Application::read_settings_json(std::ostream &os) {
     M5_LOGE("%s", ss.str().c_str());
     goto error_halt;
   }
+  return true;
 
 error_halt:
   // halted
