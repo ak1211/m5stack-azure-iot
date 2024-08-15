@@ -18,13 +18,14 @@ using namespace std::chrono;
 const sqlite3_mem_methods Database::_custom_mem_methods{
     /* Memory allocation function */
     .xMalloc = [](int size) -> void * {
-      return heap_caps_aligned_alloc(8, size, MALLOC_CAP_SPIRAM);
+      return heap_caps_aligned_alloc(8, size,
+                                     MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
     },
     /* Free a prior allocation */
-    .xFree = free,
+    .xFree = heap_caps_free,
     /* Resize an allocation */
     .xRealloc = [](void *ptr, int size) -> void * {
-      return heap_caps_realloc(ptr, size, MALLOC_CAP_SPIRAM);
+      return heap_caps_realloc(ptr, size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
     },
     /* Return the size of an allocation */
     .xSize = [](void *ptr) -> int { return heap_caps_get_allocated_size(ptr); },
@@ -640,8 +641,9 @@ bool Database::begin(const std::string &database_file_path) {
   if (psramFound()) {
     //
     M5_LOGI("Database uses heap on SPIRAM");
-    if (auto result =
-            sqlite3_config(SQLITE_CONFIG_MALLOC, &_custom_mem_methods);
+    if (auto result = sqlite3_config(
+            SQLITE_CONFIG_MALLOC,
+            static_cast<const sqlite3_mem_methods *>(&_custom_mem_methods));
         result != SQLITE_OK) {
       M5_LOGE("sqlite3_config() failure: %d", result);
       terminate();
@@ -650,8 +652,17 @@ bool Database::begin(const std::string &database_file_path) {
     //
 #ifdef SQLITE_ENABLE_MEMSYS5
     if (_database_use_preallocated_memory == nullptr) {
-      _database_use_preallocated_memory = heap_caps_aligned_alloc(
-          8, DATABASE_USE_PREALLOCATED_MEMORY_SIZE, MALLOC_CAP_SPIRAM);
+      sqlite3_mem_methods mem_methods{};
+      if (auto result =
+              sqlite3_config(SQLITE_CONFIG_GETMALLOC,
+                             static_cast<sqlite3_mem_methods *>(&mem_methods));
+          result != SQLITE_OK) {
+        M5_LOGE("sqlite3_config() failure: %d", result);
+        terminate();
+        return false;
+      }
+      _database_use_preallocated_memory =
+          mem_methods.xMalloc(DATABASE_USE_PREALLOCATED_MEMORY_SIZE);
     }
     //
     if (_database_use_preallocated_memory) {
@@ -781,11 +792,6 @@ bool Database::delete_old_measurements_from_database(
     return false;
   }
 
-  Transaction transaction{_sqlite3_db};
-  if (!transaction.begin()) {
-    return false;
-  }
-
   M5_LOGI("delete old rows.");
 
   // delete old rows
@@ -839,6 +845,16 @@ bool Database::delete_old_measurements_from_database(
       M5_LOGE("%s", sqlite3_errmsg(_sqlite3_db.get()));
       return false;
     }
+  }
+
+  //
+  if (char *error_msg{}; sqlite3_exec(_sqlite3_db.get(), "VACUUM;", nullptr,
+                                      nullptr, &error_msg) != SQLITE_OK) {
+    if (error_msg) {
+      M5_LOGE("%s", error_msg);
+    }
+    sqlite3_free(error_msg);
+    return false;
   }
 
   return true;

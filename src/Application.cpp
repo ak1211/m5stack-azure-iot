@@ -94,9 +94,10 @@ bool Application::task_handler() {
   //
   if (now_tp - before_db_tp >= 333s) {
     // データベースの整理
-    system_clock::time_point tp = now_tp - minutes{Gui::CHART_X_POINT_COUNT};
-    if (_data_acquisition_db.delete_old_measurements_from_database(
-            std::chrono::floor<minutes>(tp)) == false) {
+    const system_clock::time_point tp =
+        now_tp - std::chrono::hours{24 * 7 * 2}; // 2週間
+    if (_data_acquisition_db.delete_old_measurements_from_database(tp) ==
+        false) {
       M5_LOGE("delete old measurements failed.");
     }
     before_db_tp = now_tp;
@@ -499,6 +500,13 @@ bool Application::start_database(std::ostream &os) {
   //
   if (Application::_data_acquisition_db.available()) {
     os << "Database is available." << std::endl;
+    //
+    if (Application::_data_acquisition_db.delete_old_measurements_from_database(
+            std::chrono::system_clock::now())) {
+      M5_LOGI("delete_old_measurements_from_database() success.");
+    } else {
+      M5_LOGE("delete_old_measurements_from_database() failure.");
+    }
     return true;
   } else {
     os << "Database is not available." << std::endl;
